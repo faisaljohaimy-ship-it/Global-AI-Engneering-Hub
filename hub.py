@@ -5,6 +5,7 @@ import re
 import sys
 
 import hublink
+from engineering_os import control
 
 ROOT = pathlib.Path(__file__).resolve().parent
 HUB_URL = "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub"
@@ -252,6 +253,14 @@ def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="cmd", required=True)
     commands.add_parser("audit")
+    commands.add_parser("architecture")
+    capability_parser = commands.add_parser("capabilities")
+    capability_parser.add_argument("--query", default="")
+    capability_parser.add_argument("--state", choices=control.STATES)
+    health_parser = commands.add_parser("health")
+    health_parser.add_argument("--project")
+    commands.add_parser("motions")
+    commands.add_parser("integrations")
     search = commands.add_parser("search")
     search.add_argument("query")
     recommend_parser = commands.add_parser("recommend")
@@ -281,6 +290,16 @@ def main():
     args = parser.parse_args()
     if args.cmd == "audit":
         result = audit()
+    elif args.cmd == "architecture":
+        result = control.architecture()
+    elif args.cmd == "capabilities":
+        result = control.capabilities(args.query, args.state)
+    elif args.cmd == "health":
+        result = control.health(args.project)
+    elif args.cmd == "motions":
+        result = control.motions()
+    elif args.cmd == "integrations":
+        result = control.integrations()
     elif args.cmd == "search":
         result = [
             item

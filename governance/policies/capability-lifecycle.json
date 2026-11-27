@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "states": ["DISCOVERED", "REVIEWED", "APPROVED", "INSTALLED", "OPERATIONAL", "TESTED", "PROJECT_VERIFIED"],
+  "gates": {
+    "REVIEWED": ["immutable_revision", "license_review", "security_review", "commercial_review"],
+    "APPROVED": ["reviewer", "approval_reference", "zero_additional_budget_or_owner_approval"],
+    "INSTALLED": ["exact_lock", "installation_receipt"],
+    "OPERATIONAL": ["source_checksums", "runtime_receipt"],
+    "TESTED": ["source_checksums", "successful_test_receipt"],
+    "PROJECT_VERIFIED": ["private_project_receipt", "host_and_surface_identity"]
+  },
+  "invariants": [
+    "Discovery never installs or invokes a tool.",
+    "Missing or stale evidence blocks state advancement.",
+    "Provider credentials and private receipts remain outside public Git.",
+    "Target performance and architecture are not achieved metrics.",
+    "A public capability registry must not reveal private product identity."
+  ]
+}
