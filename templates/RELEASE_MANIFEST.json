@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "repository": "",
+  "commit": "",
+  "target_project_id": "",
+  "target_environment": "preview",
+  "checks": [],
+  "approved": false,
+  "rollback_deployment": "",
+  "budget_additional_sar": 0
+}
