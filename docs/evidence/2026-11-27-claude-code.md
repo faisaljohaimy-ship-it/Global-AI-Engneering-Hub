@@ -10,10 +10,10 @@ repository names, customer data or private media.
   `skills/hub-capabilities/SKILL.md`. Registration installs byte-identical copies in
   both `.claude/skills/` and `.agents/skills/`, pins a reviewed hub `main` commit, and
   records a checksum for every managed file.
-- The locked Playwright 1.63.0 verifier produced 30 passing Chromium results: 27
-  specifications plus stagger, typewriter and counter behaviours. The catalog claims
-  28 runtime-verified entries because generic CSS/WAAPI evidence is deliberately not
-  treated as proof that the GLSL/WebGL or Three.js engines ran.
+- The locked Playwright 1.63.0 verifier produced 30 passing Chromium results: 26
+  CSS/WAAPI specifications, stagger/typewriter/counter behaviours, and one dedicated
+  WebGL shader run. The catalog claims 29 runtime-verified entries; generic CSS proof
+  is still not treated as proof that Three.js or Remotion ran.
 - The bounded cinematic sample rendered at 1280×720, 30 fps and 126 frames with
   FFmpeg. `motion-library/evidence/sample-render.json` records the tool versions,
   input hashes, frame hash and measured checks; the video itself stays outside Git.
@@ -33,8 +33,8 @@ this commit take precedence.
 
 ## Limits
 
-- Engine-runtime execution is still pending for Remotion, Three.js and the GLSL
-  component; adapter/unit or CSS fallback evidence is labelled separately.
+- Engine-runtime execution is still pending for Remotion and Three.js; adapter/unit
+  evidence is labelled separately. GLSL has a dedicated Chromium WebGL result.
 - Browser evidence covers Chromium, not all browsers, phones or assistive technology.
 - Agent discovery files and checksum verification prove availability, not that every
   future Claude Code or Codex environment will automatically select the right skill.

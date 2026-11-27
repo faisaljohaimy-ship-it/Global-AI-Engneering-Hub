@@ -37,7 +37,7 @@
     {"id":"typography-counter-interpolation","engine":"waapi-behavior","implementation":"runtime/hub-motion.mjs#counterValueAt","implementation_status":"implemented","test_status":"automated","runtime_status":"browser-verified","runtime_surfaces":["chromium-waapi-behavior"],"used_by":["motion-lab"]},
     {"id":"typography-typewriter","engine":"waapi-behavior","implementation":"runtime/hub-motion.mjs#typewriterAt","implementation_status":"implemented","test_status":"automated","runtime_status":"browser-verified","runtime_surfaces":["chromium-waapi-behavior"],"used_by":["motion-lab"]},
     {"id":"interactive-waapi-keyframes","engine":"waapi","spec":"specs/waapi-keyframes.json","implementation_status":"implemented","test_status":"automated","runtime_status":"browser-verified","runtime_surfaces":["chromium-css","chromium-waapi"],"used_by":["motion-lab"]},
-    {"id":"spatial-fresnel-rim","engine":"glsl-webgl","spec":"specs/fresnel-rim.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","runtime_surfaces":[],"used_by":["motion-lab"]},
+    {"id":"spatial-fresnel-rim","engine":"glsl-webgl","spec":"specs/fresnel-rim.json","implementation_status":"implemented","test_status":"automated","runtime_status":"browser-verified","runtime_surfaces":["chromium-webgl"],"used_by":["motion-lab"]},
     {"id":"cinema-orbit-camera","engine":"three-adapter","spec":"specs/orbit-camera.json","implementation_status":"implemented","test_status":"automated","runtime_status":"adapter-tested","runtime_surfaces":["adapter-unit"],"used_by":["motion-lab"]}
   ]
 }

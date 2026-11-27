@@ -10,9 +10,10 @@
     "ffmpeg": "7.1.5-0+deb13u1"
   },
   "inputs": {
-    "scene_sha256": "2777e6b3651f78e201053e5660f830c665cee956099a23a7f05482006514aedc",
-    "runtime_sha256": "459453abf0ebec1228cace3b4e8a4b4552c92c84cecb30922b144a20aa7c7752",
-    "renderer_sha256": "cfdbe0d1ea61fbff55681e96619ff17bf4b103baf706d3491d77d034f2d9f352"
+    "scene_sha256": "e23017927c8ff6b7a47dcd44bc7f2f5c93be0fcab3e9ff832dd2b07f7c9ce1aa",
+    "runtime_sha256": "a12e91bfb530bf78c6947b411395e2af13544fa98867f5064d26d023d9bdc30f",
+    "core_sha256": "34d2917f58f7f539381f962614c7dff0698063568e64175c88f5bb1f6d470ab0",
+    "renderer_sha256": "0be963f709ccac45204d5805e31f4e5eff99af998569922c31a65e5c288ab866"
   },
   "output": {
     "codec": "h264",
@@ -22,10 +23,10 @@
     "frame_rate": "30/1",
     "frames": 126,
     "duration_seconds": 4.2,
-    "bytes": 216000,
+    "bytes": 216118,
     "distinct_frames": 103,
     "captures_repeated_until_settled": 0,
-    "frames_sha256": "4b0acdd3cf2fa0be5c0538c45007fdd509395c99a22f38484a01f031c53ee453"
+    "frames_sha256": "4a9838e6391a74461c0dce7b0c0b1f57789dd9a5a2b75c3f240900415063daf4"
   },
   "effects": [
     "cinema-dolly-in",

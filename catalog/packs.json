@@ -6,6 +6,7 @@
       "summary": "Dependency-free browser runtime for hub motion specifications, with the logical-direction base stylesheet.",
       "files": {
         "motion-library/runtime/hub-motion-base.css": ".engineering/vendor/hub-motion/hub-motion-base.css",
+        "motion-library/runtime/core.mjs": ".engineering/vendor/hub-motion/core.mjs",
         "motion-library/runtime/hub-motion.mjs": ".engineering/vendor/hub-motion/hub-motion.mjs"
       },
       "requires": ["a browser with the Web Animations API"],

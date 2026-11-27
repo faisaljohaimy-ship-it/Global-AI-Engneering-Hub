@@ -1139,8 +1139,13 @@
       "name": "Fresnel rim",
       "origin": "new engineering candidate",
       "reference": "https://threejs.org/docs/",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "implementation": "motion-library/runtime/glsl/fresnel-rim.frag",
+      "runtime_surfaces": [
+        "chromium-webgl"
+      ],
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "spatial-glass-refraction",

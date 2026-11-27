@@ -4,6 +4,8 @@
 // typewriter text and number counters. Every animated value is a pure function of time,
 // so a scene can be seeked frame by frame for deterministic rendering.
 
+import { mirroredKeyframes } from './core.mjs';
+
 const EASINGS = {
   linear: [0, 0, 1, 1],
   ease: [0.25, 0.1, 0.25, 1],
@@ -29,6 +31,7 @@ export function validateSpec(spec) {
     fail('duration_ms must be an integer from 1 to 10000');
   }
   if (!Object.hasOwn(EASINGS, spec.easing)) fail('Unsupported easing');
+  if ('rtl_mirror' in spec && typeof spec.rtl_mirror !== 'boolean') fail('rtl_mirror must be true or false');
   const frames = spec.keyframes;
   if (!Array.isArray(frames) || frames.length < 2 || frames.length > 64) fail('Two to 64 keyframes are required');
   const offsets = frames.map((frame) => {
@@ -36,7 +39,7 @@ export function validateSpec(spec) {
       fail('Keyframe offsets must be between 0 and 1');
     }
     const names = Object.keys(frame).filter((name) => name !== 'offset');
-    if (!names.length || !names.every((name) => PROPERTIES.includes(name))) {
+    if (!names.length || names.length > 5 || !names.every((name) => PROPERTIES.includes(name))) {
       fail('Unsupported or empty keyframe properties');
     }
     names.forEach((name) => safeValue(name, frame[name]));
@@ -110,8 +113,8 @@ export function ease(name, progress) {
  * keyframe because CSS applies animation-timing-function to each interval between
  * keyframes, not once across the whole animation; this keeps both paths identical.
  */
-export function toKeyframes(spec) {
-  return spec.keyframes.map((frame) => {
+export function toKeyframes(spec, { mirror = false } = {}) {
+  return mirroredKeyframes(spec.keyframes, mirror && spec.rtl_mirror === true).map((frame) => {
     const keyframe = { offset: frame.offset, easing: spec.easing };
     for (const [name, value] of Object.entries(frame)) {
       if (name !== 'offset') keyframe[name === 'background-color' ? 'backgroundColor' : name] = String(value);
@@ -133,14 +136,16 @@ export function applyReducedState(element, spec) {
  * Play a specification on an element. Returns the Animation, or null when reduced
  * motion applies and the element was placed directly in its end state.
  */
-export function play(element, spec, { delay = 0, reducedMotion } = {}) {
+export function play(element, spec, { delay = 0, reducedMotion, direction } = {}) {
   validateSpec(spec);
-  const reduce = reducedMotion ?? prefersReducedMotion(element.ownerDocument.defaultView);
+  const view = element.ownerDocument.defaultView;
+  const reduce = reducedMotion ?? prefersReducedMotion(view);
   if (reduce) {
     applyReducedState(element, spec);
     return null;
   }
-  return element.animate(toKeyframes(spec), { duration: spec.duration_ms, delay, easing: 'linear', fill: 'both' });
+  const mirror = (direction ?? view.getComputedStyle(element).direction) === 'rtl';
+  return element.animate(toKeyframes(spec, { mirror }), { duration: spec.duration_ms, delay, easing: 'linear', fill: 'both' });
 }
 
 /** Start delay in milliseconds for each of `count` items. */

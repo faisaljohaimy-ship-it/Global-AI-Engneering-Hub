@@ -44,8 +44,11 @@ class MotionCatalogTests(unittest.TestCase):
         evidence = json.loads(json.dumps(evidence))
         evidence["inputs"] = {
             "runtime_sha256": status._sha256((LIBRARY / "runtime/hub-motion.mjs").read_bytes()),
+            "core_sha256": status._sha256((LIBRARY / "runtime/core.mjs").read_bytes()),
             "base_css_sha256": status._sha256((LIBRARY / "runtime/hub-motion-base.css").read_bytes()),
         }
+        excluded = {"spatial-fresnel-rim", "cinema-orbit-camera"}
+        evidence["results"] = [row for row in evidence["results"] if row["id"] not in excluded]
         compiler_module = compiler
         for motion_id, name in (
             ("spatial-fresnel-rim", "fresnel-rim.json"),
@@ -65,6 +68,14 @@ class MotionCatalogTests(unittest.TestCase):
         proof = status.verified(evidence)
         self.assertNotIn("spatial-fresnel-rim", proof)
         self.assertNotIn("cinema-orbit-camera", proof)
+
+    def test_glsl_claim_requires_current_shader_evidence(self):
+        _catalog, evidence = status.load()
+        self.assertEqual(status.verified(evidence)["spatial-fresnel-rim"]["runtime_surfaces"], ["chromium-webgl"])
+        stale = json.loads(json.dumps(evidence))
+        row = next(item for item in stale["results"] if item["kind"] == "glsl")
+        row["shader_sha256"] = "0" * 64
+        self.assertNotIn("spatial-fresnel-rim", status.verified(stale))
 
     def test_stale_evidence_withdraws_the_claim(self):
         catalog, evidence = status.load()

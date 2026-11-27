@@ -30,7 +30,7 @@
     {"offset": 0.875, "transform": "translateY(0.333px)"},
     {"offset": 0.9167, "transform": "translateY(-0.57px)"},
     {"offset": 0.9583, "transform": "translateY(-1.075px)"},
-    {"offset": 1.0, "transform": "translateY(-0px)"}
+    {"offset": 1.0, "transform": "translateY(0px)"}
   ],
   "reduced_motion": {"transform": "none"}
 }

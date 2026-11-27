@@ -13,6 +13,7 @@ class EvidenceTests(unittest.TestCase):
         files = {
             "scene_sha256": ROOT / "motion-library/render/scene.html",
             "runtime_sha256": ROOT / "motion-library/runtime/hub-motion.mjs",
+            "core_sha256": ROOT / "motion-library/runtime/core.mjs",
             "renderer_sha256": ROOT / "motion-library/render/render.mjs",
         }
         self.assertTrue(report["pass"])

@@ -170,6 +170,7 @@ const report = {
   inputs: {
     scene_sha256: digest(readFileSync(join(library, scenePath))),
     runtime_sha256: digest(readFileSync(join(library, 'runtime', 'hub-motion.mjs'))),
+    core_sha256: digest(readFileSync(join(library, 'runtime', 'core.mjs'))),
     renderer_sha256: digest(readFileSync(fileURLToPath(import.meta.url))),
   },
   output: { codec: stream.codec_name, pixel_format: stream.pix_fmt, width: stream.width, height: stream.height, frame_rate: stream.r_frame_rate, frames: Number(stream.nb_read_frames), duration_seconds: Number(probe.format.duration), bytes: statSync(film).size, distinct_frames: new Set(hashes).size, captures_repeated_until_settled: resettled, frames_sha256: digest(hashes.join('')) },

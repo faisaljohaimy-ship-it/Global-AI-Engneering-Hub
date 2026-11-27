@@ -49,6 +49,16 @@ class MotionCompilerTests(unittest.TestCase):
         source = motion.load_spec(ROOT / "motion-library/specs/fade-in.json")
         self.assertEqual(motion.compile_css(source), motion.compile_css(source))
 
+    def test_rtl_mirror_compiles_logical_keyframes(self):
+        source = motion.load_spec(ROOT / "motion-library/specs/slide-inline-start.json")
+        css = motion.compile_css(source)
+        self.assertIn("@keyframes hub-ui-slide-inline-start-rtl", css)
+        self.assertIn("transform: translateX(24px)", css)
+        self.assertIn(":dir(rtl)", css)
+        source["rtl_mirror"] = "yes"
+        with self.assertRaisesRegex(ValueError, "rtl_mirror"):
+            motion.compile_css(source)
+
     def test_duplicate_json_keys_are_rejected(self):
         import tempfile
 

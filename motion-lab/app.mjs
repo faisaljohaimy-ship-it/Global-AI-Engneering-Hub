@@ -1,7 +1,7 @@
-import {animationOptions, reducedMotionRequested, statusFor, validateComponent, mirroredKeyframes} from "../motion-library/runtime/core.mjs";
+import {animationOptions, reducedMotionRequested, statusFor, validateComponent} from "../motion-library/runtime/core.mjs";
 import {crossDissolveAtFrame} from "../motion-library/adapters/remotion.mjs";
 import {orbitCameraAtProgress} from "../motion-library/adapters/three.mjs";
-import {renderCounter, renderTypewriter, stagger} from "../motion-library/runtime/hub-motion.mjs";
+import {renderCounter, renderTypewriter, stagger, toKeyframes} from "../motion-library/runtime/hub-motion.mjs";
 
 const refs = Object.fromEntries([
   "indexedCount", "implementedCount", "testedCount", "usedCount", "filter", "implementedOnly",
@@ -157,7 +157,8 @@ function runCss(component, spec) {
 }
 
 function runWaapi(component, spec) {
-  const frames = mirroredKeyframes(spec.keyframes, spec.rtl_mirror && refs.direction.value === "rtl");
+  const frames = toKeyframes(spec, {mirror: refs.direction.value === "rtl"});
+  const options = {...animationOptions(spec), easing: "linear"};
   if (component.id === "typography-word-stagger") {
     const words = refs.preview.textContent.trim().split(/\s+/);
     refs.preview.replaceChildren();
@@ -166,12 +167,12 @@ function runWaapi(component, spec) {
       span.textContent = `${word}${index === words.length - 1 ? "" : " "}`;
       span.style.display = "inline-block";
       refs.preview.append(span);
-      return span.animate(frames, {...animationOptions(spec), delay: index * spec.stagger_ms});
+      return span.animate(frames, {...options, delay: index * spec.stagger_ms});
     });
     activeAnimation = {cancel: () => animations.forEach((animation) => animation.cancel())};
     return;
   }
-  activeAnimation = refs.preview.animate(frames, animationOptions(spec));
+  activeAnimation = refs.preview.animate(frames, options);
 }
 
 function runProgress(duration, draw, reduced) {

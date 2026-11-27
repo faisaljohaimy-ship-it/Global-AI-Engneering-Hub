@@ -24,9 +24,10 @@ Onboarding defaults to dry-run and writes only absent `.engineering/` files plus
 
 `hub.py audit` derives counts from manifests and browser evidence rather than
 hard-coding them. The current phase indexes 142 motion specifications, exposes 30
-executable Motion Lab components, and has 28 catalog entries with current Chromium
-CSS/WAAPI evidence. GLSL, Remotion-adapter and Three-adapter evidence remains
-surface-specific instead of being promoted to an engine-runtime claim. Integration probes
+executable Motion Lab components, and has 29 catalog entries with current Chromium
+runtime evidence: CSS/WAAPI plus one dedicated WebGL shader check. Remotion-adapter
+and Three-adapter evidence remains surface-specific instead of being promoted to an
+engine-runtime claim. Integration probes
 cover all 22 indexed programs and keep account metadata out of Git. See
 [`integrations/EVIDENCE.json`](integrations/EVIDENCE.json) and the phase evidence under
 [`docs/evidence`](docs/evidence/).

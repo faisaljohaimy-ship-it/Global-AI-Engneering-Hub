@@ -4,9 +4,9 @@
 An entry is "implemented" and "runtime_verified" only while browser evidence exists for
 the exact content now in the repository: the CSS its specification compiles to, and the
 runtime that plays it. Change either without re-running the browser verification and
-this tool returns the entry to "specification". Engine-specific GLSL and Three.js
-components are deliberately excluded from this generic CSS/WAAPI proof; their adapter
-checks remain visible in components.json without being promoted to runtime evidence.
+this tool returns the entry to "specification". Generic CSS/WAAPI proof cannot promote
+Three.js or GLSL. The GLSL entry is promoted only by its dedicated Chromium WebGL row;
+the Three.js adapter remains visible in components.json without an engine-runtime claim.
 
     python3 motion-library/catalog_status.py           check; exit 1 when out of date
     python3 motion-library/catalog_status.py --write   rewrite the catalog
@@ -73,6 +73,7 @@ def verified(evidence):
     inputs = evidence["inputs"]
     current = (
         _sha256((LIBRARY / "runtime/hub-motion.mjs").read_bytes()) == inputs["runtime_sha256"]
+        and _sha256((LIBRARY / "runtime/core.mjs").read_bytes()) == inputs["core_sha256"]
         and _sha256((LIBRARY / "runtime/hub-motion-base.css").read_bytes()) == inputs["base_css_sha256"]
     )
     if not current:
@@ -97,6 +98,13 @@ def verified(evidence):
                 "implementation": row["implementation"],
                 "runtime_surfaces": ["chromium-waapi-behavior"],
             }
+        elif row["kind"] == "glsl":
+            path = ROOT / row["source"]
+            if path.is_file() and _sha256(path.read_bytes()) == row["shader_sha256"]:
+                rows[row["id"]] = {
+                    "implementation": row["source"],
+                    "runtime_surfaces": ["chromium-webgl"],
+                }
     return rows
 
 

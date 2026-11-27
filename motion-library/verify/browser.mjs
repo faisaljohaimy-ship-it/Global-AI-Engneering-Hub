@@ -120,7 +120,7 @@ function inspectSpec({ spec, css, reduced }) {
     });
   }
   const measured = { start, middle, end };
-  if (JSON.stringify(spec.keyframes).includes('--hub-inline-sign')) {
+  if (spec.rtl_mirror === true) {
     const mirrored = make('rtl');
     mirrored.classList.add('hub-motion-' + spec.id);
     const player = mirrored.getAnimations()[0];
@@ -129,6 +129,11 @@ function inspectSpec({ spec, css, reduced }) {
     const ltr = travel(at(animation, element, 0).transform);
     const rtl = travel(at(player, mirrored, 0).transform);
     checks.rtlMirrorsInlineTravel = ltr !== 0 && Math.abs(ltr + rtl) < 0.02;
+    const runtimeTarget = make('rtl');
+    const runtimePlayer = hub.play(runtimeTarget, spec, { reducedMotion: false });
+    runtimePlayer.pause();
+    const runtimeRtl = travel(at(runtimePlayer, runtimeTarget, 0).transform);
+    checks.runtimeMirrorsInlineTravel = Math.abs(runtimeRtl - rtl) < 0.02;
     measured.inlineTravelPx = { ltr, rtl };
   }
   const played = make();
@@ -217,6 +222,60 @@ async function inspectBehaviours(slideUp) {
   return results;
 }
 
+function inspectGlsl(fragmentSource) {
+  const stage = document.getElementById('stage');
+  stage.replaceChildren();
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  stage.append(canvas);
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: false });
+  const checks = { webglContextCreated: Boolean(gl) };
+  if (!gl) return { checks, measured: {} };
+  const compile = (type, source) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
+  };
+  const vertex = compile(gl.VERTEX_SHADER, 'attribute vec2 a_position; void main(){gl_Position=vec4(a_position,0.0,1.0);}');
+  const fragment = compile(gl.FRAGMENT_SHADER, fragmentSource);
+  checks.vertexShaderCompiled = gl.getShaderParameter(vertex, gl.COMPILE_STATUS);
+  checks.fragmentShaderCompiled = gl.getShaderParameter(fragment, gl.COMPILE_STATUS);
+  const program = gl.createProgram();
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.linkProgram(program);
+  checks.programLinked = gl.getProgramParameter(program, gl.LINK_STATUS);
+  if (!checks.vertexShaderCompiled || !checks.fragmentShaderCompiled || !checks.programLinked) {
+    return { checks, measured: { shaderLog: gl.getShaderInfoLog(fragment), programLog: gl.getProgramInfoLog(program) } };
+  }
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  gl.useProgram(program);
+  const position = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform2f(gl.getUniformLocation(program, 'u_resolution'), canvas.width, canvas.height);
+  const time = gl.getUniformLocation(program, 'u_time');
+  const draw = (seconds) => {
+    gl.uniform1f(time, seconds);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    return pixels;
+  };
+  const first = draw(0);
+  const second = draw(1);
+  const colours = new Set();
+  for (let index = 0; index < first.length; index += 16) colours.add(first.slice(index, index + 4).join(','));
+  checks.drawCompletedWithoutError = gl.getError() === gl.NO_ERROR;
+  checks.drawsMultipleColours = colours.size > 2;
+  checks.timeChangesPixels = first.some((value, index) => value !== second[index]);
+  return { checks, measured: { sampledColours: colours.size } };
+}
+
 const executablePath = process.env.MOTION_CHROMIUM_EXECUTABLE;
 const browser = await playwright.chromium.launch(executablePath ? { executablePath } : {});
 const results = [];
@@ -227,6 +286,7 @@ try {
   await page.goto(`${server.origin}/verify/harness.html`);
   await page.waitForFunction(() => window.hub);
   for (const { spec, css, source } of specs) {
+    if (spec.id === 'spatial-fresnel-rim') continue;
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     const motion = await page.evaluate(inspectSpec, { spec, css, reduced: false });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -241,6 +301,14 @@ try {
   for (const [id, { implementation, checks, measured }] of Object.entries(behaviours)) {
     results.push({ id, kind: 'runtime', implementation: `motion-library/runtime/hub-motion.mjs#${implementation}`, pass: Object.values(checks).every(Boolean), checks, measured });
   }
+  const shader = 'runtime/glsl/fresnel-rim.frag';
+  const shaderSource = readFileSync(join(library, shader), 'utf8');
+  const glsl = await page.evaluate(inspectGlsl, shaderSource);
+  results.push({
+    id: 'spatial-fresnel-rim', kind: 'glsl', engine: 'glsl-webgl',
+    source: `motion-library/${shader}`, shader_sha256: digest(shaderSource),
+    pass: Object.values(glsl.checks).every(Boolean), checks: glsl.checks, measured: glsl.measured,
+  });
   if (problems.length) results.push({ id: 'page-errors', kind: 'harness', pass: false, checks: { noPageErrors: false }, measured: { problems } });
   var engine = { browser: 'chromium', version: browser.version(), playwright: createRequire(import.meta.url)('playwright/package.json').version, platform: process.platform };
 } finally {
@@ -251,11 +319,12 @@ try {
 const failed = results.filter((result) => !result.pass);
 const evidence = {
   schema_version: 1,
-  notes: 'Generated by motion-library/verify/browser.mjs. Values were read from the engine, not asserted by hand. A result stays valid only while css_sha256 and the runtime hashes below match the files in the repository.',
+  notes: 'Generated by motion-library/verify/browser.mjs. Values were read from the engine, not asserted by hand. A result stays valid only while its CSS/shader digest and the runtime hashes below match the repository.',
   generated_on: new Date().toISOString().slice(0, 10),
   engine,
   inputs: {
     runtime_sha256: digest(readFileSync(join(library, 'runtime', 'hub-motion.mjs'))),
+    core_sha256: digest(readFileSync(join(library, 'runtime', 'core.mjs'))),
     base_css_sha256: digest(readFileSync(join(library, 'runtime', 'hub-motion-base.css'))),
   },
   summary: { passed: results.length - failed.length, failed: failed.length },

@@ -7,7 +7,7 @@ media are included in this record.
 
 | Area | Indexed | Implemented/available | Automated-tested | Runtime-verified | Used here |
 |---|---:|---:|---:|---:|---:|
-| Motion specifications | 142 | 30 | 30 | 28 | 30 (Motion Lab) |
+| Motion specifications | 142 | 30 | 30 | 29 | 30 (Motion Lab) |
 | Program integrations | 22 | 12 available | 22 probed | 10 authenticated reads + 2 local executables | 1 (GitHub delivery) |
 | Recovered package groups | 3 | 0 imported | 3 source/integrity reviewed | 0 | 0 |
 | Local hub skills | 9 | 9 | discovery checks | n/a | task-selected |
@@ -15,14 +15,14 @@ media are included in this record.
 The 30 Motion Lab components are six CSS, eighteen WAAPI specifications, three WAAPI
 runtime behaviours, one WebGL/GLSL component, one deterministic Remotion adapter and
 one deterministic Three.js camera adapter. Chromium produced 30 passing raw results
-(27 specifications and three behaviours). The catalog reports 28 runtime-verified
-entries because its generic CSS/WAAPI proof deliberately excludes the GLSL and Three
-components. Remotion and Three adapter tests do not prove the optional packages are
-installed or ran.
+(26 CSS/WAAPI specifications, three behaviours and one dedicated GLSL/WebGL check).
+The catalog reports 29 runtime-verified entries. The Three component remains excluded
+because generic CSS proof and a camera adapter unit test do not prove Three.js ran.
+Likewise, the Remotion adapter test does not prove the optional package is installed.
 
 ## Tests that passed
 
-- Python: 54 tests covering catalogs, evidence, registration, onboarding, safe pin updates,
+- Python: 56 tests covering catalogs, evidence, registration, onboarding, safe pin updates,
   JSON duplicate rejection, CSS grammar/injection, Motion Lab accessibility/security,
   manifest reconciliation, byte budgets, action pinning and secret-pattern scanning.
 - Node: 17 deterministic runtime, adapter and render-option tests.
@@ -33,7 +33,7 @@ installed or ran.
   1,000 ms budget (41.36 ms in the recorded final local run; wall-clock results vary).
 - Cinematic render: 1280×720, 30 fps, 126 H.264 frames, 4.2 seconds, all layout,
   repeatability, motion, RTL and contrast checks passed. Frame hash:
-  `4b0acdd3cf2fa0be5c0538c45007fdd509395c99a22f38484a01f031c53ee453`.
+  `4a9838e6391a74461c0dce7b0c0b1f57789dd9a5a2b75c3f240900415063daf4`.
 - Local integration probe: Blender 4.3.2 and FFmpeg 7.1.5 succeeded; Remotion,
   Three.js, Motion, GSAP, Rive and Lottie packages were not installed.
 - `git diff --check` and JSON parsing passed.

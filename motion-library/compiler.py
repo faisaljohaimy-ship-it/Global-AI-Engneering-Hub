@@ -39,6 +39,17 @@ def load_spec(path):
     )
 
 
+MIRRORED_TRAVEL = re.compile(r"translateX\((-?)([0-9.]+)(px|rem|em|%)\)")
+
+
+def mirrored(value):
+    """Reverse logical horizontal travel for right-to-left playback."""
+    return MIRRORED_TRAVEL.sub(
+        lambda match: f"translateX({'' if match.group(1) else '-'}{match.group(2)}{match.group(3)})",
+        str(value),
+    )
+
+
 def validate(spec):
     if spec.get("schema_version") != 1:
         raise ValueError("Unsupported schema version")
@@ -52,6 +63,8 @@ def validate(spec):
         raise ValueError("duration_ms must be an integer from 1 to 10000")
     if spec.get("easing") not in SAFE_EASING:
         raise ValueError("Unsupported easing")
+    if not isinstance(spec.get("rtl_mirror", False), bool):
+        raise ValueError("rtl_mirror must be true or false")
     frames = spec.get("keyframes")
     if not isinstance(frames, list) or not 2 <= len(frames) <= 64:
         raise ValueError("Two to 64 keyframes are required")
@@ -101,24 +114,32 @@ def _declaration(name, value):
     return f"{name}: {text};"
 
 
+def _keyframes(name, frames, transform=str):
+    lines = [f"@keyframes {name} {{"]
+    for frame in frames:
+        declarations = " ".join(
+            _declaration(key, transform(value) if key == "transform" else value)
+            for key, value in frame.items()
+            if key != "offset"
+        )
+        lines.append(f"  {frame['offset'] * 100:g}% {{ {declarations} }}")
+    return lines + ["}"]
+
+
 def compile_css(spec):
     validate(spec)
     motion_id = spec["id"]
-    lines = [f"@keyframes hub-{motion_id} {{"]
-    for frame in spec["keyframes"]:
-        declarations = " ".join(
-            _declaration(name, value) for name, value in frame.items() if name != "offset"
-        )
-        lines.append(f"  {frame['offset'] * 100:g}% {{ {declarations} }}")
+    selector = f".hub-motion-{motion_id}"
+    lines = _keyframes(f"hub-{motion_id}", spec["keyframes"])
     lines.extend([
-        "}",
-        f".hub-motion-{motion_id} {{",
+        f"{selector} {{",
         f"  animation: hub-{motion_id} {spec['duration_ms']}ms {spec['easing']} both;",
         "}",
-        "@media (prefers-reduced-motion: reduce) {",
-        f"  .hub-motion-{motion_id} {{",
-        "    animation: none;",
     ])
+    if spec.get("rtl_mirror"):
+        lines.extend(_keyframes(f"hub-{motion_id}-rtl", spec["keyframes"], mirrored))
+        lines.extend([f"{selector}:dir(rtl) {{", f"  animation-name: hub-{motion_id}-rtl;", "}"])
+    lines.extend(["@media (prefers-reduced-motion: reduce) {", f"  {selector} {{", "    animation: none;"])
     lines.extend(
         f"    {_declaration(name, value)}" for name, value in spec["reduced_motion"].items()
     )

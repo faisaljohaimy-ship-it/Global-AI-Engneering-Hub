@@ -54,4 +54,5 @@ test("RTL mirroring reverses logical horizontal travel without mutating source",
   assert.equal(result[0].transform, "translateX(24px)");
   assert.equal(result[1].transform, "translateX(0)");
   assert.equal(source[0].transform, "translateX(-24px)");
+  assert.equal(mirroredKeyframes([{offset: 0, transform: "translateX(-2rem)"}], true)[0].transform, "translateX(2rem)");
 });

@@ -43,6 +43,17 @@ try {
     await page.waitForTimeout(35);
     const error = await page.evaluate(() => window.__motionLabReport.error);
     assert.equal(error, null, `${component.id} failed in Motion Lab: ${error}`);
+    if (component.id === 'interactive-waapi-keyframes') {
+      const easing = await page.locator('#preview').evaluate((element) => {
+        const animation = element.getAnimations()[0];
+        return {
+          effect: animation.effect.getTiming().easing,
+          intervals: animation.effect.getKeyframes().slice(0, -1).map((frame) => frame.easing),
+        };
+      });
+      assert.equal(easing.effect, 'linear');
+      assert.ok(easing.intervals.every((value) => value === 'ease-in-out'));
+    }
     await page.locator('#stop').click();
     const active = await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length);
     assert.equal(active, 0, `${component.id} kept animating after Stop`);

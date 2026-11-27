@@ -44,7 +44,7 @@ export function mirroredKeyframes(keyframes, shouldMirror) {
   if (!shouldMirror) return keyframes;
   return keyframes.map((frame) => {
     if (typeof frame.transform !== "string") return {...frame};
-    return {...frame, transform: frame.transform.replace(/translateX\((-?)([0-9.]+)(px|em|%)\)/g,
+    return {...frame, transform: frame.transform.replace(/translateX\((-?)([0-9.]+)(px|rem|em|%)\)/g,
       (_match, sign, value, unit) => `translateX(${sign ? "" : "-"}${value}${unit})`)};
   });
 }

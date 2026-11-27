@@ -29,6 +29,7 @@ test('the runtime rejects what the Python compiler rejects', () => {
   assert.throws(() => validateSpec({ ...fadeIn(), id: 'Bad Id' }), /Invalid motion id/);
   assert.throws(() => validateSpec({ ...fadeIn(), duration_ms: 0 }), /duration_ms/);
   assert.throws(() => validateSpec({ ...fadeIn(), easing: 'steps(2)' }), /easing/);
+  assert.throws(() => validateSpec({ ...fadeIn(), rtl_mirror: 'yes' }), /rtl_mirror/);
   assert.throws(() => validateSpec({ ...fadeIn(), reduced_motion: {} }), /reduced_motion/);
 });
 
@@ -100,6 +101,12 @@ test('easing curves match the CSS definitions', () => {
 test('keyframes are converted for Element.animate', () => {
   const frames = toKeyframes({ easing: 'ease-out', keyframes: [{ offset: 0, 'background-color': 'red', opacity: 0 }, { offset: 1, opacity: 1 }] });
   assert.deepEqual(frames[0], { offset: 0, easing: 'ease-out', backgroundColor: 'red', opacity: '0' });
+  const mirrored = toKeyframes({
+    easing: 'linear',
+    rtl_mirror: true,
+    keyframes: [{ offset: 0, transform: 'translateX(-2rem)' }, { offset: 1, transform: 'translateX(0rem)' }],
+  }, { mirror: true });
+  assert.equal(mirrored[0].transform, 'translateX(2rem)');
 });
 
 test('typewriter cuts only between graphemes, including Arabic marks', () => {

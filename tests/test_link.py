@@ -98,7 +98,7 @@ class LinkTests(unittest.TestCase):
         report = hublink.verify(target)
         self.assertTrue(report["ok"], report)
         self.assertEqual(report["level"], "verified")
-        self.assertEqual(report["verified_files"], 6)
+        self.assertEqual(report["verified_files"], 7)
         self.assertEqual(report["project"], {"id": "sample", "repository": "https://github.com/example/sample"})
         self.assertEqual(self.register(target)["files"][hublink.MANIFEST], "unchanged")
 
@@ -190,8 +190,9 @@ class LinkTests(unittest.TestCase):
         target = self.project()
         result = self.register(target, "pack:motion-runtime", apply=True)
         self.assertEqual(result["files"][".engineering/vendor/hub-motion/hub-motion.mjs"], "create")
+        self.assertEqual(result["files"][".engineering/vendor/hub-motion/core.mjs"], "create")
         self.assertTrue((target / ".engineering/vendor/hub-motion/hub-motion-base.css").is_file())
-        self.assertEqual(hublink.verify(target)["verified_files"], 2)
+        self.assertEqual(hublink.verify(target)["verified_files"], 3)
 
     def test_unsafe_requests_are_refused(self):
         target = self.project()

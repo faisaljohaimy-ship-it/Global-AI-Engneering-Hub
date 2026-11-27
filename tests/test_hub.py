@@ -61,7 +61,7 @@ class HubTests(unittest.TestCase):
   self.assertEqual(result['motions_indexed'],142)
   self.assertEqual(result['motions_implemented'],30)
   self.assertEqual(result['motions_tested'],30)
-  self.assertEqual(result['motions_runtime_verified'],28)
+  self.assertEqual(result['motions_runtime_verified'],29)
   self.assertEqual(result['motions_used'],30)
   self.assertEqual(result['motion_lab_components'],30)
   self.assertEqual(result['integrations_indexed'],22)
