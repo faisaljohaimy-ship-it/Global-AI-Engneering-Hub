@@ -2,7 +2,8 @@
 // Original, dependency-free motion tooling. Optional engines are never installed here.
 const VERSION = '1.0.0';
 const MAX_DIMENSION = 4096;
-const COLOR = /^(?:#[a-f\d]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%]+\)|transparent|none)$/i;
+const CSS_NUMBER = '[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?%?';
+const COLOR = new RegExp(`^(?:#(?:[a-f\\d]{3}|[a-f\\d]{4}|[a-f\\d]{6}|[a-f\\d]{8})|(?:rgba?|hsla?)\\(\\s*${CSS_NUMBER}\\s*,\\s*${CSS_NUMBER}\\s*,\\s*${CSS_NUMBER}(?:\\s*,\\s*${CSS_NUMBER})?\\s*\\)|transparent|none)$`, 'i');
 const ID = /^[a-z][a-z0-9-]{1,95}$/;
 const fail = (message) => { throw new Error(message); };
 const finite = (value, name, min = -1e7, max = 1e7) => {

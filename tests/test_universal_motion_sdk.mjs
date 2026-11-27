@@ -92,6 +92,7 @@ test('all five finite primitives draw and SVG text is safely escaped', () => {
     {type: 'text', x: 100, y: 50, text: '<script>&" unsafe', size: 16, fill: '#ffffff'},
   ]};
   const ctx = context(); drawScene(ctx, scene); assert(ctx.calls.some((call) => call[0] === 'fillText'));
+  assert.doesNotThrow(()=>validateScene({...scene,primitives:[{type:'circle',x:1,y:1,r:1,fill:'rgba(96,224,244,1.6980436163343905e-9)'}]}));
   const svg = sceneToSVG(scene); assert(svg.startsWith('<svg')); assert(svg.includes('&lt;script&gt;&amp;')); assert(!svg.includes('<script>'));
 });
 

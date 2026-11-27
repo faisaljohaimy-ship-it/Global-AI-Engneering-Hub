@@ -3,17 +3,17 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {writeFileSync, mkdirSync} from 'node:fs';
+import {writeFileSync, mkdirSync, readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {serve} from '../motion-library/verify/serve.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const require = createRequire(resolve(root, 'motion-library/verify/package.json'));
-let playwright;
-try { playwright = require('playwright'); }
-catch {
-  if (!process.env.MOTION_PLAYWRIGHT_PACKAGE) throw new Error('Install the pinned motion-library/verify lockfile first');
-  playwright = createRequire(resolve(process.env.MOTION_PLAYWRIGHT_PACKAGE, 'package.json'))('playwright');
-}
+const packageDirectory = process.env.MOTION_PLAYWRIGHT_PACKAGE ?? resolve(root, 'motion-library/verify');
+const require = createRequire(resolve(packageDirectory, 'package.json'));
+const playwright = require('playwright');
+const playwrightVersion = require('playwright/package.json').version;
+const expectedVersion = JSON.parse(readFileSync(resolve(root,'motion-library/verify/package.json'),'utf8')).devDependencies.playwright;
+assert.equal(playwrightVersion,expectedVersion,'Use the exact reviewed motion verifier lockfile, not an ambient global Playwright');
 const server = await serve(root);
 const browserName = process.env.MOTION_BROWSER ?? 'chromium';
 assert(['chromium','firefox','webkit'].includes(browserName),'Select an installed Playwright engine');
@@ -140,7 +140,9 @@ try {
     await context.close();
   }
   assert.deepEqual(allErrors,[]);assert.deepEqual(failures,[]);assert.deepEqual(external,[]);
-  const report={schema_version:1,sdk_version:'1.0.0',engine:`${browserName}-canvas2d`,browser:browser.version(),new_definitions_rendered:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,production_fps_verified:false,gpu_runtime_verified:false,results};
+  const sourceFiles = ['packages/motion-sdk/index.mjs','motion-studio/index.html','motion-studio/studio.mjs','motion-studio/styles.css','motion-library/expansion/catalog.mjs','motion-library/expansion/definitions.json','motion-library/expansion/families.mjs','motion-library/expansion/systems.mjs','motion-library/expansion/geometry.mjs','tests/test_motion_studio_browser.mjs'];
+  const source_sha256 = Object.fromEntries(sourceFiles.map((path)=>[path,createHash('sha256').update(readFileSync(resolve(root,path))).digest('hex')]));
+  const report={schema_version:1,sdk_version:'1.0.0',engine:`${browserName}-canvas2d`,browser:browser.version(),playwright_version:playwrightVersion,node_version:process.version,source_sha256,new_definitions_rendered:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,production_fps_verified:false,gpu_runtime_verified:false,results};
   if (evidenceDirectory) writeFileSync(resolve(evidenceDirectory,'motion-studio-runtime.json'),JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify({status:'passed',definitions:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,browserName,browser:browser.version(),production_fps_verified:false}));
 } finally {
