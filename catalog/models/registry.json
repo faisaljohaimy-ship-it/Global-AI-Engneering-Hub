@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "evidence_max_age_seconds": 3600,
+  "notes": "Provider discovery placeholders, not available model versions. No model is approved, installed, operational or project-verified by this file. Bind exact model IDs, immutable adapter/artifact revisions and current evaluation/pricing/usage receipts before selection. No API calls are made by discovery or routing.",
+  "execution_engines": [
+    {"id": "codex", "priority": "primary", "availability": "verify in each host; not an API model claim"},
+    {"id": "claude-code", "priority": "secondary", "availability": "verify installed host and account limits; not an API model claim"}
+  ],
+  "models": [
+    {"id": "openai-provider", "provider": "openai", "status": "DISCOVERED", "model_id": null, "revision": null, "credential_env": "OPENAI_API_KEY", "notes": "ChatGPT account availability does not prove API availability or free credit."},
+    {"id": "anthropic-provider", "provider": "anthropic", "status": "DISCOVERED", "model_id": null, "revision": null, "credential_env": "ANTHROPIC_API_KEY", "notes": "Claude Code session limits and Anthropic API credentials are separate evidence."},
+    {"id": "google-provider", "provider": "google", "status": "DISCOVERED", "model_id": null, "revision": null, "credential_env": "GOOGLE_API_KEY", "notes": "Gemini model and quota must be reviewed per project."},
+    {"id": "open-source-provider", "provider": "open-source", "status": "DISCOVERED", "model_id": null, "revision": null, "notes": "License, hardware, artifact digest, hosting cost and evaluation are unresolved."},
+    {"id": "local-provider", "provider": "local", "status": "DISCOVERED", "model_id": null, "revision": null, "runtime_sha256": null, "notes": "No local model server or weights are installed by this registry."}
+  ]
+}
