@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-11-27T22:20:43.040Z",
+  "status": "passed",
+  "functional_status": "passed",
+  "browser": {
+    "engine": "chromium",
+    "version": "153.0.8010.12",
+    "mode": "headless"
+  },
+  "toolchain": {
+    "node": "24.22.3",
+    "playwright": "1.63.0"
+  },
+  "provenance": {
+    "recovered_branch_head": "d7d28e41912305ef7c418035490f8ab7fbc51a8d",
+    "original_18_latest_dependencies_installed": false,
+    "unrelated_741_14_patch_recovered": false
+  },
+  "inputs": {
+    "package.json": "99cd933be1f14564c0a342bee8504d0c10a8e4de5fd033ca7e9e6e8d303ee948",
+    "package-lock.json": "9617add986dc38f669b11de2835bd483a2c04004fbebe55eef1630d70b24ba1a",
+    "options.mjs": "da805dae3dfdd1a948b0d77516ec2da8dcc24ed00f721a81cd5b9038ab1b214e",
+    "native-probes.mjs": "fe07b47a73658ed5d2772ed5c906fc0f3d2a117ba6d826df24fe3bfdc172c436",
+    "smoke.mjs": "82ae20eff583d02b3230578dfb6342e5a608d5063318fbb748dab9b305709ce0",
+    "harness.html": "1ab65f6d93ac1c13d5459df0fa1fd036a52ea28fd310b2c2fa03d57f264cfd9c"
+  },
+  "performance_budget": {
+    "status": "passed",
+    "frame_budget_ms": 20
+  },
+  "webgpu_rendering_cases": 0,
+  "network": {
+    "bind": "127.0.0.1",
+    "external_requests": 0,
+    "authenticated_profiles": false
+  },
+  "limitations": [
+    "No production field metrics or physical mobile/Safari hardware was measured.",
+    "WebGPU API/adapter presence is availability only, never rendering evidence.",
+    "WebGL may use a software renderer; inspect each case.",
+    "A benchmark result applies only to this bounded lab workload."
+  ],
+  "cases": [
+    {
+      "id": "desktop-ltr",
+      "status": "passed",
+      "checks": {
+        "canvas_pixel": true,
+        "css_interpolation": true,
+        "waapi_interpolation": true,
+        "webgl_shader_pixels": true,
+        "wasm_execution": true
+      },
+      "direction": "ltr",
+      "reduced_motion": false,
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "device_pixel_ratio": 1
+      },
+      "rendered": {
+        "canvas2d": true,
+        "webgl_shader": true,
+        "css_animation": true,
+        "waapi": true,
+        "offscreen_canvas": true
+      },
+      "gl": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "software_renderer": true,
+        "start_pixel": [
+          64,
+          128,
+          191,
+          255
+        ],
+        "end_pixel": [
+          112,
+          128,
+          191,
+          255
+        ]
+      },
+      "offscreen_canvas": {
+        "status": "tested",
+        "rendered": true
+      },
+      "webgpu": {
+        "api_present": true,
+        "adapter_acquired": false,
+        "rendering_tested": false
+      },
+      "availability_only": {
+        "view_transitions": true,
+        "scroll_timeline": true,
+        "canvas_capture_stream": true
+      },
+      "page_errors": 0,
+      "external_requests": 0,
+      "screenshot_sha256": "1a8261ffa6783f987cbbb830a955c507beb5e12ae2a89361c5944606fc64b98e",
+      "benchmark": {
+        "scope": "lab-only bounded Canvas2D and transform workload; not product or all-motion performance",
+        "frames": 30,
+        "median_interval_ms": 16.69999999999999,
+        "p95_interval_ms": 16.700000000000045,
+        "median_draw_ms": 0,
+        "observed_median_fps": 59.88023952095813,
+        "frame_budget_ms": 20,
+        "within_configured_budget": true
+      }
+    },
+    {
+      "id": "mobile-rtl",
+      "status": "passed",
+      "checks": {
+        "canvas_pixel": true,
+        "css_interpolation": true,
+        "waapi_interpolation": true,
+        "webgl_shader_pixels": true,
+        "wasm_execution": true
+      },
+      "direction": "rtl",
+      "reduced_motion": false,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "rendered": {
+        "canvas2d": true,
+        "webgl_shader": true,
+        "css_animation": true,
+        "waapi": true,
+        "offscreen_canvas": true
+      },
+      "gl": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "software_renderer": true,
+        "start_pixel": [
+          64,
+          128,
+          191,
+          255
+        ],
+        "end_pixel": [
+          112,
+          128,
+          191,
+          255
+        ]
+      },
+      "offscreen_canvas": {
+        "status": "tested",
+        "rendered": true
+      },
+      "webgpu": {
+        "api_present": true,
+        "adapter_acquired": false,
+        "rendering_tested": false
+      },
+      "availability_only": {
+        "view_transitions": true,
+        "scroll_timeline": true,
+        "canvas_capture_stream": true
+      },
+      "page_errors": 0,
+      "external_requests": 0,
+      "screenshot_sha256": "9c4181acf6459a10b6ed14ffdf6337208f039589cbbf0536cacee2773af6bb69",
+      "benchmark": {
+        "scope": "lab-only bounded Canvas2D and transform workload; not product or all-motion performance",
+        "frames": 30,
+        "median_interval_ms": 16.69999999999999,
+        "p95_interval_ms": 16.700000000000045,
+        "median_draw_ms": 0,
+        "observed_median_fps": 59.88023952095813,
+        "frame_budget_ms": 20,
+        "within_configured_budget": true
+      }
+    },
+    {
+      "id": "mobile-reduced-rtl",
+      "status": "passed",
+      "checks": {
+        "canvas_pixel": true,
+        "css_reduced_motion": true,
+        "waapi_reduced_motion": true,
+        "webgl_shader_pixels": true,
+        "wasm_execution": true,
+        "reduced_canvas_static": true,
+        "reduced_transform_static": true
+      },
+      "direction": "rtl",
+      "reduced_motion": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "rendered": {
+        "canvas2d": true,
+        "webgl_shader": true,
+        "css_animation": false,
+        "waapi": false,
+        "offscreen_canvas": true
+      },
+      "gl": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "software_renderer": true,
+        "start_pixel": [
+          64,
+          128,
+          191,
+          255
+        ],
+        "end_pixel": [
+          112,
+          128,
+          191,
+          255
+        ]
+      },
+      "offscreen_canvas": {
+        "status": "tested",
+        "rendered": true
+      },
+      "webgpu": {
+        "api_present": true,
+        "adapter_acquired": false,
+        "rendering_tested": false
+      },
+      "availability_only": {
+        "view_transitions": true,
+        "scroll_timeline": true,
+        "canvas_capture_stream": true
+      },
+      "page_errors": 0,
+      "external_requests": 0,
+      "screenshot_sha256": "075459bb7fed7edd3709c592cc0bb009ee989c7519b1252c6b92f018acab5b02",
+      "benchmark": {
+        "scope": "lab-only bounded Canvas2D and transform workload; not product or all-motion performance",
+        "frames": 30,
+        "median_interval_ms": 16.69999999999999,
+        "p95_interval_ms": 16.80000000000001,
+        "median_draw_ms": 0,
+        "observed_median_fps": 59.88023952095813,
+        "frame_budget_ms": 20,
+        "within_configured_budget": true
+      }
+    }
+  ]
+}

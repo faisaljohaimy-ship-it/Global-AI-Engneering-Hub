@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Native Chromium engineering probe</title>
+<style>
+  body { margin: 24px; font: 16px system-ui; color: #e3eefc; background: #102036; }
+  main { display: grid; gap: 16px; max-inline-size: 720px; }
+  canvas, .probe { inline-size: 64px; block-size: 64px; background: #5aaaff; }
+  @keyframes native-fade { from { opacity: 0; } to { opacity: 1; } }
+  #css-probe { animation: native-fade 100ms linear both; }
+  @media (prefers-reduced-motion: reduce) { #css-probe { animation: none; } }
+</style>
+<main>
+  <h1>Native Chromium engineering probe</h1>
+  <p>Bounded local rendering checks. Capability availability is separate from execution evidence.</p>
+  <div id="css-probe" class="probe"></div>
+  <div id="waapi-probe" class="probe"></div>
+  <div id="benchmark-probe" class="probe"></div>
+  <canvas id="canvas-probe" width="32" height="32"></canvas>
+  <canvas id="gl-probe" width="16" height="16"></canvas>
+</main>
+</html>
