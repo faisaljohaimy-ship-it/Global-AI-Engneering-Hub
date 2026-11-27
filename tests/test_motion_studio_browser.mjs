@@ -142,7 +142,7 @@ try {
   assert.deepEqual(allErrors,[]);assert.deepEqual(failures,[]);assert.deepEqual(external,[]);
   const sourceFiles = ['packages/motion-sdk/index.mjs','motion-studio/index.html','motion-studio/studio.mjs','motion-studio/styles.css','motion-library/expansion/catalog.mjs','motion-library/expansion/definitions.json','motion-library/expansion/families.mjs','motion-library/expansion/systems.mjs','motion-library/expansion/geometry.mjs','tests/test_motion_studio_browser.mjs'];
   const source_sha256 = Object.fromEntries(sourceFiles.map((path)=>[path,createHash('sha256').update(readFileSync(resolve(root,path))).digest('hex')]));
-  const report={schema_version:1,sdk_version:'1.0.0',engine:`${browserName}-canvas2d`,browser:browser.version(),playwright_version:playwrightVersion,node_version:process.version,source_sha256,new_definitions_rendered:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,production_fps_verified:false,gpu_runtime_verified:false,results};
+  const report={schema_version:1,status:'passed',recorded_at_utc:new Date().toISOString(),sdk_version:'1.0.0',engine:`${browserName}-canvas2d`,browser:browser.version(),playwright_version:playwrightVersion,node_version:process.version,source_sha256,new_definitions_rendered:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,production_fps_verified:false,gpu_runtime_verified:false,results};
   if (evidenceDirectory) writeFileSync(resolve(evidenceDirectory,'motion-studio-runtime.json'),JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify({status:'passed',definitions:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,browserName,browser:browser.version(),production_fps_verified:false}));
 } finally {
