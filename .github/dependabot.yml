@@ -17,6 +17,7 @@ updates:
     versioning-strategy: increase
     groups:
       browser-driver-candidates:
+        group-by: dependency-name
         patterns:
           - playwright
           - playwright-core
