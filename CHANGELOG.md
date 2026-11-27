@@ -1,5 +1,13 @@
 # Changelog
 
+## Engineering OS0.1.1 — 2026-11-27
+
+Extends reviewed dependency proposals to all three isolated browser/quality
+lockfiles and adds bounded weekly/manual advisory audits. Shared driver proposals
+stay grouped; no installation or merge is automatic. SDK1.0.0 and all motion/runtime
+source bytes remain unchanged from OS0.1.0, so existing approved product pins remain
+supported without a forced update.
+
 ## Engineering OS0.1.0 — 2026-11-27
 
 Adopts the owner's L01–L12 target, preserving SDK1.0.0 and all existing motion/CLI
