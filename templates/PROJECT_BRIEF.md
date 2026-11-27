@@ -1,0 +1,11 @@
+# Project brief
+- Purpose and intended users:
+- Business owner and data controller:
+- Source repository and immutable base commit:
+- Target deployment ID and allowed domains:
+- Scope and acceptance criteria:
+- Data classification and tenant isolation:
+- Budget ceiling (default zero additional spend):
+- Selected capabilities and immutable versions:
+- Tests and rollback plan:
+- Media requirements, rights, and bilingual accessibility:
