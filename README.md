@@ -54,6 +54,8 @@ provider candidates contain **zero operational model versions** and make no API
 calls. [Technology discovery](scripts/discover_technology.py) collects bounded
 public metadata into review artifacts, never installs what it discovers.
 
+See [the delivery status and remaining boundaries](docs/OPERATING_SYSTEM_STATUS.md) for per-layer before/after evidence.
+
 ## Architecture
 See the [twelve-layer architecture](ARCHITECTURE.md), [existing reference](docs/ARCHITECTURE.md) and [onboarding](docs/ONBOARDING.md). One independent repository and deployment target per app. Shared capabilities use versioned references; no live production dependency on this hub. Keep client code, secrets, private business assets and sensitive data outside this public repository. Use services only within approved budget and commercial-use terms.
 

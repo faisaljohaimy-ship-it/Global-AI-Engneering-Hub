@@ -21,6 +21,11 @@ def key(prefix, count=40):
     return prefix + "A1b2C3d4" * (count // 8 + 1)
 
 
+def privileged_jwt():
+    encode = lambda data: base64.urlsafe_b64encode(json.dumps(data).encode()).rstrip(b"=").decode()
+    return encode({"alg": "HS256"}) + "." + encode({"role": "service_role", "iss": "synthetic-fixture"}) + "." + "a" * 32
+
+
 def lock_files(extra=0):
     manifest = {"name": "fixture", "private": True, "devDependencies": {"example": "1.2.3"}}
     lock = {"lockfileVersion": 3, "packages": {"": manifest, "node_modules/example": {
@@ -102,6 +107,23 @@ class SecretTests(unittest.TestCase):
         self.assertNotIn(value, json.dumps(report))
         self.assertNotIn(value, json.dumps(scan.scan({value + ".txt": value.encode()})))
 
+    def test_credential_filename_forms_are_redacted_without_suppressing_findings(self):
+        provider, opaque, jwt = key("gh" + "p_"), key("opaque-"), privileged_jwt()
+        cases = [
+            ("privileged-jwt", jwt + ".txt", jwt),
+            ("provider-token", provider + ".txt", provider),
+            ("credential-url", "https://owner:" + opaque + "@example.invalid/report", opaque),
+            ("share-query", "report?_vercel_share=" + opaque, opaque),
+            ("quoted-assignment", 'VERCEL_TOKEN="' + opaque + '".txt', opaque),
+            ("env-assignment", "VERCEL_TOKEN=" + opaque, opaque),
+        ]
+        for label, path, value in cases:
+            with self.subTest(kind=label):
+                report = scan.scan({path: (jwt + "\n" + provider).encode()})
+                self.assertEqual(report["status"], "fail")
+                self.assertIn("privileged-jwt", {row["rule"] for row in report["findings"]})
+                self.assertFalse(value in json.dumps(report), "Credential appeared in filename diagnostics")
+
     def test_binary_skip_is_counted_and_private_env_files_fail_even_when_empty(self):
         report = scan.scan({"image.bin": b"\0data", ".env.production": b"", ".env.example": b"API_KEY=<set-at-runtime>"})
         self.assertEqual(report["binary_files_skipped"], 1)
@@ -181,6 +203,16 @@ class IndexTests(unittest.TestCase):
         self.assertEqual(scan.index(self.root, base), {"new.txt": b"candidate"})
         with self.assertRaises(ValueError):
             scan.index(self.root, "main")
+
+    def test_actual_staged_privileged_jwt_filename_is_not_logged_by_cli(self):
+        value = privileged_jwt()
+        self.stage(value + ".txt", value)
+        result = subprocess.run([sys.executable, str(ROOT / "scripts/security_scan.py"), "scan", "--root", str(self.root)],
+                                capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(value in result.stdout or value in result.stderr, "CLI logged a credential-shaped filename")
+        report = json.loads(result.stdout)
+        self.assertEqual(report["findings"], [{"path": "[redacted-jwt].txt", "line": 1, "rule": "privileged-jwt"}])
 
     def test_symlink_and_size_count_total_bounds_fail_closed(self):
         self.stage("one.txt", "1234567")
@@ -264,6 +296,31 @@ class DependencyTests(unittest.TestCase):
             self.assertNotIn("private text", json.dumps(result))
         result = scan.audit_locks(lock_files(), mock.Mock(side_effect=subprocess.TimeoutExpired("npm", 60)))
         self.assertTrue(all(row["status"] == "audit-unavailable" for row in result["lock_scopes"]))
+
+    def test_exit_status_must_agree_with_high_critical_counts(self):
+        for receipt in (audit_receipt(returncode=1), audit_receipt(moderate=1, returncode=1),
+                        audit_receipt(high=1, returncode=0), audit_receipt(critical=1, returncode=0)):
+            report = scan.audit_locks(lock_files(), lambda *args, **kwargs: receipt)
+            self.assertEqual(report["status"], "fail")
+            self.assertTrue(all(row["status"] == "audit-unavailable" for row in report["lock_scopes"]))
+        report = scan.audit_locks(lock_files(), lambda *args, **kwargs: audit_receipt(moderate=1))
+        self.assertEqual(report["status"], "pass", "Moderate findings legitimately remain below the high audit threshold")
+
+    def test_lock_scope_credentials_are_redacted_on_success_failure_and_unavailability(self):
+        cases = [("privileged-jwt", privileged_jwt()), ("provider-token", key("gh" + "p_")),
+                 ("share-query", "report?_vercel_share=" + key("opaque-"))]
+        for label, value in cases:
+            files = lock_files()
+            for name in ("package.json", "package-lock.json"):
+                files[f"future/{value}/{name}"] = files[f"motion-library/verify/{name}"]
+            runners = [lambda *args, **kwargs: audit_receipt(), lambda *args, **kwargs: audit_receipt(high=1),
+                       mock.Mock(side_effect=subprocess.TimeoutExpired("npm", 60))]
+            for index, runner in enumerate(runners):
+                with self.subTest(kind=label, outcome=index):
+                    report = scan.audit_locks(files, runner)
+                    self.assertEqual(len(report["lock_scopes"]), 3)
+                    self.assertFalse(value in json.dumps(report), "Credential appeared in dependency scope diagnostics")
+                    self.assertTrue(any("[redacted" in row["scope"] for row in report["lock_scopes"]))
 
     def test_malformed_audit_severity_cannot_report_success(self):
         receipt = audit_receipt()

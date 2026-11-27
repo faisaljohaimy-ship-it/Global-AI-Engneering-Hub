@@ -1,11 +1,14 @@
 # Changelog
 
-## Operating-system foundation — unreleased
+## Engineering OS0.1.0 — 2026-11-27
 
 Adopts the owner's L01–L12 target, preserving SDK1.0.0 and all existing motion/CLI
 interfaces. Adds evidence-aware CLI projections and bounded upstream discovery.
 Orchestration, policy routing, recovered Chromium runtime and additive Motion SDK
 are independently reviewed modules; consult exact test receipts before adoption.
+Adds400new Canvas2D motions, Universal Motion SDK/Studio, selective offline
+registration, fresh Chromium/Lighthouse/axe gates, bounded secret/AST/dependency
+audits and release-provenance validation. Preserves legacy motions and SDK1.0.0.
 No product isolation, real model access or production deployment is implied by
 this hub change. Private project/source recovery evidence remains restricted.
 

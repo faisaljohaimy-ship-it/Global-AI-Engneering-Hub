@@ -236,6 +236,10 @@ def scan(files):
 def redact_path(path):
     if QUOTED_VALUE.search(path) or ENV_VALUE.search(path):
         return "[redacted-path]"
+    # Filenames are untrusted report data too. Mask every JWT-shaped path,
+    # including the privileged JWTs recognized by secret_findings, without
+    # decoding or reproducing the credential in diagnostics.
+    path = JWT.sub("[redacted-jwt]", path)
     for _, pattern in SECRET_PATTERNS:
         path = pattern.sub("[redacted]", path)
     path = CREDENTIAL_URL.sub("[redacted-url]", path)
@@ -271,6 +275,7 @@ def audit_locks(files, runner=None):
     results = []
     for lock_path in lock_scopes(files):
         package_path = str(pathlib.PurePosixPath(lock_path).with_name("package.json"))
+        scope = redact_path(str(pathlib.PurePosixPath(lock_path).parent))
         with tempfile.TemporaryDirectory(prefix="hub-npm-audit-") as temp:
             folder = pathlib.Path(temp)
             (folder / "package.json").write_bytes(files[package_path])
@@ -289,9 +294,14 @@ def audit_locks(files, runner=None):
                 if not isinstance(counts, dict) or receipt.get("auditReportVersion") != 2 or receipt.get("error") or not all(type(counts.get(level)) is int and counts[level] >= 0 for level in ("info", "low", "moderate", "high", "critical")):
                     raise ValueError("invalid audit response")
                 summary = {level: counts[level] for level in ("info", "low", "moderate", "high", "critical")}
-                results.append({"scope": str(pathlib.PurePosixPath(lock_path).parent), "status": "fail" if summary["high"] or summary["critical"] else "pass", "vulnerabilities": summary})
+                # --audit-level=high returns 1 only for high/critical findings.
+                # An unsuccessful command with lower or zero counts is not a
+                # successful audit; neither is exit 0 with blocking findings.
+                if result.returncode != int(bool(summary["high"] or summary["critical"])):
+                    raise ValueError("inconsistent npm audit exit status")
+                results.append({"scope": scope, "status": "fail" if summary["high"] or summary["critical"] else "pass", "vulnerabilities": summary})
             except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
-                results.append({"scope": str(pathlib.PurePosixPath(lock_path).parent), "status": "audit-unavailable"})
+                results.append({"scope": scope, "status": "audit-unavailable"})
     return {"status": "pass" if all(row["status"] == "pass" for row in results) else "fail", "lock_scopes": results}
 
 
