@@ -89,6 +89,17 @@ jobs:
           node motion-library/chromium-stack/smoke.mjs --frames 30 --frame-budget-ms 100 --out "$CHROMIUM_EVIDENCE_DIR" > "$OS_EVIDENCE_ROOT/chromium-console.json"
       - name: Render every Motion Studio recipe in desktop and mobile Chromium
         run: node tests/test_motion_studio_browser.mjs
+      - name: Measure real Studio Lighthouse and axe budgets
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --prefix motion-library/quality
+          quality_chrome="$(find "$PLAYWRIGHT_BROWSERS_PATH" -type f -name chrome-headless-shell -print -quit)"
+          test -n "$quality_chrome" && test -x "$quality_chrome"
+          export QUALITY_AUDIT_CHROME="$quality_chrome"
+          export QUALITY_AUDIT_EVIDENCE="$OS_EVIDENCE_ROOT/quality-fixtures"
+          node --test tests/test_quality_audit.mjs tests/test_quality_audit_browser.mjs
+          node motion-library/quality/audit.mjs --root "$GITHUB_WORKSPACE" --chrome "$quality_chrome" --profile desktop --out "$OS_EVIDENCE_ROOT/quality-desktop"
+          node motion-library/quality/audit.mjs --root "$GITHUB_WORKSPACE" --chrome "$quality_chrome" --profile mobile --out "$OS_EVIDENCE_ROOT/quality-mobile"
       - name: Require new source-bound receipts from this run
         run: |
           set -euo pipefail

@@ -7,6 +7,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_studio_quality_snapshot_matches_sources_and_measured_budgets(self):
+        report=json.loads((ROOT/'docs/evidence/studio-quality-2026-11-27.json').read_text())
+        self.assertFalse(report['live_recheck_performed'])
+        self.assertEqual({row['profile'] for row in report['profiles']},{'desktop','mobile'})
+        for row in report['profiles']:
+            self.assertTrue(row['passed']);self.assertEqual(row['failures'],[])
+            metrics=row['metrics']
+            self.assertGreaterEqual(metrics['performance'],95)
+            self.assertGreaterEqual(metrics['accessibility'],95)
+            self.assertLessEqual(metrics['lcp_ms'],2500)
+            self.assertLessEqual(metrics['cls'],.1)
+            self.assertEqual(metrics['critical_axe'],0)
+            self.assertIsNone(metrics['inp_ms'])
+            for name,digest in row['source_sha256'].items():
+                self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+            self.assertEqual(hashlib.sha256((ROOT/'motion-library/quality/package-lock.json').read_bytes()).hexdigest(),row['package_lock_sha256'])
+
     def test_sample_render_evidence_matches_current_inputs(self):
         report = json.loads((ROOT / "motion-library/evidence/sample-render.json").read_text())
         inputs = report["inputs"]
@@ -51,7 +68,7 @@ class EvidenceTests(unittest.TestCase):
         self.assertTrue(all(item["imported"] is False for item in data["deferred"]))
         self.assertEqual(data["deferred"][0]["id"], "catalog-media-tools")
         packs = json.loads((ROOT / "catalog/packs.json").read_text())["packs"]
-        self.assertEqual(set(packs), {"motion-runtime", "engineering-sdk"})
+        self.assertEqual(set(packs), {"motion-runtime", "engineering-sdk", "motion-sdk"})
         self.assertEqual(packs["engineering-sdk"]["version"], "1.0.0")
         self.assertNotIn("catalog-media-tools", packs)
 
