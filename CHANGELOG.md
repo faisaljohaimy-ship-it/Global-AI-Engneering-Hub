@@ -7,6 +7,8 @@ lockfiles and adds bounded weekly/manual advisory audits. Shared driver proposal
 stay grouped; no installation or merge is automatic. SDK1.0.0 and all motion/runtime
 source bytes remain unchanged from OS0.1.0, so existing approved product pins remain
 supported without a forced update.
+Release validation follows later scheduled/manual advisory failures as well as
+main CI and requires a successful advisory audit within24hours.
 
 ## Engineering OS0.1.0 — 2026-11-27
 

@@ -17,17 +17,24 @@ WORKFLOWS = {
 }
 
 
-def approved_runs(document, commit, repository):
-    """Select the latest main/push run for each exact approved workflow path."""
+def approved_runs(document, commit, repository, now=None):
+    """Bind main CI and the latest fresh advisory audit to exact trusted workflows."""
     result={}
     for path in WORKFLOWS:
+        audit=path=='.github/workflows/dependency-audit.yml'
+        events={'push','schedule','workflow_dispatch'} if audit else {'push'}
         candidates=[r for r in document['workflow_runs'] if r['path']==path and r['head_sha']==commit
-                    and r['head_branch']=='main' and r['event']=='push'
+                    and r['head_branch']=='main' and r['event'] in events
                     and r['repository']['full_name']==repository and r['head_repository']['full_name']==repository]
         if not candidates:raise ValueError('Missing required main push workflow')
         run=max(candidates,key=lambda r:(r['run_number'],r['run_attempt'],r['id']))
         if type(run['id']) is not int or run['id']<=0 or run['status']!='completed' or run['conclusion']!='success':
             raise ValueError('Latest exact-commit workflow did not succeed')
+        if audit:
+            at=datetime.datetime.fromisoformat(run['updated_at'].replace('Z','+00:00'))
+            current=now or datetime.datetime.now(datetime.timezone.utc)
+            if at.utcoffset()!=datetime.timedelta(0) or not 0<=(current-at).total_seconds()<=86400:
+                raise ValueError('A successful advisory audit within24hours is required')
         result[path]=run['id']
     return result
 
@@ -74,7 +81,7 @@ def main():
     subprocess.run(['git','merge-base','--is-ancestor',commit,'origin/main'],check=True,timeout=20)
     token=os.environ.get('GH_TOKEN','')
     base=f'/repos/{args.repository}'
-    runs=approved_runs(github_json(f'{base}/actions/runs?head_sha={commit}&branch=main&event=push&per_page=100',token),commit,args.repository)
+    runs=approved_runs(github_json(f'{base}/actions/runs?head_sha={commit}&branch=main&per_page=100',token),commit,args.repository)
     verified=[]
     for path,run_id in runs.items():
         jobs=approved_jobs(github_json(f'{base}/actions/runs/{run_id}/jobs?filter=latest&per_page=100',token),path,run_id,commit)

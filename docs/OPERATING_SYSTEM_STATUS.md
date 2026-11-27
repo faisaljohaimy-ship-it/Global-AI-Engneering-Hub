@@ -1,6 +1,6 @@
 # Operating-system delivery boundaries
 
-Snapshot:2026-11-27. The twelve-layer architecture is a target. This phase adds
+OS0.1.0 snapshot at fdd3684,2026-11-27. The twelve-layer architecture is a target. This phase adds
 working local control-plane modules without provisioning a shared production
 runtime, database, model subscription or continuously running agent fleet.
 
@@ -70,7 +70,8 @@ Do not remove the shared-source repository until isolation/dependencies are prov
 
 Hub release requires review, all applicable exact-head CI jobs and a full merged
 main SHA. Release validation rechecks that a published engineering tag is on main
-and that the eight engineering jobs passed in the five approved main/push workflows
-at that commit. Product pin adoption
+and that the eight engineering jobs passed in five approved workflows at that
+main commit. Dependency auditing includes later scheduled/manual results and must
+be successful within24hours. Product pin adoption
 is a separate reviewed change with offline verification and real invocation.
 No hub release makes product production depend on public GitHub availability.
