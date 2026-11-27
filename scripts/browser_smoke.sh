@@ -35,7 +35,7 @@ timeout 20s "$browser" --headless=new --no-sandbox --disable-gpu --disable-dev-s
 
 grep -q 'data-lab-ready="true"' "$output"
 grep -q '<strong id="indexedCount">142</strong>' "$output"
-grep -q '<strong id="implementedCount">11</strong>' "$output"
-grep -q '<strong id="testedCount">11</strong>' "$output"
-grep -q '<strong id="usedCount">11</strong>' "$output"
-printf 'Motion Lab browser load verified: indexed=142 implemented=11 tested=11 used=11\n'
+grep -q '<strong id="implementedCount">30</strong>' "$output"
+grep -q '<strong id="testedCount">30</strong>' "$output"
+grep -q '<strong id="usedCount">30</strong>' "$output"
+printf 'Motion Lab browser load verified: indexed=142 implemented=30 tested=30 used=30\n'

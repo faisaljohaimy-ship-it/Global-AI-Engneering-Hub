@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "cinema-truck-left",
+  "name": "Truck left",
+  "duration_ms": 2400,
+  "easing": "linear",
+  "direction": "Physical camera direction; never mirrored for RTL.",
+  "keyframes": [
+    {"offset": 0, "transform": "translateX(4%)"},
+    {"offset": 1, "transform": "translateX(-4%)"}
+  ],
+  "reduced_motion": {"transform": "none"}
+}

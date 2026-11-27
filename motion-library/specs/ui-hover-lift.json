@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "ui-hover-lift",
+  "name": "Hover lift",
+  "duration_ms": 180,
+  "easing": "ease-out",
+  "usage": "Travel only. Shadows belong in component styles and are not injected through the motion specification.",
+  "keyframes": [
+    {"offset": 0, "transform": "translateY(0px)"},
+    {"offset": 1, "transform": "translateY(-4px)"}
+  ],
+  "reduced_motion": {"transform": "none"}
+}

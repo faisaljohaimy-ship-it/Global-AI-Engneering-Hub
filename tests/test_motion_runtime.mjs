@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {crossDissolveAtFrame, crossDissolveSequence} from "../motion-library/adapters/remotion.mjs";
 import {orbitCameraAtProgress} from "../motion-library/adapters/three.mjs";
-import {animationOptions, mirroredKeyframes, reducedMotionRequested, statusFor} from "../motion-library/runtime/core.mjs";
+import {animationOptions, mirroredKeyframes, reducedMotionRequested, statusFor, validateComponent} from "../motion-library/runtime/core.mjs";
 
 test("Remotion adapter is deterministic at first, middle and final frame", () => {
   assert.deepEqual(crossDissolveAtFrame(0, 31), {outgoingOpacity: 1, incomingOpacity: 0});
@@ -34,10 +34,25 @@ test("runtime exposes honest status and motion preference", () => {
   });
 });
 
+test("Motion Lab accepts only declared executable behavior components", () => {
+  const catalogIds = new Set(["ui-staggered-list"]);
+  const component = {
+    id: "ui-staggered-list",
+    engine: "waapi-behavior",
+    implementation: "runtime/hub-motion.mjs#stagger",
+    implementation_status: "implemented",
+    used_by: ["motion-lab"],
+  };
+  assert.equal(validateComponent(component, catalogIds), component);
+  assert.throws(() => validateComponent({...component, implementation: undefined}, catalogIds), /implementation/);
+  assert.throws(() => validateComponent({...component, engine: "unknown"}, catalogIds), /engine/);
+});
+
 test("RTL mirroring reverses logical horizontal travel without mutating source", () => {
   const source = [{offset: 0, transform: "translateX(-24px)"}, {offset: 1, transform: "translateX(0)"}];
   const result = mirroredKeyframes(source, true);
   assert.equal(result[0].transform, "translateX(24px)");
   assert.equal(result[1].transform, "translateX(0)");
   assert.equal(source[0].transform, "translateX(-24px)");
+  assert.equal(mirroredKeyframes([{offset: 0, transform: "translateX(-2rem)"}], true)[0].transform, "translateX(2rem)");
 });

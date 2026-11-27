@@ -7,6 +7,6 @@
 - [x] Central discovery and pin-update tests pass.
 - [x] 22 integration probe outcomes are recorded without account data.
 - [x] Recoverable cinematic packages are indexed with license/hash evidence.
-- [ ] Five project repositories are linked from reviewed branches.
-- [ ] Browser smoke, accessibility, and static performance budgets pass.
+- [ ] Five project repositories are checksum-registered from a reviewed hub `main` commit.
+- [x] Browser smoke, accessibility, and static performance budgets pass.
 - [ ] GitHub Actions succeeds and PR is merged.

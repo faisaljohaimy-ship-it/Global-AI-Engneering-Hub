@@ -1,7 +1,11 @@
 import json
 import unittest,tempfile,pathlib
+from unittest import mock
 import hub
 class HubTests(unittest.TestCase):
+ def setUp(self):
+  patcher=mock.patch('hub.hublink.reviewed_commit',return_value=True)
+  patcher.start();self.addCleanup(patcher.stop)
  def test_registry(self): self.assertGreater(len(hub.registry()),40)
  def test_dry_run(self):
   with tempfile.TemporaryDirectory() as t:
@@ -34,6 +38,15 @@ class HubTests(unittest.TestCase):
    hub.update_pin(t,'b'*40,'a'*40,True)
    self.assertIn('b'*40,manifest.read_text())
    with self.assertRaises(ValueError):hub.update_pin(t,'c'*40,'a'*40,True)
+ def test_update_pin_refuses_registered_capabilities(self):
+  with tempfile.TemporaryDirectory() as t:
+   hub.onboard(t,'a'*40,True)
+   manifest=pathlib.Path(t)/'.engineering/capabilities.json'
+   data=json.loads(manifest.read_text())
+   data['capabilities']=[{'id':'skill:hub-capabilities','files':[]}]
+   manifest.write_text(json.dumps(data))
+   with self.assertRaisesRegex(ValueError,'re-pinned with hub.py register'):
+    hub.update_pin(t,'b'*40,'a'*40,True)
  def test_duplicate_json_keys_are_rejected(self):
   with tempfile.TemporaryDirectory() as t:
    path=pathlib.Path(t)/'duplicate.json'
@@ -46,11 +59,13 @@ class HubTests(unittest.TestCase):
  def test_audit_uses_evidence_manifests(self):
   result=hub.audit()
   self.assertEqual(result['motions_indexed'],142)
-  self.assertEqual(result['motions_implemented'],11)
-  self.assertEqual(result['motions_tested'],11)
-  self.assertEqual(result['motions_runtime_verified'],0)
-  self.assertEqual(result['motions_used'],11)
+  self.assertEqual(result['motions_implemented'],30)
+  self.assertEqual(result['motions_tested'],30)
+  self.assertEqual(result['motions_runtime_verified'],29)
+  self.assertEqual(result['motions_used'],30)
+  self.assertEqual(result['motion_lab_components'],30)
   self.assertEqual(result['integrations_indexed'],22)
   self.assertEqual(result['integrations_probed'],22)
   self.assertEqual(result['integrations_available'],12)
+  self.assertEqual(result['registered_public_projects'],3)
 if __name__=='__main__':unittest.main()

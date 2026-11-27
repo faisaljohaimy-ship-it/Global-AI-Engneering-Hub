@@ -7,27 +7,33 @@ media are included in this record.
 
 | Area | Indexed | Implemented/available | Automated-tested | Runtime-verified | Used here |
 |---|---:|---:|---:|---:|---:|
-| Motion specifications | 142 | 11 | 11 | 0 | 11 (Motion Lab only) |
+| Motion specifications | 142 | 30 | 30 | 29 | 30 (Motion Lab) |
 | Program integrations | 22 | 12 available | 22 probed | 10 authenticated reads + 2 local executables | 1 (GitHub delivery) |
 | Recovered package groups | 3 | 0 imported | 3 source/integrity reviewed | 0 | 0 |
 | Local hub skills | 9 | 9 | discovery checks | n/a | task-selected |
 
-The 11 motion components are six CSS, two WAAPI, one WebGL/GLSL, one deterministic
-Remotion adapter and one deterministic Three.js camera adapter. The two adapters do
-not prove the optional packages are installed. `runtime-verified` remains zero because
-the shared browser surface was unavailable and local Chromium timed out after GPU/DBus
-sandbox failures. Static HTTP asset requests succeeded, but that is not animation
-runtime evidence.
+The 30 Motion Lab components are six CSS, eighteen WAAPI specifications, three WAAPI
+runtime behaviours, one WebGL/GLSL component, one deterministic Remotion adapter and
+one deterministic Three.js camera adapter. Chromium produced 30 passing raw results
+(26 CSS/WAAPI specifications, three behaviours and one dedicated GLSL/WebGL check).
+The catalog reports 29 runtime-verified entries. The Three component remains excluded
+because generic CSS proof and a camera adapter unit test do not prove Three.js ran.
+Likewise, the Remotion adapter test does not prove the optional package is installed.
 
 ## Tests that passed
 
-- Python: 28 tests covering catalogs, evidence, onboarding, compare-and-swap updates,
+- Python: 56 tests covering catalogs, evidence, registration, onboarding, safe pin updates,
   JSON duplicate rejection, CSS grammar/injection, Motion Lab accessibility/security,
   manifest reconciliation, byte budgets, action pinning and secret-pattern scanning.
-- Node: 4 deterministic adapter/runtime tests.
+- Node: 17 deterministic runtime, adapter and render-option tests.
+- Chromium: 30/30 verifier results passed with Playwright 1.63.0; the Motion Lab
+  listed all 142 entries and Play/Stop completed for all 30 executable controls with
+  no page errors or external requests.
 - Performance: 100,000 combined Three/Remotion adapter samples completed below the
-  1,000 ms budget (observed runs varied by host; the final pre-commit run is reported
-  in the pull request).
+  1,000 ms budget (38.75 ms in the recorded final local run; wall-clock results vary).
+- Cinematic render: 1280×720, 30 fps, 126 H.264 frames, 4.2 seconds, all layout,
+  repeatability, motion, RTL and contrast checks passed. Frame hash:
+  `4a9838e6391a74461c0dce7b0c0b1f57789dd9a5a2b75c3f240900415063daf4`.
 - Local integration probe: Blender 4.3.2 and FFmpeg 7.1.5 succeeded; Remotion,
   Three.js, Motion, GSAP, Rive and Lottie packages were not installed.
 - `git diff --check` and JSON parsing passed.
@@ -63,7 +69,10 @@ and materials without a repository-level public license were explicitly excluded
 
 ## Repository linkage
 
-- Already merged before this phase: `max_-Alpha1`, `biltix-risk-ai-v2`.
-- Merged in this phase: `n8n-docs` PR #3.
-- Pending exact-head CI at evidence-writing time: `Wow-bus` PR #21 and
-  `biz-pulse-ar` PR #462. They must not merge unless their required checks succeed.
+- Merged onboarding manifests and dual discovery skill copies exist in five projects:
+  `max_-Alpha1` PR #2, `biltix-risk-ai-v2` PR #1, `n8n-docs` PR #3,
+  `Wow-bus` PR #21 and `biz-pulse-ar` PR #462.
+- The stronger checksum model correctly reports those original manifests as
+  `declared-only` because they contain no registered capability file list. They must be
+  re-registered against this change after it is merged to hub `main`; no strict-link
+  claim is made here.

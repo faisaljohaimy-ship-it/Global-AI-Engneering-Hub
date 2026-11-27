@@ -19,6 +19,8 @@ python3 hub.py update-pin /path/to/project \
   --expected CURRENT_FULL_SHA --revision REVIEWED_TARGET_FULL_SHA --apply
 ```
 
-The updater changes only `.engineering/capabilities.json`, refuses symlinks,
-non-zero additional budgets, unexpected current revisions and production runtime
-dependencies. It does not pull code, install packages, merge, or deploy.
+The updater changes only a declaration-only `.engineering/capabilities.json` and
+refuses symlinks, non-zero additional budgets, unexpected current revisions,
+production runtime dependencies, and manifests with registered capabilities. Re-pin
+registered capabilities with `hub.py register`, which regenerates their files and
+checksums from the reviewed commit. Neither path merges or deploys.

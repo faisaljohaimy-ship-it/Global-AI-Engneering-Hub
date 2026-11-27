@@ -35,13 +35,16 @@ class MotionLabTests(unittest.TestCase):
     def test_true_counts_and_engine_coverage(self):
         self.assertEqual(len(CATALOG["entries"]), 142)
         rows = COMPONENTS["components"]
-        self.assertEqual(len(rows), 11)
+        self.assertEqual(len(rows), 30)
         engines = [row["engine"] for row in rows]
         self.assertEqual(engines.count("css"), 6)
-        self.assertEqual(engines.count("waapi"), 2)
+        self.assertEqual(engines.count("waapi"), 18)
+        self.assertEqual(engines.count("waapi-behavior"), 3)
         self.assertEqual(engines.count("glsl-webgl"), 1)
         self.assertEqual(engines.count("remotion-adapter"), 1)
         self.assertEqual(engines.count("three-adapter"), 1)
+        implemented = {row["id"] for row in CATALOG["entries"] if row["status"] == "implemented"}
+        self.assertTrue(implemented <= set(row["id"] for row in rows))
 
     def test_every_component_maps_to_catalog_and_valid_spec(self):
         catalog_ids = {row["id"] for row in CATALOG["entries"]}
@@ -52,10 +55,16 @@ class MotionLabTests(unittest.TestCase):
             self.assertEqual(row["implementation_status"], "implemented")
             self.assertEqual(row["test_status"], "automated")
             self.assertIn("motion-lab", row["used_by"])
-            spec = json.loads((ROOT / "motion-library" / row["spec"]).read_text())
-            self.assertEqual(spec["id"], row["id"])
-            COMPILER.validate(spec)
-            self.assertTrue(COMPILER.compile_css(spec).startswith("@keyframes"))
+            source = row.get("spec") or row.get("source_spec")
+            if source:
+                spec = json.loads((ROOT / "motion-library" / source).read_text())
+                if "spec" in row:
+                    self.assertEqual(spec["id"], row["id"])
+                COMPILER.validate(spec)
+                self.assertTrue(COMPILER.compile_css(spec).startswith("@keyframes"))
+            else:
+                self.assertEqual(row["engine"], "waapi-behavior")
+                self.assertTrue(row["implementation"].startswith("runtime/hub-motion.mjs#"))
 
     def test_lab_is_local_accessible_and_non_autoplaying(self):
         parser = LabParser()
@@ -72,6 +81,8 @@ class MotionLabTests(unittest.TestCase):
         self.assertNotIn("eval(", app)
         self.assertNotIn("autoplay=", html.lower())
         self.assertIn('refs.play.addEventListener("click"', app)
+        self.assertIn('component.engine === "waapi-behavior"', app)
+        self.assertIn("runWaapiBehavior", app)
 
     def test_lab_static_budgets(self):
         budgets = {"index.html": 20_000, "styles.css": 40_000, "motions.css": 20_000, "app.mjs": 80_000}
