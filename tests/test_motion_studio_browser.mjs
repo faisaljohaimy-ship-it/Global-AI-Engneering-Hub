@@ -33,6 +33,7 @@ try {
     });
     await page.goto(`${server.origin}/motion-studio/index.html`);
     await page.waitForFunction(() => document.documentElement.dataset.studioReady === 'true');
+    assert.equal(await page.getByRole('combobox',{name:'اللغة',exact:true}).count(),1,'The language control stays named when its visual label is hidden on mobile');
     const waapi = await page.evaluate(async () => {
       const {createMotionSystem} = await import('/packages/motion-sdk/index.mjs');
       const local=createMotionSystem(),target=document.createElement('div');
@@ -70,6 +71,7 @@ try {
     await page.locator('#stop').click();
     assert.equal((await page.evaluate(() => window.__motionStudio.snapshot())).progress,0);
     await page.locator('#language').selectOption(viewport.width < 500 ? 'ar' : 'en');
+    assert.equal(await page.getByRole('combobox',{name:viewport.width < 500 ? 'اللغة' : 'Language',exact:true}).count(),1,'Accessible language name follows the selected locale');
     await page.locator('#direction').selectOption(viewport.width < 500 ? 'rtl' : 'ltr');
     await page.locator('#profile').selectOption(viewport.width < 500 ? 'mobile' : 'balanced');
     await page.locator('#intensity').fill('75');

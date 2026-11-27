@@ -16,6 +16,7 @@ const secondary = (row) => row[language === 'ar' ? 'name_en' : 'name_ar'] ?? '';
 
 function translate() {
   document.documentElement.lang = language; document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+  $('#language').setAttribute('aria-label', L('language'));
   for (const item of document.querySelectorAll('[data-i18n]')) item.textContent = L(item.dataset.i18n);
   for (const item of document.querySelectorAll('[data-placeholder]')) item.placeholder = L(item.dataset.placeholder);
   renderList(); if (selected) labelScene(); paintTransport();
