@@ -34,6 +34,8 @@ The first command is a dry run and prints the plan. Rules it keeps:
   adopted; different content stops the run and names the file.
 - Running it again with a newer `--revision` re-pins: every declared capability is
   reinstalled from the new commit.
+- `--remove skill:<name>` drops a capability and deletes its files, but only those that
+  still match their recorded checksum; a file edited in the project is kept and named.
 - Paths that leave the project, `.git/`, and symlinks are refused.
 - Nothing is installed from the network and nothing is enabled or deployed.
 

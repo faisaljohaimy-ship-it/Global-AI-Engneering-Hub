@@ -202,12 +202,13 @@ def load_manifest(target):
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
 
 
-def register(target, revision, project_id=None, repository=None, capabilities=(), apply=False):
+def register(target, revision, project_id=None, repository=None, capabilities=(), apply=False, remove=()):
     """Install capabilities from one hub revision and record them in the manifest.
 
     Dry-run unless apply is set. Capabilities already declared are reinstalled from the
     new revision, so the same command re-pins a project. A project file the hub does not
     manage is never overwritten: identical content is adopted, different content stops.
+    Removing a capability deletes only files that still match their recorded checksum.
     """
     if not has_commit(revision):
         raise ValueError("Full commit SHA from this hub required")
@@ -221,6 +222,10 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
             raise ValueError("Existing manifest is invalid: " + "; ".join(problems))
     managed = {row["path"] for item in old.get("capabilities", []) for row in item["files"]}
     wanted = list(dict.fromkeys([item["id"] for item in old.get("capabilities", [])] + list(capabilities)))
+    removing = set(remove)
+    if removing - set(wanted):
+        raise ValueError("Cannot remove what is not registered: " + ", ".join(sorted(removing - set(wanted))))
+    wanted = [capability_id for capability_id in wanted if capability_id not in removing]
     plan, contents, entries = {}, {}, []
     for capability_id in wanted:
         rows = []
@@ -240,6 +245,17 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
     conflicts = sorted(path for path, state in plan.items() if state == "conflict")
     if conflicts:
         raise ValueError("Refusing to overwrite project files the hub does not manage: " + ", ".join(conflicts))
+    for item in old.get("capabilities", []):
+        for row in item["files"] if item["id"] in removing else []:
+            if row["path"] in plan:
+                continue
+            destination = _destination(target, row["path"])
+            if not destination.is_file():
+                plan[row["path"]] = "already absent"
+            elif sha256(destination.read_bytes()) == row["sha256"]:
+                plan[row["path"]] = "delete"
+            else:
+                plan[row["path"]] = "kept: edited in the project"
     project = dict(old.get("project") or {})
     if project_id:
         project["id"] = project_id
@@ -265,6 +281,13 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
                 destination = _destination(target, path)
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(data)
+        for path, state in plan.items():
+            if state == "delete":
+                destination = _destination(target, path)
+                destination.unlink()
+                for parent in list(destination.parents)[:2]:
+                    if parent != target and not any(parent.iterdir()):
+                        parent.rmdir()
         if plan[MANIFEST] != "unchanged":
             manifest_path.parent.mkdir(parents=True, exist_ok=True)
             manifest_path.write_text(text, encoding="utf-8")

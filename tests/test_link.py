@@ -101,6 +101,23 @@ class LinkTests(unittest.TestCase):
         after = hublink.verify(target)
         self.assertEqual((after["level"], after["verified_files"]), ("verified", 2))
 
+    def test_removing_a_capability_deletes_only_unedited_files(self):
+        target = self.project()
+        self.register(target, "skill:hub-capabilities", "skill:digital-motion", "motion:ui-fade-in", apply=True)
+        edited = target / ".agents/skills/digital-motion/SKILL.md"
+        edited.write_text("local note", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "not registered"):
+            self.register(target, remove=["skill:never-installed"], apply=True)
+        result = self.register(target, remove=["skill:digital-motion"], apply=True)
+        self.assertEqual(result["files"][".claude/skills/digital-motion/SKILL.md"], "delete")
+        self.assertTrue(result["files"][".agents/skills/digital-motion/SKILL.md"].startswith("kept"))
+        self.assertFalse((target / ".claude/skills/digital-motion").exists())
+        self.assertEqual(edited.read_text(encoding="utf-8"), "local note")
+        self.assertEqual(result["capabilities"], ["skill:hub-capabilities", "motion:ui-fade-in"])
+        self.assertTrue((target / ".claude/skills/hub-capabilities/SKILL.md").is_file())
+        report = hublink.verify(target)
+        self.assertEqual((report["ok"], report["verified_files"]), (True, 4))
+
     def test_pack_installs_skill_and_companion_files(self):
         target = self.project()
         result = self.register(target, "pack:catalog-media-tools", apply=True)

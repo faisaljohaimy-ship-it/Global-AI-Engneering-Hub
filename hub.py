@@ -34,7 +34,7 @@ def motion_verified():
 def main():
     p=argparse.ArgumentParser();s=p.add_subparsers(dest='cmd',required=True)
     s.add_parser('audit');q=s.add_parser('search');q.add_argument('query');o=s.add_parser('onboard');o.add_argument('target');o.add_argument('--revision',required=True);o.add_argument('--apply',action='store_true')
-    r=s.add_parser('register');r.add_argument('target');r.add_argument('--revision',required=True);r.add_argument('--id');r.add_argument('--repository');r.add_argument('--capability',action='append',default=[]);r.add_argument('--apply',action='store_true')
+    r=s.add_parser('register');r.add_argument('target');r.add_argument('--revision',required=True);r.add_argument('--id');r.add_argument('--repository');r.add_argument('--capability',action='append',default=[]);r.add_argument('--remove',action='append',default=[]);r.add_argument('--apply',action='store_true')
     v=s.add_parser('verify');v.add_argument('target');v.add_argument('--strict',action='store_true')
     j=s.add_parser('projects');j.add_argument('--audit',action='store_true');a=p.parse_args()
     ok=True
@@ -43,7 +43,7 @@ def main():
             rows=registry();result={'catalog_entries':len(rows),'approved':sum(x['status']=='approved' for x in rows),'local_skills':len(list((ROOT/'skills').glob('*/SKILL.md'))),'motion_specs':len(list((ROOT/'motion-library/specs').glob('*.json'))),'runtime_verified':motion_verified(),'registered_projects':len(hublink.projects())}
         elif a.cmd=='search':result=[x for x in registry() if a.query.lower() in json.dumps(x).lower()]
         elif a.cmd=='onboard':result=onboard(a.target,a.revision,a.apply)
-        elif a.cmd=='register':result=hublink.register(a.target,a.revision,a.id,a.repository,a.capability,a.apply)
+        elif a.cmd=='register':result=hublink.register(a.target,a.revision,a.id,a.repository,a.capability,a.apply,a.remove)
         elif a.cmd=='verify':result=hublink.verify(a.target,a.strict);ok=result['ok']
         else:result=hublink.audit_projects() if a.audit else hublink.projects();ok=all(x.get('ok',True) for x in result)
     except ValueError as e:result={'error':str(e)};ok=False

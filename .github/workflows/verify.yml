@@ -28,9 +28,6 @@ jobs:
     name: motion in a real browser
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
-      NODE_PATH: ${{ runner.temp }}/pw-tools/node_modules
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -39,9 +36,14 @@ jobs:
         with:
           node-version: "22"
       - name: Install the browser tool outside the repository
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/pw-tools" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.63.0
           "$RUNNER_TEMP/pw-tools/node_modules/.bin/playwright" install --with-deps chromium --only-shell
       - name: Play every specification in Chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
+          NODE_PATH: ${{ runner.temp }}/pw-tools/node_modules
         run: node motion-library/verify/browser.mjs
