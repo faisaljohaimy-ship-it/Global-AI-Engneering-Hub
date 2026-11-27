@@ -1,0 +1,25 @@
+{
+  "name": "@global-ai-hub/motion-sdk",
+  "version": "1.0.0",
+  "description": "Universal motion API and a registry of browser-verified motions. No runtime dependencies.",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./index.mjs",
+    "./core/*": "./core/*",
+    "./engines/*": "./engines/*",
+    "./shaders/*": "./shaders/*",
+    "./motions/*": "./motions/*",
+    "./adapters/*": "./adapters/*",
+    "./orchestrator": "./orchestrator.mjs",
+    "./registry.json": "./registry.json"
+  },
+  "bin": { "hub-motion": "./cli.mjs" },
+  "scripts": {
+    "registry": "node tools/build_registry.mjs",
+    "verify": "node verify/browser.mjs",
+    "test": "node --test test/"
+  },
+  "engines": { "node": ">=20" }
+}
