@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "source_branch": "feat/chromium-motion-stack",
+  "source_head": "d7d28e41912305ef7c418035490f8ab7fbc51a8d",
+  "original_files": [
+    {
+      "path": "motion-library/chromium-stack/README.md",
+      "sha256": "56776e9b6ff29592bebe949eef344eac082890c9f205468fa5719c8329aa6ade",
+      "bytes": 1466
+    },
+    {
+      "path": "motion-library/chromium-stack/package.json",
+      "sha256": "76763f7442813b39ee525f59acafb93101b89ac829f18475ad946f850cdd23e1",
+      "bytes": 720
+    },
+    {
+      "path": "motion-library/chromium-stack/smoke.mjs",
+      "sha256": "28d0eca6e17c75a15839d78dfb8ea1066cf22d299b90b3b0f35be1e7f83e4072",
+      "bytes": 1416
+    }
+  ],
+  "original_manifest": {
+    "dependency_count": 18,
+    "unresolved_versions": "latest",
+    "lockfile": false,
+    "approved_or_operational": false
+  },
+  "recovery": "Reimplemented the candidate as a minimal native-only stack; original branch preserved. This is not recovery of an unidentified741/-14 patch.",
+  "dependency_review": {
+    "playwright": {
+      "version": "1.63.0",
+      "license": "Apache-2.0",
+      "node_requirement": ">=20",
+      "registry": "https://registry.npmjs.org/playwright/1.63.0",
+      "reason": "Retain known reviewed and tested hub version, with matching local Chromium and exact integrity lock."
+    },
+    "playwright_core": {
+      "version": "1.63.0",
+      "license": "Apache-2.0"
+    },
+    "candidate_upgrade": {
+      "pull_request": 8,
+      "version": "1.65.1",
+      "license": "Apache-2.0",
+      "node_requirement": ">=20",
+      "installed": false,
+      "decision": "Metadata checked; adopt only after isolated compatibility/security/runtime review."
+    },
+    "advisory_audit": "npm audit --audit-level=high: zero vulnerabilities at review time",
+    "original_other_engines_installed": false
+  }
+}

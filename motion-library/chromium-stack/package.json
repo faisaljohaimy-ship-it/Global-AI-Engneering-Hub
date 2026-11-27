@@ -1,0 +1,16 @@
+{
+  "name": "@global-ai-engineering-hub/chromium-stack",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "description": "Bounded native Chromium rendering probes; optional isolated development tooling",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "smoke": "node smoke.mjs",
+    "test": "node --test ../../tests/test_chromium_stack_options.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
