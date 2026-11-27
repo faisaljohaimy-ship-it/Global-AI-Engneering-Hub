@@ -32,7 +32,7 @@ def _integer(value, low=0, high=2**31-1):
 
 
 def _finite(value, low=0, high=1e12):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not low <= value <= high or not math.isfinite(value):
         raise RoutingError("Invalid finite metric")
     return value
 
@@ -44,7 +44,7 @@ def _money(value):
         parsed = decimal.Decimal(str(value))
     except decimal.InvalidOperation as error:
         raise RoutingError("Invalid monetary constraint") from error
-    if not parsed.is_finite() or parsed < 0 or parsed > decimal.Decimal("1000000000"):
+    if not parsed.is_finite() or parsed < 0 or parsed > decimal.Decimal("1000000000") or parsed.as_tuple().exponent < -12:
         raise RoutingError("Invalid monetary constraint")
     return parsed
 
@@ -171,7 +171,9 @@ def select_model(registry, request, evidence=None, *, environ=None, now=None):
                     pricing_at = _finite(pricing["verified_at"])
                     if pricing_at > now or now - pricing_at > age or receipt["cost_approved"] is not True:
                         reasons.append("pricing_or_cost_authority_expired")
-                    estimated = (_money(pricing["input_per_million_usd"]) * input_tokens + _money(pricing["output_per_million_usd"]) * output_tokens) / decimal.Decimal(1000000)
+                    with decimal.localcontext() as context:
+                        context.prec = 64
+                        estimated = (_money(pricing["input_per_million_usd"]) * input_tokens + _money(pricing["output_per_million_usd"]) * output_tokens) / decimal.Decimal(1000000)
                     if estimated > budget:
                         reasons.append("cost_budget")
                     if row["provider"] != "local" and estimated == 0 and receipt["free_allowance_verified"] is not True:

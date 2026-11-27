@@ -65,6 +65,8 @@ authority. Remote models also require their named credential to exist in the
 calling process; the credential is never returned. Zero-priced remote operation
 needs explicit verified free allowance. Local runtimes need matching artifact
 digests. Missing, stale, future, nonfinite or malformed constraints fail closed.
+Monetary inputs support at most twelve fractional decimal places and use a
+64-digit calculation context; extreme exponents cannot underflow into free work.
 
 The default `catalog/models/registry.json` contains five provider placeholders and
 zero available model versions. It never treats a ChatGPT/Claude session or an

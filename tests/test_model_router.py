@@ -137,7 +137,7 @@ class ModelRouterTests(unittest.TestCase):
 
     def test_nonfinite_boolean_and_bad_constraints_are_refused(self):
         for field in ["max_cost_usd","min_quality","max_latency_ms"]:
-            for value in [True,float("nan"),float("inf"),-1]:
+            for value in [True,float("nan"),float("inf"),-1,10**1000]:
                 original=self.request[field];self.request[field]=value
                 with self.subTest(field=field,value=value),self.assertRaises(RoutingError):self.choose()
                 self.request[field]=original
@@ -167,3 +167,13 @@ class ModelRouterTests(unittest.TestCase):
         self.request["permissions"]=["source:read"]
         self.registry["models"].append(copy.deepcopy(self.model))
         with self.assertRaises(RoutingError):self.choose()
+
+    def test_extreme_price_underflow_cannot_claim_zero_cost(self):
+        self.model["pricing"]["input_per_million_usd"] = "1e-9999999"
+        self.rejected("malformed_policy_or_evidence")
+        self.model["pricing"]["input_per_million_usd"] = "0.000000000001"
+        self.request["input_tokens"] = 1
+        self.request["output_tokens"] = 1
+        self.rejected("cost_budget")
+        self.request["max_cost_usd"] = "0.000000000001"
+        self.assertEqual(self.choose()["selected"]["estimated_cost_usd"], "1E-18")

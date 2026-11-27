@@ -236,7 +236,7 @@ except CoordinationError:print('blocked')
         task = self.create()
         with self.assertRaises(CoordinationError):
             self.store.create_task(self.spec("new", branch="codex/new"), LEAD, 0)
-        for ttl in [float("nan"),float("inf"),True,0,3601]:
+        for ttl in [float("nan"),float("inf"),True,0,3601,10**1000]:
             with self.subTest(ttl=ttl), self.assertRaises(CoordinationError):
                 self.store.claim(task["id"], CODER, task["version"], ttl)
         self.assertEqual(self.store.snapshot()["revision"], 1)

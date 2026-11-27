@@ -72,7 +72,7 @@ def _slug(value):
 
 
 def _number(value, minimum=0, maximum=2**53-1):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not minimum <= value <= maximum:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not minimum <= value <= maximum or not math.isfinite(value):
         raise CoordinationError("Invalid finite number")
     return value
 
