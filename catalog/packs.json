@@ -16,6 +16,28 @@
       "requires": ["Python 3.10+", "git for target and release checks"],
       "origin": "Owner-authorized original engineering tooling in this hub. Review at an immutable merged SHA; no third-party runtime dependencies."
     },
+    "motion-sdk": {
+      "summary": "Universal Motion SDK with 400 original Canvas2D reference scenes, local examples and scoped MIT licenses; no provider or optional rendering engine dependencies.",
+      "version": "1.0.0",
+      "skills": ["universal-motion"],
+      "files": {
+        "packages/motion-sdk/index.mjs": ".engineering/vendor/os-motion/packages/motion-sdk/index.mjs",
+        "packages/motion-sdk/examples.mjs": ".engineering/vendor/os-motion/packages/motion-sdk/examples.mjs",
+        "packages/motion-sdk/README.md": ".engineering/vendor/os-motion/packages/motion-sdk/README.md",
+        "packages/motion-sdk/LICENSE": ".engineering/vendor/os-motion/packages/motion-sdk/LICENSE",
+        "motion-library/expansion/catalog.mjs": ".engineering/vendor/os-motion/motion-library/expansion/catalog.mjs",
+        "motion-library/expansion/families.mjs": ".engineering/vendor/os-motion/motion-library/expansion/families.mjs",
+        "motion-library/expansion/systems.mjs": ".engineering/vendor/os-motion/motion-library/expansion/systems.mjs",
+        "motion-library/expansion/geometry.mjs": ".engineering/vendor/os-motion/motion-library/expansion/geometry.mjs",
+        "motion-library/expansion/examples.mjs": ".engineering/vendor/os-motion/motion-library/expansion/examples.mjs",
+        "motion-library/expansion/definitions.json": ".engineering/vendor/os-motion/motion-library/expansion/definitions.json",
+        "motion-library/expansion/README.md": ".engineering/vendor/os-motion/motion-library/expansion/README.md",
+        "motion-library/expansion/LICENSE": ".engineering/vendor/os-motion/motion-library/expansion/LICENSE"
+      },
+      "requires": ["Node.js 20+ for deterministic scene sampling, or a browser with Canvas2D", "requestAnimationFrame only for browser playback"],
+      "origin": "Owner-authorized original MIT source in packages/motion-sdk and motion-library/expansion, copied by checksum from one reviewed merged hub SHA with both scoped license files. Relative imports are preserved; no npm packages, remote textures, model calls or paid rendering services are installed.",
+      "limits": "Canvas2D reference scenes only. Studio, browser binaries, GPU engines, encoded video and production performance evidence are not installed by this pack."
+    },
     "motion-runtime": {
       "summary": "Dependency-free browser runtime for hub motion specifications, with the logical-direction base stylesheet.",
       "files": {
