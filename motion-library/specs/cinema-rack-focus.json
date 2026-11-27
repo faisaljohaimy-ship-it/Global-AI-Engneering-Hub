@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "cinema-rack-focus",
+  "name": "Rack focus",
+  "duration_ms": 900,
+  "easing": "ease-in-out",
+  "keyframes": [
+    {"offset": 0, "filter": "blur(8px)"},
+    {"offset": 1, "filter": "blur(0px)"}
+  ],
+  "reduced_motion": {"filter": "none"}
+}

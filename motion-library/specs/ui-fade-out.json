@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "ui-fade-out",
+  "name": "Fade out",
+  "duration_ms": 200,
+  "easing": "ease-in",
+  "keyframes": [
+    {"offset": 0, "opacity": 1},
+    {"offset": 1, "opacity": 0}
+  ],
+  "reduced_motion": {"opacity": 0}
+}

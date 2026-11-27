@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "legacy-10",
+  "name": "Decision Pulse",
+  "duration_ms": 800,
+  "easing": "linear",
+  "frames": {"fps": 30, "count": 24, "keyed_at": [0, 6, 12, 24]},
+  "notes": "Frame-keyed at 30 fps and built on web standards; Remotion stays a discovery candidate until its licence is reviewed.",
+  "keyframes": [
+    {"offset": 0, "opacity": 1, "transform": "scale(1)"},
+    {"offset": 0.25, "opacity": 0.85, "transform": "scale(1.08)"},
+    {"offset": 0.5, "opacity": 1, "transform": "scale(1)"},
+    {"offset": 1, "opacity": 1, "transform": "scale(1)"}
+  ],
+  "reduced_motion": {"opacity": 1, "transform": "none"}
+}

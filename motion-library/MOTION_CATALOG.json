@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "notes": "Specifications, not implemented effects. Twelve recovered entries; additions are engineering candidates, not a claim of exhaustive worldwide coverage or novelty.",
+  "notes": "An entry is a specification unless its status is implemented. status, runtime_verified, spec, implementation and evidence are written by motion-library/catalog_status.py from browser evidence; do not edit them by hand. Twelve recovered entries; additions are engineering candidates, not a claim of exhaustive worldwide coverage or novelty.",
   "entries": [
     {
       "id": "legacy-1",
@@ -35,8 +35,10 @@
       "name": "Elastic Orb Bounce",
       "hint": "Deterministic spring motion",
       "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/legacy-4.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "legacy-5",
@@ -89,8 +91,10 @@
       "name": "Decision Pulse",
       "hint": "Remotion frame-based interpolation",
       "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/legacy-10.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "legacy-11",
@@ -116,8 +120,10 @@
       "name": "Fade in",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/fade-in.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-fade-out",
@@ -125,8 +131,10 @@
       "name": "Fade out",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-fade-out.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-slide-inline-start",
@@ -134,8 +142,10 @@
       "name": "Slide inline start",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-slide-inline-start.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-slide-inline-end",
@@ -143,8 +153,10 @@
       "name": "Slide inline end",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-slide-inline-end.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-slide-up",
@@ -152,8 +164,10 @@
       "name": "Slide up",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-slide-up.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-scale-reveal",
@@ -161,8 +175,10 @@
       "name": "Scale reveal",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-scale-reveal.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-press-feedback",
@@ -170,8 +186,10 @@
       "name": "Press feedback",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-press-feedback.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-spring-card",
@@ -179,8 +197,10 @@
       "name": "Spring card",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-spring-card.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-staggered-list",
@@ -188,8 +208,10 @@
       "name": "Staggered list",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "implementation": "motion-library/runtime/hub-motion.mjs#stagger",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-accordion-expansion",
@@ -206,8 +228,10 @@
       "name": "Drawer reveal",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-drawer-reveal.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-dialog-reveal",
@@ -215,8 +239,10 @@
       "name": "Dialog reveal",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-dialog-reveal.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-skeleton-shimmer",
@@ -260,8 +286,10 @@
       "name": "Toast entrance",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-toast-entrance.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-focus-halo",
@@ -269,8 +297,10 @@
       "name": "Focus halo",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-focus-halo.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-hover-lift",
@@ -278,8 +308,10 @@
       "name": "Hover lift",
       "origin": "new engineering candidate",
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/ui-hover-lift.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "ui-drag-reorder",
@@ -422,8 +454,10 @@
       "name": "Dolly in",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-dolly-in.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-dolly-out",
@@ -431,8 +465,10 @@
       "name": "Dolly out",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-dolly-out.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-truck-left",
@@ -440,8 +476,10 @@
       "name": "Truck left",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-truck-left.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-truck-right",
@@ -449,8 +487,10 @@
       "name": "Truck right",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-truck-right.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-crane-rise",
@@ -458,8 +498,10 @@
       "name": "Crane rise",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-crane-rise.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-orbit-camera",
@@ -476,8 +518,10 @@
       "name": "Rack focus",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-rack-focus.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-depth-of-field",
@@ -539,8 +583,10 @@
       "name": "Whip pan",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-whip-pan.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-cross-dissolve",
@@ -548,8 +594,10 @@
       "name": "Cross dissolve",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/cinema-cross-dissolve.json",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "cinema-light-sweep",
@@ -701,8 +749,10 @@
       "name": "Counter interpolation",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "implementation": "motion-library/runtime/hub-motion.mjs#counterValueAt",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "typography-typewriter",
@@ -710,8 +760,10 @@
       "name": "Typewriter",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "implementation": "motion-library/runtime/hub-motion.mjs#typewriterAt",
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "typography-lower-third",

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "cinema-crane-rise",
+  "name": "Crane rise",
+  "duration_ms": 2400,
+  "easing": "ease-in-out",
+  "usage": "The camera rises, so the framed layer travels downward.",
+  "keyframes": [
+    {"offset": 0, "transform": "translateY(-4%)"},
+    {"offset": 1, "transform": "translateY(4%)"}
+  ],
+  "reduced_motion": {"transform": "none"}
+}
