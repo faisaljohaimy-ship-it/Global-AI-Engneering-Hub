@@ -13,6 +13,7 @@ WORKFLOWS = {
     '.github/workflows/operating-system.yml': {'operating system and motion unit tests', 'fresh Chromium and Motion Studio runtime evidence'},
     '.github/workflows/security.yml': {'Tracked secrets and Python execution hazards'},
     '.github/workflows/dependency-audit.yml': {'Audit exact tracked npm locks'},
+    '.github/workflows/motion-cross-browser.yml': {'Motion Studio in firefox', 'Motion Studio in webkit'},
 }
 
 

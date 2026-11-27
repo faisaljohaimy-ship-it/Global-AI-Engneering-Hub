@@ -13,7 +13,7 @@ runtime, database, model subscription or continuously running agent fleet.
 |L05 Integrations|Read-only stdio MCP and historical provider probes|Real subprocess MCP discovery/verification in prepared product checkouts|Native Codex project configuration remains unrecognized in this environment; Claude Code binary absent; A2A/ACP not implemented|
 |L06 Software|Shared skills and templates|Additive Chromium and universal-motion skills; selected SDK pack with real offline import/integrity tests|No new product feature is implied by a skill copy|
 |L07 Data|Project-owned database boundaries|No shared data migration or new database provisioned|RLS/live database/ML/RAG verification remains project-specific and incomplete|
-|L08 Motion|142 specifications;30 components;29 catalog runtime proofs|400 additive Canvas2D recipes, Universal Motion SDK, bilingual Studio; Chromium pixels and bounded CPU benchmarks|No new WebGPU/Three/Remotion/video/physical-solver runtime; WebKit host libraries missing; Firefox not installed|
+|L08 Motion|142 specifications;30 components;29 catalog runtime proofs|400 additive Canvas2D recipes, Universal Motion SDK, bilingual Studio; Chromium pixels and bounded CPU benchmarks; fresh Firefox/WebKit CI matrix|No new WebGPU/Three/Remotion/video/physical-solver runtime; local WebKit libraries missing and local Firefox absent; remote browser results remain separate artifacts|
 |L09 Quality|Existing unit/browser/provenance checks|146 Python tests at integration, motion tests, Lighthouse/axe gates, tracked secret/AST scan, all3 exact-lock audits|Bounded scan coverage; manual accessibility checks, physical devices and production telemetry remain separate|
 |L10 Products|Independent local recovery candidates and2 existing remote product repositories|Eight local offline SDK/MCP configurations checked; six source histories/snapshots preserved|Six remote repositories still blocked by creation403; local preparation is not8/8remote completion|
 |L11 Delivery|Existing provider projects/domains preserved|Separate reviewed hub PRs and fresh CI receipts; immutable release pin|Two correct Git mappings; other mappings require supported administrative access. Existing Vercel quota failure blocks new product deploys|
@@ -70,6 +70,7 @@ Do not remove the shared-source repository until isolation/dependencies are prov
 
 Hub release requires review, all applicable exact-head CI jobs and a full merged
 main SHA. Release validation rechecks that a published engineering tag is on main
-and that the six engineering checks passed at that commit. Product pin adoption
+and that the eight engineering jobs passed in the five approved main/push workflows
+at that commit. Product pin adoption
 is a separate reviewed change with offline verification and real invocation.
 No hub release makes product production depend on public GitHub availability.
