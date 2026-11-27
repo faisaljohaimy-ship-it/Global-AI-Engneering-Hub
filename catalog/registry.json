@@ -548,5 +548,595 @@
     "license_review": "pending",
     "security_review": "pending",
     "commercial_review": "pending"
+  },
+  {
+    "id": "NatronGitHub/Natron",
+    "source": "https://github.com/NatronGitHub/Natron",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "AcademySoftwareFoundation/OpenColorIO",
+    "source": "https://github.com/AcademySoftwareFoundation/OpenColorIO",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "AcademySoftwareFoundation/openexr",
+    "source": "https://github.com/AcademySoftwareFoundation/openexr",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "AcademySoftwareFoundation/MaterialX",
+    "source": "https://github.com/AcademySoftwareFoundation/MaterialX",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "AcademySoftwareFoundation/OpenImageIO",
+    "source": "https://github.com/AcademySoftwareFoundation/OpenImageIO",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "PixarAnimationStudios/OpenUSD",
+    "source": "https://github.com/PixarAnimationStudios/OpenUSD",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "AcademySoftwareFoundation/OpenTimelineIO",
+    "source": "https://github.com/AcademySoftwareFoundation/OpenTimelineIO",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "godotengine/godot",
+    "source": "https://github.com/godotengine/godot",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "KDE/kdenlive",
+    "source": "https://github.com/KDE/kdenlive",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "photoprism/photoprism",
+    "source": "https://github.com/photoprism/photoprism",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "directus/directus",
+    "source": "https://github.com/directus/directus",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "appwrite/appwrite",
+    "source": "https://github.com/appwrite/appwrite",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "apache/airflow",
+    "source": "https://github.com/apache/airflow",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "apache/superset",
+    "source": "https://github.com/apache/superset",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "metabase/metabase",
+    "source": "https://github.com/metabase/metabase",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "openfga/openfga",
+    "source": "https://github.com/openfga/openfga",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "keycloak/keycloak",
+    "source": "https://github.com/keycloak/keycloak",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "casbin/casbin",
+    "source": "https://github.com/casbin/casbin",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "medusajs/medusa",
+    "source": "https://github.com/medusajs/medusa",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "saleor/saleor",
+    "source": "https://github.com/saleor/saleor",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "ggml-org/llama.cpp",
+    "source": "https://github.com/ggml-org/llama.cpp",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "ollama/ollama",
+    "source": "https://github.com/ollama/ollama",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "huggingface/diffusers",
+    "source": "https://github.com/huggingface/diffusers",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "huggingface/peft",
+    "source": "https://github.com/huggingface/peft",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "huggingface/safetensors",
+    "source": "https://github.com/huggingface/safetensors",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "microsoft/onnxruntime",
+    "source": "https://github.com/microsoft/onnxruntime",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "onnx/onnx",
+    "source": "https://github.com/onnx/onnx",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "ray-project/ray",
+    "source": "https://github.com/ray-project/ray",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "stanfordnlp/dspy",
+    "source": "https://github.com/stanfordnlp/dspy",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "milvus-io/milvus",
+    "source": "https://github.com/milvus-io/milvus",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "google/oss-fuzz",
+    "source": "https://github.com/google/oss-fuzz",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "google/osv-scanner",
+    "source": "https://github.com/google/osv-scanner",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "google/googletest",
+    "source": "https://github.com/google/googletest",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "hypothesisWorks/hypothesis",
+    "source": "https://github.com/hypothesisWorks/hypothesis",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "astral-sh/ruff",
+    "source": "https://github.com/astral-sh/ruff",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "biomejs/biome",
+    "source": "https://github.com/biomejs/biome",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "junit-team/junit5",
+    "source": "https://github.com/junit-team/junit5",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "dependency-check/DependencyCheck",
+    "source": "https://github.com/dependency-check/DependencyCheck",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "rust-lang/rust",
+    "source": "https://github.com/rust-lang/rust",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "denoland/deno",
+    "source": "https://github.com/denoland/deno",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "oven-sh/bun",
+    "source": "https://github.com/oven-sh/bun",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "pnpm/pnpm",
+    "source": "https://github.com/pnpm/pnpm",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "nrwl/nx",
+    "source": "https://github.com/nrwl/nx",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "storybookjs/storybook",
+    "source": "https://github.com/storybookjs/storybook",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "TanStack/router",
+    "source": "https://github.com/TanStack/router",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "h3js/h3",
+    "source": "https://github.com/h3js/h3",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "nitrojs/nitro",
+    "source": "https://github.com/nitrojs/nitro",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "tauri-apps/tauri",
+    "source": "https://github.com/tauri-apps/tauri",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "flutter/flutter",
+    "source": "https://github.com/flutter/flutter",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "caddyserver/caddy",
+    "source": "https://github.com/caddyserver/caddy",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "traefik/traefik",
+    "source": "https://github.com/traefik/traefik",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "valkey-io/valkey",
+    "source": "https://github.com/valkey-io/valkey",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "minio/minio",
+    "source": "https://github.com/minio/minio",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "nats-io/nats-server",
+    "source": "https://github.com/nats-io/nats-server",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "apache/pulsar",
+    "source": "https://github.com/apache/pulsar",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "argoproj/argo-cd",
+    "source": "https://github.com/argoproj/argo-cd",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "fluxcd/flux2",
+    "source": "https://github.com/fluxcd/flux2",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "grafana/loki",
+    "source": "https://github.com/grafana/loki",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "grafana/tempo",
+    "source": "https://github.com/grafana/tempo",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
   }
 ]
