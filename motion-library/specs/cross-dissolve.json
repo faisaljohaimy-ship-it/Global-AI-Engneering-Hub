@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"cinema-cross-dissolve","duration_ms":1000,"easing":"linear","adapter":"adapters/remotion.mjs","fps":30,"duration_frames":30,"keyframes":[{"offset":0,"opacity":0},{"offset":1,"opacity":1}],"reduced_motion":{"opacity":1}}

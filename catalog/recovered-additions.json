@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "notes": "Additions to catalog/recovered-packages.json from the Claude Code session of 2026-11-27. imported means the hub now carries the reference copy; referenced means the material stays in its public source repository at the pinned commit; not-found means the search did not locate it. No private film, voice, customer or account material is listed.",
+  "items": [
+    {
+      "id": "catalog-media-tools",
+      "status": "imported",
+      "hub_capability": "pack:catalog-media-tools",
+      "licence": "owner's own work",
+      "evidence": "Identical bytes were found in four project repositories. On 2026-11-27 the catalog search returned rows and ffprobe and ffmpeg were present; tesseract was absent, so OCR was not exercised."
+    },
+    {
+      "id": "shared-ai-catalog",
+      "status": "referenced",
+      "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "path": "shared-catalog/global.zip",
+      "commit": "063ac71978755fc98f6011e2cad2a8c5de59bec1",
+      "sha256": "16252e2a1a7e8262ae1d7efd5f081d5b005ed31b4dcd3055adb5d4f1a7aecf9a",
+      "evidence": "Downloaded and checksum-verified by tools/shared_catalog.py on 2026-11-27: 178,964 discovery rows (168,410 models, 8,740 software, 1,500 MCP servers, 314 skills). Rows are discovery results, not approvals."
+    },
+    {
+      "id": "nexios-modern-stack",
+      "status": "referenced",
+      "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "path": "packs/nexios-modern-stack",
+      "commit": "0361a1c55b3cf9cadea84a4913b7764b9c3ccd56",
+      "licence": "not stated in the pack",
+      "evidence": "Evaluation, CI, telemetry and MCP strategy assets. Not wired into any workflow."
+    },
+    {
+      "id": "q-infinity-motion-pack",
+      "status": "not-found",
+      "evidence": "The 120-variant catalogue and Remotion sample described by the earlier Q-infinity pack were not located in the six repositories this session could read, nor by title and full-text search of the connected Drive. Twelve entries had already been recovered into MOTION_CATALOG.json. The owner needs to supply the archive or its location."
+    }
+  ]
+}

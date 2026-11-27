@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "ui-hover-lift",
+  "name": "Hover lift",
+  "duration_ms": 180,
+  "easing": "ease-out",
+  "usage": "Travel only. The compiler accepts no drop-shadow, so a shadow stays in the component's own styles.",
+  "keyframes": [
+    {"offset": 0, "transform": "translateY(0px)"},
+    {"offset": 1, "transform": "translateY(-4px)"}
+  ],
+  "reduced_motion": {"transform": "none"}
+}

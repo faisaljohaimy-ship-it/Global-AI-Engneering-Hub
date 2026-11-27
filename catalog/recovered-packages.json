@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "notes": "Verified-source recovery index only. Entries are not installed, approved, or runtime-used by the hub.",
+  "packages": [
+    {
+      "id": "video-skill-wrappers-8",
+      "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_path": ".claude/skills/video-*",
+      "count": 8,
+      "files": 166,
+      "license": "MIT per vendored package",
+      "integrity": "verified by scripts/toolchain/video-skills.lock.json",
+      "status": "verified-source",
+      "imported": false,
+      "reason": "Wrapper prose requires project-neutral review before public import"
+    },
+    {
+      "id": "nexios-modern-skills-pack",
+      "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_path": "packs/nexios-modern-skills-pack",
+      "skills": 144,
+      "categories": 12,
+      "files": 157,
+      "license": "MIT",
+      "status": "verified-source",
+      "imported": false
+    },
+    {
+      "id": "nexios-modern-agents-tools-pack",
+      "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_path": "packs/nexios-modern-agents-tools-pack",
+      "agents": 72,
+      "tools": 180,
+      "agent_skill_bindings": 720,
+      "skill_tool_bindings": 432,
+      "files": 348,
+      "license": "MIT",
+      "status": "verified-source",
+      "imported": false
+    }
+  ],
+  "excluded": [
+    {
+      "source_path": "remotion/ and branded media in biz-pulse-ar",
+      "reason": "Private product identity/assets and no repository-level public license"
+    }
+  ]
+}

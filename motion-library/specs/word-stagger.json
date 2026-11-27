@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"typography-word-stagger","duration_ms":360,"easing":"ease-out","stagger_ms":45,"keyframes":[{"offset":0,"opacity":0,"transform":"translateY(0.7em)"},{"offset":1,"opacity":1,"transform":"translateY(0)"}],"reduced_motion":{"opacity":1,"transform":"none"}}

@@ -1,0 +1,466 @@
+{
+  "schema_version": 1,
+  "agent": "claude-code",
+  "tested_at": "2026-11-27",
+  "privacy": "No account names, emails, identifiers, credit figures, credentials, or raw connector payloads are recorded.",
+  "programs": [
+    {
+      "program": "GitHub",
+      "surface": "official_mcp",
+      "probe_operation": "repository clone, pull request and check reads, one review comment, branch push",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read",
+        "authenticated_write to attached repositories"
+      ],
+      "capabilities_not_proven": [
+        "access to repositories not attached to the session"
+      ]
+    },
+    {
+      "program": "Vercel",
+      "surface": "official_mcp",
+      "probe_operation": "team, project and deployment list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "deployment",
+        "write access",
+        "free-tier capacity"
+      ]
+    },
+    {
+      "program": "Supabase",
+      "surface": "official_mcp",
+      "probe_operation": "organisation and project list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "database access",
+        "write access"
+      ]
+    },
+    {
+      "program": "Google Drive",
+      "surface": "official_mcp",
+      "probe_operation": "two metadata searches",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "file content access",
+        "write access"
+      ]
+    },
+    {
+      "program": "Render",
+      "surface": "none",
+      "probe_operation": "no connector attached",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": [
+        "any Render capability"
+      ]
+    },
+    {
+      "program": "Canva",
+      "surface": "official_mcp",
+      "probe_operation": "brand kit list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "design generation",
+        "export"
+      ]
+    },
+    {
+      "program": "Figma",
+      "surface": "official_mcp",
+      "probe_operation": "account and plan read",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "file access",
+        "write access on a view seat"
+      ]
+    },
+    {
+      "program": "Runway",
+      "surface": "none",
+      "probe_operation": "no connector attached",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": [
+        "any Runway capability"
+      ]
+    },
+    {
+      "program": "Higgsfield",
+      "surface": "none",
+      "probe_operation": "no connector attached",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": [
+        "any Higgsfield capability"
+      ]
+    },
+    {
+      "program": "HeyGen",
+      "surface": "official_mcp",
+      "probe_operation": "HyperFrames project list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "compose and render: the connector disables both for command-line agents"
+      ]
+    },
+    {
+      "program": "ElevenLabs",
+      "surface": "official_mcp",
+      "probe_operation": "account usage read",
+      "mutation": false,
+      "result": "failed",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": [
+        "speech generation",
+        "any authenticated call"
+      ],
+      "note": "Both connectors asked to be reconnected with additional permissions; the API answered 401."
+    },
+    {
+      "program": "n8n",
+      "surface": "knowledge_skill",
+      "probe_operation": "documentation lookup only",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "documentation search"
+      ],
+      "capabilities_not_proven": [
+        "any workflow read or run: no instance is connected"
+      ]
+    },
+    {
+      "program": "Lovable",
+      "surface": "official_mcp",
+      "probe_operation": "account and workspace read",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "project edits",
+        "credit use"
+      ]
+    },
+    {
+      "program": "OpenRouter",
+      "surface": "none",
+      "probe_operation": "no connector attached",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": [
+        "any OpenRouter capability"
+      ]
+    },
+    {
+      "program": "Remotion",
+      "surface": "package_registry",
+      "probe_operation": "npm version and licence metadata",
+      "mutation": false,
+      "result": "metadata-only",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "registry metadata: 4.0.547, custom licence"
+      ],
+      "capabilities_not_proven": [
+        "installation",
+        "render",
+        "licence approval"
+      ]
+    },
+    {
+      "program": "Blender",
+      "surface": "local_executable",
+      "probe_operation": "PATH lookup",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": [
+        "any Blender capability: not installed here"
+      ]
+    },
+    {
+      "program": "FFmpeg",
+      "surface": "local_executable",
+      "probe_operation": "version probe and one H.264 encode of the sample scene",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "libx264 encode",
+        "ffprobe stream inspection"
+      ],
+      "capabilities_not_proven": [
+        "hardware encoding",
+        "other codecs"
+      ]
+    },
+    {
+      "program": "Three.js",
+      "surface": "package_registry",
+      "probe_operation": "npm version and licence metadata",
+      "mutation": false,
+      "result": "metadata-only",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "registry metadata: 0.187.0, MIT"
+      ],
+      "capabilities_not_proven": [
+        "installation",
+        "render"
+      ]
+    },
+    {
+      "program": "Motion",
+      "surface": "package_registry",
+      "probe_operation": "npm version and licence metadata",
+      "mutation": false,
+      "result": "metadata-only",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "registry metadata: 14.14.0, MIT"
+      ],
+      "capabilities_not_proven": [
+        "installation"
+      ]
+    },
+    {
+      "program": "GSAP",
+      "surface": "package_registry",
+      "probe_operation": "npm version and licence metadata",
+      "mutation": false,
+      "result": "metadata-only",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "registry metadata: 3.15.1, GSAP standard no-charge licence"
+      ],
+      "capabilities_not_proven": [
+        "installation",
+        "licence approval"
+      ]
+    },
+    {
+      "program": "Rive",
+      "surface": "package_registry",
+      "probe_operation": "npm version and licence metadata",
+      "mutation": false,
+      "result": "metadata-only",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "registry metadata: @rive-app/canvas 2.55.1, MIT"
+      ],
+      "capabilities_not_proven": [
+        "installation"
+      ]
+    },
+    {
+      "program": "Lottie",
+      "surface": "package_registry",
+      "probe_operation": "npm version and licence metadata",
+      "mutation": false,
+      "result": "metadata-only",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "registry metadata: lottie-web 5.13.0, MIT"
+      ],
+      "capabilities_not_proven": [
+        "installation"
+      ]
+    }
+  ],
+  "other_connected_programs": [
+    {
+      "program": "Notion",
+      "surface": "official_mcp",
+      "probe_operation": "workspace identity read",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "page access",
+        "write access"
+      ]
+    },
+    {
+      "program": "Slack",
+      "surface": "official_mcp",
+      "probe_operation": "one channel search",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "message read",
+        "message send"
+      ]
+    },
+    {
+      "program": "Gmail",
+      "surface": "official_mcp",
+      "probe_operation": "label list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "message read",
+        "send"
+      ]
+    },
+    {
+      "program": "Picsart",
+      "surface": "official_mcp",
+      "probe_operation": "credit allowance read",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "generation",
+        "credit use"
+      ]
+    },
+    {
+      "program": "Base44",
+      "surface": "official_mcp",
+      "probe_operation": "app list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "authenticated_read"
+      ],
+      "capabilities_not_proven": [
+        "app edits"
+      ]
+    },
+    {
+      "program": "Playwright with Chromium",
+      "surface": "local_executable",
+      "probe_operation": "motion verification and sample render",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [
+        "callable",
+        "Chromium 158 locally, Chromium 153 in CI"
+      ],
+      "capabilities_not_proven": [
+        "other browser engines"
+      ]
+    },
+    {
+      "program": "Composio",
+      "surface": "official_mcp",
+      "probe_operation": "attached, not exercised",
+      "mutation": false,
+      "result": "not-exercised",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": [
+        "every app behind it"
+      ]
+    }
+  ]
+}

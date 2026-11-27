@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "notes": "Public projects that registered with the hub. A row is a claim to audit, not proof: `python3 hub.py projects --audit` clones each project and verifies its link. Private repositories are never listed in this public file; they register through their own manifest and are verified by their own checks.",
+  "projects": [
+    {
+      "id": "wow-bus",
+      "repository": "https://github.com/faisaljohaimy-ship-it/Wow-bus",
+      "default_branch": "main",
+      "visibility": "public",
+      "manifest": ".engineering/capabilities.json"
+    },
+    {
+      "id": "biz-pulse-ar",
+      "repository": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "default_branch": "main",
+      "visibility": "public",
+      "manifest": ".engineering/capabilities.json"
+    },
+    {
+      "id": "n8n-docs",
+      "repository": "https://github.com/faisaljohaimy-ship-it/n8n-docs",
+      "default_branch": "main",
+      "visibility": "public",
+      "manifest": ".engineering/capabilities.json"
+    }
+  ]
+}

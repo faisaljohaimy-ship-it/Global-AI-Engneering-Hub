@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "ui-spring-card",
+  "name": "Spring card",
+  "duration_ms": 700,
+  "easing": "linear",
+  "spring": {"stiffness": 180, "damping": 12, "mass": 1, "steps": 20},
+  "keyframes": [
+    {"offset": 0.0, "opacity": 0.0, "transform": "scale(0.9)"},
+    {"offset": 0.05, "opacity": 0.25, "transform": "scale(0.909)"},
+    {"offset": 0.1, "opacity": 0.5, "transform": "scale(0.932)"},
+    {"offset": 0.15, "opacity": 0.75, "transform": "scale(0.958)"},
+    {"offset": 0.2, "opacity": 1.0, "transform": "scale(0.983)"},
+    {"offset": 0.25, "opacity": 1.0, "transform": "scale(1.003)"},
+    {"offset": 0.3, "opacity": 1.0, "transform": "scale(1.015)"},
+    {"offset": 0.35, "opacity": 1.0, "transform": "scale(1.02)"},
+    {"offset": 0.4, "opacity": 1.0, "transform": "scale(1.02)"},
+    {"offset": 0.45, "opacity": 1.0, "transform": "scale(1.017)"},
+    {"offset": 0.5, "opacity": 1.0, "transform": "scale(1.011)"},
+    {"offset": 0.55, "opacity": 1.0, "transform": "scale(1.006)"},
+    {"offset": 0.6, "opacity": 1.0, "transform": "scale(1.001)"},
+    {"offset": 0.65, "opacity": 1.0, "transform": "scale(0.998)"},
+    {"offset": 0.7, "opacity": 1.0, "transform": "scale(0.996)"},
+    {"offset": 0.75, "opacity": 1.0, "transform": "scale(0.996)"},
+    {"offset": 0.8, "opacity": 1.0, "transform": "scale(0.996)"},
+    {"offset": 0.85, "opacity": 1.0, "transform": "scale(0.997)"},
+    {"offset": 0.9, "opacity": 1.0, "transform": "scale(0.998)"},
+    {"offset": 0.95, "opacity": 1.0, "transform": "scale(0.999)"},
+    {"offset": 1.0, "opacity": 1.0, "transform": "scale(1)"}
+  ],
+  "reduced_motion": {"opacity": 1, "transform": "none"}
+}

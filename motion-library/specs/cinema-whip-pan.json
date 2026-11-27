@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "cinema-whip-pan",
+  "name": "Whip pan",
+  "duration_ms": 320,
+  "easing": "ease-out",
+  "keyframes": [
+    {"offset": 0, "transform": "translateX(-40%)", "filter": "blur(12px)"},
+    {"offset": 1, "transform": "translateX(0%)", "filter": "blur(0px)"}
+  ],
+  "reduced_motion": {"transform": "none", "filter": "none"}
+}
