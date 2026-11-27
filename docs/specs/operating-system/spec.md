@@ -8,7 +8,11 @@ not measurements or certification.
 ## Acceptance and priority
 
 P0: reconcile the five known engineering branches, merged/open PRs, available
-agent logs and the unidentified741-addition/14-deletion change. Preserve recovered
+agent logs and the741-addition/14-deletion change. That exact patch was located
+in the historical shared-source PR22; all25changed blobs were recovered privately
+and verified. Its old pin fails current ancestry policy, its copied skills are
+superseded, and its workflow is weaker than the current strict workflow. Preserve
+that patch as provenance; do not merge it into a shared production source. Preserve recovered
 work and explicitly record unavailable Claude-local artifacts. Recheck eight
 independent source repositories, provider mappings and actual project tool calls.
 Resolve authorization failures through official owner/app permissions, not bypasses.

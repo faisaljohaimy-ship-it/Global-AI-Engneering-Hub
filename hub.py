@@ -117,6 +117,8 @@ def audit():
     browser_verified = {
         item["id"] for item in motions if item.get("runtime_verified") is True
     }
+    expansion=control.motions()['expansion']
+    scoped=control.capabilities(state='TESTED')
     return {
         "catalog_entries": len(rows),
         "approved": sum(item["status"] == "approved" for item in rows),
@@ -135,6 +137,12 @@ def audit():
             item.get("result") == "success" for item in integrations
         ),
         "registered_public_projects": len(hublink.projects()),
+        "scoped_tools_tested": len([r for r in scoped if r['kind']=='external-tool']),
+        "motion_expansion": expansion,
+        "motion_totals": {"indexed":len(motions)+expansion['indexed'],
+                          "implemented":len(catalog_implemented | component_ids)+expansion['implemented'],
+                          "tested":len(catalog_implemented | automated_components)+expansion['tested'],
+                          "runtime_verified":len(browser_verified)+expansion['runtime_verified']},
     }
 
 
