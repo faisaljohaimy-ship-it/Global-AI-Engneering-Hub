@@ -1,0 +1,145 @@
+name: Motion cross-browser
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  studio:
+    name: Motion Studio in ${{ matrix.browser }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    concurrency:
+      group: motion-cross-browser-${{ github.ref }}-${{ matrix.browser }}
+      cancel-in-progress: true
+    env:
+      MOTION_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+      - name: Allocate new private evidence for this browser
+        run: |
+          set -euo pipefail
+          case "$MOTION_BROWSER" in firefox|webkit) ;; *) exit 1 ;; esac
+          umask 077
+          evidence_root="$(mktemp -d /tmp/hub-motion-cross-browser.XXXXXXXX)"
+          {
+            printf 'MOTION_STUDIO_EVIDENCE=%s\n' "$evidence_root"
+            printf 'MOTION_EVIDENCE_STARTED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'MOTION_PLAYWRIGHT_PACKAGE=%s/motion-library/chromium-stack\n' "$PWD"
+            printf 'PLAYWRIGHT_BROWSERS_PATH=%s/motion-cross-browser-%s\n' "$RUNNER_TEMP" "$MOTION_BROWSER"
+          } >> "$GITHUB_ENV"
+      - name: Install the exact reviewed Playwright and selected browser
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --prefix motion-library/chromium-stack
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createRequire} from 'node:module';
+          import {readFileSync} from 'node:fs';
+          const require=createRequire(`${process.env.MOTION_PLAYWRIGHT_PACKAGE}/package.json`);
+          for (const path of ['motion-library/chromium-stack/package.json','motion-library/verify/package.json']) {
+            assert.equal(JSON.parse(readFileSync(path,'utf8')).devDependencies.playwright,'1.63.0');
+          }
+          assert.equal(require('playwright/package.json').version,'1.63.0');
+          JS
+          motion-library/chromium-stack/node_modules/.bin/playwright install --with-deps "$MOTION_BROWSER"
+      - name: Exercise all 400 recipes, controls, pixels and bounded CPU drawing
+        run: node tests/test_motion_studio_browser.mjs
+      - name: Verify fresh source-bound evidence for every recipe and viewport
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {lstatSync,readFileSync,realpathSync} from 'node:fs';
+          import {basename,dirname,join,resolve} from 'node:path';
+
+          const engine=process.env.MOTION_BROWSER;
+          assert(['firefox','webkit'].includes(engine));
+          const checkout=realpathSync(process.cwd());
+          const directory=process.env.MOTION_STUDIO_EVIDENCE;
+          assert.equal(realpathSync(directory),directory,'Refuse symlink or noncanonical evidence paths');
+          assert.equal(dirname(directory),'/tmp');
+          assert(basename(directory).startsWith('hub-motion-cross-browser.'));
+          assert.equal(lstatSync(directory).mode & 0o077,0,'Evidence stays private on the runner');
+          assert(!directory.startsWith(checkout+'/'),'Tracked evidence is not fresh runtime proof');
+          const receipt=join(directory,'motion-studio-runtime.json');
+          const stat=lstatSync(receipt);
+          assert(stat.isFile()&&!stat.isSymbolicLink()&&stat.size>0&&stat.size<=2*1024*1024);
+          const start=Date.parse(process.env.MOTION_EVIDENCE_STARTED_AT),now=Date.now();
+          assert(Number.isFinite(start)&&stat.mtimeMs>=start);
+          const report=JSON.parse(readFileSync(receipt,'utf8'));
+          const at=Date.parse(report.recorded_at_utc);
+          assert(Number.isFinite(at)&&start<=at&&at<=now&&now-at<=20*60*1000,'Stale or future receipt');
+          assert.equal(report.schema_version,1);assert.equal(report.status,'passed');
+          assert.equal(report.engine,`${engine}-canvas2d`);assert.equal(report.playwright_version,'1.63.0');
+          assert.match(report.node_version,/^v24\./);assert.equal(typeof report.browser,'string');
+          const inputs=['packages/motion-sdk/index.mjs','motion-studio/index.html','motion-studio/studio.mjs',
+            'motion-studio/styles.css','motion-library/expansion/catalog.mjs','motion-library/expansion/definitions.json',
+            'motion-library/expansion/families.mjs','motion-library/expansion/systems.mjs',
+            'motion-library/expansion/geometry.mjs','tests/test_motion_studio_browser.mjs'];
+          assert.deepEqual(Object.keys(report.source_sha256).sort(),inputs.toSorted());
+          for (const input of inputs) {
+            assert.equal(report.source_sha256[input],createHash('sha256').update(readFileSync(resolve(checkout,input))).digest('hex'),input);
+          }
+          const definitions=JSON.parse(readFileSync('motion-library/expansion/definitions.json','utf8')).definitions;
+          const expectedIds=definitions.map(row=>row.id).sort();
+          assert.equal(new Set(expectedIds).size,400);
+          assert.equal(report.new_definitions_rendered,400);assert.equal(report.viewport_profiles,2);
+          assert.equal(report.frame_samples,2400);assert.equal(report.reduced_motion_cases,800);
+          assert.equal(report.production_fps_verified,false);assert.equal(report.gpu_runtime_verified,false);
+          assert.equal(report.results.length,2);
+          assert.deepEqual(report.results.map(row=>`${row.viewport.width}x${row.viewport.height}`).sort(),['1280x900','390x844']);
+          for (const viewport of report.results) {
+            assert.equal(viewport.language,viewport.viewport.width===390?'ar':'en');
+            assert.equal(viewport.direction,viewport.viewport.width===390?'rtl':'ltr');
+            assert.equal(viewport.rendered_definitions,400);assert.equal(viewport.frames_per_definition,3);
+            assert.deepEqual(viewport.errors,[]);
+            assert.equal(viewport.waapi_adapter.progressed,true);assert.equal(viewport.waapi_adapter.cancelled,true);
+            assert.deepEqual(viewport.results.map(row=>row.id).sort(),expectedIds);
+            for (const row of viewport.results) {
+              assert.deepEqual(row.frames.map(frame=>frame.progress),[.17,.5,.83]);
+              for (const frame of row.frames) {
+                assert(Number.isInteger(frame.changed_pixels)&&frame.changed_pixels>0);
+                assert(Number.isInteger(frame.primitives)&&frame.primitives>0);
+                assert.match(frame.pixel_fnv32,/^[a-f0-9]{8}$/);
+                assert(Number.isFinite(frame.sampling_and_draw_ms)&&frame.sampling_and_draw_ms>=0);
+              }
+              assert(new Set(row.frames.map(frame=>frame.pixel_fnv32)).size>=2,'Animated samples must actually change');
+              const benchmark=row.benchmark;
+              assert.equal(benchmark.frames,12);assert.equal(benchmark.kind,'synchronous-sampling-and-draw');
+              assert.equal(benchmark.production_fps_verified,false);assert.equal(benchmark.within_cpu_budget,true);
+              for (const key of ['median_ms','p95_ms','max_ms','budget_ms']) assert(Number.isFinite(benchmark[key])&&benchmark[key]>=0);
+              assert(benchmark.budget_ms>0&&benchmark.budget_ms<=1000/60);
+              assert(benchmark.median_ms<=benchmark.p95_ms&&benchmark.p95_ms<=benchmark.max_ms);
+              assert(benchmark.p95_ms<=benchmark.budget_ms,'Bounded CPU sampling/drawing budget exceeded');
+            }
+            assert.deepEqual(viewport.reduced_motion.map(row=>row.id).sort(),expectedIds);
+            assert(viewport.reduced_motion.every(row=>row.stable===true&&Number.isInteger(row.primitives)&&row.primitives>0));
+            const screenshot=lstatSync(join(directory,`studio-${viewport.viewport.width}.png`));
+            assert(screenshot.isFile()&&!screenshot.isSymbolicLink()&&screenshot.size>0);
+          }
+          console.log(JSON.stringify({status:'passed',browser:engine,recipes:400,viewports:2,frames:2400,reduced_motion_cases:800,
+            scope:'Developer Canvas2D/WAAPI laboratory proof; no production FPS, physical Safari/mobile hardware or WebGPU rendering claim'}));
+          JS
+      - name: Preserve this browser's bounded runtime receipts
+        if: ${{ always() && env.MOTION_STUDIO_EVIDENCE != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: motion-studio-${{ matrix.browser }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.MOTION_STUDIO_EVIDENCE }}/
+          if-no-files-found: warn
+          retention-days: 7
