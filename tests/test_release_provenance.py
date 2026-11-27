@@ -58,5 +58,14 @@ class ReleaseProvenanceTests(unittest.TestCase):
         audit.update(event='workflow_dispatch',updated_at=self.now.isoformat())
         self.assertIn(path,approved_runs(data,self.sha,self.repo,self.now))
 
+    def test_later_failed_rerun_of_older_numbered_audit_blocks_newer_numbered_green_run(self):
+        data=copy.deepcopy(self.runs)
+        old=next(r for r in data['workflow_runs'] if r['path']=='.github/workflows/dependency-audit.yml')
+        newer=copy.deepcopy(old)
+        newer.update(id=99,run_number=99,updated_at=(self.now-datetime.timedelta(seconds=10)).isoformat())
+        data['workflow_runs'].append(newer)
+        old.update(run_attempt=2,conclusion='failure',updated_at=self.now.isoformat())
+        with self.assertRaises(ValueError):approved_runs(data,self.sha,self.repo,self.now)
+
 
 if __name__=='__main__':unittest.main()

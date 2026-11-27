@@ -45,13 +45,15 @@ Both runs recorded zero axe violations, page errors and observed external
 requests. INP is not measured. Automated accessibility scores are not a compliance
 certification. The earlier mobile failure was retained privately and corrected.
 
-The external catalog has114 candidates.113 canonical public metadata queries
-succeeded; one upstream returned404. One catalog entry, Playwright1.63.0, has a
+The OS0.1.0 catalog contained114 entries;113 canonical public metadata queries
+in that historical batch succeeded and one upstream returned404. OS0.1.1 adds the
+eight separately reviewed candidate identities described above. One catalog entry, Playwright1.63.0, has a
 scoped reviewed pin and recorded tested installation. That claim expires or is
 withdrawn when evidence/source changes. The optional quality harness separately
 locks and reviews Lighthouse13.6.0, @axe-core/playwright4.14.1 and Playwright1.63.0;
 its transitive license exception is documented. This is not approval of every
-catalog tool. There are12local skills; instructions alone do not prove a host call.
+catalog tool. The initial12local skills are preserved; the selection instruction
+raises the current total to13. Instructions alone do not prove a host call.
 
 The22 historical integration probes have12 successful surfaces, including local
 executables. Their original timestamps/scope remain intact; this is not fresh

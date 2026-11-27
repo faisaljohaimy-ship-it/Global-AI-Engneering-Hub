@@ -20,6 +20,7 @@ WORKFLOWS = {
 def approved_runs(document, commit, repository, now=None):
     """Bind main CI and the latest fresh advisory audit to exact trusted workflows."""
     result={}
+    current=now or datetime.datetime.now(datetime.timezone.utc)
     for path in WORKFLOWS:
         audit=path=='.github/workflows/dependency-audit.yml'
         events={'push','schedule','workflow_dispatch'} if audit else {'push'}
@@ -27,13 +28,16 @@ def approved_runs(document, commit, repository, now=None):
                     and r['head_branch']=='main' and r['event'] in events
                     and r['repository']['full_name']==repository and r['head_repository']['full_name']==repository]
         if not candidates:raise ValueError('Missing required main push workflow')
-        run=max(candidates,key=lambda r:(r['run_number'],r['run_attempt'],r['id']))
+        executions=[]
+        for candidate in candidates:
+            at=datetime.datetime.fromisoformat(candidate['updated_at'].replace('Z','+00:00'))
+            if at.utcoffset()!=datetime.timedelta(0) or at>current:raise ValueError('Invalid workflow execution timestamp')
+            executions.append((at,candidate))
+        at,run=max(executions,key=lambda item:(item[0],item[1]['run_attempt'],item[1]['id']))
         if type(run['id']) is not int or run['id']<=0 or run['status']!='completed' or run['conclusion']!='success':
             raise ValueError('Latest exact-commit workflow did not succeed')
         if audit:
-            at=datetime.datetime.fromisoformat(run['updated_at'].replace('Z','+00:00'))
-            current=now or datetime.datetime.now(datetime.timezone.utc)
-            if at.utcoffset()!=datetime.timedelta(0) or not 0<=(current-at).total_seconds()<=86400:
+            if not 0<=(current-at).total_seconds()<=86400:
                 raise ValueError('A successful advisory audit within24hours is required')
         result[path]=run['id']
     return result
