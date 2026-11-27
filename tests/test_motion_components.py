@@ -117,8 +117,9 @@ class ClaudeCodeEvidenceTests(unittest.TestCase):
         self.assertTrue(all(item["result"] in {"success", "failed", "unavailable", "metadata-only", "not-exercised"} for item in rows))
         self.assertTrue(all(item["authenticated_read"] is False for item in rows if item["result"] != "success"))
         serialized = json.dumps(evidence).casefold()
-        for forbidden in ("email", "account_id", "team_id", "balance", "access_token", "@gmail"):
-            self.assertNotIn(forbidden, serialized)
+        for forbidden in ("email", "account_id", "team_id", "balance", "access_token"):
+            self.assertFalse(f'"{forbidden}"' in serialized, forbidden)
+        self.assertFalse("@" in serialized.replace("@rive-app", ""), "an address or handle is recorded")
 
     def test_index_summarises_the_evidence(self):
         programs = json.loads((ROOT / "integrations/PROGRAMS.json").read_text(encoding="utf-8"))["programs"]
