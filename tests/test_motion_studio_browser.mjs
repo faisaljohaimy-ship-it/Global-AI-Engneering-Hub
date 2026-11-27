@@ -119,7 +119,14 @@ try {
       });
     });
     assert.equal(rows.length,400);
-    for (const row of rows) assert(row.frames.every((frame) => frame.changed_pixels > 0));
+    for (const row of rows) {
+      assert(row.frames.every((frame) => frame.changed_pixels > 0));
+      assert(new Set(row.frames.map((frame) => frame.pixel_fnv32)).size >= 2,`Static sampled output: ${row.id}`);
+      assert.equal(row.benchmark.frames,12);
+      assert.equal(row.benchmark.kind,'synchronous-sampling-and-draw');
+      assert.equal(row.benchmark.within_cpu_budget,true,`CPU drawing budget exceeded: ${row.id}`);
+      for (const key of ['median_ms','p95_ms','max_ms','budget_ms']) assert(Number.isFinite(row.benchmark[key]),`Invalid benchmark ${key}: ${row.id}`);
+    }
 
     // Reduced motion is a stable poster in the real browser for every recipe.
     await page.locator('#reduced').selectOption('reduce');
@@ -133,6 +140,7 @@ try {
     assert.equal((await page.evaluate(() => window.__motionStudio.snapshot())).state,'finished');
     await page.locator('#theme').click();
     assert.equal(await page.evaluate(() => document.documentElement.dataset.theme),'light');
+    await page.waitForFunction(() => document.getAnimations().every((animation) => animation.constructor.name !== 'CSSTransition'),'Capture the settled theme rather than an intermediate color transition');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth+2),false);
     if (evidenceDirectory) {
       mkdirSync(evidenceDirectory,{recursive:true});
