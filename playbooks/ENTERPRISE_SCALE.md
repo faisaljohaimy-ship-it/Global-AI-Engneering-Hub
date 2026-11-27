@@ -1,0 +1,2 @@
+# Enterprise growth playbook
+Begin with a modular monolith, PostgreSQL, typed API contracts, tenant authorization, quotas, backups and load tests. Set measured SLOs and validate concurrent load and failure recovery. Introduce cache, queues, replicas and distributed services only as measured demand and funded operation justify. Separate production data and credentials per customer. Paid subscription flows must use a sandbox until legal, commercial and hosting requirements are met.
