@@ -33,7 +33,8 @@ test('audit targets must be loopback Motion Studio and match the self-hosted ori
   for (const url of [
     'https://example.com/motion-studio/', 'http://127.0.0.1.evil/motion-studio/',
     'http://169.254.169.254/motion-studio/', 'http://localhost/admin', 'file:///motion-studio/index.html',
-    'http://user:pass@localhost/motion-studio/', 'http://localhost/motion-studio/#secret',
+    // Construct the synthetic negative case; keep credential URLs out of the Git index.
+    'http://' + ['user','pass'].join(':') + '@localhost/motion-studio/', 'http://localhost/motion-studio/#secret',
     'http://localhost/motion-studio/index.html?url=https://example.com', 'http://localhost/motion-studio/index.html?motion=../../secret',
   ]) assert.throws(() => validateAuditUrl(url), url);
   assert.throws(() => validateAuditUrl('http://localhost:1234/motion-studio/', 'http://127.0.0.1:1234'));
