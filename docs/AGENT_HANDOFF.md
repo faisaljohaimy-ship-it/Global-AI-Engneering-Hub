@@ -1,0 +1,2 @@
+# Cross-agent handoff
+Use GitHub as the shared durable source. Keep one task per branch; include base SHA, task scope, changed files, tests actually run, blockers and next step. Claude Code and Codex each need access to the hub and the relevant repository. The hub does not share provider sessions or credits. Retrieve approved files from access-controlled storage; never upload private conversation exports or client artifacts here. Review local instructions first. Avoid parallel edits to the same paths.
