@@ -97,7 +97,7 @@ test('all five finite primitives draw and SVG text is safely escaped', () => {
 
 test('invalid dimensions, budgets, primitives and unsafe exports are refused', () => {
   const sdk = fixture();
-  for (const options of [{width: NaN}, {height: Infinity}, {width: 4096, height: 4096}, {detail: 50}, {seed: -.5}, {intensity: 2}, {rtl: 'yes'}, {interaction: {x: 2, y: 0}}, {reducedMotion: 'maybe'}]) {
+  for (const options of [{width: NaN}, {height: Infinity}, {width: 4096, height: 4096}, {detail: 50}, {seed: -.5}, {intensity: 2}, {rtl: 'yes'}, {interaction: {x: 2, y: 0}}, {reducedMotion: 'maybe'}, {engine: 'webgpu'}]) {
     assert.throws(() => sdk.create('test-orbit', options));
   }
   for (const primitive of [{type: 'image', src: 'https://example.com'}, {type: 'circle', x: 0, y: 0, r: -1}, {type: 'rect', x: 0, y: 0, width: 2, height: 2, fill: 'url(https://example.com)'}]) {

@@ -73,8 +73,10 @@ export function drawScene(context, input, {pixelRatio = 1} = {}) {
   if (!context) fail('Canvas2D context required');
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   context.clearRect(0, 0, scene.width, scene.height);
-  context.fillStyle = color(scene.background, '#08111f');
-  context.fillRect(0, 0, scene.width, scene.height);
+  const background = color(scene.background, '#08111f');
+  if (!['none','transparent'].includes(background)) {
+    context.fillStyle = background; context.fillRect(0, 0, scene.width, scene.height);
+  }
   for (const item of scene.primitives) {
     context.save();
     context.globalAlpha = item.opacity ?? 1;
@@ -200,6 +202,7 @@ export function createMotionSystem() {
   function create(value, input = {}) {
     const definition = frozenCopy(validateDefinition(typeof value === 'string' ? registry.get(value) : value));
     const engine = definition.engine ?? definition.rendering_engine ?? 'canvas2d';
+    if (input.engine != null && input.engine !== engine) fail('Registered engine cannot be overridden');
     if (!['canvas2d', 'waapi'].includes(engine)) fail('Optional engine is not installed');
     let options = validOptions(input, definition);
     const view = input.view ?? globalThis;

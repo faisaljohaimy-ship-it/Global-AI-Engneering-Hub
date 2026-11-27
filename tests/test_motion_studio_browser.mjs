@@ -15,7 +15,9 @@ catch {
   playwright = createRequire(resolve(process.env.MOTION_PLAYWRIGHT_PACKAGE, 'package.json'))('playwright');
 }
 const server = await serve(root);
-const browser = await playwright.chromium.launch(process.env.MOTION_CHROMIUM_EXECUTABLE ? {executablePath: process.env.MOTION_CHROMIUM_EXECUTABLE} : {});
+const browserName = process.env.MOTION_BROWSER ?? 'chromium';
+assert(['chromium','firefox','webkit'].includes(browserName),'Select an installed Playwright engine');
+const browser = await playwright[browserName].launch(browserName === 'chromium' && process.env.MOTION_CHROMIUM_EXECUTABLE ? {executablePath: process.env.MOTION_CHROMIUM_EXECUTABLE} : {});
 const results = [], allErrors = [], failures = [], external = [];
 const evidenceDirectory = process.env.MOTION_STUDIO_EVIDENCE;
 try {
@@ -138,9 +140,9 @@ try {
     await context.close();
   }
   assert.deepEqual(allErrors,[]);assert.deepEqual(failures,[]);assert.deepEqual(external,[]);
-  const report={schema_version:1,sdk_version:'1.0.0',engine:'chromium-canvas2d',browser:browser.version(),new_definitions_rendered:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,production_fps_verified:false,gpu_runtime_verified:false,results};
+  const report={schema_version:1,sdk_version:'1.0.0',engine:`${browserName}-canvas2d`,browser:browser.version(),new_definitions_rendered:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,production_fps_verified:false,gpu_runtime_verified:false,results};
   if (evidenceDirectory) writeFileSync(resolve(evidenceDirectory,'motion-studio-runtime.json'),JSON.stringify(report,null,2)+'\n');
-  console.log(JSON.stringify({status:'passed',definitions:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,browser:browser.version(),production_fps_verified:false}));
+  console.log(JSON.stringify({status:'passed',definitions:400,viewport_profiles:2,frame_samples:2400,reduced_motion_cases:800,browserName,browser:browser.version(),production_fps_verified:false}));
 } finally {
   await browser.close();server.close();
 }
