@@ -30,7 +30,7 @@ Likewise, the Remotion adapter test does not prove the optional package is insta
   listed all 142 entries and Play/Stop completed for all 30 executable controls with
   no page errors or external requests.
 - Performance: 100,000 combined Three/Remotion adapter samples completed below the
-  1,000 ms budget (41.36 ms in the recorded final local run; wall-clock results vary).
+  1,000 ms budget (38.75 ms in the recorded final local run; wall-clock results vary).
 - Cinematic render: 1280×720, 30 fps, 126 H.264 frames, 4.2 seconds, all layout,
   repeatability, motion, RTL and contrast checks passed. Frame hash:
   `4a9838e6391a74461c0dce7b0c0b1f57789dd9a5a2b75c3f240900415063daf4`.

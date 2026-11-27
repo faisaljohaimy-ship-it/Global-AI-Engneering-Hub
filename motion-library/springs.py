@@ -40,6 +40,8 @@ def samples(duration_ms, stiffness, damping, mass=1.0, steps=20):
 
 
 def number(value):
+    if abs(value) < 0.0005:
+        value = 0
     return f"{round(value, 3):g}"
 
 

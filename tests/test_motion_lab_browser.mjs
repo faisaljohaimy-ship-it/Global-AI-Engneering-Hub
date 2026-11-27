@@ -36,11 +36,9 @@ try {
 
   for (const component of components) {
     await page.locator(`#motionList [data-id="${component.id}"]`).click();
-    // The shader stays explicitly pending engine-runtime evidence. Its reduced state
-    // still exercises the Lab control without promoting a WebGL claim here.
-    await page.locator('#motionMode').selectOption(component.id === 'spatial-fresnel-rim' ? 'reduce' : 'full');
+    await page.locator('#motionMode').selectOption('full');
     await page.locator('#play').click();
-    await page.waitForTimeout(35);
+    await page.waitForFunction(() => window.__motionLabReport.error !== null || window.__motionLabReport.lastRunMs !== null);
     const error = await page.evaluate(() => window.__motionLabReport.error);
     assert.equal(error, null, `${component.id} failed in Motion Lab: ${error}`);
     if (component.id === 'interactive-waapi-keyframes') {

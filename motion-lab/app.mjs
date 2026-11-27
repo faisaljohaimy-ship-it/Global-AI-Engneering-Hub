@@ -252,7 +252,9 @@ async function runGlsl(spec) {
   refs.preview = canvas;
   const gl = canvas.getContext("webgl", {alpha: false, antialias: true});
   if (!gl) throw new Error("WebGL is unavailable");
-  const fragmentSource = await (await fetch(`../motion-library/${spec.shader}`, {credentials: "same-origin"})).text();
+  const shaderResponse = await fetch(`../motion-library/${spec.shader}`, {credentials: "same-origin"});
+  if (!shaderResponse.ok) throw new Error(`Failed to load shader: ${shaderResponse.status}`);
+  const fragmentSource = await shaderResponse.text();
   const vertexSource = "attribute vec2 a_position; void main(){gl_Position=vec4(a_position,0.0,1.0);}";
   const program = gl.createProgram();
   gl.attachShader(program, compileShader(gl, gl.VERTEX_SHADER, vertexSource));
@@ -329,6 +331,8 @@ function runThreeAdapter(spec) {
 async function playSelected() {
   const component = componentsById.get(selected?.id);
   if (!component) return;
+  report.error = null;
+  report.lastRunMs = null;
   resetStage();
   refs.stage.dir = refs.direction.value;
   report.lastEngine = component.engine;
