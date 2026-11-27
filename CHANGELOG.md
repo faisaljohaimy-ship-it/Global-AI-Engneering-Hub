@@ -9,6 +9,8 @@ source bytes remain unchanged from OS0.1.0, so existing approved product pins re
 supported without a forced update.
 Release validation follows later scheduled/manual advisory failures as well as
 main CI and requires a successful advisory audit within24hours.
+Preserves the concurrent reviewed discovery work: eight unapproved candidates,
+one first-party selection instruction and ten non-installable pack proposals.
 
 ## Engineering OS0.1.0 — 2026-11-27
 

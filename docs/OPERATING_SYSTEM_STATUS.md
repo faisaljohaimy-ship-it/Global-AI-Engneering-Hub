@@ -4,6 +4,12 @@ OS0.1.0 snapshot at fdd3684,2026-11-27. The twelve-layer architecture is a targe
 working local control-plane modules without provisioning a shared production
 runtime, database, model subscription or continuously running agent fleet.
 
+OS0.1.1 adds eight discovery-only candidates (122total), one first-party selection
+instruction (13local skills), and ten explicitly non-installable pack proposals.
+These additions do not advance tools to operational states. The three real
+registration packs remain separate. Weekly advisory monitoring now covers every
+isolated tool lock; existing approved OS0.1.0 product pins remain supported.
+
 | Surface | Before this phase | Implemented and verified in this phase | Remaining boundary |
 |---|---|---|---|
 |L01 Governance|SDK target/release validators|Capability lifecycle, cost/privacy constraints, independent review and source-bound evidence|Provider administration and enforced required-check rules need administrator access|
