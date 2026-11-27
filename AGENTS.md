@@ -1,0 +1,2 @@
+# Engineering instructions
+Use the registry as a discovery index, not an executable allowlist. Review licenses, security and pinned revisions before importing external code. No paid resources without explicit approval. Never overwrite existing project files, expose secrets, or deploy across project boundaries. Use independent branches and tests. Consult relevant skills under skills/. Never put client-specific or proprietary assets in this public repository.
