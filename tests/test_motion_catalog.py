@@ -22,7 +22,7 @@ class MotionCatalogTests(unittest.TestCase):
         catalog = {entry["id"] for entry in json.loads((LIBRARY / "MOTION_CATALOG.json").read_text(encoding="utf-8"))["entries"]}
         ids = []
         for path in sorted((LIBRARY / "specs").glob("*.json")):
-            spec = json.loads(path.read_text(encoding="utf-8"))
+            spec = compiler.load_spec(path)
             css = compiler.compile_css(spec)
             self.assertIn(f".hub-motion-{spec['id']}", css)
             self.assertIn("prefers-reduced-motion: reduce", css)
@@ -38,6 +38,33 @@ class MotionCatalogTests(unittest.TestCase):
         for entry in catalog["entries"]:
             self.assertEqual(entry["runtime_verified"], entry["status"] == "implemented")
             self.assertEqual("evidence" in entry, entry["runtime_verified"])
+
+    def test_generic_browser_proof_does_not_claim_glsl_or_three_runtime(self):
+        catalog, evidence = status.load()
+        evidence = json.loads(json.dumps(evidence))
+        evidence["inputs"] = {
+            "runtime_sha256": status._sha256((LIBRARY / "runtime/hub-motion.mjs").read_bytes()),
+            "base_css_sha256": status._sha256((LIBRARY / "runtime/hub-motion-base.css").read_bytes()),
+        }
+        compiler_module = compiler
+        for motion_id, name in (
+            ("spatial-fresnel-rim", "fresnel-rim.json"),
+            ("cinema-orbit-camera", "orbit-camera.json"),
+        ):
+            path = LIBRARY / "specs" / name
+            css = compiler_module.compile_css(json.loads(path.read_text(encoding="utf-8")))
+            evidence["results"].append(
+                {
+                    "id": motion_id,
+                    "kind": "spec",
+                    "source": str(path.relative_to(ROOT)),
+                    "css_sha256": status._sha256(css.encode("utf-8")),
+                    "pass": True,
+                }
+            )
+        proof = status.verified(evidence)
+        self.assertNotIn("spatial-fresnel-rim", proof)
+        self.assertNotIn("cinema-orbit-camera", proof)
 
     def test_stale_evidence_withdraws_the_claim(self):
         catalog, evidence = status.load()

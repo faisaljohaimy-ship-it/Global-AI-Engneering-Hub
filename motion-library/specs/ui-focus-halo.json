@@ -5,8 +5,8 @@
   "duration_ms": 200,
   "easing": "ease-out",
   "keyframes": [
-    {"offset": 0, "filter": "drop-shadow(0px 0px 0px rgba(0, 0, 0, 0))"},
-    {"offset": 1, "filter": "drop-shadow(0px 0px 6px rgba(37, 99, 235, 0.9))"}
+    {"offset": 0, "filter": "blur(0px) brightness(100%)"},
+    {"offset": 1, "filter": "blur(2px) brightness(115%)"}
   ],
-  "reduced_motion": {"filter": "drop-shadow(0px 0px 6px rgba(37, 99, 235, 0.9))"}
+  "reduced_motion": {"filter": "brightness(115%)"}
 }

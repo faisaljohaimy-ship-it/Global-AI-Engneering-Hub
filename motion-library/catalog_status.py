@@ -4,7 +4,9 @@
 An entry is "implemented" and "runtime_verified" only while browser evidence exists for
 the exact content now in the repository: the CSS its specification compiles to, and the
 runtime that plays it. Change either without re-running the browser verification and
-this tool returns the entry to "specification".
+this tool returns the entry to "specification". Engine-specific GLSL and Three.js
+components are deliberately excluded from this generic CSS/WAAPI proof; their adapter
+checks remain visible in components.json without being promoted to runtime evidence.
 
     python3 motion-library/catalog_status.py           check; exit 1 when out of date
     python3 motion-library/catalog_status.py --write   rewrite the catalog
@@ -26,11 +28,37 @@ NOTES = (
     "do not edit them by hand. Twelve recovered entries; additions are engineering candidates, not a "
     "claim of exhaustive worldwide coverage or novelty."
 )
-PROOF_KEYS = ("spec", "implementation", "evidence")
+PROOF_KEYS = ("spec", "implementation", "evidence", "runtime_surfaces")
+
+# These specifications are CSS fallbacks used by Motion Lab, but their named components
+# require an engine-specific runtime check. A passing generic CSS/WAAPI harness must not
+# be allowed to claim that WebGL/GLSL or Three.js itself ran.
+GENERIC_BROWSER_EXCLUSIONS = {
+    "spatial-fresnel-rim": "requires-glsl-webgl-runtime",
+    "cinema-orbit-camera": "requires-three-runtime",
+}
 
 
 def _sha256(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def _load_json(path):
+    def no_duplicates(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"Duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    return json.loads(
+        pathlib.Path(path).read_text(encoding="utf-8"),
+        object_pairs_hook=no_duplicates,
+        parse_constant=lambda value: (_ for _ in ()).throw(
+            ValueError(f"Invalid JSON number: {value}")
+        ),
+    )
 
 
 def _compiler():
@@ -54,13 +82,21 @@ def verified(evidence):
         if not row.get("pass"):
             continue
         if row["kind"] == "spec":
+            if row["id"] in GENERIC_BROWSER_EXCLUSIONS:
+                continue
             path = ROOT / row["source"]
             if path.is_file():
-                css = compiler.compile_css(json.loads(path.read_text(encoding="utf-8")))
+                css = compiler.compile_css(compiler.load_spec(path))
                 if _sha256(css.encode("utf-8")) == row["css_sha256"]:
-                    rows[row["id"]] = {"spec": row["source"]}
+                    rows[row["id"]] = {
+                        "spec": row["source"],
+                        "runtime_surfaces": ["chromium-css", "chromium-waapi"],
+                    }
         elif row["kind"] == "runtime":
-            rows[row["id"]] = {"implementation": row["implementation"]}
+            rows[row["id"]] = {
+                "implementation": row["implementation"],
+                "runtime_surfaces": ["chromium-waapi-behavior"],
+            }
     return rows
 
 
@@ -82,8 +118,8 @@ def synced(catalog, evidence):
 
 
 def load():
-    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
-    evidence = json.loads((ROOT / EVIDENCE).read_text(encoding="utf-8"))
+    catalog = _load_json(CATALOG)
+    evidence = _load_json(ROOT / EVIDENCE)
     return catalog, evidence
 
 

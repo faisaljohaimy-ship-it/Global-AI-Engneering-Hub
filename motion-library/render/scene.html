@@ -40,11 +40,11 @@
 
   const load = async (id) => (await fetch(`../specs/${id}.json`)).json();
   const [dolly, slideUp, inlineStart, pulse, dissolve, focus] = await Promise.all(
-    ['cinema-dolly-in', 'ui-slide-up', 'ui-slide-inline-start', 'legacy-10', 'cinema-cross-dissolve', 'cinema-rack-focus'].map(load),
+    ['cinema-dolly-in', 'ui-slide-up', 'slide-inline-start', 'legacy-10', 'cross-dissolve', 'cinema-rack-focus'].map(load),
   );
   const $ = (id) => document.getElementById(id);
   const arabicLine = 'مكتبة الحركات الرقمية المشتركة';
-  const verified = Number(new URLSearchParams(location.search).get('verified') || 26);
+  const verified = Number(new URLSearchParams(location.search).get('verified') || 28);
   const options = { reducedMotion: false };
 
   // Every animation is created once with its start time as a delay, then only ever seeked.

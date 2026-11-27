@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'">
+  <link rel="icon" href="data:,">
+  <title>Global AI Engineering Hub — Motion Lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="motions.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Global AI Engineering Hub</p>
+    <h1>Motion Lab</h1>
+    <p>Inspect all indexed motion specifications. Only components with executable, tested source can run.</p>
+  </header>
+  <main>
+    <section class="metrics" aria-label="Motion status counts">
+      <div><strong id="indexedCount">—</strong><span>Indexed</span></div>
+      <div><strong id="implementedCount">—</strong><span>Implemented</span></div>
+      <div><strong id="testedCount">—</strong><span>Automated tests</span></div>
+      <div><strong id="usedCount">—</strong><span>Used by this lab</span></div>
+    </section>
+    <section class="workspace">
+      <aside aria-label="Motion catalog">
+        <label for="filter">Filter motions</label>
+        <input id="filter" type="search" autocomplete="off" placeholder="ID, name, category, engine">
+        <label class="check"><input id="implementedOnly" type="checkbox"> Implemented only</label>
+        <p id="resultCount" role="status" aria-live="polite"></p>
+        <ul id="motionList"></ul>
+      </aside>
+      <section class="stage-panel" aria-labelledby="selectedTitle">
+        <div class="selection-heading">
+          <div>
+            <p id="selectedCategory" class="eyebrow">Select a motion</p>
+            <h2 id="selectedTitle">No selection</h2>
+          </div>
+          <span id="engineBadge" class="badge">indexed</span>
+        </div>
+        <dl class="status-grid">
+          <div><dt>Indexed</dt><dd id="indexedStatus">yes</dd></div>
+          <div><dt>Implemented</dt><dd id="implementedStatus">no</dd></div>
+          <div><dt>Tested</dt><dd id="testedStatus">no</dd></div>
+          <div><dt>Runtime</dt><dd id="runtimeStatus">not tested</dd></div>
+          <div><dt>Used</dt><dd id="usedStatus">no</dd></div>
+        </dl>
+        <div class="controls" aria-label="Preview controls">
+          <label for="direction">Direction
+            <select id="direction"><option value="ltr">LTR</option><option value="rtl">RTL</option></select>
+          </label>
+          <label for="motionMode">Motion
+            <select id="motionMode"><option value="system">System</option><option value="full">Full</option><option value="reduce">Reduced</option></select>
+          </label>
+          <button id="play" type="button" disabled>Play</button>
+          <button id="stop" type="button" disabled>Stop</button>
+        </div>
+        <div id="stage" class="stage" aria-label="Motion preview" tabindex="0">
+          <div id="preview" class="motion-target">Motion</div>
+        </div>
+        <p id="previewNote" class="note">Choose an implemented component to enable playback.</p>
+      </section>
+    </section>
+  </main>
+  <footer>Local assets only · no autoplay · no production dependency</footer>
+</body>
+</html>

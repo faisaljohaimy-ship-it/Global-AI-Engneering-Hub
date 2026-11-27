@@ -1,0 +1,10 @@
+{
+  "name": "@global-ai-engineering-hub/motion-browser-verifier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pinned browser-verification toolchain for the shared motion library",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

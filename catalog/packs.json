@@ -1,24 +1,15 @@
 {
   "schema_version": 1,
-  "notes": "A pack groups hub skills with companion files that install outside a skill directory. files maps a hub source path to its project destination. Installing a pack never enables a service or spends money.",
+  "notes": "A pack groups reviewed hub files for deterministic project registration. Only packs with confirmed provenance and redistribution permission are listed. Installing a pack never enables a service or spends money.",
   "packs": {
-    "catalog-media-tools": {
-      "summary": "Shared catalog search plus local media inspection, frame extraction and OCR.",
-      "skills": ["catalog-media-tools"],
-      "files": {
-        "tools/media_tools.py": "tools/media_tools.py",
-        "tools/shared_catalog.py": "tools/shared_catalog.py"
-      },
-      "requires": ["python3", "network access to raw.githubusercontent.com for the first catalog download", "ffprobe and ffmpeg for inspect and frame", "tesseract for ocr"],
-      "origin": "Recovered 2026-11-27. Byte-identical copies were already distributed to four project repositories; the hub copy is now the reference they are verified against."
-    },
     "motion-runtime": {
       "summary": "Dependency-free browser runtime for hub motion specifications, with the logical-direction base stylesheet.",
       "files": {
         "motion-library/runtime/hub-motion-base.css": ".engineering/vendor/hub-motion/hub-motion-base.css",
         "motion-library/runtime/hub-motion.mjs": ".engineering/vendor/hub-motion/hub-motion.mjs"
       },
-      "requires": ["a browser with the Web Animations API"]
+      "requires": ["a browser with the Web Animations API"],
+      "origin": "Implemented and reviewed in this public hub; copied by checksum from the pinned hub revision."
     }
   }
 }

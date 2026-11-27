@@ -5,8 +5,14 @@
   "scene": "motion-library/render/scene.html",
   "tools": {
     "browser": "chromium",
+    "browser_version": "156.0.8078.79",
     "playwright": "1.63.0",
-    "ffmpeg": "6.1.1-3ubuntu5"
+    "ffmpeg": "7.1.5-0+deb13u1"
+  },
+  "inputs": {
+    "scene_sha256": "2777e6b3651f78e201053e5660f830c665cee956099a23a7f05482006514aedc",
+    "runtime_sha256": "459453abf0ebec1228cace3b4e8a4b4552c92c84cecb30922b144a20aa7c7752",
+    "renderer_sha256": "cfdbe0d1ea61fbff55681e96619ff17bf4b103baf706d3491d77d034f2d9f352"
   },
   "output": {
     "codec": "h264",
@@ -16,10 +22,10 @@
     "frame_rate": "30/1",
     "frames": 126,
     "duration_seconds": 4.2,
-    "bytes": 195192,
-    "distinct_frames": 97,
+    "bytes": 216000,
+    "distinct_frames": 103,
     "captures_repeated_until_settled": 0,
-    "frames_sha256": "8260390525c48574721c12b698683f5f0b61fc42d12ee726e3966dea2e34e3ab"
+    "frames_sha256": "4b0acdd3cf2fa0be5c0538c45007fdd509395c99a22f38484a01f031c53ee453"
   },
   "effects": [
     "cinema-dolly-in",

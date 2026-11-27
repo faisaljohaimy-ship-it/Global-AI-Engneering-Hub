@@ -2,6 +2,7 @@ import json
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
 import hublink
 
@@ -15,6 +16,13 @@ class LinkTests(unittest.TestCase):
     def setUpClass(cls):
         cls.revision = hublink.head()
 
+    def setUp(self):
+        # The suite exercises the unmerged commit under test. Production callers do
+        # not receive this patch: register/verify still require main ancestry.
+        patcher = mock.patch("hublink.on_main", return_value=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def project(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -23,12 +31,60 @@ class LinkTests(unittest.TestCase):
     def register(self, target, *capabilities, **options):
         return hublink.register(target, self.revision, capabilities=capabilities, **options)
 
+    def test_tampered_manifest_cannot_claim_and_delete_project_file(self):
+        target = self.project()
+        readme = target / "README.md"
+        readme.write_text("project owned\n")
+        (target / ".engineering").mkdir()
+        manifest = {
+            "schema_version": 1,
+            "hub_url": hublink.HUB_URL,
+            "hub_revision": self.revision,
+            "capabilities": [
+                {
+                    "id": "skill:hub-capabilities",
+                    "files": [
+                        {
+                            "path": "README.md",
+                            "source": "skills/hub-capabilities/SKILL.md",
+                            "mode": "copy",
+                            "sha256": hublink.sha256(readme.read_bytes()),
+                        }
+                    ],
+                }
+            ],
+            "budget_additional_sar": 0,
+            "production_runtime_dependency": False,
+        }
+        (target / hublink.MANIFEST).write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            hublink.register(
+                target,
+                self.revision,
+                remove=("skill:hub-capabilities",),
+                apply=True,
+            )
+        self.assertEqual(readme.read_text(), "project owned\n")
+
     def test_dry_run_writes_nothing(self):
         target = self.project()
         result = self.register(target, "skill:hub-capabilities")
         self.assertFalse(result["applied"])
         self.assertEqual(result["files"][hublink.MANIFEST], "create")
         self.assertEqual(list(target.iterdir()), [])
+
+    def test_stale_manifest_temporary_file_fails_before_mutation(self):
+        target = self.project()
+        engineering = target / ".engineering"
+        engineering.mkdir()
+        temporary = engineering / "capabilities.json.tmp"
+        temporary.write_text("occupied", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Temporary manifest path already exists"):
+            self.register(target, "skill:hub-capabilities", apply=True)
+        self.assertEqual(temporary.read_text(encoding="utf-8"), "occupied")
+        self.assertFalse((target / ".claude").exists())
+        self.assertFalse((target / ".agents").exists())
+        self.assertFalse((engineering / "capabilities.json").exists())
 
     def test_registered_project_verifies(self):
         target = self.project()
@@ -54,6 +110,18 @@ class LinkTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertEqual(report["level"], "broken")
         self.assertIn(".claude/skills/hub-capabilities/SKILL.md", report["checks"][-1]["detail"])
+
+    def test_tampered_manifest_metadata_fails(self):
+        target = self.project()
+        self.register(target, "skill:hub-capabilities", apply=True)
+        path = target / hublink.MANIFEST
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["capabilities"][0]["files"][0]["source"] = "skills/digital-motion/SKILL.md"
+        manifest["capabilities"][0]["files"][0]["mode"] = "css"
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        report = hublink.verify(target, strict=True)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["level"], "broken")
 
     def test_missing_file_and_edited_manifest_fail(self):
         target = self.project()
@@ -118,12 +186,12 @@ class LinkTests(unittest.TestCase):
         report = hublink.verify(target)
         self.assertEqual((report["ok"], report["verified_files"]), (True, 4))
 
-    def test_pack_installs_skill_and_companion_files(self):
+    def test_reviewed_pack_installs_companion_files(self):
         target = self.project()
-        result = self.register(target, "pack:catalog-media-tools", apply=True)
-        self.assertEqual(result["files"]["tools/shared_catalog.py"], "create")
-        self.assertTrue((target / ".agents/skills/catalog-media-tools/SKILL.md").is_file())
-        self.assertEqual(hublink.verify(target)["verified_files"], 4)
+        result = self.register(target, "pack:motion-runtime", apply=True)
+        self.assertEqual(result["files"][".engineering/vendor/hub-motion/hub-motion.mjs"], "create")
+        self.assertTrue((target / ".engineering/vendor/hub-motion/hub-motion-base.css").is_file())
+        self.assertEqual(hublink.verify(target)["verified_files"], 2)
 
     def test_unsafe_requests_are_refused(self):
         target = self.project()
@@ -154,6 +222,16 @@ class LinkTests(unittest.TestCase):
                        {"hub_url": "https://example.com/other"}, {"capabilities": "all"},
                        {"capabilities": [{"id": "skill:x", "files": []}]}, {"project": {"id": "Not A Slug"}}):
             self.assertTrue(hublink.validate_manifest(dict(good, **change)), change)
+
+    def test_duplicate_and_nonfinite_manifest_json_are_rejected(self):
+        payloads = (
+            b'{"schema_version":1,"schema_version":1}',
+            b'{"value":NaN}',
+            b'{"value":Infinity}',
+        )
+        for payload in payloads:
+            with self.assertRaises(ValueError):
+                hublink.load_json_bytes(payload)
 
     def test_unknown_pin_and_missing_manifest_fail(self):
         target = self.project()

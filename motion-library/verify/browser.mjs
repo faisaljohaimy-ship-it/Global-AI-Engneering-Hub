@@ -217,7 +217,8 @@ async function inspectBehaviours(slideUp) {
   return results;
 }
 
-const browser = await playwright.chromium.launch();
+const executablePath = process.env.MOTION_CHROMIUM_EXECUTABLE;
+const browser = await playwright.chromium.launch(executablePath ? { executablePath } : {});
 const results = [];
 try {
   const page = await browser.newPage({ viewport: { width: 800, height: 600 } });

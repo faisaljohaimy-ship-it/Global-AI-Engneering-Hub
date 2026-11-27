@@ -13,7 +13,8 @@ export async function serve(root) {
       return;
     }
     try {
-      response.writeHead(200, { 'content-type': types[extname(path)] + '; charset=utf-8' }).end(readFileSync(path));
+      const data = readFileSync(path);
+      response.writeHead(200, { 'content-type': types[extname(path)] + '; charset=utf-8' }).end(data);
     } catch {
       response.writeHead(404).end();
     }

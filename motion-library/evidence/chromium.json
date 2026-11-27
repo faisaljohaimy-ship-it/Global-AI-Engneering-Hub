@@ -4,16 +4,16 @@
   "generated_on": "2026-11-27",
   "engine": {
     "browser": "chromium",
-    "version": "158.0.8127.36",
+    "version": "156.0.8078.79",
     "playwright": "1.63.0",
     "platform": "linux"
   },
   "inputs": {
-    "runtime_sha256": "3aee1810d78938a68250b3e9812a79769086c4e5860a4cccc15910f6c3cbe5e3",
+    "runtime_sha256": "459453abf0ebec1228cace3b4e8a4b4552c92c84cecb30922b144a20aa7c7752",
     "base_css_sha256": "0a81c0d27c03f067ea5e7ea653097b82b5c4702131800eff95d2bb971b62f907"
   },
   "summary": {
-    "passed": 26,
+    "passed": 30,
     "failed": 0
   },
   "results": [
@@ -44,37 +44,6 @@
         },
         "end": {
           "transform": "matrix(1, 0, 0, 1, 0, 3.2)"
-        }
-      }
-    },
-    {
-      "id": "cinema-cross-dissolve",
-      "kind": "spec",
-      "source": "motion-library/specs/cinema-cross-dissolve.json",
-      "css_sha256": "ffe0ffd815c512b7695c8d5c9a9c3fe4633ea926cca3a19cc162fe08a6a1ccbc",
-      "pass": true,
-      "checks": {
-        "cssAnimationCreated": true,
-        "timingMatchesSpec": true,
-        "startMatchesFirstKeyframe": true,
-        "endMatchesLastKeyframe": true,
-        "interpolatesBetweenEnds": true,
-        "easingMatchesEngine": true,
-        "runtimeMatchesCompiledCss": true,
-        "runtimeReducedState": true,
-        "reducedMotionDisablesAnimation": true,
-        "reducedMotionEndState": true,
-        "runtimeHonoursMediaQuery": true
-      },
-      "measured": {
-        "start": {
-          "opacity": "0"
-        },
-        "middle": {
-          "opacity": "0.5"
-        },
-        "end": {
-          "opacity": "1"
         }
       }
     },
@@ -262,6 +231,37 @@
       }
     },
     {
+      "id": "cinema-cross-dissolve",
+      "kind": "spec",
+      "source": "motion-library/specs/cross-dissolve.json",
+      "css_sha256": "9f475b9be00a2147f4d394d336a5e287ed974dcfaa0f49f9a203075c7a43b1d5",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0"
+        },
+        "middle": {
+          "opacity": "0.5"
+        },
+        "end": {
+          "opacity": "1"
+        }
+      }
+    },
+    {
       "id": "ui-fade-in",
       "kind": "spec",
       "source": "motion-library/specs/fade-in.json",
@@ -286,6 +286,68 @@
         },
         "middle": {
           "opacity": "0.684643"
+        },
+        "end": {
+          "opacity": "1"
+        }
+      }
+    },
+    {
+      "id": "ui-fade-out",
+      "kind": "spec",
+      "source": "motion-library/specs/fade-out.json",
+      "css_sha256": "b684e544591fb0db71574b52e948f625aa959fa6daf574413bfc5808acdd88ac",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "1"
+        },
+        "middle": {
+          "opacity": "0.684643"
+        },
+        "end": {
+          "opacity": "0"
+        }
+      }
+    },
+    {
+      "id": "spatial-fresnel-rim",
+      "kind": "spec",
+      "source": "motion-library/specs/fresnel-rim.json",
+      "css_sha256": "bebc9d6d89c0e29b57c3a91323d9dcc331548799b8df283b0423b7d986ae3a3f",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0.6"
+        },
+        "middle": {
+          "opacity": "0.8"
         },
         "end": {
           "opacity": "1"
@@ -358,6 +420,169 @@
       }
     },
     {
+      "id": "cinema-orbit-camera",
+      "kind": "spec",
+      "source": "motion-library/specs/orbit-camera.json",
+      "css_sha256": "ace0e468638372a945c862aef3b6e44935fc52f2e8838facae20e3e3ae372ceb",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0.75"
+        },
+        "middle": {
+          "opacity": "0.875"
+        },
+        "end": {
+          "opacity": "1"
+        }
+      }
+    },
+    {
+      "id": "ui-press-feedback",
+      "kind": "spec",
+      "source": "motion-library/specs/press-feedback.json",
+      "css_sha256": "c9d8af31955f8c52e58786b409846760e4721c07e4b06aa133099e28c29aac78",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        },
+        "middle": {
+          "transform": "matrix(0.948794, 0, 0, 0.948794, 0, 0)"
+        },
+        "end": {
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      }
+    },
+    {
+      "id": "ui-scale-reveal",
+      "kind": "spec",
+      "source": "motion-library/specs/scale-reveal.json",
+      "css_sha256": "59d93adfcdd576c76c58f06de667c0e7866fa18f570d11df8f18d2f327e60600",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0",
+          "transform": "matrix(0.92, 0, 0, 0.92, 0, 0)"
+        },
+        "middle": {
+          "opacity": "0.684643",
+          "transform": "matrix(0.974771, 0, 0, 0.974771, 0, 0)"
+        },
+        "end": {
+          "opacity": "1",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      }
+    },
+    {
+      "id": "ui-slide-inline-end",
+      "kind": "spec",
+      "source": "motion-library/specs/slide-inline-end.json",
+      "css_sha256": "a756a8318557f2a5a5888b3069ca729ededb509f5a107e5d0e24d0566a90ea1a",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0",
+          "transform": "matrix(1, 0, 0, 1, 24, 0)"
+        },
+        "middle": {
+          "opacity": "0.684643",
+          "transform": "matrix(1, 0, 0, 1, 7.56856, 0)"
+        },
+        "end": {
+          "opacity": "1",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      }
+    },
+    {
+      "id": "ui-slide-inline-start",
+      "kind": "spec",
+      "source": "motion-library/specs/slide-inline-start.json",
+      "css_sha256": "ceae4b1483196755d71f54a8f53d33b38d70db14b82e6bbb1aa526da77b62432",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0",
+          "transform": "matrix(1, 0, 0, 1, -24, 0)"
+        },
+        "middle": {
+          "opacity": "0.684643",
+          "transform": "matrix(1, 0, 0, 1, -7.56856, 0)"
+        },
+        "end": {
+          "opacity": "1",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      }
+    },
+    {
       "id": "ui-dialog-reveal",
       "kind": "spec",
       "source": "motion-library/specs/ui-dialog-reveal.json",
@@ -395,7 +620,7 @@
       "id": "ui-drawer-reveal",
       "kind": "spec",
       "source": "motion-library/specs/ui-drawer-reveal.json",
-      "css_sha256": "033e6d62d3bf24d1d856599a43b2d86608002284d8e3417133440a86b940587b",
+      "css_sha256": "cf847106affef9b9bc53279e4fe41bea809c80069f2332f8aaf66e3b3d5cd020",
       "pass": true,
       "checks": {
         "cssAnimationCreated": true,
@@ -403,7 +628,6 @@
         "startMatchesFirstKeyframe": true,
         "endMatchesLastKeyframe": true,
         "interpolatesBetweenEnds": true,
-        "rtlMirrorsInlineTravel": true,
         "runtimeMatchesCompiledCss": true,
         "runtimeReducedState": true,
         "reducedMotionDisablesAnimation": true,
@@ -419,41 +643,6 @@
         },
         "end": {
           "transform": "matrix(1, 0, 0, 1, 0, 0)"
-        },
-        "inlineTravelPx": {
-          "ltr": -120,
-          "rtl": 120
-        }
-      }
-    },
-    {
-      "id": "ui-fade-out",
-      "kind": "spec",
-      "source": "motion-library/specs/ui-fade-out.json",
-      "css_sha256": "b684e544591fb0db71574b52e948f625aa959fa6daf574413bfc5808acdd88ac",
-      "pass": true,
-      "checks": {
-        "cssAnimationCreated": true,
-        "timingMatchesSpec": true,
-        "startMatchesFirstKeyframe": true,
-        "endMatchesLastKeyframe": true,
-        "interpolatesBetweenEnds": true,
-        "easingMatchesEngine": true,
-        "runtimeMatchesCompiledCss": true,
-        "runtimeReducedState": true,
-        "reducedMotionDisablesAnimation": true,
-        "reducedMotionEndState": true,
-        "runtimeHonoursMediaQuery": true
-      },
-      "measured": {
-        "start": {
-          "opacity": "1"
-        },
-        "middle": {
-          "opacity": "0.684643"
-        },
-        "end": {
-          "opacity": "0"
         }
       }
     },
@@ -461,7 +650,7 @@
       "id": "ui-focus-halo",
       "kind": "spec",
       "source": "motion-library/specs/ui-focus-halo.json",
-      "css_sha256": "76da532fb6f7d18bc03c5c684fb63ceb2fc6971014765e43c14fb5baf8110c70",
+      "css_sha256": "f9e3d89ca9816ae781dd0e4b7112636c537fa8b9885a0799a33c42f3a2490fa9",
       "pass": true,
       "checks": {
         "cssAnimationCreated": true,
@@ -477,13 +666,13 @@
       },
       "measured": {
         "start": {
-          "filter": "drop-shadow(rgba(0, 0, 0, 0) 0px 0px 0px)"
+          "filter": "blur(0px) brightness(1)"
         },
         "middle": {
-          "filter": "drop-shadow(rgba(37, 99, 235, 0.616) 0px 0px 4.10786px)"
+          "filter": "blur(1.36929px) brightness(1.1027)"
         },
         "end": {
-          "filter": "drop-shadow(rgba(37, 99, 235, 0.9) 0px 0px 6px)"
+          "filter": "blur(2px) brightness(1.15)"
         }
       }
     },
@@ -491,7 +680,7 @@
       "id": "ui-hover-lift",
       "kind": "spec",
       "source": "motion-library/specs/ui-hover-lift.json",
-      "css_sha256": "a3226f5c134427db6cdebc206fefb2ea577cc7863d1a534a0f79150a8b38379a",
+      "css_sha256": "425709a77cddde326da76846320e837c25a246ca79147dba828fba5ac61d08db",
       "pass": true,
       "checks": {
         "cssAnimationCreated": true,
@@ -508,158 +697,15 @@
       "measured": {
         "start": {
           "transform": "matrix(1, 0, 0, 1, 0, 0)",
-          "filter": "drop-shadow(rgba(0, 0, 0, 0) 0px 0px 0px)"
+          "filter": "brightness(1)"
         },
         "middle": {
           "transform": "matrix(1, 0, 0, 1, 0, -2.73857)",
-          "filter": "drop-shadow(rgba(15, 23, 42, 0.12) 0px 5.47715px 8.21572px)"
+          "filter": "brightness(1.05477)"
         },
         "end": {
           "transform": "matrix(1, 0, 0, 1, 0, -4)",
-          "filter": "drop-shadow(rgba(15, 23, 42, 0.18) 0px 8px 12px)"
-        }
-      }
-    },
-    {
-      "id": "ui-press-feedback",
-      "kind": "spec",
-      "source": "motion-library/specs/ui-press-feedback.json",
-      "css_sha256": "6de4de1096363d29ea0befd5c8caf0ff424de92c8434289e67c3276a771a91a4",
-      "pass": true,
-      "checks": {
-        "cssAnimationCreated": true,
-        "timingMatchesSpec": true,
-        "startMatchesFirstKeyframe": true,
-        "endMatchesLastKeyframe": true,
-        "interpolatesBetweenEnds": true,
-        "interiorKeyframesExact": true,
-        "runtimeMatchesCompiledCss": true,
-        "runtimeReducedState": true,
-        "reducedMotionDisablesAnimation": true,
-        "reducedMotionEndState": true,
-        "runtimeHonoursMediaQuery": true
-      },
-      "measured": {
-        "start": {
-          "transform": "matrix(1, 0, 0, 1, 0, 0)"
-        },
-        "middle": {
-          "transform": "matrix(0.96, 0, 0, 0.96, 0, 0)"
-        },
-        "end": {
-          "transform": "matrix(1, 0, 0, 1, 0, 0)"
-        }
-      }
-    },
-    {
-      "id": "ui-scale-reveal",
-      "kind": "spec",
-      "source": "motion-library/specs/ui-scale-reveal.json",
-      "css_sha256": "59d93adfcdd576c76c58f06de667c0e7866fa18f570d11df8f18d2f327e60600",
-      "pass": true,
-      "checks": {
-        "cssAnimationCreated": true,
-        "timingMatchesSpec": true,
-        "startMatchesFirstKeyframe": true,
-        "endMatchesLastKeyframe": true,
-        "interpolatesBetweenEnds": true,
-        "easingMatchesEngine": true,
-        "runtimeMatchesCompiledCss": true,
-        "runtimeReducedState": true,
-        "reducedMotionDisablesAnimation": true,
-        "reducedMotionEndState": true,
-        "runtimeHonoursMediaQuery": true
-      },
-      "measured": {
-        "start": {
-          "opacity": "0",
-          "transform": "matrix(0.92, 0, 0, 0.92, 0, 0)"
-        },
-        "middle": {
-          "opacity": "0.684643",
-          "transform": "matrix(0.974771, 0, 0, 0.974771, 0, 0)"
-        },
-        "end": {
-          "opacity": "1",
-          "transform": "matrix(1, 0, 0, 1, 0, 0)"
-        }
-      }
-    },
-    {
-      "id": "ui-slide-inline-end",
-      "kind": "spec",
-      "source": "motion-library/specs/ui-slide-inline-end.json",
-      "css_sha256": "b365e769f07f5072b91ab0020652961d728aa77ac92ad60d76d8f6e87596b1af",
-      "pass": true,
-      "checks": {
-        "cssAnimationCreated": true,
-        "timingMatchesSpec": true,
-        "startMatchesFirstKeyframe": true,
-        "endMatchesLastKeyframe": true,
-        "interpolatesBetweenEnds": true,
-        "easingMatchesEngine": true,
-        "rtlMirrorsInlineTravel": true,
-        "runtimeMatchesCompiledCss": true,
-        "runtimeReducedState": true,
-        "reducedMotionDisablesAnimation": true,
-        "reducedMotionEndState": true,
-        "runtimeHonoursMediaQuery": true
-      },
-      "measured": {
-        "start": {
-          "opacity": "0",
-          "transform": "matrix(1, 0, 0, 1, 24, 0)"
-        },
-        "middle": {
-          "opacity": "0.684643",
-          "transform": "matrix(1, 0, 0, 1, 7.56856, 0)"
-        },
-        "end": {
-          "opacity": "1",
-          "transform": "matrix(1, 0, 0, 1, 0, 0)"
-        },
-        "inlineTravelPx": {
-          "ltr": 24,
-          "rtl": -24
-        }
-      }
-    },
-    {
-      "id": "ui-slide-inline-start",
-      "kind": "spec",
-      "source": "motion-library/specs/ui-slide-inline-start.json",
-      "css_sha256": "f7ec459de337fa36d7bd9bb44512e93b23cbcb9f339730494b7c3f7a24425cd2",
-      "pass": true,
-      "checks": {
-        "cssAnimationCreated": true,
-        "timingMatchesSpec": true,
-        "startMatchesFirstKeyframe": true,
-        "endMatchesLastKeyframe": true,
-        "interpolatesBetweenEnds": true,
-        "easingMatchesEngine": true,
-        "rtlMirrorsInlineTravel": true,
-        "runtimeMatchesCompiledCss": true,
-        "runtimeReducedState": true,
-        "reducedMotionDisablesAnimation": true,
-        "reducedMotionEndState": true,
-        "runtimeHonoursMediaQuery": true
-      },
-      "measured": {
-        "start": {
-          "opacity": "0",
-          "transform": "matrix(1, 0, 0, 1, -24, 0)"
-        },
-        "middle": {
-          "opacity": "0.684643",
-          "transform": "matrix(1, 0, 0, 1, -7.56856, 0)"
-        },
-        "end": {
-          "opacity": "1",
-          "transform": "matrix(1, 0, 0, 1, 0, 0)"
-        },
-        "inlineTravelPx": {
-          "ltr": -24,
-          "rtl": 24
+          "filter": "brightness(1.08)"
         }
       }
     },
@@ -758,6 +804,74 @@
         "middle": {
           "opacity": "0.684643",
           "transform": "matrix(0.993693, 0, 0, 0.993693, 0, 7.56856)"
+        },
+        "end": {
+          "opacity": "1",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      }
+    },
+    {
+      "id": "interactive-waapi-keyframes",
+      "kind": "spec",
+      "source": "motion-library/specs/waapi-keyframes.json",
+      "css_sha256": "72e0fee0f8b64746707441fbdeba4bce6a29ca7ce4b8f596046ab828d8b3c592",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "interiorKeyframesExact": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0.35",
+          "transform": "matrix(0.96, 0, 0, 0.96, 0, 10)"
+        },
+        "middle": {
+          "opacity": "1",
+          "transform": "matrix(1.03, 0, 0, 1.03, 0, -4)"
+        },
+        "end": {
+          "opacity": "1",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      }
+    },
+    {
+      "id": "typography-word-stagger",
+      "kind": "spec",
+      "source": "motion-library/specs/word-stagger.json",
+      "css_sha256": "6329a98fb21c8992b2f0895592a8e592ea958dceaa8c86ad25e881aa077a2493",
+      "pass": true,
+      "checks": {
+        "cssAnimationCreated": true,
+        "timingMatchesSpec": true,
+        "startMatchesFirstKeyframe": true,
+        "endMatchesLastKeyframe": true,
+        "interpolatesBetweenEnds": true,
+        "easingMatchesEngine": true,
+        "runtimeMatchesCompiledCss": true,
+        "runtimeReducedState": true,
+        "reducedMotionDisablesAnimation": true,
+        "reducedMotionEndState": true,
+        "runtimeHonoursMediaQuery": true
+      },
+      "measured": {
+        "start": {
+          "opacity": "0",
+          "transform": "matrix(1, 0, 0, 1, 0, 11.2)"
+        },
+        "middle": {
+          "opacity": "0.684643",
+          "transform": "matrix(1, 0, 0, 1, 0, 3.532)"
         },
         "end": {
           "opacity": "1",

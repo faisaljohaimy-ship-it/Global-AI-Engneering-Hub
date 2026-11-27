@@ -1,0 +1,14 @@
+@keyframes lab-ui-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lab-ui-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lab-ui-slide-inline-start { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes lab-ui-slide-inline-end { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes lab-ui-scale-reveal { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes lab-ui-press-feedback { 0%, 100% { transform: scale(1); } 45% { transform: scale(.94); } }
+.run-ui-fade-in { animation: lab-ui-fade-in 240ms ease-out both; }
+.run-ui-fade-out { animation: lab-ui-fade-out 200ms ease-in both; }
+.run-ui-slide-inline-start { animation: lab-ui-slide-inline-start 280ms ease-out both; }
+.run-ui-slide-inline-end { animation: lab-ui-slide-inline-end 280ms ease-out both; }
+.run-ui-scale-reveal { animation: lab-ui-scale-reveal 260ms ease-out both; }
+.run-ui-press-feedback { animation: lab-ui-press-feedback 160ms ease-out both; }
+[dir="rtl"] .run-ui-slide-inline-start { animation-name: lab-ui-slide-inline-end; }
+[dir="rtl"] .run-ui-slide-inline-end { animation-name: lab-ui-slide-inline-start; }

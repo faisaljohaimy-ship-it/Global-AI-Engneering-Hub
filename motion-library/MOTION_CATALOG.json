@@ -38,6 +38,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/legacy-4.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -94,6 +98,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/legacy-10.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -123,6 +131,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/fade-in.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -133,7 +145,11 @@
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
       "status": "implemented",
       "runtime_verified": true,
-      "spec": "motion-library/specs/ui-fade-out.json",
+      "spec": "motion-library/specs/fade-out.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -144,7 +160,11 @@
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
       "status": "implemented",
       "runtime_verified": true,
-      "spec": "motion-library/specs/ui-slide-inline-start.json",
+      "spec": "motion-library/specs/slide-inline-start.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -155,7 +175,11 @@
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
       "status": "implemented",
       "runtime_verified": true,
-      "spec": "motion-library/specs/ui-slide-inline-end.json",
+      "spec": "motion-library/specs/slide-inline-end.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -167,6 +191,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/ui-slide-up.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -177,7 +205,11 @@
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
       "status": "implemented",
       "runtime_verified": true,
-      "spec": "motion-library/specs/ui-scale-reveal.json",
+      "spec": "motion-library/specs/scale-reveal.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -188,7 +220,11 @@
       "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
       "status": "implemented",
       "runtime_verified": true,
-      "spec": "motion-library/specs/ui-press-feedback.json",
+      "spec": "motion-library/specs/press-feedback.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -200,6 +236,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/ui-spring-card.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -211,6 +251,9 @@
       "status": "implemented",
       "runtime_verified": true,
       "implementation": "motion-library/runtime/hub-motion.mjs#stagger",
+      "runtime_surfaces": [
+        "chromium-waapi-behavior"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -231,6 +274,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/ui-drawer-reveal.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -242,6 +289,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/ui-dialog-reveal.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -289,6 +340,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/ui-toast-entrance.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -300,6 +355,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/ui-focus-halo.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -311,6 +370,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/ui-hover-lift.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -457,6 +520,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/cinema-dolly-in.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -468,6 +535,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/cinema-dolly-out.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -479,6 +550,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/cinema-truck-left.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -490,6 +565,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/cinema-truck-right.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -501,6 +580,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/cinema-crane-rise.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -521,6 +604,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/cinema-rack-focus.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -586,6 +673,10 @@
       "status": "implemented",
       "runtime_verified": true,
       "spec": "motion-library/specs/cinema-whip-pan.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -596,7 +687,11 @@
       "reference": "https://www.remotion.dev/docs/components",
       "status": "implemented",
       "runtime_verified": true,
-      "spec": "motion-library/specs/cinema-cross-dissolve.json",
+      "spec": "motion-library/specs/cross-dissolve.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -686,8 +781,14 @@
       "name": "Word stagger",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/word-stagger.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "typography-line-reveal",
@@ -752,6 +853,9 @@
       "status": "implemented",
       "runtime_verified": true,
       "implementation": "motion-library/runtime/hub-motion.mjs#counterValueAt",
+      "runtime_surfaces": [
+        "chromium-waapi-behavior"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -763,6 +867,9 @@
       "status": "implemented",
       "runtime_verified": true,
       "implementation": "motion-library/runtime/hub-motion.mjs#typewriterAt",
+      "runtime_surfaces": [
+        "chromium-waapi-behavior"
+      ],
       "evidence": "motion-library/evidence/chromium.json"
     },
     {
@@ -1248,8 +1355,14 @@
       "name": "WAAPI keyframes",
       "origin": "new engineering candidate",
       "reference": "https://www.remotion.dev/docs/components",
-      "status": "specification",
-      "runtime_verified": false
+      "status": "implemented",
+      "runtime_verified": true,
+      "spec": "motion-library/specs/waapi-keyframes.json",
+      "runtime_surfaces": [
+        "chromium-css",
+        "chromium-waapi"
+      ],
+      "evidence": "motion-library/evidence/chromium.json"
     },
     {
       "id": "interactive-svg-path-animation",

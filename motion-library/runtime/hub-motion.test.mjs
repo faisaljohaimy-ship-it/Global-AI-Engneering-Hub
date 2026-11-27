@@ -32,6 +32,45 @@ test('the runtime rejects what the Python compiler rejects', () => {
   assert.throws(() => validateSpec({ ...fadeIn(), reduced_motion: {} }), /reduced_motion/);
 });
 
+test('CSS values use the same property grammars as the Python compiler', () => {
+  const withValue = (property, value) => {
+    const spec = fadeIn();
+    spec.keyframes = [{ offset: 0, [property]: value }, { offset: 1, [property]: value }];
+    spec.reduced_motion = { [property]: value };
+    return spec;
+  };
+
+  for (const value of ['url(https://example.invalid/x)', 'VAR(--unsafe)', '@import', 'none\\9', 'red\nblue']) {
+    assert.throws(() => validateSpec(withValue('transform', value)), /Unsafe|Control/);
+  }
+  for (const value of [true, false, null, Number.NaN, Number.POSITIVE_INFINITY, '0.5']) {
+    assert.throws(() => validateSpec(withValue('opacity', value)), /finite|Opacity/);
+  }
+  for (const value of [-0.01, 1.01]) {
+    assert.throws(() => validateSpec(withValue('opacity', value)), /Opacity/);
+  }
+  assert.doesNotThrow(() => validateSpec(withValue('opacity', 0.5)));
+
+  for (const value of ['calc(1px + 2px)', 'translateX(1vh)', 'scale(-1)', 'rotate(1rad)']) {
+    assert.throws(() => validateSpec(withValue('transform', value)), /transform/);
+  }
+  for (const value of ['drop-shadow(0 0 2px #000)', 'blur(-1px)', 'hue-rotate(30deg)']) {
+    assert.throws(() => validateSpec(withValue('filter', value)), /filter/);
+  }
+  for (const value of ['red', 'currentColor', 'rgb(0 0 0 / 50%)']) {
+    assert.throws(() => validateSpec(withValue('color', value)), /color/);
+  }
+  assert.doesNotThrow(() => validateSpec(withValue('transform', 'translateX(-24px) scale(1.05) rotateZ(5deg)')));
+  assert.doesNotThrow(() => validateSpec(withValue('filter', 'blur(2px) saturate(120%)')));
+  assert.doesNotThrow(() => validateSpec(withValue('background-color', 'rgba(0, 0, 0, 0.5)')));
+});
+
+test('the keyframe budget is bounded', () => {
+  const excessive = fadeIn();
+  excessive.keyframes = Array.from({ length: 65 }, (_, index) => ({ offset: index / 64, opacity: 1 }));
+  assert.throws(() => validateSpec(excessive), /Two to 64/);
+});
+
 test('easing curves match the CSS definitions', () => {
   for (const name of ['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out']) {
     assert.equal(ease(name, 0), 0);

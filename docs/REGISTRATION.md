@@ -57,6 +57,7 @@ the pin, when the pin is not a commit in the hub, or when the manifest breaks a 
 (non-zero budget, a production runtime dependency, another hub URL). It reports one of
 three levels: `verified`, `declared-only`, `broken`.
 
-The project workflow fetches the hub at the pinned commit and runs that commit's own
-`verify`. It triggers only when link files change, so a project's build, tests and
-deployment never wait on the hub.
+The project workflow fetches hub `main`, proves the pin is its ancestor before running
+any code from it, and uses strict verification so a declaration-only manifest fails.
+It triggers only when link files change, so ordinary application builds and deployments
+do not depend on the hub.

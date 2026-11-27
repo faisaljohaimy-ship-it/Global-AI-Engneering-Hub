@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "tested_at": "2026-11-27",
+  "privacy": "No account names, emails, identifiers, balances, credentials, or raw connector payloads are recorded.",
+  "programs": [
+    {
+      "program": "GitHub",
+      "surface": "official_mcp",
+      "probe_operation": "authenticated profile metadata read",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["all repository access", "future write access"]
+    },
+    {
+      "program": "Vercel",
+      "surface": "official_mcp",
+      "probe_operation": "bounded team metadata list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["deployment", "write access", "free-tier capacity"]
+    },
+    {
+      "program": "Supabase",
+      "surface": "official_mcp",
+      "probe_operation": "organization metadata list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["database access", "write access", "free-tier capacity"]
+    },
+    {
+      "program": "Google Drive",
+      "surface": "official_mcp",
+      "probe_operation": "profile metadata read",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["file write access", "all file access"]
+    },
+    {
+      "program": "Canva",
+      "surface": "official_mcp",
+      "probe_operation": "bounded design metadata search",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["design creation", "export", "paid assets"]
+    },
+    {
+      "program": "Figma",
+      "surface": "official_mcp",
+      "probe_operation": "authenticated identity capability check",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["file access", "file mutation"]
+    },
+    {
+      "program": "Runway",
+      "surface": "official_mcp",
+      "probe_operation": "authenticated capability check",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["generation", "credits", "commercial use"]
+    },
+    {
+      "program": "Higgsfield",
+      "surface": "official_mcp",
+      "probe_operation": "profile metadata read",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["generation", "credits", "commercial use"]
+    },
+    {
+      "program": "HeyGen",
+      "surface": "official_mcp",
+      "probe_operation": "current-user capability check",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["generation", "credits", "commercial use"]
+    },
+    {
+      "program": "Lovable",
+      "surface": "official_mcp",
+      "probe_operation": "bounded workspace metadata list",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": true,
+      "budget_impact": 0,
+      "capabilities_proven": ["callable", "authenticated_read"],
+      "capabilities_not_proven": ["project creation", "deployment", "write access"]
+    },
+    {
+      "program": "Blender",
+      "surface": "local_executable",
+      "probe_operation": "version command",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": false,
+      "version": "4.3.2",
+      "budget_impact": 0,
+      "capabilities_proven": ["local executable"],
+      "capabilities_not_proven": ["render pipeline", "GPU availability"]
+    },
+    {
+      "program": "FFmpeg",
+      "surface": "local_executable",
+      "probe_operation": "version command",
+      "mutation": false,
+      "result": "success",
+      "authenticated_read": false,
+      "version": "7.1.5",
+      "budget_impact": 0,
+      "capabilities_proven": ["local executable"],
+      "capabilities_not_proven": ["codec coverage", "production encoding"]
+    },
+    {
+      "program": "Render",
+      "surface": "none",
+      "probe_operation": "official connector and local CLI availability",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["authentication", "read", "write", "deployment"]
+    },
+    {
+      "program": "ElevenLabs",
+      "surface": "none",
+      "probe_operation": "official connector and local CLI availability",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["authentication", "read", "generation"]
+    },
+    {
+      "program": "n8n",
+      "surface": "none",
+      "probe_operation": "official connector and local CLI availability",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["authentication", "workflow access", "execution"]
+    },
+    {
+      "program": "OpenRouter",
+      "surface": "none",
+      "probe_operation": "official connector and local CLI availability",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["authentication", "model access", "credits"]
+    },
+    {
+      "program": "Remotion",
+      "surface": "none",
+      "probe_operation": "Node package resolution",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["package installed", "runtime", "company license"]
+    },
+    {
+      "program": "Three.js",
+      "surface": "none",
+      "probe_operation": "Node package resolution",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["package installed", "runtime"]
+    },
+    {
+      "program": "Motion",
+      "surface": "none",
+      "probe_operation": "Node package resolution",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["package installed", "runtime"]
+    },
+    {
+      "program": "GSAP",
+      "surface": "none",
+      "probe_operation": "Node package resolution",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["package installed", "runtime", "commercial terms"]
+    },
+    {
+      "program": "Rive",
+      "surface": "none",
+      "probe_operation": "Node package resolution",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["package installed", "runtime"]
+    },
+    {
+      "program": "Lottie",
+      "surface": "none",
+      "probe_operation": "Node package resolution",
+      "mutation": false,
+      "result": "unavailable",
+      "authenticated_read": false,
+      "budget_impact": 0,
+      "capabilities_proven": [],
+      "capabilities_not_proven": ["package installed", "runtime"]
+    }
+  ]
+}
