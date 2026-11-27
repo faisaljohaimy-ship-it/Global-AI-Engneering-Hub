@@ -115,6 +115,16 @@ test('registration fails atomically on duplicates and remote catalog imports are
   assert.throws(() => sdk.create('not-registered'));
 });
 
+test('separate reviewed catalogs retain their own sampler when another pack registers', () => {
+  const sdk = fixture();
+  sdk.registerCatalog({definitions:[{...definition,id:'separate-catalog'}],sampleMotion:(definition,progress,options)=>{
+    const scene=sampleMotion(definition,progress,options);scene.primitives[0].x=17;return scene;
+  }});
+  const first=sdk.create('test-orbit',{width:200}),second=sdk.create('separate-catalog',{width:200});
+  assert.equal(first.render(.5).primitives[0].x,100);assert.equal(second.render(.5).primitives[0].x,17);
+  sdk.destroyAll();assert.equal(sdk.getCapabilities().live_instances,0);
+});
+
 test('frame export and bounded benchmark distinguish measurements from production FPS', () => {
   const sdk = fixture(), instance = sdk.create('test-orbit', {canvas: canvas()});
   const json = JSON.parse(instance.export('json', .5)); assert.equal(json.scene.primitives[0].x, 320);

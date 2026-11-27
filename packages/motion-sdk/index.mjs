@@ -174,7 +174,7 @@ function safeKeyframes(frames) {
 
 export function createMotionSystem() {
   const registry = new Map();
-  let catalogSampler;
+  const samplers = new Map();
   const instances = new Set();
 
   function registerCatalog(catalog) {
@@ -185,8 +185,9 @@ export function createMotionSystem() {
       if (pending.has(definition.id) || registry.has(definition.id)) fail(`Duplicate motion: ${definition.id}`);
       pending.set(definition.id, frozenCopy(definition));
     }
-    for (const [id, definition] of pending) registry.set(id, definition);
-    catalogSampler = catalog.sampleMotion ?? catalog.sampleScene;
+    for (const [id, definition] of pending) {
+      registry.set(id, definition); samplers.set(id, catalog.sampleMotion ?? catalog.sampleScene);
+    }
     return {registered: pending.size, total: registry.size};
   }
 
@@ -205,7 +206,7 @@ export function createMotionSystem() {
     const request = input.requestFrame ?? view.requestAnimationFrame?.bind(view);
     const cancel = input.cancelFrame ?? view.cancelAnimationFrame?.bind(view);
     const now = input.now ?? clock;
-    const sampler = input.sampler ?? catalogSampler;
+    const sampler = input.sampler ?? samplers.get(definition.id);
     if (engine === 'canvas2d' && typeof sampler !== 'function') fail('Register a reviewed catalog or provide a local sampler');
     let canvas = input.canvas, owned = false, context, waapi, frame, lastTime, scene;
     let state = 'idle', progress = 0, direction = 1;
