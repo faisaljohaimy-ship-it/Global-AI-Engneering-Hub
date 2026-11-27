@@ -1,0 +1,2 @@
+# Cinematic production playbook
+Start with storyboard, shot list, licensed asset manifest, bilingual script and timing sheet. Prototype a short scene before full rendering. Verify 16:9 or requested aspect ratio, safe areas, RTL typography, audio intelligibility, frame rate, color, contrast, continuity, captions where requested, mobile playback and final byte size. Record source and license for each asset. Keep large renders outside GitHub and avoid paid rendering without approval. Use only approved pinned tool releases.
