@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "status": "discovery-only",
+  "base_revision": "fdd3684a39abb3e4e713cc24867de26bc3f09c4b",
+  "priority_tools": [
+    "pydantic/pydantic-ai",
+    "promptfoo/promptfoo",
+    "UKGovernmentBEIS/inspect_ai",
+    "upstash/context7",
+    "microsoft/playwright-mcp",
+    "ChromeDevTools/chrome-devtools-mcp"
+  ],
+  "skill_sources": [
+    "microsoft/skills",
+    "modelcontextprotocol/modelcontextprotocol",
+    "vercel-labs/skills",
+    "github/spec-kit"
+  ],
+  "packs": [
+    {
+      "id": "ai-intelligence",
+      "name": "AI Intelligence",
+      "candidates": [
+        "pydantic/pydantic-ai",
+        "openai/openai-agents-python",
+        "langchain-ai/langgraph",
+        "vercel/ai"
+      ],
+      "acceptance": "Implement one typed tool invocation with synthetic input, explicit authorization and bounded execution; test invalid output, timeout and refusal.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "context-engineering",
+      "name": "Context Engineering",
+      "candidates": [
+        "upstash/context7",
+        "github/spec-kit",
+        "microsoft/skills"
+      ],
+      "acceptance": "Pin documentation references; maintain a non-sensitive task checkpoint, verify recovery in a fresh workspace; never upload private context to external services without approval.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "cinematic-gpu",
+      "name": "Cinematic GPU",
+      "candidates": [
+        "mrdoob/three.js",
+        "pmndrs/react-three-fiber",
+        "remotion-dev/remotion",
+        "blender/blender",
+        "ffmpeg/ffmpeg",
+        "microsoft/playwright"
+      ],
+      "acceptance": "Render a deterministic scene, test reduced motion and GPU fallback, verify encoding and commercial licensing; keep large output outside Git.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "enterprise-development",
+      "name": "Enterprise Development",
+      "candidates": [
+        "github/spec-kit",
+        "vercel-labs/skills",
+        "microsoft/typescript",
+        "facebook/react",
+        "vitejs/vite",
+        "supabase/supabase"
+      ],
+      "acceptance": "Build a minimal vertical slice with typed API, authentication, RBAC, synthetic data, RTL and isolated deployment tests.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "browser-intelligence",
+      "name": "Browser Intelligence",
+      "candidates": [
+        "microsoft/playwright",
+        "microsoft/playwright-mcp",
+        "ChromeDevTools/chrome-devtools-mcp"
+      ],
+      "acceptance": "Run a local synthetic page with isolated browser profile; verify MCP host discovery separately, navigation, screenshots and console diagnostics; disallow authenticated production profiles.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "devsecops",
+      "name": "DevSecOps",
+      "candidates": [
+        "semgrep/semgrep",
+        "aquasecurity/trivy",
+        "gitleaks/gitleaks",
+        "google/osv-scanner",
+        "anchore/syft",
+        "anchore/grype"
+      ],
+      "acceptance": "Generate SBOM, scan a test fixture and dependencies, validate secret redaction, enforce exact release targets; run only authorized security checks.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "agent-evaluation",
+      "name": "Agent Evaluation",
+      "candidates": [
+        "promptfoo/promptfoo",
+        "UKGovernmentBEIS/inspect_ai",
+        "microsoft/playwright"
+      ],
+      "acceptance": "Compare identical synthetic tasks across authorized hosts, record model version, time, functional tests, cost and unavailable metrics; do not claim host parity from local protocol tests.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "digital-twin",
+      "name": "Digital Twin",
+      "candidates": [
+        "mrdoob/three.js",
+        "pmndrs/react-three-fiber",
+        "khronosgroup/gltf",
+        "blender/blender",
+        "microsoft/playwright"
+      ],
+      "acceptance": "Load a synthetic asset with scene metadata, selectable risk overlays and accessible fallback; benchmark a target device and verify data provenance.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "database-intelligence",
+      "name": "Database Intelligence",
+      "candidates": [
+        "supabase/supabase",
+        "postgres/postgres",
+        "pgvector/pgvector",
+        "pytest-dev/pytest"
+      ],
+      "acceptance": "Validate schema and query plans in a disposable database, run tenant isolation and RLS negative tests, verify rollback; no production mutations.",
+      "status": "proposed",
+      "auto_install": false
+    },
+    {
+      "id": "engineering-recovery",
+      "name": "Engineering Recovery",
+      "candidates": [
+        "github/spec-kit",
+        "microsoft/skills",
+        "gitleaks/gitleaks"
+      ],
+      "acceptance": "Use existing hub checkpoint and orchestration tools, verify a clean-session restore from a pinned revision and checksums; store private bundles in approved private storage.",
+      "status": "proposed",
+      "auto_install": false
+    }
+  ],
+  "policy": {
+    "installation": "explicit reviewed opt-in",
+    "require": [
+      "immutable revision",
+      "license review",
+      "security review",
+      "commercial review",
+      "isolated smoke test",
+      "host-specific evidence"
+    ],
+    "additional_budget_sar": 0
+  }
+}
