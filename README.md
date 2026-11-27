@@ -1,7 +1,7 @@
 # Global AI Engineering Hub
 Global AI Engineering Hub for enterprise software, SaaS, agent skills, cybersecurity, cinematic production and reusable engineering tools.
 
-Public, zero-additional-budget foundation. Python standard library only. Contains a discovery registry and seven original reusable skills; listed external projects are not automatically installed, approved, or runtime-verified.
+Public, zero-additional-budget foundation. Python standard library only. Contains a discovery registry and original reusable skills; listed external projects are not automatically installed, approved, or runtime-verified.
 
 ## Quick start
 ```sh
@@ -19,3 +19,9 @@ See [architecture](docs/ARCHITECTURE.md) and [onboarding](docs/ONBOARDING.md). O
 
 ## Catalog expansion
 Record canonical ID, license, commercial use, security review, and immutable revision before approval. Record runtime evidence separately. No third-party source copied here; upstream projects retain their own licenses. Public visibility does not grant a blanket license for this repository.
+
+## Registering and verifying projects
+`python3 hub.py register` installs chosen skills, motion and packs from one pinned commit and records a checksum for each file; `python3 hub.py verify` compares a project with that commit and fails on any difference. A manifest alone is reported as declared-only. See [registration](docs/REGISTRATION.md). Public projects are listed in `projects/registry.json`; `python3 hub.py projects --audit` checks them all.
+
+## Evidence
+What was actually run, and what was not, is recorded per agent environment under `docs/evidence/`. Connection status per program is in `integrations/PROGRAMS.json`; earlier packs and where they are now are in `catalog/recovered.json`.

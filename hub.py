@@ -1,4 +1,5 @@
-import argparse,json,pathlib,re
+import argparse,json,pathlib,re,sys
+import hublink
 ROOT=pathlib.Path(__file__).resolve().parent
 
 def registry():
@@ -27,12 +28,24 @@ def onboard(target,revision,apply=False):
             with path.open('x') as f:f.write(data)
     return result
 
+def motion_verified():
+    return sum(x.get('runtime_verified') is True for x in json.loads((ROOT/'motion-library/MOTION_CATALOG.json').read_text())['entries'])
+
 def main():
     p=argparse.ArgumentParser();s=p.add_subparsers(dest='cmd',required=True)
-    s.add_parser('audit');q=s.add_parser('search');q.add_argument('query');o=s.add_parser('onboard');o.add_argument('target');o.add_argument('--revision',required=True);o.add_argument('--apply',action='store_true');a=p.parse_args()
-    if a.cmd=='audit':
-        rows=registry();result={'catalog_entries':len(rows),'approved':sum(x['status']=='approved' for x in rows),'local_skills':len(list((ROOT/'skills').glob('*/SKILL.md'))),'runtime_verified':0}
-    elif a.cmd=='search':result=[x for x in registry() if a.query.lower() in json.dumps(x).lower()]
-    else:result=onboard(a.target,a.revision,a.apply)
-    print(json.dumps(result,indent=2))
+    s.add_parser('audit');q=s.add_parser('search');q.add_argument('query');o=s.add_parser('onboard');o.add_argument('target');o.add_argument('--revision',required=True);o.add_argument('--apply',action='store_true')
+    r=s.add_parser('register');r.add_argument('target');r.add_argument('--revision',required=True);r.add_argument('--id');r.add_argument('--repository');r.add_argument('--capability',action='append',default=[]);r.add_argument('--apply',action='store_true')
+    v=s.add_parser('verify');v.add_argument('target');v.add_argument('--strict',action='store_true')
+    j=s.add_parser('projects');j.add_argument('--audit',action='store_true');a=p.parse_args()
+    ok=True
+    try:
+        if a.cmd=='audit':
+            rows=registry();result={'catalog_entries':len(rows),'approved':sum(x['status']=='approved' for x in rows),'local_skills':len(list((ROOT/'skills').glob('*/SKILL.md'))),'motion_specs':len(list((ROOT/'motion-library/specs').glob('*.json'))),'runtime_verified':motion_verified(),'registered_projects':len(hublink.projects())}
+        elif a.cmd=='search':result=[x for x in registry() if a.query.lower() in json.dumps(x).lower()]
+        elif a.cmd=='onboard':result=onboard(a.target,a.revision,a.apply)
+        elif a.cmd=='register':result=hublink.register(a.target,a.revision,a.id,a.repository,a.capability,a.apply)
+        elif a.cmd=='verify':result=hublink.verify(a.target,a.strict);ok=result['ok']
+        else:result=hublink.audit_projects() if a.audit else hublink.projects();ok=all(x.get('ok',True) for x in result)
+    except ValueError as e:result={'error':str(e)};ok=False
+    print(json.dumps(result,indent=2,ensure_ascii=False));sys.exit(0 if ok else 1)
 if __name__=='__main__':main()
