@@ -2,6 +2,18 @@
   "schema_version": 1,
   "notes": "A pack groups reviewed hub files for deterministic project registration. Only packs with confirmed provenance and redistribution permission are listed. Installing a pack never enables a service or spends money.",
   "packs": {
+    "engineering-sdk": {
+      "summary": "Versioned offline integrity, deployment identity and release guards plus read-only MCP discovery.",
+      "version": "1.0.0",
+      "skills": ["engineering-sdk"],
+      "files": {
+        "sdk/engineering_sdk.py": ".engineering/sdk/engineering_sdk.py",
+        "sdk/capabilities.json": ".engineering/sdk/capabilities.json",
+        "sdk/VERSION": ".engineering/sdk/VERSION"
+      },
+      "requires": ["Python 3.10+", "git for target and release checks"],
+      "origin": "Owner-authorized original engineering tooling in this hub. Review at an immutable merged SHA; no third-party runtime dependencies."
+    },
     "motion-runtime": {
       "summary": "Dependency-free browser runtime for hub motion specifications, with the logical-direction base stylesheet.",
       "files": {

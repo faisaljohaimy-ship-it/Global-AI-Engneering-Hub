@@ -40,6 +40,12 @@ Record canonical ID, license, commercial use, security review, and immutable rev
 
 ## Registering and verifying projects
 
+The [Engineering SDK 1.0.0](docs/SDK.md) adds offline verification, a private
+project registry validator, exact-target release guards and read-only MCP discovery.
+Select `pack:engineering-sdk` during registration. Product CI runs the vendored
+verifier without contacting this public repository. Dependency updates remain PRs
+requiring review and tests; catalog candidates never execute automatically.
+
 `python3 hub.py register` installs chosen skills, motion and packs from one reviewed,
 pinned main commit and records a checksum for every file. `python3 hub.py verify`
 compares a project with that commit and fails on differences. A manifest alone is
