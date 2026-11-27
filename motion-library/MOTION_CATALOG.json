@@ -1,0 +1,1284 @@
+{
+  "schema_version": 1,
+  "notes": "Specifications, not implemented effects. Twelve recovered entries; additions are engineering candidates, not a claim of exhaustive worldwide coverage or novelty.",
+  "entries": [
+    {
+      "id": "legacy-1",
+      "category": "Glass",
+      "name": "Spiral Glass Assembly",
+      "hint": "Three.js MeshPhysicalMaterial and spline",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-2",
+      "category": "Glass",
+      "name": "Crystal Layer Reveal",
+      "hint": "Remotion Sequence and opacity",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-3",
+      "category": "Glass",
+      "name": "Fresnel Edge Sweep",
+      "hint": "GLSL Fresnel shader",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-4",
+      "category": "Orb",
+      "name": "Elastic Orb Bounce",
+      "hint": "Deterministic spring motion",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-5",
+      "category": "Orb",
+      "name": "Magnetic Orb Convergence",
+      "hint": "Parametric attractor motion",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-6",
+      "category": "Orb",
+      "name": "Particle Trail Navigation",
+      "hint": "Seeded particle path",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-7",
+      "category": "Camera",
+      "name": "Spatial Dolly",
+      "hint": "Three.js camera spline",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-8",
+      "category": "Camera",
+      "name": "Orbital Evidence Reveal",
+      "hint": "Camera orbit then lock",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-9",
+      "category": "Data",
+      "name": "Evidence Constellation",
+      "hint": "Node-link animation",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-10",
+      "category": "Data",
+      "name": "Decision Pulse",
+      "hint": "Remotion frame-based interpolation",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-11",
+      "category": "Typography",
+      "name": "Arabic Kinetic Reveal",
+      "hint": "RTL-safe glyph layout",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "legacy-12",
+      "category": "Transition",
+      "name": "Liquid Glass Portal",
+      "hint": "Shader transition with fallback",
+      "origin": "Recovered MOTION_CATALOG.csv (2026-11-26)",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-fade-in",
+      "category": "UI",
+      "name": "Fade in",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-fade-out",
+      "category": "UI",
+      "name": "Fade out",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-slide-inline-start",
+      "category": "UI",
+      "name": "Slide inline start",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-slide-inline-end",
+      "category": "UI",
+      "name": "Slide inline end",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-slide-up",
+      "category": "UI",
+      "name": "Slide up",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-scale-reveal",
+      "category": "UI",
+      "name": "Scale reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-press-feedback",
+      "category": "UI",
+      "name": "Press feedback",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-spring-card",
+      "category": "UI",
+      "name": "Spring card",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-staggered-list",
+      "category": "UI",
+      "name": "Staggered list",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-accordion-expansion",
+      "category": "UI",
+      "name": "Accordion expansion",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-drawer-reveal",
+      "category": "UI",
+      "name": "Drawer reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-dialog-reveal",
+      "category": "UI",
+      "name": "Dialog reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-skeleton-shimmer",
+      "category": "UI",
+      "name": "Skeleton shimmer",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-progress-ring",
+      "category": "UI",
+      "name": "Progress ring",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-tab-indicator",
+      "category": "UI",
+      "name": "Tab indicator",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-shared-layout-transition",
+      "category": "UI",
+      "name": "Shared layout transition",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-toast-entrance",
+      "category": "UI",
+      "name": "Toast entrance",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-focus-halo",
+      "category": "UI",
+      "name": "Focus halo",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-hover-lift",
+      "category": "UI",
+      "name": "Hover lift",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-drag-reorder",
+      "category": "UI",
+      "name": "Drag reorder",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-swipe-reveal",
+      "category": "UI",
+      "name": "Swipe reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "ui-morph-icon",
+      "category": "UI",
+      "name": "Morph icon",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Web_Animations_API_Concepts",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-scroll-progress",
+      "category": "Scroll",
+      "name": "Scroll progress",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-scroll-linked-parallax",
+      "category": "Scroll",
+      "name": "Scroll-linked parallax",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-view-timeline-reveal",
+      "category": "Scroll",
+      "name": "View timeline reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-scroll-triggered-entrance",
+      "category": "Scroll",
+      "name": "Scroll-triggered entrance",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-sticky-scene-sequence",
+      "category": "Scroll",
+      "name": "Sticky scene sequence",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-horizontal-timeline",
+      "category": "Scroll",
+      "name": "Horizontal timeline",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-pinned-storytelling",
+      "category": "Scroll",
+      "name": "Pinned storytelling",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-mask-reveal",
+      "category": "Scroll",
+      "name": "Mask reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-clip-path-wipe",
+      "category": "Scroll",
+      "name": "Clip-path wipe",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-cross-document-view-transition",
+      "category": "Scroll",
+      "name": "Cross-document view transition",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-same-document-view-transition",
+      "category": "Scroll",
+      "name": "Same-document view transition",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "scroll-scroll-scrub",
+      "category": "Scroll",
+      "name": "Scroll scrub",
+      "origin": "new engineering candidate",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-dolly-in",
+      "category": "Cinema",
+      "name": "Dolly in",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-dolly-out",
+      "category": "Cinema",
+      "name": "Dolly out",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-truck-left",
+      "category": "Cinema",
+      "name": "Truck left",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-truck-right",
+      "category": "Cinema",
+      "name": "Truck right",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-crane-rise",
+      "category": "Cinema",
+      "name": "Crane rise",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-orbit-camera",
+      "category": "Cinema",
+      "name": "Orbit camera",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-rack-focus",
+      "category": "Cinema",
+      "name": "Rack focus",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-depth-of-field",
+      "category": "Cinema",
+      "name": "Depth of field",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-lens-flare",
+      "category": "Cinema",
+      "name": "Lens flare",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-match-cut",
+      "category": "Cinema",
+      "name": "Match cut",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-j-cut",
+      "category": "Cinema",
+      "name": "J cut",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-l-cut",
+      "category": "Cinema",
+      "name": "L cut",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-speed-ramp",
+      "category": "Cinema",
+      "name": "Speed ramp",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-whip-pan",
+      "category": "Cinema",
+      "name": "Whip pan",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-cross-dissolve",
+      "category": "Cinema",
+      "name": "Cross dissolve",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-light-sweep",
+      "category": "Cinema",
+      "name": "Light sweep",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-film-grain",
+      "category": "Cinema",
+      "name": "Film grain",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-volumetric-light",
+      "category": "Cinema",
+      "name": "Volumetric light",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-bokeh",
+      "category": "Cinema",
+      "name": "Bokeh",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-motion-blur",
+      "category": "Cinema",
+      "name": "Motion blur",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-silhouette-reveal",
+      "category": "Cinema",
+      "name": "Silhouette reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-split-screen",
+      "category": "Cinema",
+      "name": "Split screen",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-picture-in-picture",
+      "category": "Cinema",
+      "name": "Picture in picture",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "cinema-cinematic-letterbox",
+      "category": "Cinema",
+      "name": "Cinematic letterbox",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-word-stagger",
+      "category": "Typography",
+      "name": "Word stagger",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-line-reveal",
+      "category": "Typography",
+      "name": "Line reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-rtl-line-mask",
+      "category": "Typography",
+      "name": "RTL line mask",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-kinetic-headline",
+      "category": "Typography",
+      "name": "Kinetic headline",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-tracking-expansion",
+      "category": "Typography",
+      "name": "Tracking expansion",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-variable-font-weight",
+      "category": "Typography",
+      "name": "Variable font weight",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-number-roll",
+      "category": "Typography",
+      "name": "Number roll",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-counter-interpolation",
+      "category": "Typography",
+      "name": "Counter interpolation",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-typewriter",
+      "category": "Typography",
+      "name": "Typewriter",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-lower-third",
+      "category": "Typography",
+      "name": "Lower third",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-ticker",
+      "category": "Typography",
+      "name": "Ticker",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-caption-highlight",
+      "category": "Typography",
+      "name": "Caption highlight",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-text-depth-extrusion",
+      "category": "Typography",
+      "name": "Text depth extrusion",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "typography-text-path",
+      "category": "Typography",
+      "name": "Text path",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-bar-growth",
+      "category": "Data",
+      "name": "Bar growth",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-line-draw",
+      "category": "Data",
+      "name": "Line draw",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-area-reveal",
+      "category": "Data",
+      "name": "Area reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-radar-sweep",
+      "category": "Data",
+      "name": "Radar sweep",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-heatmap-interpolation",
+      "category": "Data",
+      "name": "Heatmap interpolation",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-sankey-flow",
+      "category": "Data",
+      "name": "Sankey flow",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-network-graph-reveal",
+      "category": "Data",
+      "name": "Network graph reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-map-route-draw",
+      "category": "Data",
+      "name": "Map route draw",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-cluster-expansion",
+      "category": "Data",
+      "name": "Cluster expansion",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-risk-matrix-focus",
+      "category": "Data",
+      "name": "Risk matrix focus",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-gauge-sweep",
+      "category": "Data",
+      "name": "Gauge sweep",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-timeline-playhead",
+      "category": "Data",
+      "name": "Timeline playhead",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-signal-propagation",
+      "category": "Data",
+      "name": "Signal propagation",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "data-dashboard-drilldown",
+      "category": "Data",
+      "name": "Dashboard drilldown",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-exploded-assembly",
+      "category": "Spatial",
+      "name": "Exploded assembly",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-isometric-build",
+      "category": "Spatial",
+      "name": "Isometric build",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-mesh-morph",
+      "category": "Spatial",
+      "name": "Mesh morph",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-spline-path",
+      "category": "Spatial",
+      "name": "Spline path",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-instanced-particles",
+      "category": "Spatial",
+      "name": "Instanced particles",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-gpu-particle-field",
+      "category": "Spatial",
+      "name": "GPU particle field",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-fluid-simulation",
+      "category": "Spatial",
+      "name": "Fluid simulation",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-cloth-simulation",
+      "category": "Spatial",
+      "name": "Cloth simulation",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-procedural-noise",
+      "category": "Spatial",
+      "name": "Procedural noise",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-hologram-scan",
+      "category": "Spatial",
+      "name": "Hologram scan",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-fresnel-rim",
+      "category": "Spatial",
+      "name": "Fresnel rim",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-glass-refraction",
+      "category": "Spatial",
+      "name": "Glass refraction",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-reflective-surface",
+      "category": "Spatial",
+      "name": "Reflective surface",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-chromatic-aberration",
+      "category": "Spatial",
+      "name": "Chromatic aberration",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-depth-parallax",
+      "category": "Spatial",
+      "name": "Depth parallax",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-camera-flythrough",
+      "category": "Spatial",
+      "name": "Camera flythrough",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-digital-twin-status-pulse",
+      "category": "Spatial",
+      "name": "Digital twin status pulse",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-point-cloud-reveal",
+      "category": "Spatial",
+      "name": "Point cloud reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-gaussian-splat-flythrough",
+      "category": "Spatial",
+      "name": "Gaussian splat flythrough",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-skeletal-animation",
+      "category": "Spatial",
+      "name": "Skeletal animation",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-inverse-kinematics",
+      "category": "Spatial",
+      "name": "Inverse kinematics",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "spatial-morph-targets",
+      "category": "Spatial",
+      "name": "Morph targets",
+      "origin": "new engineering candidate",
+      "reference": "https://threejs.org/docs/",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-logo-draw",
+      "category": "Brand",
+      "name": "Logo draw",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-logo-assembly",
+      "category": "Brand",
+      "name": "Logo assembly",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-logo-extrusion",
+      "category": "Brand",
+      "name": "Logo extrusion",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-brand-color-wash",
+      "category": "Brand",
+      "name": "Brand color wash",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-gradient-sweep",
+      "category": "Brand",
+      "name": "Gradient sweep",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-orbital-brand-mark",
+      "category": "Brand",
+      "name": "Orbital brand mark",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-product-turntable",
+      "category": "Brand",
+      "name": "Product turntable",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-material-reveal",
+      "category": "Brand",
+      "name": "Material reveal",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-packaging-unfold",
+      "category": "Brand",
+      "name": "Packaging unfold",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "brand-hero-composition",
+      "category": "Brand",
+      "name": "Hero composition",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-rive-state-transition",
+      "category": "Interactive",
+      "name": "Rive state transition",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-lottie-playback",
+      "category": "Interactive",
+      "name": "Lottie playback",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-waapi-keyframes",
+      "category": "Interactive",
+      "name": "WAAPI keyframes",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-svg-path-animation",
+      "category": "Interactive",
+      "name": "SVG path animation",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-canvas-particle-field",
+      "category": "Interactive",
+      "name": "Canvas particle field",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-webgl-shader-transition",
+      "category": "Interactive",
+      "name": "WebGL shader transition",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-webgpu-compute-particles",
+      "category": "Interactive",
+      "name": "WebGPU compute particles",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-pointer-reactive-light",
+      "category": "Interactive",
+      "name": "Pointer reactive light",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-audio-reactive-spectrum",
+      "category": "Interactive",
+      "name": "Audio reactive spectrum",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-beat-synchronized-cuts",
+      "category": "Interactive",
+      "name": "Beat synchronized cuts",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-procedural-camera-shake",
+      "category": "Interactive",
+      "name": "Procedural camera shake",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "interactive-gesture-response",
+      "category": "Interactive",
+      "name": "Gesture response",
+      "origin": "new engineering candidate",
+      "reference": "https://www.remotion.dev/docs/components",
+      "status": "specification",
+      "runtime_verified": false
+    }
+  ]
+}
