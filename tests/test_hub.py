@@ -11,5 +11,5 @@ class HubTests(unittest.TestCase):
  def test_bad_revision(self):
   with tempfile.TemporaryDirectory() as t:
    with self.assertRaises(ValueError):hub.onboard(t,'main',True)
- def test_skills(self):self.assertEqual(len(list((hub.ROOT/'skills').glob('*/SKILL.md'))),7)
+ def test_skills(self):self.assertGreaterEqual(len(list((hub.ROOT/'skills').glob('*/SKILL.md'))),8)
 if __name__=='__main__':unittest.main()
