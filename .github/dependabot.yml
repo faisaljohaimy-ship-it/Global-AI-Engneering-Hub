@@ -7,8 +7,17 @@ updates:
     open-pull-requests-limit: 2
     labels: []
   - package-ecosystem: npm
-    directory: /motion-library/verify
+    directories:
+      - /motion-library/verify
+      - /motion-library/chromium-stack
+      - /motion-library/quality
     schedule:
       interval: weekly
     open-pull-requests-limit: 2
     versioning-strategy: increase
+    groups:
+      browser-driver-candidates:
+        group-by: dependency-name
+        patterns:
+          - playwright
+          - playwright-core

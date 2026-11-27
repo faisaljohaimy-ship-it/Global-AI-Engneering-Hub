@@ -1,8 +1,14 @@
 # Operating-system delivery boundaries
 
-Snapshot:2026-11-27. The twelve-layer architecture is a target. This phase adds
+OS0.1.0 snapshot at fdd3684,2026-11-27. The twelve-layer architecture is a target. This phase adds
 working local control-plane modules without provisioning a shared production
 runtime, database, model subscription or continuously running agent fleet.
+
+OS0.1.1 adds eight discovery-only candidates (122total), one first-party selection
+instruction (13local skills), and ten explicitly non-installable pack proposals.
+These additions do not advance tools to operational states. The three real
+registration packs remain separate. Weekly advisory monitoring now covers every
+isolated tool lock; existing approved OS0.1.0 product pins remain supported.
 
 | Surface | Before this phase | Implemented and verified in this phase | Remaining boundary |
 |---|---|---|---|
@@ -39,13 +45,15 @@ Both runs recorded zero axe violations, page errors and observed external
 requests. INP is not measured. Automated accessibility scores are not a compliance
 certification. The earlier mobile failure was retained privately and corrected.
 
-The external catalog has114 candidates.113 canonical public metadata queries
-succeeded; one upstream returned404. One catalog entry, Playwright1.63.0, has a
+The OS0.1.0 catalog contained114 entries;113 canonical public metadata queries
+in that historical batch succeeded and one upstream returned404. OS0.1.1 adds the
+eight separately reviewed candidate identities described above. One catalog entry, Playwright1.63.0, has a
 scoped reviewed pin and recorded tested installation. That claim expires or is
 withdrawn when evidence/source changes. The optional quality harness separately
 locks and reviews Lighthouse13.6.0, @axe-core/playwright4.14.1 and Playwright1.63.0;
 its transitive license exception is documented. This is not approval of every
-catalog tool. There are12local skills; instructions alone do not prove a host call.
+catalog tool. The initial12local skills are preserved; the selection instruction
+raises the current total to13. Instructions alone do not prove a host call.
 
 The22 historical integration probes have12 successful surfaces, including local
 executables. Their original timestamps/scope remain intact; this is not fresh
@@ -70,7 +78,8 @@ Do not remove the shared-source repository until isolation/dependencies are prov
 
 Hub release requires review, all applicable exact-head CI jobs and a full merged
 main SHA. Release validation rechecks that a published engineering tag is on main
-and that the eight engineering jobs passed in the five approved main/push workflows
-at that commit. Product pin adoption
+and that the eight engineering jobs passed in five approved workflows at that
+main commit. Dependency auditing includes later scheduled/manual results and must
+be successful within24hours. Product pin adoption
 is a separate reviewed change with offline verification and real invocation.
 No hub release makes product production depend on public GitHub availability.

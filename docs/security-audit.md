@@ -2,15 +2,18 @@
 
 Acceptance: malicious fixtures must fail while safe hashes, runtime credential
 references, explicit argument-array subprocess calls and exact safe YAML loaders
-pass. Both existing npm lock scopes must be audited; high/critical findings,
+pass. All three tracked npm lock scopes must be audited; high/critical findings,
 missing locks, unsupported sources and unavailable registry responses block the
 check. A passing check is evidence for these rules, not a claim of general safety.
 
 Two independent GitHub Actions run on pull requests and `main`: **Security audit**
 and **Dependency audit**. They use read-only permissions, SHA-pinned Actions,
 checkout without persisted credentials, fixed timeouts and per-ref concurrency.
-No paid security product, hosted scan provider, auto-fix, auto-merge, scheduled
-job or production service is enabled. This public repository's standard runner
+Dependency auditing also has a bounded weekly schedule and manual trigger.
+Dependabot covers all three isolated tool environments and groups their shared
+Playwright driver proposals; approval and new runtime receipts remain mandatory.
+No paid security product, hosted scan provider, auto-fix, auto-merge or production
+service is enabled. This public repository's standard runner
 jobs use GitHub's included public-repository allowance; private adoption must
 verify its own allowance and billing controls before enabling workflows.
 
