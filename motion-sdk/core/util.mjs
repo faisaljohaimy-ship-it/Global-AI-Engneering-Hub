@@ -7,7 +7,7 @@ export const smoothstep = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 export const TAU = Math.PI * 2;
-/** Position inside one stage of a timeline: 0 before \`from\`, 1 after \`to\`, linear between. */
+/** Position inside one stage of a timeline: 0 before `from`, 1 after `to`, linear between. */
 export const stage = (progress, from, to) => clamp((progress - from) / (to - from));
 /** Triangle wave 0..1..0 over one unit: for motions that go out and come back. */
 export const pingPong = (x) => 1 - Math.abs(((x % 1) + 1) % 1 * 2 - 1);

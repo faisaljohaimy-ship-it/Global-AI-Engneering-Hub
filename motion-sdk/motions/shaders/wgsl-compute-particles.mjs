@@ -66,12 +66,12 @@ export default defineMotion({
   module: 'shaders',
   name: { en: 'WGSL Compute Particle Motion', ar: 'حركة الجسيمات بمظلِّل الحساب WGSL' },
   summary: {
-    en: 'Twelve thousand particles stream along a torus knot. A WGSL compute shader places every one on the GPU each frame; where WebGPU is missing the same flow runs in a WebGL2 vertex shader.',
-    ar: 'اثنا عشر ألف جسيم تنساب على عقدة حلقية. يحدّد مظلِّل الحساب WGSL موضع كل جسيم على المعالج الرسومي في كل إطار، وحيث لا يتوفر WebGPU يعمل الانسياب نفسه في مظلِّل رؤوس WebGL2.',
+    en: 'Nine thousand particles stream along a torus knot. A WGSL compute shader places every one on the GPU each frame; where WebGPU is missing the same flow runs in a WebGL2 vertex shader.',
+    ar: 'تسعة آلاف جسيم تنساب على عقدة حلقية. يحدّد مظلِّل الحساب WGSL موضع كل جسيم على المعالج الرسومي في كل إطار، وحيث لا يتوفر WebGPU يعمل الانسياب نفسه في مظلِّل رؤوس WebGL2.',
   },
   engine: 'webgpu-wgsl',
   kind: 'loop',
-  duration: 12000,
+  duration: 9000,
   easing: 'ease-out',
   colors: ['#04050d', '#38bdf8', '#f0abfc'],
   params: {
@@ -82,9 +82,9 @@ export default defineMotion({
   requirements: { gpu: 'webgpu', cost: 'high' },
   still: 0.3,
   tags: ['particles', 'gpu', 'compute', 'hero', 'background'],
-  setup: computeParticles({ count: 12000, simulate, values: (ctx) => [ctx.params.winding, ctx.params.spread] }),
+  setup: computeParticles({ count: 9000, simulate, values: (ctx) => [ctx.params.winding, ctx.params.spread] }),
   fallback: points({
-    count: 12000,
+    count: 9000,
     vertex: fallbackVertex,
     fragment: `
 void main() {

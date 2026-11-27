@@ -5,7 +5,8 @@
   "counts": {
     "motions": 14,
     "by_status": {
-      "operational": 14
+      "implemented-unverified": 13,
+      "operational": 1
     },
     "by_engine": {
       "webgl2-glsl": 4,
@@ -27,7 +28,7 @@
   "brief": {
     "requested": 200,
     "implemented": 14,
-    "operational": 14,
+    "operational": 1,
     "not_implemented": [
       "camera-dolly-in",
       "camera-dolly-out",
@@ -308,30 +309,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 40% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.288,
-        "p95Ms": 0.7,
-        "maxMs": 1.7,
-        "framesPerSecond": 3478.3,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-field-distortion",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-field-distortion', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-field-distortion --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-field-distortion"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-energy-collapse",
@@ -423,30 +414,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 30% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.229,
-        "p95Ms": 0.4,
-        "maxMs": 0.5,
-        "framesPerSecond": 4363.6,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-energy-collapse",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-energy-collapse', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-energy-collapse --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-energy-collapse"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-particle-entanglement",
@@ -538,30 +519,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 50% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.488,
-        "p95Ms": 0.9,
-        "maxMs": 0.9,
-        "framesPerSecond": 2051.3,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-particle-entanglement",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-particle-entanglement', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-particle-entanglement --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-particle-entanglement"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-wave-propagation",
@@ -653,30 +624,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "mirror"
       },
       "reduced_motion": "One still frame at 50% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 2.079,
-        "p95Ms": 3.8,
-        "maxMs": 4,
-        "framesPerSecond": 481,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-wave-propagation",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-wave-propagation', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-wave-propagation --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-wave-propagation"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-orbital-matrix",
@@ -789,30 +750,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 25% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.95,
-        "p95Ms": 1.6,
-        "maxMs": 2,
-        "framesPerSecond": 1052.6,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-orbital-matrix",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-orbital-matrix', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-orbital-matrix --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-orbital-matrix"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-light-tunnel",
@@ -904,30 +855,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 30% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 1.917,
-        "p95Ms": 3.3,
-        "maxMs": 4.3,
-        "framesPerSecond": 521.7,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-light-tunnel",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-light-tunnel', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-light-tunnel --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-light-tunnel"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-singularity-reveal",
@@ -1019,30 +960,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 55% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 2.167,
-        "p95Ms": 3.2,
-        "maxMs": 4.4,
-        "framesPerSecond": 461.5,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-singularity-reveal",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-singularity-reveal', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-singularity-reveal --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-singularity-reveal"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-probability-cloud",
@@ -1134,30 +1065,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 50% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 5.292,
-        "p95Ms": 5.8,
-        "maxMs": 10.1,
-        "framesPerSecond": 189,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-probability-cloud",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-probability-cloud', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-probability-cloud --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-probability-cloud"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-fractal-expansion",
@@ -1249,30 +1170,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 100% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.762,
-        "p95Ms": 1.3,
-        "maxMs": 1.4,
-        "framesPerSecond": 1311.5,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-fractal-expansion",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-fractal-expansion', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-fractal-expansion --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-fractal-expansion"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "quantum-energy-pulse",
@@ -1364,30 +1275,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "neutral"
       },
       "reduced_motion": "One still frame at 40% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.033,
-        "p95Ms": 0.1,
-        "maxMs": 0.2,
-        "framesPerSecond": 30000,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id quantum-energy-pulse",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('quantum-energy-pulse', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:quantum-energy-pulse --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#quantum-energy-pulse"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "typography-bilingual-transition",
@@ -1489,30 +1390,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "text"
       },
       "reduced_motion": "One still frame at 90% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.258,
-        "p95Ms": 0.4,
-        "maxMs": 0.6,
-        "framesPerSecond": 3871,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id typography-bilingual-transition",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('typography-bilingual-transition', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:typography-bilingual-transition --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#typography-bilingual-transition"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "micro-magnetic-button",
@@ -1616,30 +1507,20 @@
       "compatibility": {
         "mobile": "Expected at full quality; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "text"
       },
       "reduced_motion": "One still frame at 45% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 0.017,
-        "p95Ms": 0.1,
-        "maxMs": 0.2,
-        "framesPerSecond": 60000,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id micro-magnetic-button",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('micro-magnetic-button', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:micro-magnetic-button --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#micro-magnetic-button"
+      "status": "implemented-unverified",
+      "evidence": null
     },
     {
       "id": "shaders-wgsl-compute-particles",
@@ -1649,8 +1530,8 @@
         "ar": "حركة الجسيمات بمظلِّل الحساب WGSL"
       },
       "summary": {
-        "en": "Twelve thousand particles stream along a torus knot. A WGSL compute shader places every one on the GPU each frame; where WebGPU is missing the same flow runs in a WebGL2 vertex shader.",
-        "ar": "اثنا عشر ألف جسيم تنساب على عقدة حلقية. يحدّد مظلِّل الحساب WGSL موضع كل جسيم على المعالج الرسومي في كل إطار، وحيث لا يتوفر WebGPU يعمل الانسياب نفسه في مظلِّل رؤوس WebGL2."
+        "en": "Nine thousand particles stream along a torus knot. A WGSL compute shader places every one on the GPU each frame; where WebGPU is missing the same flow runs in a WebGL2 vertex shader.",
+        "ar": "تسعة آلاف جسيم تنساب على عقدة حلقية. يحدّد مظلِّل الحساب WGSL موضع كل جسيم على المعالج الرسومي في كل إطار، وحيث لا يتوفر WebGPU يعمل الانسياب نفسه في مظلِّل رؤوس WebGL2."
       },
       "category": {
         "key": "shaders",
@@ -1668,12 +1549,12 @@
         "background"
       ],
       "source": "motion-sdk/motions/shaders/wgsl-compute-particles.mjs",
-      "source_sha256": "8223b4627158442a9ccc713fb2dd18ba0678a213e98a5f9500ffc3792771a801",
-      "source_bytes": 4568,
+      "source_sha256": "78b41d0e7c17ac368aa427d165cff7e31d3e2dd055b533340060958f4b7c3957",
+      "source_bytes": 4558,
       "preview": "motion-studio/index.html#shaders-wgsl-compute-particles",
       "controls": {
         "duration": {
-          "default": 12000,
+          "default": 9000,
           "min": 100,
           "max": 120000,
           "unit": "ms"
@@ -1743,10 +1624,10 @@
         "frames": 24,
         "tier": "high",
         "pixels": 57600,
-        "averageMs": 317.996,
-        "p95Ms": 382.7,
-        "maxMs": 565.4,
-        "framesPerSecond": 3.1,
+        "averageMs": 233.238,
+        "p95Ms": 284.8,
+        "maxMs": 461.3,
+        "framesPerSecond": 4.3,
         "viewport": "320x180",
         "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
       },
@@ -1864,30 +1745,20 @@
       "compatibility": {
         "mobile": "Runs at the low or medium tier; not measured on a phone.",
         "browsers": {
-          "chromium": "verified",
+          "chromium": "not-run",
           "firefox": "not-run",
           "webkit": "not-run"
         },
         "rtl": "text"
       },
       "reduced_motion": "One still frame at 50% of the timeline; nothing is scheduled or animated.",
-      "benchmark": {
-        "frames": 24,
-        "tier": "high",
-        "pixels": 57600,
-        "averageMs": 4.146,
-        "p95Ms": 14.3,
-        "maxMs": 38,
-        "framesPerSecond": 241.2,
-        "viewport": "320x180",
-        "environment": "chromium 158.0.8127.36, ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
-      },
+      "benchmark": null,
       "test": "node motion-sdk/verify/browser.mjs --id compositions-quantum-master-sequence",
       "license": "Original work of the repository owner. No third-party code or assets. The repository has no blanket licence: reuse outside the owner's projects needs the owner's permission.",
       "usage": "import { motion } from 'motion-sdk/index.mjs';\nconst instance = await motion.create('compositions-quantum-master-sequence', { container });\nmotion.play(instance);",
       "integration": "python3 hub.py register PROJECT --revision HUB_SHA --capability sdk:compositions-quantum-master-sequence --apply",
-      "status": "operational",
-      "evidence": "motion-sdk/evidence/chromium.json#compositions-quantum-master-sequence"
+      "status": "implemented-unverified",
+      "evidence": null
     }
   ]
 }

@@ -102,8 +102,8 @@ outside `save()`/`restore()`; avoid `shadowBlur` and `filter` over large areas (
 **GLSL fragment shader** – `fragment({ fragment, uniforms(ctx, state) })` from
 `engines/webgl.mjs`: GLSL ES 3.00 without the header; declare your own uniforms, write
 `outColor`. You get `u_resolution, u_time, u_progress, u_raw, u_intro, u_dir, u_quality,
-u_color0..4`. Building blocks (`hash, noise, fbm, rotate, frame, sdf, palette, fresnel`)
-are in `shaders/chunks.mjs`. Scale loop counts with `u_quality` (for example ray-march
+u_color0..4`. Building blocks (`hash, noise, fbm, noise3, fbm3, voronoi, rotate, centred,
+frame, sdf, palette, fresnel, ray, finish`) are in `shaders/chunks.mjs`. Scale loop counts with `u_quality` (for example ray-march
 `16 + 16 * u_quality` steps, never more than 64) and keep the shader small: it also has to
 run on software rendering. See `motions/quantum/light-tunnel.mjs`.
 
@@ -131,6 +131,14 @@ own parameters. A layer is a helper call (`canvas2d({...})`, `fragment({...})`, 
 or another motion's definition. The first layer is opaque; put GPU layers that sit above
 it on `blend: 'screen'`. At most two WebGL layers may be on screen at the same moment.
 See `motions/compositions/quantum-master-sequence.mjs`.
+
+A module may keep helpers of its own in `motions/<module>/lib/*.mjs` (only files directly
+inside `motions/<module>/` are motions). `core/util.mjs` has `clamp, lerp, smoothstep,
+stage, pingPong, TAU, rgba, mixColour, noise1`; `core/spring.mjs` has `spring, wobble`.
+
+Physics and other simulations stay pure by being computed up front: run the simulation in
+`init` with a fixed step for the whole timeline (a few hundred steps), keep the states, and
+let `draw` interpolate between them for the moment asked.
 
 ## Direction (`rtl`)
 
