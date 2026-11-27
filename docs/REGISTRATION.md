@@ -14,7 +14,7 @@ manifest with an empty capability list is a declaration only; `verify` says so.
 | Id | Installs |
 |---|---|
 | `skill:<name>` | `skills/<name>/` into `.claude/skills/<name>/` and `.agents/skills/<name>/` |
-| `motion:<id>` | the specification and the CSS the pinned compiler emits, into `.engineering/vendor/hub-motion/` |
+| `motion:<id>` | the specification and the CSS the pinned compiler emits (with `:dir(rtl)` keyframes when it mirrors), into `.engineering/vendor/hub-motion/` |
 | `pack:<name>` | the skills and companion files listed in `catalog/packs.json` |
 
 ## Register
@@ -33,7 +33,9 @@ The first command is a dry run and prints the plan. Rules it keeps:
 - A project file the hub does not manage is never overwritten. Identical content is
   adopted; different content stops the run and names the file.
 - Running it again with a newer `--revision` re-pins: every declared capability is
-  reinstalled from the new commit.
+  reinstalled from the new commit, and a file the new commit no longer provides is
+  deleted if it is unedited. `hub.py update-pin` changes only the SHA and suits
+  manifests that declare no capability.
 - `--remove skill:<name>` drops a capability and deletes its files, but only those that
   still match their recorded checksum; a file edited in the project is kept and named.
 - Paths that leave the project, `.git/`, and symlinks are refused.

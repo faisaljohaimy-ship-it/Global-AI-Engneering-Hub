@@ -16,10 +16,10 @@
     "frame_rate": "30/1",
     "frames": 126,
     "duration_seconds": 4.2,
-    "bytes": 195192,
-    "distinct_frames": 97,
+    "bytes": 216768,
+    "distinct_frames": 103,
     "captures_repeated_until_settled": 0,
-    "frames_sha256": "8260390525c48574721c12b698683f5f0b61fc42d12ee726e3966dea2e34e3ab"
+    "frames_sha256": "94bae6b92bf2e377908119db4cac9cd30c00edf88d46acbf81226f97b7cbce15"
   },
   "effects": [
     "cinema-dolly-in",
@@ -28,9 +28,9 @@
     "legacy-10",
     "cinema-cross-dissolve",
     "cinema-rack-focus",
-    "ui-staggered-list",
-    "typography-typewriter",
-    "typography-counter-interpolation"
+    "runtime stagger",
+    "runtime typewriter",
+    "runtime counter"
   ],
   "measured": {
     "minimum_text_contrast": 5.74,

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "notes": "Discovery and integration candidates, not shared account connections. Each agent environment verifies its own connection with a harmless authenticated read and records the result in its own field; a verified read does not authorise writes, spending or deployment. Evidence: docs/evidence/. No secrets or account identifiers are stored.",
+  "notes": "Discovery and integration candidates, not shared account connections. Each agent environment verifies its own connection with a harmless authenticated read and records it in its own field. Probe evidence: integrations/EVIDENCE.json (Codex) and integrations/EVIDENCE.claude-code.json (Claude Code). A verified read does not authorise writes, spending or deployment. No secrets or account identifiers are stored.",
   "programs": [
     {
       "name": "GitHub",
@@ -199,69 +199,6 @@
       "claude_code_connection": "registry-metadata-only-2026-11-27",
       "cost_review": "required",
       "claude_code_note": "npm reports lottie-web 5.13.0, MIT. Not installed."
-    },
-    {
-      "name": "Notion",
-      "url": "https://www.notion.so",
-      "status": "available",
-      "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Read the workspace and account identity. No page was created or edited."
-    },
-    {
-      "name": "Slack",
-      "url": "https://slack.com",
-      "status": "available",
-      "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Ran one channel search. No message was sent."
-    },
-    {
-      "name": "Gmail",
-      "url": "https://mail.google.com",
-      "status": "available",
-      "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Listed labels only. No message was read, drafted or sent."
-    },
-    {
-      "name": "Picsart",
-      "url": "https://picsart.com",
-      "status": "available",
-      "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Read the credit balance. No credits were spent."
-    },
-    {
-      "name": "Base44",
-      "url": "https://base44.com",
-      "status": "available",
-      "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Listed apps. No app was created or edited."
-    },
-    {
-      "name": "Playwright with Chromium",
-      "url": "https://playwright.dev",
-      "status": "available",
-      "codex_connection": "unverified",
-      "claude_code_connection": "local-tool-verified-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Playwright 1.63.0 with Chromium 158 ran the motion verification in motion-library/verify/browser.mjs."
-    },
-    {
-      "name": "Composio",
-      "url": "https://composio.dev",
-      "status": "candidate",
-      "codex_connection": "unverified",
-      "claude_code_connection": "connected-not-exercised-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "The connector is attached; no tool search or execution was run, so nothing is claimed about the apps behind it."
     }
   ]
 }

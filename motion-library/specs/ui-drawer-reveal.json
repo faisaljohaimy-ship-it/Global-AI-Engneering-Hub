@@ -4,9 +4,10 @@
   "name": "Drawer reveal",
   "duration_ms": 300,
   "easing": "ease-out",
-  "direction": "A drawer docked on the inline-start edge.",
+  "rtl_mirror": true,
+  "direction": "A drawer docked on the inline-start edge: the left in LTR, the right in RTL.",
   "keyframes": [
-    {"offset": 0, "transform": "translateX(calc(var(--hub-inline-sign, 1) * -100%))"},
+    {"offset": 0, "transform": "translateX(-100%)"},
     {"offset": 1, "transform": "translateX(0%)"}
   ],
   "reduced_motion": {"transform": "none"}

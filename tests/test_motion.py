@@ -29,6 +29,35 @@ class MotionCompilerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             motion.compile_css(source)
 
+    def test_rejects_remote_css_fetch(self):
+        source = motion.load_spec(ROOT / "motion-library/specs/fade-in.json")
+        source["keyframes"][0] = {"offset": 0, "filter": "url(https://example.test/x)"}
+        with self.assertRaises(ValueError):
+            motion.compile_css(source)
+
+    def test_rejects_boolean_duration_and_offset(self):
+        source = motion.load_spec(ROOT / "motion-library/specs/fade-in.json")
+        source["duration_ms"] = True
+        with self.assertRaises(ValueError):
+            motion.compile_css(source)
+        source = motion.load_spec(ROOT / "motion-library/specs/fade-in.json")
+        source["keyframes"][0]["offset"] = False
+        with self.assertRaises(ValueError):
+            motion.compile_css(source)
+
+    def test_compilation_is_byte_deterministic(self):
+        source = motion.load_spec(ROOT / "motion-library/specs/fade-in.json")
+        self.assertEqual(motion.compile_css(source), motion.compile_css(source))
+
+    def test_duplicate_json_keys_are_rejected(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "motion.json"
+            path.write_text('{"schema_version": 1, "id": "a", "id": "b"}')
+            with self.assertRaises(ValueError):
+                motion.load_spec(path)
+
 
 if __name__ == "__main__":
     unittest.main()

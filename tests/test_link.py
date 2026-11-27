@@ -118,6 +118,24 @@ class LinkTests(unittest.TestCase):
         report = hublink.verify(target)
         self.assertEqual((report["ok"], report["verified_files"]), (True, 4))
 
+    def test_repin_deletes_unedited_files_the_new_pin_no_longer_provides(self):
+        target = self.project()
+        self.register(target, "pack:motion-runtime", apply=True)
+        path = target / hublink.MANIFEST
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        for name, content in (("retired.css", b"old rule"), ("retired-edited.css", b"old rule")):
+            (target / hublink.MOTION_DIR / name).write_bytes(content)
+            manifest["capabilities"][0]["files"].append({"path": f"{hublink.MOTION_DIR}/{name}", "source": "motion-library/runtime/" + name,
+                                                         "mode": "copy", "sha256": hublink.sha256(content)})
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        (target / hublink.MOTION_DIR / "retired-edited.css").write_bytes(b"edited in the project")
+        result = self.register(target, apply=True)
+        self.assertEqual(result["files"][f"{hublink.MOTION_DIR}/retired.css"], "delete")
+        self.assertTrue(result["files"][f"{hublink.MOTION_DIR}/retired-edited.css"].startswith("kept"))
+        self.assertFalse((target / hublink.MOTION_DIR / "retired.css").exists())
+        self.assertTrue((target / hublink.MOTION_DIR / "retired-edited.css").exists())
+        self.assertTrue(hublink.verify(target)["ok"])
+
     def test_pack_installs_skill_and_companion_files(self):
         target = self.project()
         result = self.register(target, "pack:catalog-media-tools", apply=True)

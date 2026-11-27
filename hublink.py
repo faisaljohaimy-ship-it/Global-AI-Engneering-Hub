@@ -245,8 +245,10 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
     conflicts = sorted(path for path, state in plan.items() if state == "conflict")
     if conflicts:
         raise ValueError("Refusing to overwrite project files the hub does not manage: " + ", ".join(conflicts))
+    # Files of a removed capability, and files a newer pin no longer provides, are deleted
+    # only while they still match the checksum recorded when the hub installed them.
     for item in old.get("capabilities", []):
-        for row in item["files"] if item["id"] in removing else []:
+        for row in item["files"]:
             if row["path"] in plan:
                 continue
             destination = _destination(target, row["path"])
@@ -273,7 +275,6 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
     text = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
     manifest_path = _destination(target, MANIFEST)
     current = manifest_path.read_text(encoding="utf-8") if manifest_path.is_file() else None
-    stale = sorted(managed - set(plan))
     plan[MANIFEST] = "unchanged" if current == text else ("update" if current else "create")
     if apply:
         for path, data in contents.items():
@@ -296,7 +297,6 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
         "hub_revision": revision,
         "capabilities": wanted,
         "files": plan,
-        "no_longer_provided": stale,
     }
 
 

@@ -11,25 +11,22 @@ const specs = readdirSync(specsDir).filter((name) => name.endsWith('.json'))
 const fadeIn = () => structuredClone(specs.find((spec) => spec.id === 'ui-fade-in'));
 
 test('every committed specification is accepted', () => {
-  assert.ok(specs.length >= 23);
+  assert.ok(specs.length >= 26);
   for (const spec of specs) assert.equal(validateSpec(spec), spec);
   assert.equal(new Set(specs.map((spec) => spec.id)).size, specs.length);
 });
 
 test('the runtime rejects what the Python compiler rejects', () => {
-  const unordered = fadeIn();
-  unordered.keyframes[0].offset = 1;
-  assert.throws(() => validateSpec(unordered), /ordered/);
-  const injected = fadeIn();
-  injected.keyframes[0].opacity = '0; color: red';
-  assert.throws(() => validateSpec(injected), /Unsafe/);
-  const property = fadeIn();
-  property.keyframes[0].width = '10px';
-  assert.throws(() => validateSpec(property), /Unsupported or empty/);
-  assert.throws(() => validateSpec({ ...fadeIn(), id: 'Bad Id' }), /Invalid motion id/);
-  assert.throws(() => validateSpec({ ...fadeIn(), duration_ms: 0 }), /duration_ms/);
-  assert.throws(() => validateSpec({ ...fadeIn(), easing: 'steps(2)' }), /easing/);
-  assert.throws(() => validateSpec({ ...fadeIn(), reduced_motion: {} }), /reduced_motion/);
+  const { cases } = JSON.parse(readFileSync(new URL('../verify/rejections.json', import.meta.url), 'utf8'));
+  assert.ok(cases.length >= 15);
+  for (const { case: name, path, value } of cases) {
+    const spec = fadeIn();
+    path.slice(0, -1).reduce((target, key) => target[key], spec)[path.at(-1)] = value;
+    assert.throws(() => validateSpec(spec), Error, name);
+  }
+  const many = fadeIn();
+  many.keyframes = Array.from({ length: 65 }, (_, index) => ({ offset: index / 64, opacity: index / 64 }));
+  assert.throws(() => validateSpec(many), /64/);
 });
 
 test('easing curves match the CSS definitions', () => {
@@ -59,8 +56,13 @@ test('easing curves match the CSS definitions', () => {
 });
 
 test('keyframes are converted for Element.animate', () => {
-  const frames = toKeyframes({ easing: 'ease-out', keyframes: [{ offset: 0, 'background-color': 'red', opacity: 0 }, { offset: 1, opacity: 1 }] });
-  assert.deepEqual(frames[0], { offset: 0, easing: 'ease-out', backgroundColor: 'red', opacity: '0' });
+  const frames = toKeyframes({ easing: 'ease-out', keyframes: [{ offset: 0, 'background-color': '#f00', opacity: 0 }, { offset: 1, opacity: 1 }] });
+  assert.deepEqual(frames[0], { offset: 0, easing: 'ease-out', backgroundColor: '#f00', opacity: '0' });
+  const slide = specs.find((spec) => spec.id === 'ui-slide-inline-start');
+  assert.equal(toKeyframes(slide)[0].transform, 'translateX(-24px)');
+  assert.equal(toKeyframes(slide, { mirror: true })[0].transform, 'translateX(24px)');
+  assert.equal(toKeyframes({ ...slide, rtl_mirror: false }, { mirror: true })[0].transform, 'translateX(-24px)');
+  assert.equal(slide.keyframes[0].transform, 'translateX(-24px)', 'the specification itself is not changed');
 });
 
 test('typewriter cuts only between graphemes, including Arabic marks', () => {

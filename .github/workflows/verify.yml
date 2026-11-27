@@ -8,21 +8,28 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.12"
       - run: python3 -m unittest discover -s tests -v
       - run: python3 hub.py audit
       - run: python3 motion-library/compile.py motion-library/specs/fade-in.json --output /tmp/fade-in.css
       - run: test -s /tmp/fade-in.css
-      - run: python3 motion-library/springs.py
-      - run: python3 motion-library/catalog_status.py
+      - run: node tests/test_motion_runtime.mjs
+      - run: node tests/test_motion_performance.mjs
       - run: node --test motion-library/runtime/hub-motion.test.mjs
+      - run: python3 motion-library/springs.py
+      - run: python3 motion-library/component_status.py
 
   motion-browser:
     name: motion in a real browser
@@ -42,7 +49,7 @@ jobs:
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/pw-tools" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.63.0
           "$RUNNER_TEMP/pw-tools/node_modules/.bin/playwright" install --with-deps chromium --only-shell
-      - name: Play every specification in Chromium
+      - name: Play every component and the Motion Lab in Chromium
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
           NODE_PATH: ${{ runner.temp }}/pw-tools/node_modules

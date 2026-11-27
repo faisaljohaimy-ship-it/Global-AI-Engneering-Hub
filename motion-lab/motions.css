@@ -1,0 +1,47 @@
+@keyframes lab-ui-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lab-ui-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lab-ui-slide-inline-start { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes lab-ui-slide-inline-end { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes lab-ui-scale-reveal { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes lab-ui-press-feedback { 0%, 100% { transform: scale(1); } 45% { transform: scale(.94); } }
+.run-ui-fade-in { animation: lab-ui-fade-in 240ms ease-out both; }
+.run-ui-fade-out { animation: lab-ui-fade-out 200ms ease-in both; }
+.run-ui-slide-inline-start { animation: lab-ui-slide-inline-start 280ms ease-out both; }
+.run-ui-slide-inline-end { animation: lab-ui-slide-inline-end 280ms ease-out both; }
+.run-ui-scale-reveal { animation: lab-ui-scale-reveal 260ms ease-out both; }
+.run-ui-press-feedback { animation: lab-ui-press-feedback 160ms ease-out both; }
+[dir="rtl"] .run-ui-slide-inline-start { animation-name: lab-ui-slide-inline-end; }
+[dir="rtl"] .run-ui-slide-inline-end { animation-name: lab-ui-slide-inline-start; }
+/* Generated from motion-library/specs by motion-library/component_status.py. Do not edit below this line. */
+@keyframes lab-ui-slide-up { 0% { opacity: 0; transform: translateY(16px); } 100% { opacity: 1; transform: translateY(0px); } }
+.run-ui-slide-up { animation: lab-ui-slide-up 280ms ease-out both; }
+@keyframes lab-ui-spring-card { 0% { opacity: 0.0; transform: scale(0.9); } 5% { opacity: 0.25; transform: scale(0.909); } 10% { opacity: 0.5; transform: scale(0.932); } 15% { opacity: 0.75; transform: scale(0.958); } 20% { opacity: 1.0; transform: scale(0.983); } 25% { opacity: 1.0; transform: scale(1.003); } 30% { opacity: 1.0; transform: scale(1.015); } 35% { opacity: 1.0; transform: scale(1.02); } 40% { opacity: 1.0; transform: scale(1.02); } 45% { opacity: 1.0; transform: scale(1.017); } 50% { opacity: 1.0; transform: scale(1.011); } 55% { opacity: 1.0; transform: scale(1.006); } 60% { opacity: 1.0; transform: scale(1.001); } 65% { opacity: 1.0; transform: scale(0.998); } 70% { opacity: 1.0; transform: scale(0.996); } 75% { opacity: 1.0; transform: scale(0.996); } 80% { opacity: 1.0; transform: scale(0.996); } 85% { opacity: 1.0; transform: scale(0.997); } 90% { opacity: 1.0; transform: scale(0.998); } 95% { opacity: 1.0; transform: scale(0.999); } 100% { opacity: 1.0; transform: scale(1); } }
+.run-ui-spring-card { animation: lab-ui-spring-card 700ms linear both; }
+@keyframes lab-ui-toast-entrance { 0% { opacity: 0; transform: translateY(24px) scale(0.98); } 100% { opacity: 1; transform: translateY(0px) scale(1); } }
+.run-ui-toast-entrance { animation: lab-ui-toast-entrance 240ms ease-out both; }
+@keyframes lab-ui-dialog-reveal { 0% { opacity: 0; transform: translateY(8px) scale(0.96); } 100% { opacity: 1; transform: translateY(0px) scale(1); } }
+.run-ui-dialog-reveal { animation: lab-ui-dialog-reveal 220ms ease-out both; }
+@keyframes lab-ui-drawer-reveal { 0% { transform: translateX(-100%); } 100% { transform: translateX(0%); } }
+.run-ui-drawer-reveal { animation: lab-ui-drawer-reveal 300ms ease-out both; }
+@keyframes lab-ui-drawer-reveal-rtl { 0% { transform: translateX(100%); } 100% { transform: translateX(-0%); } }
+[dir="rtl"] .run-ui-drawer-reveal { animation-name: lab-ui-drawer-reveal-rtl; }
+@keyframes lab-ui-hover-lift { 0% { transform: translateY(0px); } 100% { transform: translateY(-4px); } }
+.run-ui-hover-lift { animation: lab-ui-hover-lift 180ms ease-out both; }
+@keyframes lab-cinema-dolly-in { 0% { transform: scale(1); } 100% { transform: scale(1.12); } }
+.run-cinema-dolly-in { animation: lab-cinema-dolly-in 2400ms ease-in-out both; }
+@keyframes lab-cinema-dolly-out { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.run-cinema-dolly-out { animation: lab-cinema-dolly-out 2400ms ease-in-out both; }
+@keyframes lab-cinema-truck-left { 0% { transform: translateX(4%); } 100% { transform: translateX(-4%); } }
+.run-cinema-truck-left { animation: lab-cinema-truck-left 2400ms linear both; }
+@keyframes lab-cinema-truck-right { 0% { transform: translateX(-4%); } 100% { transform: translateX(4%); } }
+.run-cinema-truck-right { animation: lab-cinema-truck-right 2400ms linear both; }
+@keyframes lab-cinema-crane-rise { 0% { transform: translateY(-4%); } 100% { transform: translateY(4%); } }
+.run-cinema-crane-rise { animation: lab-cinema-crane-rise 2400ms ease-in-out both; }
+@keyframes lab-cinema-rack-focus { 0% { filter: blur(8px); } 100% { filter: blur(0px); } }
+.run-cinema-rack-focus { animation: lab-cinema-rack-focus 900ms ease-in-out both; }
+@keyframes lab-cinema-whip-pan { 0% { transform: translateX(-40%); filter: blur(12px); } 100% { transform: translateX(0%); filter: blur(0px); } }
+.run-cinema-whip-pan { animation: lab-cinema-whip-pan 320ms ease-out both; }
+@keyframes lab-legacy-4 { 0% { transform: translateY(-64px); } 4.17% { transform: translateY(-55.347px); } 8.33% { transform: translateY(-35.008px); } 12.5% { transform: translateY(-11.539px); } 16.67% { transform: translateY(8.16px); } 20.83% { transform: translateY(20.128px); } 25% { transform: translateY(23.52px); } 29.17% { transform: translateY(19.917px); } 33.33% { transform: translateY(12.256px); } 37.5% { transform: translateY(3.648px); } 41.67% { transform: translateY(-3.424px); } 45.83% { transform: translateY(-7.597px); } 50% { transform: translateY(-8.627px); } 54.17% { transform: translateY(-7.155px); } 58.33% { transform: translateY(-4.275px); } 62.5% { transform: translateY(-1.126px); } 66.67% { transform: translateY(1.408px); } 70.83% { transform: translateY(2.861px); } 75% { transform: translateY(3.162px); } 79.17% { transform: translateY(2.566px); } 83.33% { transform: translateY(1.485px); } 87.5% { transform: translateY(0.333px); } 91.67% { transform: translateY(-0.57px); } 95.83% { transform: translateY(-1.075px); } 100% { transform: translateY(0px); } }
+.run-legacy-4 { animation: lab-legacy-4 900ms linear both; }
+@keyframes lab-legacy-10 { 0% { opacity: 1; transform: scale(1); } 25% { opacity: 0.85; transform: scale(1.08); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1); } }
+.run-legacy-10 { animation: lab-legacy-10 800ms linear both; }
