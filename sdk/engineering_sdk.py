@@ -143,7 +143,18 @@ def registry(path):
 
 def catalog(query=""):
     data = read_json(HERE / "capabilities.json")
-    return [row for row in data["capabilities"] if query.casefold() in json.dumps(row).casefold()]
+    rows = list(data["capabilities"])
+    registry_path = HERE / "tool-registry.json"
+    if not registry_path.exists():
+        registry_path = HERE.parent / "catalog/registry.json"
+    rows.extend(read_json(registry_path))
+    programs_path = HERE / "integrations.json"
+    if not programs_path.exists():
+        programs_path = HERE.parent / "integrations/PROGRAMS.json"
+    rows.extend({"id": "provider:" + row["name"], "status": "environment-specific",
+                 "upstream": row["url"], "automatic_invocation": False}
+                for row in read_json(programs_path)["programs"])
+    return [row for row in rows if query.casefold() in json.dumps(row).casefold()]
 
 
 TOOLS = [

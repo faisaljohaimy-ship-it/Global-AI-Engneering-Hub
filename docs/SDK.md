@@ -17,6 +17,10 @@ manifest. It intentionally does not claim upstream authenticity. The existing
 hub-link check proves provenance on updates. Ordinary application CI uses the
 local verifier and has no network dependency on the public hub.
 
+`discover` searches the local versioned capability index, complete tool registry
+and provider integration index. New catalog entries reach a project only through
+a reviewed re-pin; a discovery candidate never becomes executable automatically.
+
 The SDK does not install Chromium, Remotion, WebGPU, AI providers or arbitrary MCP
 servers. Chromium's reviewed test dependency remains locked in the hub's existing
 lockfile. The Remotion adapter is implemented but engine execution and company

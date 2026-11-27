@@ -160,6 +160,8 @@ class SDKTests(unittest.TestCase):
         self.assertTrue(all(t["annotations"]["readOnlyHint"] for t in listed))
         found = sdk.rpc(request("tools/call", {"name": "engineering_discover", "arguments": {"query": "webgpu"}}), self.root)
         self.assertIn('"candidate"', found["result"]["content"][0]["text"])
+        self.assertTrue(any(row["id"] == "github/spec-kit" for row in sdk.catalog("spec-kit")))
+        self.assertTrue(any(row["id"] == "provider:GitHub" and row["status"] == "environment-specific" for row in sdk.catalog("provider:GitHub")))
         denied = sdk.rpc(request("tools/call", {"name": "deploy", "arguments": {}}), self.root)
         self.assertTrue(denied["result"]["isError"])
         self.assertIsNone(sdk.rpc({"jsonrpc": "2.0", "method": "notifications/initialized"}, self.root))

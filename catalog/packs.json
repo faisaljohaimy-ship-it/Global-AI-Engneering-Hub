@@ -9,7 +9,9 @@
       "files": {
         "sdk/engineering_sdk.py": ".engineering/sdk/engineering_sdk.py",
         "sdk/capabilities.json": ".engineering/sdk/capabilities.json",
-        "sdk/VERSION": ".engineering/sdk/VERSION"
+        "sdk/VERSION": ".engineering/sdk/VERSION",
+        "catalog/registry.json": ".engineering/sdk/tool-registry.json",
+        "integrations/PROGRAMS.json": ".engineering/sdk/integrations.json"
       },
       "requires": ["Python 3.10+", "git for target and release checks"],
       "origin": "Owner-authorized original engineering tooling in this hub. Review at an immutable merged SHA; no third-party runtime dependencies."
