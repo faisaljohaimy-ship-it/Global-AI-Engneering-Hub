@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"cinema-orbit-camera","duration_ms":1800,"easing":"linear","adapter":"adapters/three.mjs","radius":2.4,"height":0.6,"keyframes":[{"offset":0,"opacity":0.75},{"offset":1,"opacity":1}],"reduced_motion":{"opacity":1}}
