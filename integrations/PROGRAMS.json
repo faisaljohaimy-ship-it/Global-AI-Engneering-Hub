@@ -5,8 +5,8 @@
     {
       "name": "GitHub",
       "url": "https://github.com",
-      "status": "candidate",
-      "codex_connection": "unverified",
+      "status": "available",
+      "codex_connection": "verified-read-write-2026-11-27",
       "claude_code_connection": "unverified",
       "cost_review": "required"
     },
