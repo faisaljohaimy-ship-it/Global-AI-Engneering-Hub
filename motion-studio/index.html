@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Motion Studio — استوديو الحركة</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip" href="#workspace" data-i18n="skip">تجاوز إلى مساحة العمل</a>
+  <header class="topbar">
+    <a class="brand" href="../motion-lab/index.html"><span class="brand-symbol" aria-hidden="true">M<span>↗</span></span><span>GLOBAL ENGINEERING<span class="brand-caption" data-i18n="studio">استوديو الحركة</span></span></a>
+    <nav aria-label="Preferences" class="preferences">
+      <label><span data-i18n="language">اللغة</span><select id="language"><option value="ar">العربية</option><option value="en">English</option></select></label>
+      <button id="theme" type="button" data-i18n="theme">المظهر</button>
+      <a href="../motion-lab/index.html" class="subtle-link" data-i18n="existingLab">المختبر السابق ↗</a>
+    </nav>
+  </header>
+  <main id="workspace">
+    <section class="intro" aria-labelledby="studio-title">
+      <div><p class="eyebrow">UNIVERSAL MOTION SDK <span>1.0</span></p><h1 id="studio-title" data-i18n="title">من الفكرة إلى الحركة.</h1><p class="lead" data-i18n="lead">اختر مشهدًا، حرّك خطّه الزمني، واختبره قبل أن تستورده إلى مشروعك.</p></div>
+      <dl class="summary"><div><dt data-i18n="recipes">مشهد محلي</dt><dd id="recipe-count">—</dd></div><div><dt data-i18n="engine">المحرك</dt><dd>Canvas2D</dd></div><div><dt data-i18n="installation">التثبيت</dt><dd data-i18n="zeroDependencies">بلا تبعيات</dd></div></dl>
+    </section>
+    <div id="loading" class="notice" role="status" data-i18n="loading">جارٍ تحميل الفهرس المحلي المثبّت…</div>
+    <div class="workspace-grid" hidden id="loaded">
+      <aside class="library" aria-labelledby="library-title">
+        <div class="section-heading"><h2 id="library-title" data-i18n="library">مكتبة المشاهد</h2><span id="match-count" class="badge">0</span></div>
+        <label class="search-label"><span data-i18n="search">ابحث باسم أو فكرة</span><input id="search" type="search" autocomplete="off" placeholder="مدار، حروف، شبكة…" data-placeholder="searchPlaceholder"></label>
+        <div class="filters"><label><span data-i18n="category">الفئة</span><select id="category"><option value="all" data-i18n="allCategories">كل الفئات</option></select></label><label><span data-i18n="tier">المستوى</span><select id="tier"><option value="all" data-i18n="allTiers">الكل</option><option value="basic" data-i18n="basic">أساسي</option><option value="advanced" data-i18n="advanced">متقدم</option></select></label></div>
+        <div id="catalog-list" class="catalog-list" aria-label="Motion scenes"></div>
+        <p id="empty" hidden data-i18n="empty">لا توجد مشاهد تطابق هذا البحث.</p>
+        <div class="pagination"><button id="previous" type="button" data-i18n="previous">السابق</button><output id="page-label"></output><button id="next" type="button" data-i18n="next">التالي</button></div>
+      </aside>
+      <section class="stage-panel" aria-labelledby="motion-name">
+        <div class="stage-heading"><div><p class="eyebrow" id="motion-id"></p><h2 id="motion-name"></h2><p id="motion-secondary" class="secondary-name"></p></div><span class="badge stage-badge" id="motion-tier"></span></div>
+        <div class="stage-frame"><div id="stage" class="stage"></div><span class="stage-hint" data-i18n="pointerHint">حرّك المؤشر داخل المشهد لاختبار التفاعل</span></div>
+        <div class="timeline"><label for="progress" data-i18n="timeline">الخط الزمني</label><input id="progress" type="range" min="0" max="1000" value="0" step="1"><output id="time-label">0%</output></div>
+        <div class="transport" role="group" aria-label="Playback controls"><button id="play" class="primary" type="button" data-i18n="play">تشغيل</button><button id="pause" type="button" data-i18n="pause">إيقاف مؤقت</button><button id="resume" type="button" data-i18n="resume">استئناف</button><button id="reverse" type="button" data-i18n="reverse">عكس</button><button id="stop" type="button" data-i18n="stop">إعادة ضبط</button><output id="state-label" class="status" aria-live="polite"></output></div>
+        <div class="parameter-grid"><label><span data-i18n="direction">اتجاه المشهد</span><select id="direction"><option value="rtl">RTL</option><option value="ltr">LTR</option></select></label><label><span data-i18n="motionPreference">الحركة</span><select id="reduced"><option value="auto" data-i18n="systemPreference">تفضيل النظام</option><option value="reduce" data-i18n="reduced">حركة مخففة</option><option value="full" data-i18n="full">حركة كاملة</option></select></label><label><span data-i18n="profile">جودة الرسم</span><select id="profile"><option value="balanced" data-i18n="balanced">متوازنة</option><option value="mobile" data-i18n="mobile">مناسبة للجوال</option><option value="quality" data-i18n="quality">تفاصيل عالية</option></select></label><label><span data-i18n="intensity">شدة التأثير</span><input id="intensity" type="range" min="0" max="100" value="100"></label></div>
+        <div class="action-row"><button id="export-svg" type="button" data-i18n="exportSvg">تصدير إطار SVG</button><button id="export-json" type="button" data-i18n="exportJson">تصدير المشهد JSON</button><button id="benchmark" type="button" data-i18n="benchmark">قياس زمن الرسم</button></div>
+        <p id="operation-result" class="operation-result" role="status"></p>
+        <details class="integration"><summary data-i18n="integration">استيراد انتقائي إلى مشروعك</summary><pre id="integration-code" dir="ltr"></pre></details>
+        <p class="scope" data-i18n="scope">هذه معاينة محلية بـCanvas2D. تصدير الإطار ليس فيديو؛ محركات WebGPU وThree.js وRemotion لا تُفعَّل من هذه الواجهة. قياس زمن الرسم ليس قياس FPS أو أداء إنتاجي.</p>
+      </section>
+    </div>
+  </main>
+  <footer><span>ENGINEERING, IN MOTION.</span><span data-i18n="footer">قدرات مثبتة، استخدام انتقائي، ونتائج قابلة للفحص.</span></footer>
+  <script type="module" src="./studio.mjs"></script>
+</body>
+</html>
