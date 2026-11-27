@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "catalog_total": 142,
+  "status_model": {
+    "indexed": "Present in MOTION_CATALOG.json only",
+    "implemented": "Has executable source in this repository",
+    "tested": "Has deterministic automated checks",
+    "runtime_verified": "Observed in the named runtime",
+    "used": "Referenced by a concrete consumer"
+  },
+  "components": [
+    {"id":"ui-fade-in","engine":"css","spec":"specs/fade-in.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"ui-fade-out","engine":"css","spec":"specs/fade-out.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"ui-slide-inline-start","engine":"css","spec":"specs/slide-inline-start.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"ui-slide-inline-end","engine":"css","spec":"specs/slide-inline-end.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"ui-scale-reveal","engine":"css","spec":"specs/scale-reveal.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"ui-press-feedback","engine":"css","spec":"specs/press-feedback.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"interactive-waapi-keyframes","engine":"waapi","spec":"specs/waapi-keyframes.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"typography-word-stagger","engine":"waapi","spec":"specs/word-stagger.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"spatial-fresnel-rim","engine":"glsl-webgl","spec":"specs/fresnel-rim.json","implementation_status":"implemented","test_status":"automated","runtime_status":"pending-browser","used_by":["motion-lab"]},
+    {"id":"cinema-cross-dissolve","engine":"remotion-adapter","spec":"specs/cross-dissolve.json","implementation_status":"implemented","test_status":"automated","runtime_status":"adapter-tested","used_by":["motion-lab"]},
+    {"id":"cinema-orbit-camera","engine":"three-adapter","spec":"specs/orbit-camera.json","implementation_status":"implemented","test_status":"automated","runtime_status":"adapter-tested","used_by":["motion-lab"]}
+  ]
+}

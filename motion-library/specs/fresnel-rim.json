@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"spatial-fresnel-rim","duration_ms":1200,"easing":"linear","shader":"runtime/glsl/fresnel-rim.frag","keyframes":[{"offset":0,"opacity":0.6},{"offset":1,"opacity":1}],"reduced_motion":{"opacity":1}}
