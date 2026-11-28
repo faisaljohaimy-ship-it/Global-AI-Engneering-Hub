@@ -16,8 +16,9 @@ import tempfile
 import unittest
 
 from engineering_os import agent_team, orchestrator
-from engineering_os.agent_team import (AgentTeamError, check_staffing, concurrency, digest, evidence_status,
-                                       load_policy, load_registry, reviewer_for, role_card, team_for, validate)
+from engineering_os.agent_team import (AgentTeamError, NoStandingTeam, PolicyNotInstalled, check_staffing, concurrency,
+                                       digest, evidence_status, load_policy, load_registry, reviewer_for, role_card,
+                                       team_for, validate)
 from engineering_os.layers import ROLE_IDS
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -67,8 +68,9 @@ class LoadTests(unittest.TestCase):
             for bad in (text.replace('"session_limit": 20', '"session_limit": NaN', 1), text[:-10], ""):
                 with self.subTest(bad=bad[-40:]), self.assertRaises(AgentTeamError):
                     load_policy(self.write(folder, bad))
-            with self.assertRaises(AgentTeamError):
+            with self.assertRaises(AgentTeamError) as caught:
                 load_policy(pathlib.Path(folder) / "absent.json")
+            self.assertNotIsInstance(caught.exception, PolicyNotInstalled)  # a named file that is missing is an error
 
     def test_schema_and_bounds(self):
         self.assertEqual(list(POLICY)[:3], ["schema_version", "policy_version", "implementation"])
@@ -106,10 +108,11 @@ class PolicyTests(unittest.TestCase):
                                                             "host_cap", "cpus", "agents_per_cpu", "runner", "rule", "basis"})
         self.assertEqual(set(POLICY["intents_without_roster"]), {"audit", "accelerate", "repair", "cinematic", "release"})
         for intent in POLICY["intents_without_roster"]:
-            with self.subTest(intent=intent), self.assertRaisesRegex(AgentTeamError, "no standing team"):
+            with self.subTest(intent=intent), self.assertRaisesRegex(NoStandingTeam, "no standing team"):
                 team_for(intent)
-        with self.assertRaisesRegex(AgentTeamError, "not in the agent-team policy"):
+        with self.assertRaisesRegex(AgentTeamError, "not in the agent-team policy") as caught:
             team_for("deploy")
+        self.assertNotIsInstance(caught.exception, NoStandingTeam)
 
     def test_a_trimmed_roster_lists_the_rest_as_omitted_with_reasons(self):
         roster = [rid for rid in ROLE_IDS if not rid.startswith(("cinematic", "motion", "gpu"))]
@@ -385,6 +388,17 @@ class StandaloneTests(unittest.TestCase):
             elif isinstance(node, ast.Import):
                 imported.update(alias.name.split(".")[0] for alias in node.names)
         self.assertLessEqual(imported, {"argparse", "hashlib", "json", "os", "pathlib", "re", "sys"})
+
+    def test_an_install_without_the_files_raises_not_installed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            engine = pathlib.Path(folder) / "engine"
+            engine.mkdir()
+            shutil.copyfile(ROOT / "engineering_os/agent_team.py", engine / "agent_team.py")
+            code = ("import sys; sys.path.insert(0, sys.argv[1]); import agent_team\n"
+                    "try:\n    agent_team.load_policy()\nexcept agent_team.PolicyNotInstalled as error:\n    print('not-installed', error)")
+            run = subprocess.run([sys.executable, "-I", "-c", code, str(engine)], capture_output=True, text=True, timeout=60)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertIn("not-installed agent-team.json is not installed", run.stdout)
 
     def test_vendored_copy_finds_its_policy_beside_itself(self):
         with tempfile.TemporaryDirectory() as folder:

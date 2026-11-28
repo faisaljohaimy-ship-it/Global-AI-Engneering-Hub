@@ -54,6 +54,14 @@ class AgentTeamError(ValueError):
     """The policy, the registry or a plan breaks the agent-team rules."""
 
 
+class PolicyNotInstalled(AgentTeamError):
+    """Neither the vendored copy nor the hub layout has the file (an older install); a caller may degrade."""
+
+
+class NoStandingTeam(AgentTeamError):
+    """The intent is listed in intents_without_roster: it keeps its own sizing and has no standing team."""
+
+
 def _need(condition, message):
     if not condition:
         raise AgentTeamError(message)
@@ -89,7 +97,7 @@ def _first(beside, hub_relative):
     for candidate in (HERE / beside, ROOT / hub_relative):
         if candidate.is_file():
             return candidate
-    raise AgentTeamError(f"{beside} is not installed beside {HERE.name}/ or at {hub_relative}")
+    raise PolicyNotInstalled(f"{beside} is not installed beside {HERE.name}/ or at {hub_relative}")
 
 
 def digest(value):
@@ -294,7 +302,7 @@ def team_for(intent, cpus=None, *, runner="agent", policy=None, registry=None):
     if intent not in policy["rosters"]:
         reason = policy["intents_without_roster"].get(intent)
         _need(reason is not None, f"intent {intent!r} is not in the agent-team policy")
-        raise AgentTeamError(f"{intent}: no standing team. {reason}")
+        raise NoStandingTeam(f"{intent}: no standing team. {reason}")
     roster = policy["rosters"][intent]
     version = policy["policy_version"]
     omitted = [{"role": rid, "reason": f"not in the {intent} roster of agent-team policy {version}"}
