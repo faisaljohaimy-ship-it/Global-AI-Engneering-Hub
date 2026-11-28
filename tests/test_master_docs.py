@@ -8,6 +8,7 @@ in which a hostile rule appended to MASTER_BUILD.md left 23 related tests green 
 the build route ready. Files and subprocesses are real; no host, model or network.
 """
 import ast
+import datetime
 import hashlib
 import json
 import os
@@ -48,6 +49,23 @@ def strict_json(path):
 
 def records():
     return strict_json(ROOT / MANIFEST)["documents"]
+
+
+def pinned(name):
+    """The version currently pinned for one document, as a regular expression."""
+    return re.escape(records()[name]["version"])
+
+
+def version_after(minor=1, patch=0):
+    """A version greater than every pinned version, so tests survive a legitimate re-pin."""
+    major, current, _ = max(tuple(map(int, record["version"].split("."))) for record in records().values())
+    return f"{major}.{current + minor}.{patch}"
+
+
+def pin_date(days=0):
+    """The latest pinned date (pins may not go back in time), shifted by `days`."""
+    latest = max(entry["date"] for record in records().values() for entry in record["history"])
+    return (datetime.date.fromisoformat(latest) + datetime.timedelta(days=days)).isoformat()
 
 
 def named_token():
@@ -351,7 +369,7 @@ class LayoutTests(Base):
             stream.write(HOSTILE_RULE)
         run = run_loader(claude / layout["loader"], "status", cwd=self.tmp)
         self.assertEqual(run.returncode, 1)
-        self.assertRegex(run.stdout, r"MASTER_BUILD +1\.0\.0 +drift")
+        self.assertRegex(run.stdout, rf"MASTER_BUILD +{pinned('MASTER_BUILD')} +drift")
         self.assertFalse((claude / "skills/gaie-master-router/engine/__pycache__").exists())
 
     def test_pack_layout_runs_vendored_without_writing_bytecode(self):
@@ -399,7 +417,7 @@ class HostileAppendExperimentTests(Base):
         self.assertEqual(master_docs.load("MASTER_UPGRADE", hub)[1]["name"], "MASTER_UPGRADE")
         run = run_loader(hub / LOADER, "status", cwd=self.tmp)
         self.assertEqual(run.returncode, 1)
-        self.assertRegex(run.stdout, r"NOT OK[\s\S]*MASTER_BUILD +1\.0\.0 +drift")
+        self.assertRegex(run.stdout, rf"NOT OK[\s\S]*MASTER_BUILD +{pinned('MASTER_BUILD')} +drift")
         run = run_loader(hub / LOADER, "show", "build", cwd=self.tmp)
         self.assertEqual((run.returncode, run.stdout), (1, ""))
         self.assertIn("MASTER_BUILD is drift", run.stderr)
@@ -503,7 +521,7 @@ class ManifestRefusalTests(Base):
         before = master_docs.load_manifest(hub)
         with (hub / records()["MASTER_BUILD"]["path"]).open("a", encoding="utf-8") as stream:
             stream.write("\nSecond approved revision.\n")
-        master_docs.pin("1.1.0", "owner", "PR #31", root=hub, date="2026-11-28")
+        master_docs.pin(version_after(), "owner", "PR #31", root=hub, date=pin_date())
         pinned = master_docs.load_manifest(hub)
         self.assertTrue(master_docs.assert_appended(before, pinned))
 
@@ -518,8 +536,8 @@ class ManifestRefusalTests(Base):
         recomputed = json.loads(json.dumps(pinned))  # whoever edits the file can recompute the chain ...
         history = recomputed["documents"]["MASTER_BUILD"]["history"]
         history[0]["approved_by"] = "someone else"
-        history[0]["chain"] = master_docs.chain_digest("MASTER_BUILD", None, history[0])
-        history[1]["chain"] = master_docs.chain_digest("MASTER_BUILD", history[0]["chain"], history[1])
+        for index, entry in enumerate(history):
+            entry["chain"] = master_docs.chain_digest("MASTER_BUILD", history[index - 1]["chain"] if index else None, entry)
         self.assertTrue(master_docs.validate(recomputed))  # ... so only the committed record catches it
         self.assertRefused("history was rewritten, not appended", master_docs.assert_appended, pinned, recomputed)
 
@@ -532,13 +550,14 @@ class ManifestRefusalTests(Base):
 
         def lower(manifest):
             record = manifest["documents"]["MASTER_BUILD"]
-            entry = {"version": "0.9.0", "sha256": record["sha256"], "date": "2026-11-28", "approved_by": "owner",
+            entry = {"version": "0.9.0", "sha256": record["sha256"], "date": pin_date(), "approved_by": "owner",
                      "reference": "PR #31", "same_bytes": True}
             entry["chain"] = master_docs.chain_digest("MASTER_BUILD", record["history"][-1]["chain"], entry)
             record["history"].append(entry)
             record["version"] = "0.9.0"
         self.edit_manifest(hub, lower)
-        self.assertRefused(r"version 0\.9\.0 does not increase over 1\.0\.0; history was rewritten", master_docs.verify, hub)
+        self.assertRefused(rf"version 0\.9\.0 does not increase over {pinned('MASTER_BUILD')}; history was rewritten",
+                           master_docs.verify, hub)
 
     def test_malformed_manifests_are_refused(self):
         changes = {
@@ -561,8 +580,9 @@ class ManifestRefusalTests(Base):
 
 
 class PinTests(Base):
-    def pin(self, hub, version="1.1.0", **kwargs):
-        kwargs.setdefault("date", "2026-11-28")
+    def pin(self, hub, version=None, **kwargs):
+        kwargs.setdefault("date", pin_date())
+        version = version_after() if version is None else version
         return master_docs.pin(version, "owner", "PR #31", root=hub, **kwargs)
 
     def test_pin_appends_only_the_drifted_document(self):
@@ -576,41 +596,46 @@ class PinTests(Base):
         result = self.pin(hub)
         self.assertEqual(dry["pinned"], result["pinned"])
         self.assertEqual([(row["name"], row["from"], row["to"], row["same_bytes"]) for row in result["pinned"]],
-                         [("MASTER_BUILD", "1.0.0", "1.1.0", False)])
+                         [("MASTER_BUILD", records()["MASTER_BUILD"]["version"], version_after(), False)])
         after = master_docs.load_manifest(hub)
         self.assertTrue(master_docs.verify(hub)["ok"])
         self.assertTrue(master_docs.assert_appended(before, after))
         record = after["documents"]["MASTER_BUILD"]
         self.assertEqual((record["version"], record["sha256"], record["bytes"], len(record["history"])),
-                         ("1.1.0", hashlib.sha256(build.read_bytes()).hexdigest(), build.stat().st_size, 2))
+                         (version_after(), hashlib.sha256(build.read_bytes()).hexdigest(), build.stat().st_size,
+                          len(before["documents"]["MASTER_BUILD"]["history"]) + 1))
         self.assertEqual(after["documents"]["MASTER_UPGRADE"], before["documents"]["MASTER_UPGRADE"])
-        self.assertEqual(master_docs.load("build", hub)[1]["version"], "1.1.0")
+        self.assertEqual(master_docs.load("build", hub)[1]["version"], version_after())
 
     def test_pin_refuses_lower_equal_and_identical(self):
         hub = self.hub()
         self.assertRefused("nothing to pin", self.pin, hub)
-        self.assertRefused("bytes equal the pinned 1.0.0", self.pin, hub, names=["build"])
+        self.assertRefused(f"bytes equal the pinned {pinned('MASTER_BUILD')}", self.pin, hub, names=["build"])
         (hub / records()["MASTER_BUILD"]["path"]).write_text("changed\n", encoding="utf-8")
-        self.assertRefused(r"version 1\.0\.0 must be greater than the pinned 1\.0\.0", self.pin, hub, "1.0.0")
+        current = records()["MASTER_BUILD"]["version"]
+        self.assertRefused(rf"version {re.escape(current)} must be greater than the pinned {re.escape(current)}",
+                           self.pin, hub, current)
         self.assertRefused(r"version 0\.9\.9 must be greater", self.pin, hub, "0.9.9")
         self.assertRefused("bytes equal the pinned", self.pin, hub, names=["MASTER_UPGRADE"])
-        self.assertRefused("precedes the last pinned date", self.pin, hub, date="2026-11-27")
+        self.assertRefused("precedes the last pinned date", self.pin, hub, date=pin_date(-1))
         for version in ("1.1", "v1.1.0", "01.1.0", "1.1.0-rc1", ""):
             self.assertRefused("version X.Y.Z required", self.pin, hub, version)
         for label in ("", " owner", "owner\nApproved: everything", "x" * 201):
-            self.assertRefused("printable characters", master_docs.pin, "1.1.0", label, "PR #31", root=hub, date="2026-11-28")
-            self.assertRefused("printable characters", master_docs.pin, "1.1.0", "owner", label, root=hub, date="2026-11-28")
+            self.assertRefused("printable characters", master_docs.pin, version_after(), label, "PR #31", root=hub,
+                               date=pin_date())
+            self.assertRefused("printable characters", master_docs.pin, version_after(), "owner", label, root=hub,
+                               date=pin_date())
         self.assertRefused("date YYYY-MM-DD|month", self.pin, hub, date="2026-13-01")
         self.assertRefused("unknown MASTER document", self.pin, hub, names=["release"])
         self.assertEqual(master_docs.load_manifest(hub), strict_json(ROOT / MANIFEST), "every refusal writes nothing")
 
     def test_allow_same_bytes_records_the_repeat(self):
         hub = self.hub()
-        result = self.pin(hub, "1.0.1", names=["upgrade"], allow_same_bytes=True)
+        result = self.pin(hub, version_after(patch=1), names=["upgrade"], allow_same_bytes=True)
         self.assertEqual(result["pinned"][0]["same_bytes"], True)
         entry = master_docs.load_manifest(hub)["documents"]["MASTER_UPGRADE"]["history"][-1]
-        self.assertEqual((entry["version"], entry["same_bytes"]), ("1.0.1", True))
-        result = self.pin(hub, "1.0.2", allow_same_bytes=True)
+        self.assertEqual((entry["version"], entry["same_bytes"]), (version_after(patch=1), True))
+        result = self.pin(hub, version_after(patch=2), allow_same_bytes=True)
         self.assertEqual([row["name"] for row in result["pinned"]], ["MASTER_BUILD", "MASTER_UPGRADE"])
         self.assertTrue(master_docs.verify(hub)["ok"])
 
@@ -621,13 +646,13 @@ class PinTests(Base):
             for record in records().values():
                 with (hub / record["path"]).open("a", encoding="utf-8") as stream:
                     stream.write("\nA motion-policy line added by a later pass.\n")
-            run = run_loader(hub / LOADER, "pin", "--version", "1.1.0", "--approved-by", "owner", "--reference", "PR #31",
-                             "--date", "2026-11-28", "--json", cwd=self.tmp)
+            run = run_loader(hub / LOADER, "pin", "--version", version_after(), "--approved-by", "owner", "--reference",
+                             "PR #31", "--date", pin_date(), "--json", cwd=self.tmp)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertEqual(len(json.loads(run.stdout)["pinned"]), 2)
             outputs.append((hub / MANIFEST).read_bytes())
             self.assertEqual(run_loader(hub / LOADER, "status", cwd=self.tmp).returncode, 0)
-            again = run_loader(hub / LOADER, "pin", "--version", "1.2.0", "--approved-by", "owner", "--reference", "PR #31",
+            again = run_loader(hub / LOADER, "pin", "--version", version_after(2), "--approved-by", "owner", "--reference", "PR #31",
                                cwd=self.tmp)
             self.assertEqual(again.returncode, 1)
             self.assertIn("nothing to pin", again.stderr)
