@@ -66,7 +66,7 @@ Gate stage `g0`: passed.
 
 ## The freeze
 
-`swarm/phase3/FREEZE.json` exists and holds 161 files.
+`swarm/phase3/FREEZE.json` exists and holds 162 files.
 
 ## What the reviewer must decide
 

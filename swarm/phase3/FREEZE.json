@@ -1,5 +1,5 @@
 {
-  "file_count": 161,
+  "file_count": 162,
   "files": {
     ".claude/agents/swarm-dev.md": {
       "sha256": "e7606bd3b47c6b330aab8712ded3b6c4caf9894ba8f0d3761a6661b8a43065cc",
@@ -194,7 +194,7 @@
       "size": 902
     },
     "swarm/phase3/HANDOVER.md": {
-      "sha256": "8ac265ffe0333ccb0050f4a6ae6c33c5956214e7c2db169bb234ac2511739600",
+      "sha256": "d28b1da8108dc7981074b460ebf5fde62996a2b4f9615e3cdbf09268844e6294",
       "size": 14448
     },
     "swarm/phase3/PLAN3-run-1.json": {
@@ -208,6 +208,10 @@
     "swarm/phase3/RESULTS-FINAL.md": {
       "sha256": "0de25c75bd9ed8322d76892f31dd127cd84e034fa9137c3c672c4c24a16a5285",
       "size": 10028
+    },
+    "swarm/phase3/RESUME.md": {
+      "sha256": "714618ff633fe080b4cf7d57cc782102efb1e766e08cfe4f056ee35500edd942",
+      "size": 7931
     },
     "swarm/phase3/RUNBOOK-RUN.md": {
       "sha256": "1e8bb9b1495959fd48704e90d17aa07ab10ae2d8d8439539c649387d1eb429d0",
@@ -646,6 +650,6 @@
       "size": 27650
     }
   },
-  "overall_sha256": "14b5f1944214f62c55d2fbd5e64ff4af692ee422413c1f0b3103ad90fb14e1b7",
+  "overall_sha256": "3fe80f9bf573f1388aa38a52dd6aaf3a1ffe3df66cdf93487113f6a46fddf0e1",
   "statement": "The numerical scale-up phase is closed. No further scale stage is to be run on this branch."
 }
