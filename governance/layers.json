@@ -577,7 +577,11 @@
       "tests/test_recheck_fixes_repo_id.py",
       "tests/test_isolation_fixes_mounts.py",
       "tests/test_isolation_fixes_relaunch_binding.py",
-      "tests/test_isolation_fixes_build_git.py"
+      "tests/test_isolation_fixes_build_git.py",
+      "tests/test_sec_fixes_2_layers.py",
+      "tests/test_sec_fixes_2_governor.py",
+      "tests/test_sec_fixes_2_sweep.py",
+      "tests/test_sec_fixes_2_prefix.py"
     ],
     "scenarios": [
       {
@@ -1052,7 +1056,8 @@
       "tests/test_upgrade_fixes_schema_memory.py",
       "tests/test_upgrade_fixes_schema_modules.py",
       "tests/test_upgrade_fixes_sql.py",
-      "tests/test_upgrade_fixes_wal.py"
+      "tests/test_upgrade_fixes_wal.py",
+      "tests/test_sec_fixes_2_build.py"
     ],
     "scenarios": [
       {
