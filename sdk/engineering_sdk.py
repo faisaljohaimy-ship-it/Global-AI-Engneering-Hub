@@ -7,6 +7,7 @@ MCP transport: newline-delimited JSON-RPC on stdio; all exposed tools are read-o
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -16,6 +17,9 @@ VERSION = "1.0.0"
 HERE = pathlib.Path(__file__).resolve().parent
 SHA = re.compile(r"[a-f0-9]{40}")
 REPOSITORY = re.compile(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+# A checkout is not trusted: its own Git settings must not run programs during a read-only check.
+GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
+FILTER_SETTING = re.compile(r"filter\..+\.(?:clean|smudge|process)", re.I)  # `git status` runs these on changed files
 
 
 def pairs(items):
@@ -41,7 +45,49 @@ def safe_path(root, name):
         current = current / part
         if current.is_symlink():
             raise ValueError("symlink refused")
+    if current.exists() and not current.is_file():
+        raise ValueError("regular file required")  # a FIFO or device would block or never end
     return current
+
+
+def git(root, *args):
+    """Run Git in a checkout that may be hostile: its fsmonitor and hooks are off, system config and
+    inherited GIT_* variables are ignored, the index is never rewritten and nothing prompts."""
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
+    try:
+        return subprocess.run(["git", *GIT_HARDENING, "-C", str(root), *args], capture_output=True, check=True,
+                              env=env, timeout=120).stdout.decode("utf-8", "surrogateescape")
+    except subprocess.TimeoutExpired:
+        raise ValueError("Git did not finish in time") from None
+
+
+def _keys(listing, scopes=None):
+    items = listing.split("\0")
+    if scopes is None:
+        return [entry.split("\n", 1)[0] for entry in items if entry]
+    return [entry.split("\n", 1)[0] for scope, entry in zip(items[::2], items[1::2]) if scope in scopes]
+
+
+def checkout_guard(root):
+    """Refuse a checkout whose own Git settings would run a program or hide changes from `git status`."""
+    if pathlib.Path(git(root, "rev-parse", "--show-toplevel").strip()).resolve() != pathlib.Path(root).resolve():
+        raise ValueError("release checkout is not its own Git work tree root")
+    keys = _keys(git(root, "config", "--list", "--show-scope", "--includes", "-z"), {"local", "worktree"})
+    common = pathlib.Path(git(root, "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+    configs = sorted((common / "modules").rglob("config")) if (common / "modules").is_dir() else []
+    for entry in filter(None, git(root, "ls-files", "-v", "--stage", "-z").split("\0")):
+        info, name = entry.split("\t", 1)
+        tag, mode = info.split()[:2]
+        if tag != tag.upper() or tag == "S":
+            raise ValueError("release checkout hides changes (assume-unchanged or skip-worktree entries)")
+        if mode == "160000" and (pathlib.Path(root) / name / ".git").is_dir():
+            configs.append(pathlib.Path(root) / name / ".git" / "config")
+    for path in configs:
+        if path.is_file() and not path.is_symlink():
+            keys += _keys(git(root, "config", "--file", str(path), "--list", "--includes", "-z"))
+    if any(FILTER_SETTING.fullmatch(key) for key in keys):
+        raise ValueError("release checkout defines Git filter programs; inspect its .git/config")
 
 
 def verify(root):
@@ -85,12 +131,11 @@ def target(root, repository, team, project, commit):
         raise ValueError("repository mismatch")
     if contract.get("vercel") != {"team_id": team, "project_id": project, "root_directory": "."}:
         raise ValueError("team, project or root mismatch")
-    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
-                          capture_output=True, text=True, check=True).stdout.strip()
+    checkout_guard(root)
+    head = git(root, "rev-parse", "HEAD").strip()
     if head != commit:
         raise ValueError("tested commit is not checkout HEAD")
-    if subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=normal"],
-                      capture_output=True, check=True).stdout:
+    if git(root, "status", "--porcelain", "--untracked-files=normal"):
         raise ValueError("release checkout has uncommitted files")
     return contract
 

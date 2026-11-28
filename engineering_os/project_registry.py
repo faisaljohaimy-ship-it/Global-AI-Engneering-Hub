@@ -364,6 +364,9 @@ def _write(path, rows):
     home = path.parent
     home.mkdir(parents=True, exist_ok=True, mode=0o700)
     _need(not home.is_symlink() and not path.is_symlink(), "private registry symlink refused")
+    info = home.stat()  # another user must not be able to swap or delete the private registry
+    _need(info.st_uid == os.getuid() and not info.st_mode & 0o022,
+          "GAIE_HOME must belong to the current user and not be writable by group or others")
     payload = json.dumps({"schema_version": SCHEMA_VERSION, "projects": sorted(rows, key=lambda r: r["id"])},
                          ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     _need(len(payload.encode("utf-8")) <= MAX_PRIVATE_BYTES, "private registry would exceed its size bound")
