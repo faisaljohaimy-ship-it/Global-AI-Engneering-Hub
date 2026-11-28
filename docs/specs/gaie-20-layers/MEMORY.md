@@ -130,11 +130,25 @@ status checkpoint restore`.
 The previous session ends with: `task` (done/remaining), any `adr`, then
 `checkpoint --to <private dir>/<task>.json`, and records the printed
 `checkpoint_sha256` in its hand-off (e.g. `/home/user/gaie-state/checkpoints/<id>.json`).
-The new session:
+The new session runs the commands below from the project checkout. Pick `M` by where
+`gaie_memory.py` is; every form opens the same store, `$GAIE_HOME/memory/$P`:
+
+- **From the hub** (works from any directory, the project checkout included):
+  `M="python3 /path/to/hub/engineering_os/gaie_memory.py --project $P"`. The module form
+  `python3 -m engineering_os.gaie_memory` works only with the hub root as the current
+  directory or `PYTHONPATH=/path/to/hub`; from a project checkout it fails with
+  `ModuleNotFoundError: No module named 'engineering_os'`.
+- **From an installed project** (the vendored copy):
+  `M="python3 .engineering/gaie/gaie_memory.py --project $P"` (gaie-factory pack) or
+  `M="python3 .claude/skills/gaie-master-router/engine/gaie_memory.py --project $P"`
+  (`scripts/gaie_bootstrap.py`). These copies run the commands below only when
+  `memory.py`, `orchestration.py` and `security_scan.py` sit beside them (section 7);
+  until the pack and the bootstrap vendor them, they answer
+  `this command needs the unified engine` and the hub form above is the one to use.
 
 ```bash
 P=my-project                     # the project slug
-M="python3 -m engineering_os.gaie_memory --project $P"
+M="python3 /path/to/hub/engineering_os/gaie_memory.py --project $P"   # the hub form (see above)
 # 1. Same machine: the store is already in $GAIE_HOME/memory/$P; skip to 2.
 #    New machine or fresh GAIE_HOME: restore, authenticated by the hash from the hand-off.
 $M restore --from /private/dir/task.json --sha256 <checkpoint_sha256>
