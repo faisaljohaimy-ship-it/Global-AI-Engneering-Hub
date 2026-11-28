@@ -589,6 +589,21 @@ class StrictSandboxTests(Workspace):
                 self.run_in(("sh", "-c", code), read_only=True, allowed_paths=[], read_paths=[self.workspace])
         self.assertFalse(marker.exists())
 
+    def test_namespace_bootstrap_imports_cannot_write_bytecode(self):
+        directory = str(self.workspace)
+        with mock.patch.object(governor, "_launch", side_effect=RuntimeError("bootstrap intercepted")) as launch:
+            with self.assertRaisesRegex(RuntimeError, "bootstrap intercepted"):
+                governor._run_full(["true"], cwd=directory, timeout=1, network=False, env={"PATH": os.defpath},
+                                   allowed=[], readable=[directory], limits={}, strict=True)
+        argv = launch.call_args.args[0]
+        bootstrap = argv[argv.index("--") + 1 : argv.index("--") + 6]
+        self.assertEqual(bootstrap, [sys.executable, "-I", "-B", "-S", "-c"])
+        (self.workspace / "synthetic_boot_module.py").write_text("answer = 42\n")
+        program = "import sys;sys.path.insert(0,sys.argv[1]);import synthetic_boot_module"
+        result = subprocess.run([*bootstrap, program, directory], capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.workspace / "__pycache__").exists())
+
     def test_real_strict_boundary_or_measured_refusal(self):
         marker = self.workspace / "marker.txt"
         marker.write_text("source")

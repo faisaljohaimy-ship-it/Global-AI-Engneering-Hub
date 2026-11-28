@@ -30,7 +30,7 @@ Each `routed` result (route version 2) keeps every version-1 field (`engine`,
 | `approvals_required` | gated steps (`external-write`, `production`), each needing an owner approval token |
 | `execution_scope` | `read-only`, `repo-branch` (branch `claude/gaie-<intent>-<project>`), `workspace` or `release-gated`; `default_branch_writes` is always `false` |
 | `tests`, `evidence`, `evidence_location` | what to run, and what to save under `$GAIE_HOME/evidence/<project>` |
-| `decision` | `ready-for-grant`, `blocked` (missing, unverified or mismatched write workspace), `needs-approval` (always for release) |
+| `decision` | `ready-for-grant`, `blocked` (missing, unverified or mismatched write workspace), `needs-approval` (verified mutation plan or release) |
 | `blockers` | for example a release without a registered deployment target |
 
 For several targets (for example «طور جميع مشاريعي»), each target carries its own
@@ -41,14 +41,14 @@ grant. Projects without a registered repository are listed in `skipped`.
 
 | Owner says | English equivalent | Intent | Engine id | Lead role | Ceiling | Scope | Decision |
 |---|---|---|---|---|---|---|---|
-| «طور سديد بالكامل» | "fully upgrade Sadeed" | upgrade | `master-upgrade` | master-upgrade-engine-engineer | `repo-write` | repo-branch | ready-for-grant |
+| «طور سديد بالكامل» | "fully upgrade Sadeed" | upgrade | `master-upgrade` | master-upgrade-engine-engineer | `repo-write` | repo-branch | needs-approval after workspace validation |
 | «طور فيصل الجهيمي بورتفوليو» | "upgrade the Faisal Aljuhaimy Portfolio" | upgrade | `master-upgrade` | master-upgrade-engine-engineer | `repo-write` | repo-branch, the registered folder only | needs-clarification until the repository is registered privately |
 | «طور بلتكس» | "upgrade BILTIX" | upgrade | `master-upgrade` | master-upgrade-engine-engineer | `repo-write` | repo-branch | needs-clarification until the repository is registered privately |
-| «طور فيديوهات سديد» | "upgrade Sadeed's videos" | cinematic | `master-cinematic` | cinematic-production-engineer | `repo-write` | repo-branch | ready-for-grant |
-| «سرّع سديد» | "speed up Sadeed" | accelerate | `master-upgrade` (performance) | master-upgrade-engine-engineer | `repo-write` | repo-branch | ready-for-grant |
+| «طور فيديوهات سديد» | "upgrade Sadeed's videos" | cinematic | `master-cinematic` | cinematic-production-engineer | `repo-write` | repo-branch | needs-approval after workspace validation |
+| «سرّع سديد» | "speed up Sadeed" | accelerate | `master-upgrade` (performance) | master-upgrade-engine-engineer | `repo-write` | repo-branch | needs-approval after workspace validation |
 | «افحص سديد» | "audit Sadeed", "inspect Sadeed" | audit | `master-audit` | independent-assurance-engineer | `none` | read-only | ready-for-grant |
-| «أصلح أخطاء سديد» | "fix Sadeed's bugs" | repair | `self-healing` | testing-self-healing-engineer | `repo-write` | repo-branch | ready-for-grant |
-| «ابنِ نظامًا جديدًا لإدارة المشاريع» | "build a new project management system" | build | `master-build` | master-build-engine-engineer | `workspace-write` | workspace `workspace/new-project`; repository creation is a separate `external-write` step | ready-for-grant (workspace only) |
+| «أصلح أخطاء سديد» | "fix Sadeed's bugs" | repair | `self-healing` | testing-self-healing-engineer | `repo-write` | repo-branch | needs-approval after workspace validation |
+| «ابنِ نظامًا جديدًا لإدارة المشاريع» | "build a new project management system" | build | `master-build` | master-build-engine-engineer | `workspace-write` | workspace `workspace/new-project`; repository creation is a separate `external-write` step | needs-approval after workspace validation |
 | «انشر سديد» | "deploy Sadeed", "release Sadeed" | release | `master-release` | github-integration-release-engineer | `production` | release-gated: `preview` (external-write) and `promote` (production) | needs-approval, always |
 | «طور المشروع» | "upgrade the project" | upgrade | `master-upgrade` | — | — | — | needs-clarification: no project is named |
 
@@ -88,14 +88,17 @@ the JSON policy cannot relax them. A policy that breaks one makes routing fail w
 4. **A new system gets a workspace grant only.** Ceiling `workspace-write`. The
    `create-repository` step is `external-write`, needs approval and is never part of
    the base grant.
-5. **Nothing is guessed.** An unknown, ambiguous, similar-but-different (for example
+5. **A route never authorizes writes.** Even with a verified workspace, a write
+   plan carries no write grant. A trusted operator separately authorizes the
+   workspace launch. See [MASTER security acceptance](MASTER_SECURITY_ACCEPTANCE.md).
+6. **Nothing is guessed.** An unknown, ambiguous, similar-but-different (for example
    «سديدة») or unregistered project returns `needs-clarification`, with
    `grant_template: null` and no targets. A missing deployment target is reported as a
    blocker and is never inferred.
-6. **Least privilege per permission.** Each permission has a minimum side-effect
+7. **Least privilege per permission.** Each permission has a minimum side-effect
    class (`write:repo-branch` needs `repo-write`, `ext:deploy` needs `external-write`,
    `prod:deploy` needs `production`). It must not exceed its intent's ceiling.
-7. **Separation of duties.** The lead, supporters and verifier of one intent are
+8. **Separation of duties.** The lead, supporters and verifier of one intent are
    distinct. Every role id is listed in `control_plane.role_ids`, and tests check those
    ids against `governance/agent-roles.json` and every non-gated action against
    `governance/engines.json` (with its side effect under the ceiling) whenever those

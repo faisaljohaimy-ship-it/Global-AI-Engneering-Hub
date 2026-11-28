@@ -21,6 +21,9 @@ import re
 import sys
 import unicodedata
 
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
 try:
     from . import contracts as _contracts
 except ImportError:  # vendored or run as a script: the same values, checked by tests
@@ -76,15 +79,17 @@ _QUESTION_PREFIXES = (
     "هل", "كيف", "متى", "ماذا", "لماذا", "هل يمكن", "هل تستطيع", "هل ينبغي",
 )
 _AUDIT_WORDS = (
-    "audit", "auditing", "inspect", "inspection", "review", "reviewing", "scan", "scanning", "assess", "assessment",
-    "check", "checking", "verify", "verification", "افحص", "الفحص", "فحص", "للفحص", "دقق", "تدقيق", "التدقيق", "للتدقيق",
-    "راجع", "مراجعة", "المراجعة", "للمراجعة", "قيم", "تقييم", "التقييم", "للتقييم", "تحقق", "التحقق",
+    "auditing", "inspection", "reviewing", "scanning", "assessment", "checking", "verification",
+    "فحص", "تدقيق", "مراجعة", "تقييم", "تحقق", "تفقد",
 )
 _READ_ONLY_PHRASES = (
     "read-only", "read only", "readonly", "audit-only", "inspection-only", "review-only", "check-only", "dry run", "dry-run",
     "advice only", "analysis only", "report only", "plan only", "planning only",
+    "preview only", "preview-only", "for preview", "as an example", "as example", "for example", "example only",
+    "for demonstration", "as a demonstration", "for illustration", "for demo", "demo only", "simulation only",
     "no changes", "no writes", "without changes", "without modifications", "without modifying", "for information only",
     "للقراءة فقط", "قراءة فقط", "للاطلاع فقط", "للاستشارة فقط", "للتخطيط فقط", "تحليل فقط", "تقرير فقط",
+    "للمعاينة فقط", "للعرض فقط", "لغرض العرض", "كمثال", "على سبيل المثال", "للتوضيح فقط", "للشرح فقط", "محاكاة فقط",
     "دون تعديل", "بدون تعديل", "دون تغيير", "بدون تغيير", "دون كتابة", "بدون كتابة",
 )
 _GENERIC_CHANGE_WORDS = frozenset({
@@ -347,6 +352,17 @@ def classify(text, rules):
     return wanted, prohibited, focus, everything, negated, uncertain_negation
 
 
+def _audit_scope(tokens, rules):
+    audit_words = _words((*_AUDIT_WORDS, *rules["verbs"]["audit"]))
+    for token in tokens:
+        forms = _forms(token)
+        # In Arabic, ل + ال contracts to لل, including after prefixed و or ف.
+        contracted = {form[2:] for form in forms if form.startswith("لل")}
+        if audit_words.intersection(forms | contracted):
+            return True
+    return False
+
+
 def _authorization_boundary(text, tokens, verbs, uncertain_negation, rules):
     """A lexical plan cannot turn a question or read-only scope into write authority."""
     question_prefixes = normalize_all(_QUESTION_PREFIXES)
@@ -358,8 +374,8 @@ def _authorization_boundary(text, tokens, verbs, uncertain_negation, rules):
         return "A question cannot authorize a mutation. State the requested operation explicitly."
     if not any(verb != "audit" for verb in verbs):
         return None
-    if uncertain_negation or any(
-        _find(tokens, phrase) for phrase in normalize_all((*_AUDIT_WORDS, *_READ_ONLY_PHRASES))
+    if uncertain_negation or _audit_scope(tokens, rules) or any(
+        _find(tokens, phrase) for phrase in normalize_all(_READ_ONLY_PHRASES)
     ):
         return "The request includes a read-only or ambiguous no-change scope. Run a separate explicit request for any mutation."
     fillers = _words(rules["fillers"])
@@ -499,19 +515,27 @@ def _scope_path(rules, project_id, path):
     return f"{root}/{project_id or 'new-project'}" + (f"/{path}" if path else "")
 
 
-def grant_template(spec, rules, project_id=None, path=None, *, verified=None):
-    """Least-privilege grant skeleton in the contract's shape; the control plane fills id and expiry."""
+def _audit_template(spec, rules, project_id, path):
+    """Build the read-only template for a validated audit route."""
     return {"grant_id": None, "role": spec["roles"]["lead"], "engines": {name: list(acts) for name, acts in spec["engines"].items()},
-            "paths": [str(verified.root) if verified else _scope_path(rules, project_id, path)],
-            "max_side_effect": spec["max_side_effect"],
+            "paths": [_scope_path(rules, project_id, path)], "max_side_effect": spec["max_side_effect"],
             "expires_at": None, "approvals": []}
 
 
+def _is_read_only_audit_template(template):
+    engines = template.get("engines")
+    if template.get("max_side_effect") != "none" or not isinstance(engines, dict) or set(engines) != {"master-audit"}:
+        return False
+    actions = engines["master-audit"]
+    return (isinstance(actions, list) and len(actions) == len(_AUDIT_ACTIONS)
+            and all(isinstance(action, str) for action in actions) and set(actions) == _AUDIT_ACTIONS)
+
+
 def grant_from_template(template, *, grant_id, expires_at):
-    """Fill the placeholders of a template. Approvals are never added here."""
+    """Fill a read-only audit template. Writing grants require separate authorization."""
     if not isinstance(template, dict) or template.get("grant_id") is not None or template.get("expires_at") is not None \
-            or template.get("approvals") != []:
-        raise RouteError("not an unfilled grant template")
+            or template.get("approvals") != [] or not _is_read_only_audit_template(template):
+        raise RouteError("not an unfilled read-only audit template")
     grant = {**template, "grant_id": grant_id, "expires_at": expires_at,
              "engines": {k: list(v) for k, v in template["engines"].items()}, "paths": list(template["paths"])}
     if _contracts:
@@ -526,6 +550,7 @@ def _execution(spec, rules, intent, project_id=None, path=None, *, verified=None
     kind = spec["execution"]
     scope = {"kind": kind, "paths": [str(verified.root) if verified else _scope_path(rules, project_id, path)],
              "max_side_effect": spec["max_side_effect"],
+             "requires_separate_authorization": kind != "read-only",
              "default_branch_writes": False, "network": _rank(spec["max_side_effect"]) >= _rank("network"),
              "production": spec["max_side_effect"] == "production"}
     if kind == "read-only":
@@ -542,7 +567,7 @@ def _execution(spec, rules, intent, project_id=None, path=None, *, verified=None
 def _approvals(spec):
     return [{"engine": step["engine"], "action": step["action"], "side_effect": step["side_effect"],
              "permissions": list(step["permissions"]), "summary": step["summary"], "needs_approval": True,
-             "in_base_grant": step["action"] in spec["engines"].get(step["engine"], [])} for step in spec["gated_steps"]]
+             "in_base_grant": False} for step in spec["gated_steps"]]
 
 
 def _team(spec):
@@ -586,28 +611,18 @@ def _verified_write_scope(intent, path, targets):
 def _enforce(plan):
     """Re-check the hard rules on the finished plan (defence in depth)."""
     _guard(plan["executable_by_route"] is False, "a route never executes")
+    _guard(plan["write_allowed"] is False, "a route never authorizes writes")
     templates = [t["grant_template"] for t in plan["targets"] if t["grant_template"] is not None]
     if plan["grant_template"] is not None:
         templates.append(plan["grant_template"])
-    for template in templates:
-        if plan["intent"] == "audit":
-            _guard(template["max_side_effect"] == "none", "audit maps to a read-only grant")
-        if plan["intent"] != "release":
-            _guard(template["max_side_effect"] not in GATED, "only a release grant reaches a gated class")
     if plan["intent"] == "audit":
-        _guard(not plan["write_allowed"], "audit is read-only")
+        _guard(all(_is_read_only_audit_template(t) for t in templates), "audit maps only to read-only audit grants")
+    else:
+        _guard(not templates and not set(plan["permissions"]).intersection(PERMISSION_FLOOR),
+               "a mutation plan carries neither a grant nor writing permissions")
     if plan["intent"] == "release":
-        _guard(plan["decision"] == "needs-approval" and not plan["write_allowed"] and plan["side_effect"] in GATED,
+        _guard(plan["decision"] == "needs-approval" and plan["side_effect"] in GATED,
                "a release always needs approval")
-    elif plan["intent"] != "audit":
-        if plan["write_allowed"]:
-            scope = plan["execution_scope"]
-            _guard(scope is not None and plan["grant_template"] is not None and
-                   all(t["paths"] == scope["paths"] and all(pathlib.Path(path).is_absolute() for path in t["paths"])
-                       for t in templates),
-                   "a write grant is bound to the verified absolute workspace")
-        else:
-            _guard(not templates, "a blocked plan never carries a writing grant")
     return plan
 
 
@@ -684,19 +699,16 @@ def route(text, *, environ=None, workspace_path=None):
     checked = workspace_path is not None
     write_intent = intent not in {"audit", "release"}
     verified, workspace_problem = _verified_write_scope(intent, workspace_path, targets) if write_intent else (None, None)
-    write = verified is not None
-    allow_template = not write_intent or write
     plan_targets = []
     for row in targets:
         entry = _public(row)
         entry.update(repository_verified=False, branch_policy="isolated claude/ or codex/ branch per project",
                      memory_scope=row["id"], repository_check=_registry_check(row),
-                     grant_template=grant_template(spec, rules, row["id"], row.get("path"), verified=verified)
-                     if allow_template else None,
+                     grant_template=_audit_template(spec, rules, row["id"], row.get("path")) if intent == "audit" else None,
                      execution_scope=_execution(spec, rules, intent, row["id"], row.get("path"), verified=verified),
                      evidence_location=f"{rules['control_plane']['evidence_root']}/{row['id']}")
         if checked and write_intent:
-            entry["workspace_matches"] = write
+            entry["workspace_matches"] = verified is not None
         plan_targets.append(entry)
     blockers = [workspace_problem] if workspace_problem else []
     if intent == "release":
@@ -706,8 +718,7 @@ def route(text, *, environ=None, workspace_path=None):
     if intent == "cinematic":
         gates += rules["gates"]["upgrade"]
     single = plan_targets[0] if len(plan_targets) == 1 else None
-    template = single["grant_template"] if single else grant_template(spec, rules, verified=verified) if write else None
-    decision = "needs-approval" if intent == "release" else "blocked" if blockers else "ready-for-grant"
+    decision = "ready-for-grant" if intent == "audit" else "blocked" if write_intent and blockers else "needs-approval"
     plan = {
         "schema_version": 1, "route_version": 2, "status": "routed", "command": text.strip(),
         "language": "ar" if _ARABIC.search(text) else "en",
@@ -722,16 +733,17 @@ def route(text, *, environ=None, workspace_path=None):
         "skipped": skipped,
         "decision": decision, "executable_by_route": False, "blockers": blockers,
         "side_effect": spec["max_side_effect"], "roles": _team(spec), "capabilities": list(spec["capabilities"]),
-        "permissions": [p for p in spec["permissions"] if allow_template or p not in PERMISSION_FLOOR],
-        "grant_template": template,
+        "permissions": [p for p in spec["permissions"] if p not in PERMISSION_FLOOR],
+        "grant_template": single["grant_template"] if single else None,
         "grant_ttl_hours": rules["control_plane"]["grant_ttl_hours"], "approvals_required": _approvals(spec),
         "execution_scope": single["execution_scope"] if single else
         _execution(spec, rules, intent, verified=verified) if intent == "build" else None,
         "tests": list(spec["tests"]), "evidence": list(spec["evidence"]),
         "evidence_location": single["evidence_location"] if single else
         f"{rules['control_plane']['evidence_root']}/new-project" if intent == "build" else None,
-        "write_allowed": write, "read_only": intent == "audit",
-        "workspace_note": f"Do not edit this workspace. {workspace_problem}" if workspace_problem else None,
+        "write_allowed": False, "read_only": intent == "audit",
+        "workspace_note": f"Do not edit this workspace. {workspace_problem}" if workspace_problem else
+        "Workspace verified. Start any write separately with explicit authorization." if verified else None,
         "complexity": "large" if full or scope == "all-registered-projects" else "small" if intent == "release" else "medium",
         "agents": {"workstreams": streams, "implementers": implementers, "independent_verifiers": 1,
                    "recommended_total": implementers + 1, "maximum": rules["max_agents"], "per_target": scope == "all-registered-projects",

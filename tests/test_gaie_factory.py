@@ -326,11 +326,16 @@ class IntegrityTests(Base):
             self.assertEqual((project / ".claude/skills" / name / "SKILL.md").read_bytes(), (ROOT / "skills" / name / "SKILL.md").read_bytes())
         self.assertEqual((project / ".claude/agents/gaie-verifier.md").read_bytes(),
                          (ROOT / "agents/gaie-verifier.md").read_bytes())
+        env = {**os.environ, **self.env}
+        env.pop("PYTHONDONTWRITEBYTECODE", None)
+        env.pop("PYTHONPYCACHEPREFIX", None)
         run = subprocess.run([sys.executable, ".engineering/gaie/gaie_router.py", "route", "افحص سديد"],
-                             capture_output=True, text=True, cwd=project, env={**os.environ, **self.env})
+                             capture_output=True, text=True, cwd=project, env=env)
+        self.assertEqual(run.returncode, 0, run.stderr or run.stdout)
         plan = json.loads(run.stdout)
         self.assertEqual((plan["engine"], plan["read_only"]), ("AUDIT", True))
         self.assertTrue(all(row["available"] for row in plan["skills"] if row["skill"].startswith("gaie-")))
+        self.assertFalse((project / ".engineering/gaie/__pycache__").exists())
         run = subprocess.run([sys.executable, ".engineering/gaie/gaie_inventory.py", "."], capture_output=True, text=True, cwd=project)
         self.assertTrue(json.loads(run.stdout)["signals"]["hub_linked"])
 

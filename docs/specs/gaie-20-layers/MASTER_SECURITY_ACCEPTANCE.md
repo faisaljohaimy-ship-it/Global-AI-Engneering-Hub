@@ -1,7 +1,8 @@
 # MASTER security acceptance
 
 This revision hardens the existing MASTER routes, tools and workspace launcher.
-A route describes a plan. The operator still issues the actual scoped grant.
+Natural-language routes never issue write grants, even with a verified workspace.
+A trusted operator separately approves and dispatches a scoped write.
 
 ## Required behavior
 

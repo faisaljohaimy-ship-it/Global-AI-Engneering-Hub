@@ -56,14 +56,14 @@ and `motions` at run time.
 - «لا تنشر», "do not deploy" and similar put that operation in `prohibited`.
 - `--workspace DIR` checks the worktree and branch for an existing target or a
   dedicated workspace for a new project. An operation with write intent remains
-  a plan until the workspace passes validation and the host grants the
-  operation and paths.
+  a plan even when the workspace passes validation. A trusted operator
+  separately authorizes a scoped launch. The router never authorizes writes.
 - Registries are refused when an alias contains a command word or matches inside
   another project's alias.
 - `repository_verified` is always false in a plan: reachability is checked by the
   agent in its environment.
 - Route version 2 also gives the control-plane `engine_id`, the agent `roles`,
-  `capabilities`, a least-privilege `grant_template`, the `execution_scope`, the
+  `capabilities`, a read-only audit `grant_template`, the `execution_scope`, the
   `tests` and `evidence` to save, and the registry's `repository_check`. A route is
   never executable by itself (`executable_by_route: false`).
 - Hard rules enforced in code: audit is read-only (`max_side_effect: none`). Speed-up,

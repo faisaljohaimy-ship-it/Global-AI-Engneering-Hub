@@ -6,8 +6,9 @@ argument-hint: "[what to build]"
 
 1. If no router plan is in context, run `gaie-master-router` first with the owner's
    words. Continue with a plan only when it returns `engine: MASTER_BUILD`.
-   Before writing, require `write_allowed: true` for the resolved, dedicated
-   new-project workspace and a host grant that confines writes there.
+   Validate the dedicated new-project workspace. The route grants no writes.
+   A trusted operator must separately approve the assignment and confine the
+   command to that workspace using the existing workspace supervisor.
 2. Read the master prompt and follow it phase by phase (A requirements, B repository,
    C architecture, D full stack, E AI, F design and motion, G verified release). Use
    the first that exists: `prompts/MASTER_BUILD.md` (hub checkout),

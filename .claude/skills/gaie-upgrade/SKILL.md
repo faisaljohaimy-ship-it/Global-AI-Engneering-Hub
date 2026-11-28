@@ -8,7 +8,7 @@ argument-hint: "[project] [scope]"
    words; continue only when it returns `engine: MASTER_UPGRADE` with a resolved
    target. Honour its `scope` (comprehensive, focused, performance, self-healing).
 2. Work only in the verified target's isolated worktree. Before each workstream's
-   write, require `write_allowed: true`, a matching target and branch, and a
+   write, require explicit operator approval, a matching target and branch, and a
    host grant limited to its assigned paths. Stop at planning when the
    workspace or the grant is missing.
 3. Read the master prompt and follow its steps in order. Use the first that exists:

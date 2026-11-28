@@ -541,7 +541,7 @@ def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, str
             "env_names": sorted(env), "status_fd": status_w, "strict": strict}
     argv = [unshare, "--user", "--map-root-user", "--mount", "--propagation", "private",
             "--pid", "--fork", "--kill-child"] + ([] if network else ["--net"]) + [
-            "--", sys.executable, "-I", "-S", "-c", _BOOT, ROOT, json.dumps(spec)]
+            "--", sys.executable, "-I", "-B", "-S", "-c", _BOOT, ROOT, json.dumps(spec)]
     try:
         proc, out, err, limit = _launch(argv, cwd="/", env=env, timeout=timeout, limits=limits,
                                         net_in_child=False, pass_fds=(status_w,))
@@ -990,7 +990,7 @@ def isolation_report():
              "result": probe["root_netns"]},
             {"name": "full sandbox walls, checked from inside and from the host",
              "command": ("unshare --user --map-root-user --mount --propagation private --pid --fork --kill-child "
-                         "--net -- python3 -I -S -c <governor._sandbox_init> <spec>; then python3 -I -S -c <probe>"),
+                         "--net -- python3 -I -B -S -c <governor._sandbox_init> <spec>; then python3 -I -S -c <probe>"),
              "result": checks},
         ],
         "enforced": {

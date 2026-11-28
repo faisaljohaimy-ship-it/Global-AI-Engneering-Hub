@@ -21,7 +21,7 @@ acceptance criterion has passing evidence.
    capability which does not run. Label inactive integrations as inactive.
 6. Report in the owner's language. Never invent results; state what was not verified.
 7. Validate a dedicated empty new-project workspace before the first write. Require
-   a write-enabled route for that workspace and a host grant limited to it. If
+   separate operator approval and a host grant limited to that workspace. If
    either check fails, deliver the plan and the exact blocker.
 
 ## Phase A — Requirements intelligence

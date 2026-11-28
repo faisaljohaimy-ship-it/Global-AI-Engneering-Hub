@@ -9,8 +9,8 @@ self-healing, media). It always starts from the current state of the system.
 ## Operating rules
 
 1. Confirm the exact target and validate its isolated worktree with
-   `route --workspace`. Require `write_allowed: true`, the matching repository and
-   branch, and a host grant restricted to that worktree before a write. For an
+   `route --workspace`. Require separate operator approval, the matching repository
+   and branch, and a host grant restricted to that worktree before a write. For an
    audit, use the read-only course from the router.
 2. Preserve what works. Do not replace a sound component without an engineering
    reason. Do not delete a function, file or asset before proving it is unused and
