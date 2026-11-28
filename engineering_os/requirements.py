@@ -43,14 +43,15 @@ SPEC_KEYS = {"schema", "mode", "source", "title", "slug", "product_type", "domai
              "relations", "features", "nfr", "ai", "integrations", "constraints", "open_questions"}
 SPEC_OPTIONAL = {"intent", "assumptions"}
 
-_ENTITY = re.compile(r"^[A-Z][A-Za-z0-9]{0,62}$")
-_SNAKE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
-_KEBAB = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
-_FEATURE_ID = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$")
-_ROLE = re.compile(r"^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$")
-_QUESTION = re.compile(r"^[a-z_]+(?::[A-Za-z0-9_-]+)?$")
-_HEX = re.compile(r"^[0-9a-f]{64}$")
-_ACCEPTANCE = re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?$")
+# \Z, not $: "$" also matches before a trailing newline ("Task\n" would validate).
+_ENTITY = re.compile(r"^[A-Z][A-Za-z0-9]{0,62}\Z")
+_SNAKE = re.compile(r"^[a-z][a-z0-9_]{0,62}\Z")
+_KEBAB = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
+_FEATURE_ID = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*\Z")
+_ROLE = re.compile(r"^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*\Z")
+_QUESTION = re.compile(r"^[a-z_]+(?::[A-Za-z0-9_-]+)?\Z")
+_HEX = re.compile(r"^[0-9a-f]{64}\Z")
+_ACCEPTANCE = re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?\Z")
 _SENTENCES = re.compile(r"[.;!?\n\r؛؟۔]+")
 _CLAUSES = re.compile(r"[,،:()\[\]{}]+")
 _ARABIC = re.compile("[ء-ي]")
@@ -779,13 +780,14 @@ def _analyse(text, index, control):
     """
     sentences = []
     for raw_sentence in _SENTENCES.split(text):
-        hits, words = [], []
+        hits, words, spans = [], [], []
         for raw_clause in _CLAUSES.split(raw_sentence):
             tokens = _words(raw_clause)
             if not tokens:
                 continue
             offset, clause = len(words), (len(sentences), len(words))
             words.extend(tokens)
+            spans.append((offset, offset + len(tokens)))
             candidates = sorted(_scan(tokens, index), key=lambda h: (-h[1], h[2]["rank"], h[0], h[2]["order"]))
             taken, chosen = [False] * len(tokens), []
             for start, size, row in candidates:
@@ -814,8 +816,29 @@ def _analyse(text, index, control):
                              "negated": negated, "mode": mode, "owner_only": owner_only, "clause": clause})
             hits.extend({"cat": "signal:" + cat, "key": cat, "pos": offset + s, "end": offset + s + n, "negated": False,
                          "mode": "add", "owner_only": True, "clause": clause} for s, n, cat in signals)
-        sentences.append({"hits": hits, "raw": words})
+        sentences.append({"hits": hits, "raw": words, "clauses": spans})
     return sentences
+
+
+# Words that name a locale or a role inside a removal or negation ("remove the Arabic locale",
+# "without english", «بدون الإنجليزية», "remove the user role", «احذف دور المستخدم»), and the
+# filler words allowed between the remove/negation word and that name. Matched on router-normalized
+# tokens with the same clitic/plural variants as the lexicon.
+_LANGUAGE_NAMES = {"ar": ("arabic", "عربي", "عربية", "العربية"),
+                   "en": ("english", "إنجليزي", "إنجليزية", "الإنجليزية", "انجليزي", "انجليزية", "إنكليزي", "إنكليزية")}
+_ROLE_WORDS = ("role", "roles", "دور", "أدوار", "الدور", "الأدوار")
+_REMOVAL_FILLERS = ("the", "a", "an", "any", "both", "and", "or", "nor", "in", "use", "using", "language", "languages",
+                    "locale", "locales", "interface", "ui", "version", "support", "translation", "translations", "اللغة",
+                    "لغة", "اللغتين", "واجهة", "الواجهة", "النسخة", "نسخة", "دعم", "ترجمة")
+
+
+def _normalized(words):
+    return frozenset(token for word in words for token in _words(word))
+
+
+_LANGUAGE_TOKENS = {key: _normalized(words) for key, words in _LANGUAGE_NAMES.items()}
+_ROLE_TOKENS = _normalized(_ROLE_WORDS)
+_FILLER_TOKENS = _normalized(_REMOVAL_FILLERS)
 
 
 # --------------------------------------------------------------------------- builder
@@ -836,6 +859,14 @@ _Q = {
     "ai_provider": ("الذكاء الاصطناعي يحتاج نموذجًا: نموذج محلي، أم واجهة مدفوعة بموافقة المالك، أم حذف الجزء الذكي؟",
                     "AI needs a model: a local model, an owner-approved paid API, or drop the AI part?"),
     "integration": ("«{name}» خدمة مدفوعة: هل توافق عليها أم تُستبعد؟", "'{name}' is a paid service: approve or exclude it?"),
+    "locale_removal": ("الأمر ينفي اللغة «{name}» في تعديل نظام قائم: هل تُحذف هذه اللغة من النظام أم تبقى؟",
+                       "The command negates the locale '{name}' of an existing system: remove it or keep it?"),
+    "locale_needed": ("«{name}» هي اللغة الوحيدة للنظام فلا يمكن حذفها: أكّد إبقاءها أو أضف لغة أخرى في الأمر.",
+                      "'{name}' is the only locale of the system and cannot be removed: confirm keeping it, or add another locale in the command."),
+    "role_removal": ("الأمر ينفي الدور «{name}» في تعديل نظام قائم: هل يُحذف هذا الدور أم يبقى؟",
+                     "The command negates the role '{name}' of an existing system: remove it or keep it?"),
+    "role_needed": ("الدور «{name}» لا يُحذف: هو الدور الوحيد أو دور الصلاحيات الكاملة (*) الوحيد. أكّد إبقاءه.",
+                    "The role '{name}' cannot be removed: it is the only role or the only full-permission (*) role. Confirm keeping it."),
 }
 _A = {
     "domain-pack": ("طُبّقت حزمة المجال «{name}» الإصدار {version} بكياناتها الافتراضية: {entities}.",
@@ -884,7 +915,7 @@ class _Builder:
         self.base, self.base_sha = base, base_sha
         self.questions, self.assumptions = {}, {}
         self.excluded = {"entity": set(), "feature": set(), "integration": set(), "ai": False}
-        self.touched, self.added = [], []
+        self.touched, self.added, self.removed_roles = [], [], []
         self.generic = []
 
     # -- questions and assumptions
@@ -1079,8 +1110,10 @@ class _Builder:
 
     def apply(self, spec, sentences, pack, change):
         mentions = {key: [] for key in ("integration", "ai", "role", "nfr", "product", "database", "locale")}
+        removals, role_words = self.removal_requests(spec, sentences)
         for sentence in sentences:
-            hits = [h for h in sentence["hits"] if not h["cat"].startswith("signal:")]
+            hits = [h for h in sentence["hits"] if not h["cat"].startswith("signal:")
+                    and not (h["cat"] == "entity" and (h["clause"][0], h["pos"]) in role_words)]
             # "remove X from Y" / "without X for Y": Y only names the owner of the removed X.
             targets = {(h["clause"], h["mode"], h["negated"]) for h in hits if h["cat"] in ("field", "feature")}
             owners = []
@@ -1100,8 +1133,8 @@ class _Builder:
         self.relations(spec)
         self.products(spec, mentions["product"], pack, change)
         self.databases(spec, mentions["database"])
-        self.locales(spec, mentions["locale"], change)
-        self.roles(spec, mentions["role"])
+        self.locales(spec, mentions["locale"], change, removals["locale"])
+        self.roles(spec, mentions["role"], change, removals["role"])
         self.integrations(spec, mentions["integration"], change)
         self.ai(spec, mentions["ai"], change)
         self.features(spec, pack, change)
@@ -1265,21 +1298,118 @@ class _Builder:
             if answer:
                 spec["constraints"]["database"] = answer
 
-    def locales(self, spec, hits, change):
-        found = sorted({h["key"] for h in hits if not h["negated"]})
+    def locales(self, spec, hits, change, removals=()):
+        found = sorted({h["key"] for h in hits if not h["negated"] and h["mode"] == "add"})
         if len(found) == 1:
             spec["locales"] = found
         elif not change:
             self.note("locales-default", name=spec["locales"])
+        for key, how in removals:
+            if key not in spec["locales"]:
+                continue  # already absent: the request holds
+            if len(spec["locales"]) == 1:
+                self.ask("locale_needed", ["keep"], key, key)
+                continue
+            if how == "negated" and change and self.ask("locale_removal", ["remove", "keep"], key, key) != "remove":
+                continue
+            spec["locales"] = [locale for locale in spec["locales"] if locale != key]
+            self.note("removed" if change else "excluded", "locale-" + key, name=key)
 
-    def roles(self, spec, hits):
+    def roles(self, spec, hits, change=False, removals=()):
         present = {r["id"] for r in spec["roles"]}
+        dropped = {key for key, _ in removals}
         for hit in hits:
-            if hit["negated"] or hit["key"] in present:
+            if hit["negated"] or hit["mode"] == "remove" or hit["key"] in present or hit["key"] in dropped:
                 continue
             row = next(r for r in self.lexicon["roles"] if r["id"] == hit["key"])
             spec["roles"].append({"id": row["id"], "label": copy.deepcopy(row["label"]), "permissions": list(row["permissions"])})
             present.add(row["id"])
+        for key, how in removals:
+            role = next((r for r in spec["roles"] if r["id"] == key), None)
+            if role is None:
+                continue
+            others = [r for r in spec["roles"] if r["id"] != key]
+            if not others or ("*" in role["permissions"] and not any("*" in r["permissions"] for r in others)):
+                self.ask("role_needed", ["keep"], key, key)
+                continue
+            if how == "negated" and change and self.ask("role_removal", ["remove", "keep"], key, key) != "remove":
+                continue
+            spec["roles"] = others
+            self.removed_roles.append(key)
+            self.note("removed" if change else "excluded", "role-" + key, name=key)
+
+    def removal_requests(self, spec, sentences):
+        """Locales and roles that a removal ("remove the Arabic locale") or a negation ("without english")
+        names directly; also the (sentence, position) of each role name, which then names no entity.
+
+        A name counts only when it follows the remove/negation word in the same clause with nothing but
+        filler words in between (a remove word only at a command position, as in _analyse) and ends the
+        clause or is followed by a filler, a role word or another name ("no arabic title" names a field,
+        not the locale). A role name needs the word role/دور next to it unless it is a lexicon role keyword.
+        """
+        removals, role_words = {"locale": [], "role": []}, set()
+        lexicon_roles = {row["id"]: row for row in self.lexicon["roles"]}
+        phrases = []
+        for role in spec["roles"]:
+            words = [role["id"].replace("-", " ").replace("_", " ")]
+            if isinstance(role.get("label"), dict):
+                words += [role["label"][lang] for lang in LOCALES if role["label"].get(lang)]
+            keywords = lexicon_roles[role["id"]]["keywords"] if role["id"] in lexicon_roles else {}
+            words += [w for lang in LOCALES for w in keywords.get(lang, [])]
+            for word in words:
+                phrase = tuple(_words(word))
+                if phrase:
+                    phrases.append((phrase, role["id"], word in [w for lang in LOCALES for w in keywords.get(lang, [])]))
+        phrases.sort(key=lambda row: -len(row[0]))
+        for index, sentence in enumerate(sentences):
+            words = sentence["raw"]
+            variants = [_variants(word) for word in words]
+            signals = [h for h in sentence["hits"] if h["cat"] in ("signal:remove", "signal:negations", "signal:coordinators")]
+            for start, end in sentence.get("clauses", []):
+                coordinators = {h["pos"] for h in signals if h["key"] == "coordinators" and start <= h["pos"] < end}
+                for signal in (h for h in signals if h["key"] in ("remove", "negations") and start <= h["pos"] < end):
+                    s = signal["pos"]
+                    if signal["key"] == "remove" and not (s == start or (s - 1) in coordinators or words[s][:1] in "وف"):
+                        continue
+                    how = "remove" if signal["key"] == "remove" else "negated"
+                    q, role_word = signal["end"], False
+
+                    def free(k):  # the name ending before k modifies nothing after it
+                        return k >= end or bool(variants[k] & (_FILLER_TOKENS | _ROLE_TOKENS)) or any(
+                            variants[k] & tokens for tokens in _LANGUAGE_TOKENS.values())
+
+                    while q < end:
+                        if variants[q] & _ROLE_TOKENS:
+                            role_word, q = True, q + 1
+                            continue
+                        language = next((key for key, tokens in _LANGUAGE_TOKENS.items() if variants[q] & tokens), None)
+                        if language is not None:
+                            if not free(q + 1):
+                                break
+                            removals["locale"].append((language, how))
+                            q += 1
+                            continue
+                        match = next((row for row in phrases if q + len(row[0]) <= end
+                                      and all(row[0][k] in variants[q + k] for k in range(len(row[0])))), None)
+                        if match is not None:
+                            after = q + len(match[0])
+                            if (role_word or match[2] or (after < end and variants[after] & _ROLE_TOKENS)) and free(after):
+                                removals["role"].append((match[1], how))
+                                role_words.update((index, k) for k in range(q, after))
+                            q = after
+                            continue
+                        if variants[q] & _FILLER_TOKENS:
+                            q += 1
+                            continue
+                        break
+        for key in removals:
+            seen, unique = set(), []
+            for item in removals[key]:
+                if item[0] not in seen:
+                    seen.add(item[0])
+                    unique.append(item)
+            removals[key] = unique
+        return removals, role_words
 
     def integrations(self, spec, hits, change):
         for hit in hits:
@@ -1439,11 +1569,11 @@ class _Builder:
         for feature in new:
             if all(f["id"] != feature["id"] for f in spec["features"]):
                 spec["features"].append(feature)
-        if "ui-locales" in present:
-            for feature in self.common(spec, pack):
-                if feature["id"] == "ui-locales":
-                    index = next(i for i, f in enumerate(spec["features"]) if f["id"] == "ui-locales")
-                    spec["features"][index] = feature
+        regenerate = {"ui-locales"} | ({"rbac"} if self.removed_roles else set())
+        for feature in self.common(spec, pack):
+            if feature["id"] in regenerate and feature["id"] in present:
+                index = next(i for i, f in enumerate(spec["features"]) if f["id"] == feature["id"])
+                spec["features"][index] = feature
 
     def fields_intact(self, spec, pack, feature):
         """False when a pack criterion names a pack field its entity no longer has (excluded or removed)."""
@@ -1491,7 +1621,8 @@ class _Builder:
         for qid in unused:  # refine(): an earlier answer made this question moot (e.g. intent=change)
             self.note("answer-moot", qid, name=f"{qid}={self.answers.pop(qid)}")
         order = ["intent", "base", "domain", "product_type", "database", "field_entity", "remove_field", "feature_entity",
-                 "relation", "ai_use_case", "ai_provider", "integration"]
+                 "relation", "ai_use_case", "ai_provider", "integration", "locale_removal", "locale_needed", "role_removal",
+                 "role_needed"]
         questions = sorted(self.questions.values(), key=lambda q: (order.index(q["id"].split(":")[0]), q["id"]))
         source = {"command": self.text, "language": self.language, "sha256": _text_sha(self.text),
                   "answers": {k: self.answers[k] for k in sorted(self.answers)}, "knowledge_sha256": self.knowledge["sha256"]}
@@ -1622,6 +1753,14 @@ def diff_specs(old, new):
                     breaking.append({"kind": "enum-values-removed", "entity": name, "field": field, "values": lost})
                 if after[field].get("unique") and not before[field].get("unique"):
                     breaking.append({"kind": "field-now-unique", "entity": name, "field": field})
+                if before[field]["type"] == after[field]["type"]:  # a tighter bound can reject stored values
+                    for bound, tighter in (("max", lambda old, new: new < old), ("min", lambda old, new: new > old)):
+                        old_bound, new_bound = before[field].get(bound), after[field].get(bound)
+                        if bound == "min" and after[field]["type"] in ("text", "email"):  # no min = length 0
+                            old_bound = 0 if old_bound is None else old_bound
+                        if new_bound is not None and (old_bound is None or tighter(old_bound, new_bound)):
+                            breaking.append({"kind": "field-tightened", "entity": name, "field": field,
+                                             "constraint": bound, "before": old_bound, "after": new_bound})
         other = {k: v for k, v in old_entities[name].items() if k != "fields"} != {k: v for k, v in new_entities[name].items() if k != "fields"}
         if any(change["fields"].values()) or other:
             change["meta_changed"] = other

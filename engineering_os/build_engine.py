@@ -131,7 +131,24 @@ EXPECTATIONS = (
 )
 _CONDITIONS = [(key, re.compile(pattern)) for key, pattern in CONDITIONS]
 _EXPECTATIONS = [(key, re.compile(pattern)) for key, pattern in EXPECTATIONS]
-GRAMMAR = re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?$")
+# Route kind -> (conditions, expectations) its check_<kind> handler in tests/test_acceptance.py
+# actually exercises (None = no condition / no expectation). The template keeps the same
+# table (EXERCISED) and fails a generated test whose criterion falls outside it.
+HANDLED = {
+    "page": ((None,), (None, "html-dir-lang", "html-labels")),
+    "login": ((None, "valid-credentials", "wrong-password"), (None, "session-cookie")),
+    "logout": ((None, "without-session"), (None, "session-revoked")),
+    "collection": ((None, "valid-body", "without-session", "without-field", "field-value", "longer-than",
+                    "missing-reference", "duplicate", "as-role", "reference-existing"),
+                   (None, "record", "lists-created", "only-assigned", "only-overdue", "only-field-value",
+                    "ordered-nulls-last")),
+    "item": ((None, "valid-body", "without-session", "field-value", "field-value-while-linked", "longer-than",
+              "missing-reference", "unknown-id", "as-role", "reference-existing"), (None, "record")),
+    "progress": ((None, "without-session", "parent-without-children"), (None, "progress", "percent-zero")),
+    "children": ((None, "without-session"), (None, "only-children")),
+    "link": ((None, "without-session", "link-existing", "link-duplicate"), (None, "membership")),
+}
+GRAMMAR =re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?$")
 
 
 class BuildError(ValueError):
@@ -509,6 +526,30 @@ def _scoping(spec, model):
             continue
         link = next((l for l in entity["links"] if l["entity"] == principal["entity"]), None)
         if link is not None:
+            # The generated row filter follows every reference chain that leads to the scoped
+            # entity (app/db.py Scope); refuse a model whose filter would grow without bound.
+            by_name = {item["name"]: item for item in model["entities"]}
+            leads, grew = {entity["name"]}, True
+            while grew:
+                grew = False
+                for item in model["entities"]:
+                    if item["name"] not in leads and any(ref["entity"] in leads for ref in item["references"]):
+                        leads.add(item["name"])
+                        grew = True
+
+            def chains(name, path):
+                if name == entity["name"]:
+                    return 1
+                total = 0
+                for ref in by_name[name]["references"]:
+                    if ref["entity"] in leads and ref["entity"] not in path and total <= 32:
+                        total += chains(ref["entity"], path | {name})
+                return total
+
+            for item in model["entities"]:
+                _need(chains(item["name"], frozenset()) <= 32,
+                      f"scoping on {entity['name']}: {item['name']} reaches it through more than 32 reference chains; "
+                      "the generated row filter would be unbounded; simplify the relations", UnsupportedSpec)
             return {"entity": entity["name"], "link_table": link["link_table"], "statement": text}
     return None
 
@@ -602,10 +643,10 @@ def _resolve(model, locales, roles, check):
             if rule not in model["rules"]["completion"]:
                 model["rules"]["completion"].append(rule)
     elif cond == "longer-than":
-        need(cg["field"] in fields and fields[cg["field"]]["type"] in ("text", "email") and method in ("POST", "PUT", "PATCH"),
-             "text field")
+        need(kind in ("collection", "item") and cg["field"] in fields and fields[cg["field"]]["type"] in ("text", "email")
+             and method in ("POST", "PUT", "PATCH"), "text field")
     elif cond == "missing-reference":
-        need(cg["field"] in refs and method in ("POST", "PUT", "PATCH"), "reference")
+        need(kind in ("collection", "item") and cg["field"] in refs and method in ("POST", "PUT", "PATCH"), "reference")
     elif cond == "unknown-id":
         need(kind == "item", "item")
     elif cond == "duplicate":
@@ -616,8 +657,8 @@ def _resolve(model, locales, roles, check):
         need(kind == "login", "login")
     elif cond == "reference-existing":
         target = _entity_by_word(model, cg["entity"])
-        need(cg["field"] in refs and target is not None and refs[cg["field"]]["entity"] == target["name"]
-             and method in ("POST", "PUT", "PATCH"), "reference target")
+        need(kind in ("collection", "item") and cg["field"] in refs and target is not None
+             and refs[cg["field"]]["entity"] == target["name"] and method in ("POST", "PUT", "PATCH"), "reference target")
         cg["entity"] = target["name"]
     elif cond in ("link-existing", "link-duplicate"):
         need(kind == "link" and (cond == "link-duplicate" or cg["field"] == route["link"]["target_key"]), "link")
@@ -629,6 +670,8 @@ def _resolve(model, locales, roles, check):
         need(method in ("POST", "PUT", "PATCH") and kind in ("collection", "item"), "record")
     elif exp == "lists-created":
         need(kind == "collection" and method == "GET" and not query, "list")
+    elif exp in ("only-field-value", "only-assigned", "only-overdue", "ordered-nulls-last") and method != "GET":
+        raise KeyError(f"expectation {exp} is a list check; it needs GET, not {method}")
     elif exp == "only-field-value":
         field = fields.get(eg["field"])
         need(kind == "collection" and field is not None and field["type"] == "enum" and eg["value"] in field["values"]
@@ -680,6 +723,9 @@ def _resolve(model, locales, roles, check):
         need(kind == "page", "page")
     elif exp is not None:
         raise KeyError(f"expectation {exp}")
+    conditions, expectations = HANDLED[kind]
+    need(cond in conditions and exp in expectations,
+         f"the generated {kind} test does not exercise {cond or 'no condition'} with {exp or 'no expectation'}")
     return route, cg, eg
 
 
@@ -794,47 +840,64 @@ LOCALE_WORDS = {
 
 
 def _nfr_rules(model, locales):
-    """(pattern, evidence) pairs for non-functional statements; evidence only for what was generated."""
+    """Reviewed statement forms -> the evidence that covers exactly that statement.
+
+    Each pattern must match the WHOLE statement (case-insensitive; the forms are the ones
+    engineering_os.requirements writes, governance/domains/). A statement that is not one
+    of these forms is unmapped, so a keyword inside a longer statement (multi-factor
+    sign-in, session expiry, password rotation, rate limits, audit logs, page render
+    times ...) never borrows evidence from an unrelated passing test. Optional checks
+    compare the stated numbers with what the generated tests measure.
+    """
     dates = any(f["type"] == "date" for e in model["entities"] for f in e["fields"])
+    numbers = model["nfr"]
     rules = [
-        (r"\bsecrets?\b|credential", ["static:security:secrets"]),
-        (r"parameteri[sz]ed|sql injection|prepared statement", [API_ID + "test_sql_injection_is_inert"]),
-        (r"security headers?|\bcsp\b|content-security|frame-ancestors|nosniff|clickjacking",
-         [API_ID + "test_security_headers", "e2e:headers", "e2e:csp"]),
-        (r"\bcsrf\b", [API_ID + "test_csrf_token_required", API_ID + "test_cross_origin_write_refused"]),
-        (r"cross-origin|same-origin|cross-site", [API_ID + "test_cross_origin_write_refused"]),
-        (r"\bp95\b|latency|response time", [API_ID + "test_list_latency_budget"]),
-        (r"paginat", [API_ID + "test_pagination_limits"]),
-        (r"keyboard", ["e2e:keyboard"]),
-        (r"\bfocus\b", ["e2e:focus-indicator"]),
-        (r"\blabels?\b|accessib\w*|screen reader|aria", ["e2e:labels"]),
-        (r"size limit|payload|too large|\b413\b", [API_ID + "test_oversized_body_refused"]),
-        (r"no network|offline|external request|\bcdn\b|third-party request", ["e2e:no-external-requests"]),
-        (r"synthetic|\bseed", [API_ID + "test_seed_is_synthetic"]),
-        (r"migration|rollback|\bschema\b", [MIGRATION_ID + name for name in MIGRATION_TESTS] + ["static:database:migration"]),
-        (r"password|pbkdf2|hash", [API_ID + "test_passwords_are_salted_pbkdf2", API_ID + "test_login_lockout"]),
-        (r"role check|every endpoint|\brbac\b|permission", [API_ID + "test_role_check_on_every_endpoint",
-                                                            API_ID + "test_unauthenticated_requests_refused"]),
-        (r"\bsessions?\b|sign[ -]?in|log[ -]?in", [API_ID + "test_login_logout_cycle"]),
-        (r"input validation|validate input|validation on every", ["@validation"]),
+        (r"no secrets in (?:the )?(?:repo|repository)", ["static:security:secrets"], None),
+        (r"parameteri[sz]ed sql(?: only)?", [API_ID + "test_sql_injection_is_inert"], None),
+        (r"input validation(?: on every write endpoint)?", ["@validation"], None),
+        (r"role check on every endpoint", [API_ID + "test_role_check_on_every_endpoint",
+                                           API_ID + "test_unauthenticated_requests_refused"], None),
+        (r"csrf token on cookie sessions", [API_ID + "test_csrf_token_required", API_ID + "test_cross_origin_write_refused",
+                                            API_ID + "test_login_logout_cycle"], None),
+        (r"passwords stored as salted pbkdf2-sha256 hashes", [API_ID + "test_passwords_are_salted_pbkdf2"], None),
+        (r"rate limit on sign-in \(5 failures per 15 minutes\)", [API_ID + "test_login_lockout"], None),
+        (r"p95 api latency < (?P<ms>\d{1,5}) ms locally(?: with (?P<records>[\d,]{1,9}) records)?",
+         [API_ID + "test_list_latency_budget"],
+         lambda m: int(m["ms"]) == numbers["p95_ms"]
+         and (m["records"] is None or int(m["records"].replace(",", "")) == numbers["latency_records"])),
+        (r"list endpoints paginated(?: \(default (?P<default>\d{1,4}), max (?P<max>\d{1,4})\))?",
+         [API_ID + "test_pagination_limits"],
+         lambda m: m["default"] is None or (int(m["default"]), int(m["max"])) == (numbers["page_size"],
+                                                                                   numbers["max_page_size"])),
+        (r"keyboard navigable", ["e2e:keyboard"], None),
+        (r"labels on form fields", ["e2e:labels"], None),
+        (r"visible focus indicator", ["e2e:focus-indicator"], None),
     ]
-    if model["rules"]["progress"]:
-        rules.append((r"aggregate query", [API_ID + "test_progress_uses_one_aggregate_query"]))
+    for rule in model["rules"]["progress"]:
+        entity = next(e for e in model["entities"] if e["name"] == rule["parent"])
+        forms = sorted({entity["name"].casefold(), entity["table"].replace("_", " "),
+                        model["labels"]["en"]["entities"][entity["name"]]["singular"].casefold()})
+        rules.append((r"(?:" + "|".join(re.escape(form) for form in forms) + r") progress computed with one aggregate query",
+                      [API_ID + "test_progress_uses_one_aggregate_query"], None))
     if model["auth"]["scoping"]:
-        rules.append((r"see only .* belong to", [API_ID + "test_scoped_roles_see_only_their_records"]))
+        rules.append((re.escape(model["auth"]["scoping"]["statement"].strip()),
+                      [API_ID + "test_scoped_roles_see_only_their_records"], None))
     if dates:
-        rules.append((r"iso-?8601|displayed per locale", [VALIDATION_ID + "test_dates_are_strict"]
-                      + [f"e2e:{loc}:dates" for loc in locales]))
+        rules.append((r"dates stored as iso-8601 and displayed per locale", [VALIDATION_ID + "test_dates_are_strict"]
+                      + [f"e2e:{loc}:dates" for loc in locales], None))
     for loc in locales:
-        rules.append((rf"^{loc} {DIRECTION[loc]}$", [f"e2e:{loc}:language", API_ID + "test_pages_follow_requested_locale"]))
-    return [(re.compile(pattern, re.I), ids) for pattern, ids in rules]
+        rules.append((rf"{loc} {DIRECTION[loc]}", [f"e2e:{loc}:language", API_ID + "test_pages_follow_requested_locale"],
+                      None))
+    return [(re.compile(pattern, re.I), ids, check) for pattern, ids, check in rules]
 
 
 def map_statement(model, locales, text):
-    """Evidence ids for one non-functional statement (keyword rules; [] when nothing fits)."""
+    """Evidence ids for one non-functional statement ([] = unmapped: no reviewed form fits it whole)."""
+    statement = " ".join(str(text).split())
     evidence = set()
-    for pattern, ids in _nfr_rules(model, locales):
-        if pattern.search(text):
+    for pattern, ids, check in _nfr_rules(model, locales):
+        found = pattern.fullmatch(statement)
+        if found and (check is None or check(found)):
             evidence.update(ids)
     if "@validation" in evidence:
         evidence.discard("@validation")
@@ -2093,14 +2156,28 @@ def request_repository(app_dir, *, spec=None, moment=None):
     return request
 
 
-def check_approval(grant, token, *, now=None):
-    """Validate an owner approval for master-build/publish (external-write). Raise ApprovalRequired."""
+def check_approval(grant, token, *, now=None, app_dir=None):
+    """Validate an owner approval for master-build/publish (external-write). Raise ApprovalRequired.
+
+    With `app_dir`, the application directory (symlinks resolved) must lie inside one of the
+    grant's `paths` (CONTRACTS.md §4; relative grant paths resolve against the current
+    directory, as in engineering_os.governor); otherwise the refusal carries
+    `outside_grant = True` and the caller writes nothing there.
+    """
     if grant is None or token is None:
         raise ApprovalRequired("publishing is external-write: an owner approval grant and token are required")
     try:
         contracts.validate_grant(grant)
     except contracts.ContractError as error:
         raise ApprovalRequired(f"invalid grant: {error}") from None
+    if app_dir is not None:
+        from . import governor
+        try:
+            governor._check_paths(grant, [os.fspath(app_dir)], None)
+        except governor.GovernorDenied:
+            refused = ApprovalRequired("the application directory is outside the grant's paths")
+            refused.outside_grant = True
+            raise refused from None
     moment = _now(now)
     expires = datetime.datetime.strptime(grant["expires_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
     if expires <= moment:
@@ -2152,13 +2229,13 @@ def publish(app_dir, *, remote, grant=None, token=None, now=None, environ=None):
     GitHub the project is recorded in the private registry.
     """
     app_dir = pathlib.Path(app_dir)
-    spec = json.loads((app_dir / ".gaie/spec.json").read_text(encoding="utf-8"))
-    try:
-        approval = check_approval(grant, token, now=now)
-    except ApprovalRequired:
-        if not (app_dir / REQUEST_FILE).is_file():
-            request_repository(app_dir, spec=spec)
+    try:  # the grant (and its paths) are checked before the application is read or written
+        approval = check_approval(grant, token, now=now, app_dir=app_dir)
+    except ApprovalRequired as refused:
+        if not getattr(refused, "outside_grant", False) and not (app_dir / REQUEST_FILE).is_file():
+            request_repository(app_dir, spec=json.loads((app_dir / ".gaie/spec.json").read_text(encoding="utf-8")))
         raise
+    spec = json.loads((app_dir / ".gaie/spec.json").read_text(encoding="utf-8"))
     url, kind = _remote(remote, spec["slug"])
     if _git(app_dir, "status", "--porcelain").stdout.strip():
         raise BuildError("the application working tree is not clean; commit before publishing")

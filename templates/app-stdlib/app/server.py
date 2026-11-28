@@ -349,7 +349,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if set(body) - {"email", "password"}:
             raise ApiError(400, "validation_failed", "only email and password are accepted")
         with db.session(self.app.db_path) as connection:
-            token, account = self.app.sessions.login(connection, body.get("email"), body.get("password"))
+            token, account = self.app.sessions.login(connection, body.get("email"), body.get("password"),
+                                                     source=self.client_address[0])
         max_age = int(self.app.sessions.hours * 3600)
         self._json(200, {"account": {"email": account["email"], "role": account["role"]},
                          "csrf_token": account["csrf_token"]}, (self._cookie(token, max_age),))
@@ -438,11 +439,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
             raise ApiError(403, "forbidden", "you can only change your own records")
         return stored
 
+    def _identity_unchanged(self, entity, account, stored, values):
+        """The principal record's e-mail decides which signed-in account it identifies (and so
+        which scoped records that account sees): once set, only a '*' role may change it."""
+        principal = self.schema.auth.get("principal")
+        if not principal or entity.name != principal["entity"] or "*" in self.schema.permissions(account["role"]):
+            return
+        field = principal["email_field"]
+        if values.get(field) != stored.get(field):
+            raise ApiError(403, "forbidden", f"only an administrator can change {field}: it identifies an account",
+                           fields={field: "read_only"})
+
     def _update(self, entity, record_id, account, scope, mode, partial):
         payload = self._body()
         with db.session(self.app.db_path) as connection:
             stored = self._owned(connection, entity, record_id, account, scope, mode)
         values = self._validated(entity, payload, base=stored if partial else None)
+        self._identity_unchanged(entity, account, stored, values)
         try:
             with db.session(self.app.db_path) as connection:
                 db.check_references(connection, self.schema, entity, values, scope)
@@ -476,39 +489,50 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._json(204, None)
 
     def _sub(self, method, entity, record_id, rest, query, account):
-        """/api/<collection>/{id}/<progress | link | child collection>[/{target id}]"""
+        """/api/<collection>/{id}/<progress | link | child collection>[/{target id}]
+
+        A link belongs to its parent record: adding one is a write on the parent and
+        removing one is a write and a delete on it. A `:own` permission covers only
+        parent records the account created, and both changes pass the CSRF and
+        same-origin checks, exactly like PATCH/DELETE of the parent itself. Reads first
+        authorize the parent exactly like GET of the parent itself (read:own included)
+        and then return only children, link targets and counts the role may read.
+        """
         name = rest[0]
         link = next((item for item in entity.links if item["segment"] == name), None)
         child = next((item for item in entity.children if item["collection"] == name), None)
         rule = next((item for item in self.schema.rules.get("progress", []) if item["parent"] == entity.name), None)
         if len(rest) == 2 and link is not None and RECORD_ID.fullmatch(rest[1]):
             self._only(method, ("DELETE",))
-            self._permit(account, "PUT")
+            modes = (self._permit(account, "PUT"), self._permit(account, "DELETE"))
         elif len(rest) == 1 and link is not None:
             self._only(method, ("GET", "HEAD", "POST"))
-            self._permit(account, "PUT" if method == "POST" else "GET")
+            modes = (self._permit(account, "PUT" if method == "POST" else "GET"),)
         elif len(rest) == 1 and (child is not None or (name == "progress" and rule is not None)):
             self._only(method, ("GET", "HEAD"))
-            self._permit(account, "GET")
+            modes = (self._permit(account, "GET"),)
         else:
             raise ApiError(404, "not_found", "no such resource")
-        scope = db.Scope(self.schema, account, account["principal_id"])
+        mode = "own" if "own" in modes else "all"
+        scope = db.Scope(self.schema, account, account["principal_id"], own=(method in SAFE_METHODS and mode == "own"))
         with db.session(self.app.db_path) as connection:
             if not db.visible(connection, entity, record_id, scope):
                 raise ApiError(404, "not_found", "no such record")
             if name == "progress" and link is None and child is None:
-                return self._json(200, {"id": record_id, **db.progress(connection, self.schema, rule, record_id)})
+                return self._json(200, {"id": record_id, **db.progress(connection, self.schema, rule, record_id, scope)})
         if child is not None and link is None:
             return self._list(child["entity"], query, scope, equals={child["field"]: record_id})
         if len(rest) == 2:
+            self._same_origin()
             with db.session(self.app.db_path) as connection:
+                self._owned(connection, entity, record_id, account, scope, mode)
                 removed = db.remove_link(connection, link, record_id, int(rest[1]))
             if not removed:
                 raise ApiError(404, "not_found", "no such link")
             return self._json(204, None)
         if method in SAFE_METHODS:
             with db.session(self.app.db_path) as connection:
-                items = db.link_targets(connection, self.schema, link, record_id)
+                items = db.link_targets(connection, self.schema, link, record_id, scope)
             return self._json(200, {"items": items, "total": len(items)})
         body = self._body()
         target = body.get(link["target_key"])
@@ -516,6 +540,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             raise ApiError(400, "validation_failed", "validation failed", fields={link["target_key"]: "required"})
         try:
             with db.session(self.app.db_path) as connection:
+                self._owned(connection, entity, record_id, account, scope, mode)
                 if not db.visible(connection, self.schema.by_name[link["entity"]], target, scope):
                     raise db.ReferenceMissing({link["target_key"]: "not_found"})
                 db.add_link(connection, link, record_id, target)

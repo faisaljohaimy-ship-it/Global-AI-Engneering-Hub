@@ -59,7 +59,11 @@ JSON over HTTP. Full reference: [docs/API.md](docs/API.md).
 ## Security
 
 - Accounts: e-mail + password stored as salted PBKDF2-HMAC-SHA256 (600,000 iterations);
-  sign-in lockout after 5 failures; sessions are random tokens (only their SHA-256 is
+  sign-in does the same hashing work for unknown e-mails; after 5 failed sign-ins within
+  15 minutes for one e-mail from one client address, that pair is refused (429) for a backoff
+  of 30 s that doubles with each further failure (at most 15 minutes), so nobody can lock an
+  account out from another address (behind a reverse proxy every client shares the proxy's
+  address: rate-limit there too); sessions are random tokens (only their SHA-256 is
   stored) in an `HttpOnly; SameSite=Strict` cookie that expires after 12 hours.
 - Every API route except `/api/health` and `/api/login` needs a session and the role
   permission for its method. Roles: @@ROLES@@.

@@ -61,6 +61,15 @@ owner text ──► gaie_router.route()           (which engine? build / upgrad
 8. **Mentions** — per sentence: entities (activate optional / adopt a *portable* entity of
    another pack / exclude / remove), fields, generic features, integrations, AI use cases,
    roles, NFR keywords, product type, database, locale.
+   A locale or role named right after a remove verb or a negation (only filler words such as
+   "the", "language", «اللغة» between, and the name ending the phrase — "no arabic title" names
+   a field) is removed: "remove the Arabic locale", «واحذف الإنجليزية», "without english",
+   «بدون الإنجليزية», "remove the user role", «احذف دور المستخدم», "without managers" (a role
+   needs the word role/دور next to it unless it is a lexicon role keyword; a role name is then
+   not read as an entity). A new system simply does not get it (`excluded:locale-<id>` /
+   `excluded:role-<id>`); a change removes it (`removed:…`, which `diff_specs` flags as
+   breaking). A negation in a change command, or a removal of the only locale, the only role or
+   the only `*` role, is never applied silently: it becomes the open question below.
    A field or feature attaches to the entity named right after it when a linking word joins
    them ("add priority **to** tasks", «أولوية **المهام**», «**للمهام**»), or to the entity
    before it when that entity "has" it ("tasks **with** priority", «المهام **مع** الأولوية»,
@@ -83,7 +92,9 @@ owner text ──► gaie_router.route()           (which engine? build / upgrad
 
 ## 3. `gaie.spec/1` reference
 
-The shape of `/home/user/gaie-state/SPEC_FORMAT.md`, with these additions (all validated):
+The shape of `/home/user/gaie-state/SPEC_FORMAT.md`, with these additions (all validated; every
+identifier pattern — PascalCase, snake_case, kebab-case, feature, role and question ids, SHA-256
+digests, acceptance criteria — must match the whole string, so a trailing newline is refused):
 
 | Key | Rule |
 |---|---|
@@ -121,6 +132,8 @@ plurals and `acceptance_ar` everywhere.
 | `ai_use_case` | lexicon use cases | `refine` |
 | `ai_provider` | `local-model`, `approved-paid-api`, `drop` | `refine` (`drop` removes the AI part) |
 | `integration:<id>` | `approve`, `exclude` | `refine` |
+| `locale_removal:<locale>` / `role_removal:<role>` | `remove`, `keep` | `refine` (a negation in a change command) |
+| `locale_needed:<locale>` / `role_needed:<role>` | `keep` | `refine` (the only locale, the only role or the only `*` role cannot be removed) |
 
 ## 4. Acceptance grammar (machine-checkable)
 
@@ -188,7 +201,7 @@ breaking[], summary{added, removed, changed, breaking}}`. Breaking kinds:
 `entity-removed`, `entity-path-changed`, `field-removed`, `required-field-added`,
 `field-type-changed`, `field-now-required`, `field-now-unique`, `enum-values-removed`,
 `relation-removed`, `relation-changed`, `required-relation-added`, `feature-removed`,
-`role-removed`, `locale-removed`. Upgrade flow: `new = parse(command, base=old)` →
+`role-removed`, `locale-removed`, `field-tightened` (same type, a lower `max`, a higher `min`, or a bound where there was none: `{constraint, before, after}`; a text field without `min` counts as `min` 0). Upgrade flow: `new = parse(command, base=old)` →
 `diff_specs(old, new)`.
 
 ## 7. Registration (for the integrator — not edited by L15)

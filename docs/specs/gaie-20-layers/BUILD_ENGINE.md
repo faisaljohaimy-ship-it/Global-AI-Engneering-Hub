@@ -37,7 +37,7 @@ publish(app, remote=…, grant=…, token=…)   gated external-write: push + pr
 | `compile_acceptance(spec, model)` | none | `(checks, unmapped)`; see §4. |
 | `evaluate(app_dir)` | none | Re-validates `.gaie/factory/receipts.json` against the app's current bytes. |
 | `request_repository(app_dir)` | workspace-write | Writes the repository request; never contacts GitHub. |
-| `publish(app_dir, *, remote, grant, token, now=None, environ=None)` | **external-write** | Needs a `contracts.validate_grant` grant for `master-build/publish` with `max_side_effect ≥ external-write`, not expired, and an approval whose `token_sha256` equals SHA-256 of `token`. Remote: `https://github.com/<owner>/<slug>(.git)` or a local bare repository (tests). After an approved GitHub push the project is registered in the private registry (`register_project`). |
+| `publish(app_dir, *, remote, grant, token, now=None, environ=None)` | **external-write** | Needs a `contracts.validate_grant` grant for `master-build/publish` with `max_side_effect ≥ external-write`, not expired, an approval whose `token_sha256` equals SHA-256 of `token`, and the application directory (symlinks resolved) inside one of the grant's `paths` — checked first; an application outside them is refused before anything is read, written or pushed. Remote: `https://github.com/<owner>/<slug>(.git)` or a local bare repository (tests). After an approved GitHub push the project is registered in the private registry (`register_project`). |
 | `register_project(app_dir, repository, *, environ=None, apply=False)` | state-write | `project_registry.register` (dry-run unless `apply`). |
 | `engine(action, payload, ctx=None)` / `health()` / `ENGINE_RECORD` | | Control-plane facade, CONTRACTS.md §2. Actions `plan-app`, `build`, `evaluate-app`, `request-repository`, `publish` — distinct from the factory actions `spec`/`plan`/`evaluate` that `engineering_os.adapters:master_build` already serves, so both fit one `master-build` record. Unknown payload keys are refused; payloads are data. |
 | CLI | | `python3 -m engineering_os.build_engine plan --spec f.json \| build --spec f.json --out DIR --hub-revision SHA [--workspace W] [--now T] [--no-verify] [--no-e2e] \| evaluate APP \| publish APP --remote URL --grant g.json --token-file t` |
@@ -105,9 +105,22 @@ Security: every API route except health and login needs a session (`HttpOnly;
 SameSite=Strict` cookie, random token, only its SHA-256 stored, 12 h) and the role
 permission for its method (`read`→GET, `write`→POST/PUT/PATCH, `delete`→DELETE, `:own` =
 records the account created). Writes need the session's `X-CSRF-Token`, JSON and a
-same-origin request. When the spec says users "see only <entity> they belong to", roles
-without `*` see only those records (via the many-to-many link to the principal entity —
-the entity with a required unique e-mail) and their children. CSP `default-src 'self'`,
+same-origin request. A many-to-many link belongs to its source record: adding one needs
+`write` on that record and removing one needs `write` and `delete` on it, with the same
+`:own` ownership rule and the same CSRF and same-origin checks as a PATCH/DELETE of the
+record itself. A sub-resource read (children, links, progress) is authorized like a GET
+of the parent record (404 when the role cannot read it, `read:own` included) and returns
+only children, link targets and counts the role can read directly. When the spec says
+users "see only <entity> they belong to", roles without `*` see only those records (via
+the many-to-many link to the principal entity — the entity with a required unique e-mail)
+and records whose references lead to them, directly or through other entities (a comment
+on a task of a visible project): at least one such reference must be set and every one
+that is set must point to a visible record. A model in which one entity reaches the
+scoped entity through more than 32 reference chains is refused (`UnsupportedSpec`).
+An account is identified with the principal record whose e-mail equals the account's
+(immutable) e-mail; once set, that e-mail field can be changed only by a `*` role (403
+`read_only` otherwise), so a scoped role cannot re-point its own or another identity.
+CSP `default-src 'self'`,
 `frame-ancestors 'none'`, nosniff, DENY, no-referrer, COOP/CORP; body limit 64 KiB;
 loopback bind unless `--allow-network`; no default account.
 
@@ -125,6 +138,16 @@ name to the model (fields, foreign keys, entities by name/plural/label, roles, l
 stores the result in `app/acceptance.json`. The generated test runs each one against a fresh
 server and asserts the stated status and expectation.
 
+A criterion compiles only when the handler for its route kind actually exercises both its
+condition and its expectation (`build_engine.HANDLED`, mirrored as `EXERCISED` in the
+generated `tests/test_acceptance.py`, which also refuses any other pair at run time):
+records the scenario needs are created as the administrator, and the request the criterion
+is about is made as the criterion says (`without a session` on every route except the page
+and login, `as <role>` on collections and items); list expectations (`lists …`, `only …`,
+`ordered by …`) need GET; body conditions apply to collection and item writes only. Any
+other criterion is unmapped — not covered by any generated test — and never reported as
+passed. A criterion is `passed` only when its generated test ran and passed.
+
 | Conditions | Expectations |
 |---|---|
 | with a valid body · without a session · without `<field>` · with `<field>=<value>` · with `<field>=<value>` while a linked `<child>` is not `<value>` · with `<field>` longer than N characters · with a/an `<field>` that does not exist · with an unknown id · with a duplicate `<field>` · as `<role>` · with valid credentials · with a wrong password · with `<field>` of an existing `<entity>` · with an existing `<link key>` · with a `<target>` already in the `<source>` · for a `<parent>` without `<children>` | the (updated) record · lists the created records · only `<items>` assigned to that `<entity>` · only `<items>` with `<date>` before today and `<field>` not `<value>` · only `<items>` with `<field>` `<value>` · `<items>` ordered by `<field>` ascending with empty … last · only that `<parent>`'s `<children>` [ordered by `<field>`] · total_X, done_X and percent … rounded down · percent 0 · the membership · a session cookie · the session is no longer accepted · html with dir=… and lang=… · html where every form input has a label |
@@ -133,11 +156,17 @@ State rules are taken only from criteria that state them (progress endpoint, ove
 filter, "cannot become X while a linked child is not Y" → 409). A criterion that does not
 match, names an unknown field/route, or needs an unstated rule is **unmapped** with its
 reason; unmapped criteria fail the requirements stage, so nothing downstream verifies.
-Non-functional statements map by keyword rules to named tests and checks (secrets → secret
-scan; parameterized SQL → injection test; CSRF → CSRF tests; p95 → latency test with the
-stated record count; pagination; keyboard; focus; labels; ISO dates per locale; "ar rtl" →
-server and E2E locale checks; passwords → PBKDF2 test; role checks; scoping). A statement
-with no generated evidence is unmapped too.
+Non-functional statements map to named tests and checks only through a reviewed table of
+whole-statement forms (`_nfr_rules`: the statements `requirements` writes, matched in full,
+case-insensitive): no secrets in the repository → secret scan; parameterized SQL → injection
+test; input validation → validation tests; role check on every endpoint; CSRF token on
+cookie sessions; passwords stored as salted PBKDF2-SHA256 hashes → PBKDF2 test; rate limit on
+sign-in (5 failures per 15 minutes) → lockout test; p95 API latency and pagination → their
+tests when the stated numbers are the ones the test measures; keyboard; labels; focus; ISO
+dates per locale; "ar rtl"/"en ltr" → server and E2E locale checks; one-aggregate progress;
+the scoping statement. Any other statement — including one that merely contains such a
+keyword (multi-factor sign-in, session expiry, password rotation, request rate limits,
+audit logs, page render time) — is unmapped (no generated test or check covers it).
 
 For «ابنِ نظامًا جديدًا لإدارة المشاريع» the real L15 spec yields 4 entities, 14 features,
 64 criteria (all 64 executable) and 16 NFR statements (all mapped): 165 Python tests
@@ -206,7 +235,9 @@ in the tests) to that record and let the adapter delegate them to
   uploads, e-mail or other integrations (refused, not faked).
 - Acceptance coverage is limited to the forms in §4; anything else is reported unmapped.
   Domain rules come only from criteria; the engine does not infer business logic.
-- Sign-in lockout is in process memory; no password reset, MFA, audit log or account UI
+- Sign-in backoff is per (e-mail, client address) and in process memory (behind a reverse
+  proxy all clients share its address); unknown e-mails cost the same PBKDF2 work as wrong
+  passwords. No password reset, MFA, audit log or account UI
   (accounts are created with `manage.py create-account`). Many-to-many links have an API,
   not a UI.
 - Accessibility evidence is automated (labels, keyboard order, focus outline, landmarks,

@@ -4,7 +4,10 @@ app/acceptance.json holds the criteria in the grammar
 `METHOD /path [condition] returns NNN [and expectation]`, already matched by the build
 engine to one of the condition/expectation forms handled below (a criterion the engine
 could not match is not listed and is reported as unmapped instead). Each criterion runs
-against its own fresh server and database.
+against its own fresh server and database. Every handler exercises the condition and the
+expectation of its criterion (EXERCISED lists which ones; anything else fails the test
+instead of passing without being checked); records the scenario needs are set up as the
+administrator, and the request the criterion is about is made as the criterion says.
 """
 import datetime
 import html.parser
@@ -19,6 +22,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHECKS = json.loads((ROOT / "app" / "acceptance.json").read_text(encoding="utf-8"))["checks"]
 MISSING_ID = 999999999
 MAX = SCHEMA.limits["max_page_size"]
+# Route kind -> (conditions, expectations) its check_<kind> handler exercises; the build
+# engine compiles a criterion only inside this table (build_engine.HANDLED is the same).
+EXERCISED = {
+    "page": ([None], [None, "html-dir-lang", "html-labels"]),
+    "login": ([None, "valid-credentials", "wrong-password"], [None, "session-cookie"]),
+    "logout": ([None, "without-session"], [None, "session-revoked"]),
+    "collection": ([None, "valid-body", "without-session", "without-field", "field-value", "longer-than",
+                    "missing-reference", "duplicate", "as-role", "reference-existing"],
+                   [None, "record", "lists-created", "only-assigned", "only-overdue", "only-field-value",
+                    "ordered-nulls-last"]),
+    "item": ([None, "valid-body", "without-session", "field-value", "field-value-while-linked", "longer-than",
+              "missing-reference", "unknown-id", "as-role", "reference-existing"], [None, "record"]),
+    "progress": ([None, "without-session", "parent-without-children"], [None, "progress", "percent-zero"]),
+    "children": ([None, "without-session"], [None, "only-children"]),
+    "link": ([None, "without-session", "link-existing", "link-duplicate"], [None, "membership"]),
+}
+LIST_EXPECTATIONS = ("lists-created", "only-assigned", "only-overdue", "only-field-value", "ordered-nulls-last")
 
 
 class _Inputs(html.parser.HTMLParser):
@@ -136,7 +156,8 @@ class AcceptanceTests(unittest.TestCase):
 
     def check_logout(self, check):
         session = self.server.login(ADMIN)
-        status, _, _ = self.server.request("POST", check["path"], session=session)
+        anonymous = self.role_for(check) is None
+        status, _, _ = self.server.request("POST", check["path"], role=None, session=None if anonymous else session)
         self.assertEqual(status, check["status"])
         if check["expect_id"] == "session-revoked":
             self.assertEqual(self.server.request("GET", "/api/session", session=session)[0], 401)
@@ -146,6 +167,7 @@ class AcceptanceTests(unittest.TestCase):
         entity = self.entity(check["route"]["entity"])
         role = self.role_for(check)
         if check["method"] == "POST":
+            self.assertNotIn(check["expect_id"], LIST_EXPECTATIONS, "a list expectation needs GET")
             body = self.body_for(check, entity)
             status, _, record = self.server.request("POST", check["path"], body, role=role)
             self.assertEqual(status, check["status"], record)
@@ -220,13 +242,16 @@ class AcceptanceTests(unittest.TestCase):
         child = self.entity(rule["child"])
         subject = self.make(parent, 1)
         expected = {f"total_{rule['key']}": 0, f"done_{rule['key']}": 0, "percent": 0}
-        if check["expect_id"] == "progress":
+        if check["expect_id"] == "progress" and check["condition_id"] != "parent-without-children":
             other = self.other_value(child, rule["field"], rule["done"][0])
             for n, value in enumerate((rule["done"][0], other, other)):
                 self.make(child, n, **{rule["fk"]: subject["id"], rule["field"]: value})
             expected = {f"total_{rule['key']}": 3, f"done_{rule['key']}": 1, "percent": 33}
-        status, _, body = self.server.request("GET", check["path"].replace("{id}", str(subject["id"])))
+        status, _, body = self.server.request("GET", check["path"].replace("{id}", str(subject["id"])),
+                                              role=self.role_for(check))
         self.assertEqual(status, check["status"], body)
+        if check["expect_id"] is None:
+            return
         for key, value in expected.items():
             if check["expect_id"] == "progress" or key == "percent":
                 self.assertEqual(body[key], value, key)
@@ -240,8 +265,10 @@ class AcceptanceTests(unittest.TestCase):
         keep = [self.make(child, n, **{fk: mine["id"], **({order: dates[n]} if order else {})})["id"] for n in range(3)]
         drop = [self.make(child, 4, **{fk: other["id"]})["id"]]
         path = check["path"].replace("{id}", str(mine["id"]))
-        status, _, page = self.server.request("GET", path + f"?limit={MAX}")
-        self.assertEqual(status, check["status"])
+        status, _, page = self.server.request("GET", path + f"?limit={MAX}", role=self.role_for(check))
+        self.assertEqual(status, check["status"], page)
+        if check["expect_id"] is None:
+            return
         ids = [row["id"] for row in page["items"]]
         self.assertEqual(sorted(ids), sorted(keep))
         self.assertFalse(set(drop) & set(ids))
@@ -257,7 +284,7 @@ class AcceptanceTests(unittest.TestCase):
         body = {link["target_key"]: target["id"]}
         if check["condition_id"] == "link-duplicate":
             self.assertEqual(self.server.request("POST", path, body)[0], 201)
-        status, _, reply = self.server.request("POST", path, body)
+        status, _, reply = self.server.request("POST", path, body, role=self.role_for(check))
         self.assertEqual(status, check["status"], reply)
         if check["expect_id"] == "membership":
             self.assertEqual(reply, {link["source_key"]: subject["id"], link["target_key"]: target["id"]})
@@ -265,6 +292,9 @@ class AcceptanceTests(unittest.TestCase):
 
 def _bind(check):
     def test(self):
+        conditions, expectations = EXERCISED[check["route"]["kind"]]
+        self.assertIn(check["condition_id"], conditions, "the handler does not exercise this condition")
+        self.assertIn(check["expect_id"], expectations, "the handler does not exercise this expectation")
         getattr(self, "check_" + check["route"]["kind"])(check)
     test.__doc__ = check["criterion"]
     return test
