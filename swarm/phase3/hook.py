@@ -32,6 +32,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -43,7 +44,10 @@ import guard  # noqa: E402
 import lane_guard  # noqa: E402
 
 LOG = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm")) / "p3" / "hook.jsonl"
-WORKER = re.compile(r"swarm-(light|queue|large|probe)")
+WORKER = re.compile(r"swarm-(light|queue|large|probe)(-[a-z0-9]{1,24}){0,3}")  # the whole type, never a prefix of it
+NAME = re.compile(r"[A-Za-z0-9_.:-]{1,80}")
+BAD = "\0unreadable"  # stands for a type or an id that is not one clean, non-empty string
+MOST = 100_000  # the longest shell call a worker may make, in characters
 TYPE_FIELDS = ("agent_type", "agentType", "subagent_type")
 ID_FIELDS = ("agent_id", "agentId")
 HAND_BACK = ("SubagentHandback", "StructuredOutput")
@@ -51,10 +55,17 @@ REFUSAL = f"{guard.MARK}: refused."
 
 
 def caller(call: dict) -> tuple[str | None, str | None]:
-    """The type and the id of the calling agent, as the host reports them. Both None for the orchestrator."""
-    kind = next((call[name] for name in TYPE_FIELDS if isinstance(call.get(name), str) and call[name]), None)
-    ident = next((call[name] for name in ID_FIELDS if isinstance(call.get(name), str) and call[name]), None)
-    return kind, ident
+    """The type and the id of the calling agent, as the host reports them. Both None for the orchestrator.
+    A value that is not a clean string is returned as the marker BAD, never as "absent"."""
+    def pick(names):
+        found = [call[name] for name in names if name in call]
+        if not found:
+            return None
+        first = found[0]
+        if not isinstance(first, str) or first != first.strip() or not first or any(value != first for value in found):
+            return BAD
+        return first
+    return pick(TYPE_FIELDS), pick(ID_FIELDS)
 
 
 def decide(call: dict) -> tuple[str, str]:
@@ -63,13 +74,15 @@ def decide(call: dict) -> tuple[str, str]:
     tool = call.get("tool_name")
     if kind is None and ident is None:
         return "pass", ""
-    if tool in HAND_BACK:
+    if kind in (None, BAD) or ident in (None, BAD):  # an agent that the host did not describe whole and plainly
+        return "refuse", f"{REFUSAL} The gate could not tell who is calling."
+    if isinstance(tool, str) and tool in HAND_BACK:
         return "allow", ""
-    if kind and WORKER.match(kind):
+    if WORKER.fullmatch(kind):
         if tool != "Bash":
             return "refuse", f"{REFUSAL} A worker has a shell and nothing else."
-        command = (call.get("tool_input") or {}).get("command") if isinstance(call.get("tool_input"), dict) else None
-        if isinstance(command, str) and guard.allowed(command):
+        command = call["tool_input"].get("command") if isinstance(call.get("tool_input"), dict) else None
+        if isinstance(command, str) and len(command) <= MOST and "\0" not in command and guard.allowed(command):
             return "allow", ""
         return "refuse", f"{REFUSAL} Only the swk commands named in your instructions and your task run here, one per call."
     if kind == "swarm-dev":
@@ -78,19 +91,29 @@ def decide(call: dict) -> tuple[str, str]:
     return "refuse", f"{REFUSAL} In a session of this experiment only its own agent types may use tools."
 
 
+def _plain(value, fallback="(unreadable)") -> str:
+    """A name for the record: only a short plain name goes in, so a tool name or a field name that carries a command
+    or content never reaches the record."""
+    return value if isinstance(value, str) and NAME.fullmatch(value) else fallback
+
+
 def record(call: dict, verdict: str) -> bool:
     """One line for one judged call. False when the line could not be written."""
     try:
         kind, ident = caller(call)
-        line = {"t": round(time.time(), 2), "tool": str(call.get("tool_name")), "agent": kind, "verdict": verdict,
-                "who": hashlib.sha256(ident.encode()).hexdigest()[:10] if ident else None, "fields": sorted(str(key) for key in call)}
+        line = {"t": round(time.time(), 2), "tool": _plain(call.get("tool_name"), "(none)" if "tool_name" not in call else "(unreadable)"),
+                "agent": None if kind is None else _plain(kind), "verdict": verdict,
+                "who": hashlib.sha256(ident.encode("utf-8", "replace")).hexdigest()[:10] if isinstance(ident, str) and ident != BAD else None,
+                "fields": sorted({_plain(key) for key in list(call)[:60]})}
         LOG.parent.mkdir(parents=True, exist_ok=True)
-        descriptor = os.open(LOG, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        descriptor = os.open(LOG, os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)  # never through a link, never waiting on a pipe
         try:
-            os.write(descriptor, (json.dumps(line) + "\n").encode())  # one write: a line is whole or absent
+            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                return False
+            data = (json.dumps(line) + "\n").encode()
+            return os.write(descriptor, data) == len(data)  # one write: a line is whole or absent
         finally:
             os.close(descriptor)
-        return True
     except (OSError, TypeError, ValueError, AttributeError):
         return False
 
@@ -159,6 +182,14 @@ def report() -> dict:
             "by_caller_tool_and_verdict": dict(sorted(counts.items())), "fields_the_host_sends": sorted({field for line in lines for field in line.get("fields", [])})}
 
 
+def _once(pairs: list) -> dict:
+    """A document that names a field twice is refused: two readers could take different values."""
+    names = [key for key, _ in pairs]
+    if len(set(names)) != len(names):
+        raise ValueError("a field twice")
+    return dict(pairs)
+
+
 def main() -> int:
     if sys.argv[1:2] == ["fault"]:  # the self-test's way to see what a crash of the gate leads to
         raise RuntimeError("a fault, asked for by the self-test")
@@ -175,7 +206,7 @@ def main() -> int:
         print(json.dumps(result, indent=1))
         return 0
     try:
-        call = json.loads(sys.stdin.read())
+        call = json.loads(sys.stdin.buffer.read().decode("utf-8"), object_pairs_hook=_once)
         if not isinstance(call, dict):
             raise ValueError("not a call")
         verdict, why = decide(call)
