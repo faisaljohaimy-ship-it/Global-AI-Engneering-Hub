@@ -138,10 +138,12 @@ Status words: *implemented* (code exists), *tested* (automated tests pass),
 
 ## Not included, by design or by evidence
 
-- Agent swarm tooling referred to as swk, lightweight agent registry or the
-  thousand-agent experiment, and the 222,067 → 5,486 token measurement, are not
-  present on `main`. Nothing here depends on or claims them. When reviewed and
-  merged they can be added to `gaie-routes.json` as supporting skills.
+- The swarm experiment (lean workers, the path to 1,000 workers, its token
+  measurements), context optimization, native motion engines and next-generation
+  intelligence are open draft pull requests (#16, #17, #19, #22–#25), not merged to
+  `main`. This change does not touch their files and does not use or claim their
+  results. Once one is reviewed and merged, list its skill under
+  `supporting_skills` in `gaie-routes.json`; the prompts need no rewrite.
 - Serena, Context7, LSP, ast-grep, Inspect AI, Promptfoo, Pydantic AI and Chrome
   DevTools MCP are not installed or approved in the hub. Headroom is approved for
   its documented local scope only.
