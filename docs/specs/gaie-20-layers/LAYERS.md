@@ -249,7 +249,7 @@ Responsibilities:
 - **Tests:** `tests/test_contracts.py`, `tests/test_layers.py`, `tests/test_hub.py`, `tests/test_governor.py`, `tests/test_layer_scenarios.py`
 - **Scenarios:** E — `tests/test_governor.py` `CheckTests`, `PayloadTests`, `AuditTests`
 - **Evidence boundary:** Local policy/receipt validators; provider administration is separate
-- **Evidence status:** VERIFIED — 3/3 test files, 42 test cases passed; 34 sources bound (`source_sha256` 90794b3c4513ae6e…).
+- **Evidence status:** VERIFIED — 5/5 test files, 116 test cases passed; 45 sources bound (`source_sha256` fd5ef47be2c061b9…).
 
 ### L02 AI Intelligence & Model Routing — الذكاء الاصطناعي وتوجيه النماذج
 
@@ -289,7 +289,7 @@ Responsibilities:
 - **Tests:** `tests/test_os_orchestration.py`, `tests/test_swarm.py`, `tests/test_orchestrator.py`
 - **Scenarios:** H — `tests/test_orchestrator.py` `ScenarioHTests`
 - **Evidence boundary:** Explicit invocations/file-state coordination; no continuous daemon claim
-- **Evidence status:** VERIFIED — 2/2 test files, 35 test cases passed; 10 sources bound (`source_sha256` 6a39d1caa8ba8951…).
+- **Evidence status:** VERIFIED — 3/3 test files, 72 test cases passed, 1 skipped; 25 sources bound (`source_sha256` 36e25dea649003d3…).
 
 ### L04 Engineering Control Plane — مستوى التحكم الهندسي
 
@@ -310,7 +310,7 @@ Responsibilities:
 - **Tests:** `tests/test_os_control.py`, `tests/test_hub.py`, `tests/test_intelligence.py`, `tests/test_layers.py`, `tests/test_control_plane.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Existing CLI, checksummed SDK and additive operational commands
-- **Evidence status:** VERIFIED — 5/5 test files, 95 test cases passed; 40 sources bound (`source_sha256` 88a120bd2b81c9af…).
+- **Evidence status:** VERIFIED — 5/5 test files, 99 test cases passed; 48 sources bound (`source_sha256` 621e295f61c8b4d9…).
 
 ### L05 Universal Integration Intelligence — ذكاء التكامل الشامل
 
@@ -330,7 +330,7 @@ Responsibilities:
 - **Tests:** `tests/test_sdk.py`, `tests/test_os_control.py`, `tests/test_engine_motion_link.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Local MCP/CLI implemented; other protocols remain per-adapter candidates
-- **Evidence status:** VERIFIED — 3/3 test files, 33 test cases passed; 7 sources bound (`source_sha256` 5cb63e33df818e8d…).
+- **Evidence status:** VERIFIED — 3/3 test files, 33 test cases passed; 7 sources bound (`source_sha256` 74c0d949ded965e1…).
 
 ### L06 Software Engineering — هندسة البرمجيات
 
@@ -350,7 +350,7 @@ Responsibilities:
 - **Tests:** `tests/test_gaie_factory.py`, `tests/test_hub.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Existing shared skills; project implementations remain private
-- **Evidence status:** VERIFIED — 2/2 test files, 31 test cases passed; 11 sources bound (`source_sha256` 05221f9b63562747…).
+- **Evidence status:** VERIFIED — 2/2 test files, 32 test cases passed; 15 sources bound (`source_sha256` f3da97fb932f0fe7…).
 
 ### L07 Data & Knowledge Intelligence — ذكاء البيانات والمعرفة
 
@@ -370,7 +370,7 @@ Responsibilities:
 - **Tests:** `tests/test_intelligence.py`, `tests/test_sdk.py`, `tests/test_hub.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** No shared production database provisioned; project-level verification required
-- **Evidence status:** VERIFIED — 3/3 test files, 31 test cases passed; 20 sources bound (`source_sha256` 76b903fc5398b5ec…).
+- **Evidence status:** VERIFIED — 3/3 test files, 31 test cases passed; 22 sources bound (`source_sha256` 7f96f4a5325a22a9…).
 
 ### L08 Cinematic, Motion & GPU — السينما والحركة ومعالجة الرسوميات
 
@@ -390,7 +390,7 @@ Responsibilities:
 - **Tests:** `tests/test_os_control.py`, `tests/test_hub.py`, `tests/test_motion_catalog.py`, `tests/test_motion.py`, `tests/test_motion_runtime.mjs`, `tests/test_universal_motion_sdk.mjs`, `tests/test_motion_expansion.mjs`, `tests/test_chromium_stack_options.mjs`, `tests/test_motion_lab.py`, `tests/test_motion_sdk_pack.py`, `tests/test_chromium_stack.py`, `tests/test_native_motions_digital.mjs`
 - **Scenarios:** none bound
 - **Evidence boundary:** Preserve verified CSS/WAAPI/WebGL; new engines need their own runtime proof
-- **Evidence status:** VERIFIED — 8/8 test files, 69 test cases passed; 30 sources bound (`source_sha256` 8ab3613e0a85c517…).
+- **Evidence status:** VERIFIED — 12/12 test files, 96 test cases passed; 42 sources bound (`source_sha256` 3094723f878c2a54…).
 
 ### L09 Security & Quality Intelligence — ذكاء الأمن والجودة
 
@@ -411,7 +411,7 @@ Responsibilities:
 - **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`, `tests/test_governor.py`, `tests/test_security_enterprise.py`, `tests/test_workspace_policy.py`, `tests/test_master_audit_permissions.py`
 - **Scenarios:** E — `tests/test_governor.py` `StrictSandboxTests`, `SandboxTests`
 - **Evidence boundary:** SHA-pinned CI and test/audit evidence; no blanket compliance claim
-- **Evidence status:** VERIFIED — 5/5 test files, 76 test cases passed; 20 sources bound (`source_sha256` 9bd2347c86ee4556…).
+- **Evidence status:** VERIFIED — 9/9 test files, 201 test cases passed; 40 sources bound (`source_sha256` 41a26f47eb955ab6…).
 
 ### L10 Independent Product Ecosystem — منظومة المنتجات المستقلة
 
@@ -431,7 +431,7 @@ Responsibilities:
 - **Tests:** `tests/test_link.py`, `tests/test_engine_motion_link.py`, `tests/test_project_registry.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Private registry outside public Git; local preparation differs from remote completion
-- **Evidence status:** VERIFIED — 2/2 test files, 24 test cases passed; 3 sources bound (`source_sha256` 5496063896ca0977…).
+- **Evidence status:** VERIFIED — 3/3 test files, 40 test cases passed; 13 sources bound (`source_sha256` b85527cfe3dfc840…).
 
 ### L11 Cloud & Deployment Intelligence — ذكاء السحابة والنشر
 
@@ -451,7 +451,7 @@ Responsibilities:
 - **Tests:** `tests/test_release_provenance.py`, `tests/test_sdk.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Existing provider projects preserved; incomplete permissions block relinking
-- **Evidence status:** VERIFIED — 2/2 test files, 18 test cases passed; 5 sources bound (`source_sha256` f8eb811cf9f523a0…).
+- **Evidence status:** VERIFIED — 2/2 test files, 18 test cases passed; 5 sources bound (`source_sha256` 39a862e5a5d7f3ad…).
 
 ### L12 Continuous Technology Intelligence — الذكاء التقني المستمر
 
@@ -471,7 +471,7 @@ Responsibilities:
 - **Tests:** `tests/test_technology_discovery.py`, `tests/test_os_control.py`, `tests/test_capability_activation.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Read-only discovery and reviewed update proposals; no automatic execution
-- **Evidence status:** VERIFIED — 2/2 test files, 18 test cases passed; 6 sources bound (`source_sha256` 5cc07e2f902498d1…).
+- **Evidence status:** VERIFIED — 3/3 test files, 25 test cases passed; 7 sources bound (`source_sha256` ad7ed7b9a5677905…).
 
 ### L13 Advanced Engineering Reasoning — الاستدلال الهندسي المتقدم
 
@@ -492,7 +492,7 @@ Responsibilities:
 - **Tests:** `tests/test_reasoning.py`, `tests/test_reasoning_cases.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Deterministic ranking of supplied alternatives and schedules; no model reasoning or inferred causality
-- **Evidence status:** VERIFIED — 1/1 test files, 30 test cases passed; 5 sources bound (`source_sha256` 8d841ca21a4e735c…).
+- **Evidence status:** VERIFIED — 2/2 test files, 75 test cases passed; 7 sources bound (`source_sha256` c65d4bfcefef4ecd…).
 
 ### L14 Persistent Engineering Memory — الذاكرة الهندسية الدائمة
 
@@ -512,7 +512,7 @@ Responsibilities:
 - **Tests:** `tests/test_engineering_memory.py`, `tests/test_gaie_factory.py`, `tests/test_memory_unified.py`
 - **Scenarios:** D — `tests/test_memory_unified.py` `ScenarioDTests`
 - **Evidence boundary:** Private file-backed memory outside Git; lexical retrieval, not embeddings; checksums detect corruption only
-- **Evidence status:** VERIFIED — 2/2 test files, 32 test cases passed; 12 sources bound (`source_sha256` 08a6af6c38c3635c…).
+- **Evidence status:** VERIFIED — 3/3 test files, 59 test cases passed; 14 sources bound (`source_sha256` 710ad550f12e7e17…).
 
 ### L15 Requirements & Specification Intelligence — ذكاء المتطلبات والمواصفات
 
@@ -532,7 +532,7 @@ Responsibilities:
 - **Tests:** `tests/test_gaie_router.py`, `tests/test_intelligence.py`, `tests/test_factory.py`, `tests/test_requirements.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Deterministic command parsing and bounded request validation; engineering_os/requirements.py is wave 2
-- **Evidence status:** VERIFIED — 3/3 test files, 62 test cases passed; 17 sources bound (`source_sha256` 5d275205bdadd453…).
+- **Evidence status:** VERIFIED — 4/4 test files, 117 test cases passed; 21 sources bound (`source_sha256` 8382dc082fbd1ec1…).
 
 ### L16 Autonomous Software Factory — مصنع البرمجيات الذاتي
 
@@ -553,7 +553,7 @@ Responsibilities:
 - **Tests:** `tests/test_factory.py`, `tests/test_gaie_router.py`, `tests/test_gaie_factory.py`, `tests/test_build_engine.py`, `tests/test_build_engine_e2e.py`, `tests/test_upgrade_engine.py`
 - **Scenarios:** A — `tests/test_build_engine_e2e.py` `ScenarioATests`; B — `tests/test_upgrade_engine.py` `ScenarioB`
 - **Evidence boundary:** Plans and checks artifacts against supplied receipts; generates no complete application and deploys nothing
-- **Evidence status:** VERIFIED — 3/3 test files, 74 test cases passed; 13 sources bound (`source_sha256` 25a02ae4b453ed67…).
+- **Evidence status:** VERIFIED — 6/6 test files, 162 test cases passed; 28 sources bound (`source_sha256` 4fb0a1e7f3a88919…).
 
 ### L17 Self-Healing & Recovery Intelligence — ذكاء الإصلاح الذاتي والتعافي
 
@@ -573,7 +573,7 @@ Responsibilities:
 - **Tests:** `tests/test_healing.py`, `tests/test_self_healing_loop.py`
 - **Scenarios:** F — `tests/test_self_healing_loop.py` `ScenarioF`
 - **Evidence boundary:** Repair proposals and fixed declarative checks; candidate code is never executed
-- **Evidence status:** VERIFIED — 1/1 test files, 23 test cases passed; 5 sources bound (`source_sha256` 4aece7ba3972e38b…).
+- **Evidence status:** VERIFIED — 2/2 test files, 67 test cases passed; 9 sources bound (`source_sha256` ddf31fcf7fe122b6…).
 
 ### L18 Advanced Cinematic Intelligence — الذكاء السينمائي المتقدم
 
@@ -593,7 +593,7 @@ Responsibilities:
 - **Tests:** `tests/test_cinematic_intelligence.py`, `tests/test_engine_motion_link.py`, `tests/test_nextgen_camera.mjs`, `tests/test_video_pipeline.py`, `tests/test_digital_show.py`, `tests/test_render_options.mjs`
 - **Scenarios:** C — `tests/test_video_pipeline.py` `ScenarioCTests`
 - **Evidence boundary:** Source-bound inventory and engine-motion resolution; every render needs its own browser receipt
-- **Evidence status:** VERIFIED — 3/3 test files, 20 test cases passed; 9 sources bound (`source_sha256` f15ece1a34b24132…).
+- **Evidence status:** VERIFIED — 6/6 test files, 109 test cases passed, 1 skipped; 16 sources bound (`source_sha256` eab7e9b3bfc78ed0…).
 
 ### L19 Engineering Economics & Resource Intelligence — اقتصاديات الهندسة وذكاء الموارد
 
@@ -613,7 +613,7 @@ Responsibilities:
 - **Tests:** `tests/test_economics.py`, `tests/test_p3_context_budget.py`, `tests/test_economics_measured.py`, `tests/test_context_optimization.py`, `tests/test_headroom_context.py`, `tests/test_headroom_pack.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Offline accounting over supplied ledgers; tokens, cost and subscription quota stay separate
-- **Evidence status:** VERIFIED — 2/2 test files, 51 test cases passed; 9 sources bound (`source_sha256` a0fba7230431c963…).
+- **Evidence status:** VERIFIED — 6/6 test files, 120 test cases passed, 4 skipped; 23 sources bound (`source_sha256` fa08c965b268ccea…).
 
 ### L20 Independent Engineering Assurance — الضمان الهندسي المستقل
 
@@ -634,41 +634,57 @@ Responsibilities:
 - **Tests:** `tests/test_layers.py`, `tests/test_os_control.py`, `tests/test_reasoning.py`, `tests/test_release_provenance.py`, `tests/test_layer_scenarios.py`, `tests/test_evidence.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Source-bound test receipts; engineering_os/assurance.py is wave 2; hashes do not authenticate reviewers
-- **Evidence status:** VERIFIED — 4/4 test files, 77 test cases passed; 35 sources bound (`source_sha256` 3872517180a88033…).
+- **Evidence status:** VERIFIED — 6/6 test files, 100 test cases passed; 46 sources bound (`source_sha256` 63902b4bb52e4a02…).
 
 ## Evidence status
 
-Produced by `python3 hub.py layers --verify` on branch `gaie/w1-layers` at commit `a17f258`
-(2026-11-28, Python 3.13.18, node v22.23.5).
+Produced by `GAIE_HOME=<private dir> python3 hub.py layers --verify --layer Lxx`, one layer at
+a time for L01…L20, on branch `gaie/r-reg-layers` at commit `b297c9f` (2026-11-28, Python
+3.13.18, node v22.23.5, ffmpeg 6.1.1, Playwright Chromium present; 4 shared CPUs, load average
+3.8–4.9). Every run exited 0; no layer was re-run. The registry now lists 62 of the 104 test
+files under `tests/`; the other 42 are named, with their reasons, in "Test files outside the
+registry". From these receipts `contracts.scenario_report` gives A, B, C, D, E, F and H
+`VERIFIED` and G and I `UNBOUND`. Commits after `b297c9f` in this lane change only this
+document, which no receipt binds, so `python3 hub.py layers` still reports these rows.
+
+Skipped cases (each inside a file that passed): L03 1 (`tests/test_orchestrator.py`, the live
+metrics file of Scenario H lives outside the repository), L18 1 (`tests/test_video_pipeline.py`,
+sample media is kept outside Git), L19 4 (the real Headroom SDK cases: `tests/test_headroom_context.py`
+2 and `tests/test_headroom_pack.py` 1 run only with `HEADROOM_CONTEXT_INTEGRATION=1` in the
+reviewed SDK environment; `tests/test_context_optimization.py` 1 needs the reviewed SDK, which is
+not installed here).
+
 The receipts are private state, not part of the repository; this table is a copy for
 review and becomes outdated the moment a bound source changes — `python3 hub.py layers`
 is the authority. Deterministic test execution only; no model reasoning is involved.
 
 | Layer | Status | Test files passed | Test cases passed | Skipped cases | Sources bound | source_sha256 |
 |---|---|---|---|---|---|---|
-| L01 | VERIFIED | 3/3 | 42 | 0 | 34 | `90794b3c4513ae6e…` |
+| L01 | VERIFIED | 5/5 | 116 | 0 | 45 | `fd5ef47be2c061b9…` |
 | L02 | VERIFIED | 1/1 | 15 | 0 | 4 | `8418dd6424beca3d…` |
-| L03 | VERIFIED | 2/2 | 35 | 0 | 10 | `6a39d1caa8ba8951…` |
-| L04 | VERIFIED | 5/5 | 95 | 0 | 40 | `88a120bd2b81c9af…` |
-| L05 | VERIFIED | 3/3 | 33 | 0 | 7 | `5cb63e33df818e8d…` |
-| L06 | VERIFIED | 2/2 | 31 | 0 | 11 | `05221f9b63562747…` |
-| L07 | VERIFIED | 3/3 | 31 | 0 | 20 | `76b903fc5398b5ec…` |
-| L08 | VERIFIED | 8/8 | 69 | 0 | 30 | `8ab3613e0a85c517…` |
-| L09 | VERIFIED | 5/5 | 76 | 0 | 20 | `9bd2347c86ee4556…` |
-| L10 | VERIFIED | 2/2 | 24 | 0 | 3 | `5496063896ca0977…` |
-| L11 | VERIFIED | 2/2 | 18 | 0 | 5 | `f8eb811cf9f523a0…` |
-| L12 | VERIFIED | 2/2 | 18 | 0 | 6 | `5cc07e2f902498d1…` |
-| L13 | VERIFIED | 1/1 | 30 | 0 | 5 | `8d841ca21a4e735c…` |
-| L14 | VERIFIED | 2/2 | 32 | 0 | 12 | `08a6af6c38c3635c…` |
-| L15 | VERIFIED | 3/3 | 62 | 0 | 17 | `5d275205bdadd453…` |
-| L16 | VERIFIED | 3/3 | 74 | 0 | 13 | `25a02ae4b453ed67…` |
-| L17 | VERIFIED | 1/1 | 23 | 0 | 5 | `4aece7ba3972e38b…` |
-| L18 | VERIFIED | 3/3 | 20 | 0 | 9 | `f15ece1a34b24132…` |
-| L19 | VERIFIED | 2/2 | 51 | 0 | 9 | `a0fba7230431c963…` |
-| L20 | VERIFIED | 4/4 | 77 | 0 | 35 | `3872517180a88033…` |
+| L03 | VERIFIED | 3/3 | 72 | 1 | 25 | `36e25dea649003d3…` |
+| L04 | VERIFIED | 5/5 | 99 | 0 | 48 | `621e295f61c8b4d9…` |
+| L05 | VERIFIED | 3/3 | 33 | 0 | 7 | `74c0d949ded965e1…` |
+| L06 | VERIFIED | 2/2 | 32 | 0 | 15 | `f3da97fb932f0fe7…` |
+| L07 | VERIFIED | 3/3 | 31 | 0 | 22 | `7f96f4a5325a22a9…` |
+| L08 | VERIFIED | 12/12 | 96 | 0 | 42 | `3094723f878c2a54…` |
+| L09 | VERIFIED | 9/9 | 201 | 0 | 40 | `41a26f47eb955ab6…` |
+| L10 | VERIFIED | 3/3 | 40 | 0 | 13 | `b85527cfe3dfc840…` |
+| L11 | VERIFIED | 2/2 | 18 | 0 | 5 | `39a862e5a5d7f3ad…` |
+| L12 | VERIFIED | 3/3 | 25 | 0 | 7 | `ad7ed7b9a5677905…` |
+| L13 | VERIFIED | 2/2 | 75 | 0 | 7 | `c65d4bfcefef4ecd…` |
+| L14 | VERIFIED | 3/3 | 59 | 0 | 14 | `710ad550f12e7e17…` |
+| L15 | VERIFIED | 4/4 | 117 | 0 | 21 | `8382dc082fbd1ec1…` |
+| L16 | VERIFIED | 6/6 | 162 | 0 | 28 | `4fb0a1e7f3a88919…` |
+| L17 | VERIFIED | 2/2 | 67 | 0 | 9 | `ddf31fcf7fe122b6…` |
+| L18 | VERIFIED | 6/6 | 109 | 1 | 16 | `eab7e9b3bfc78ed0…` |
+| L19 | VERIFIED | 6/6 | 120 | 4 | 23 | `fa08c965b268ccea…` |
+| L20 | VERIFIED | 6/6 | 100 | 0 | 46 | `63902b4bb52e4a02…` |
 
-History: after the control-plane merge the earlier receipts were withdrawn automatically
-(`python3 hub.py layers` showed 9 VERIFIED, 11 UNVERIFIED as stale) until this run. In an
-earlier run at a load average near 20 on four shared CPUs, `tests/test_p3_cage.py` (L09) failed
-2 of 9 cases; the same cases fail on an untouched export of the base commit under that load
-(machine-wide per-user process and timing limits), and L09 passed when re-run.
+History: the previous copy of this table was produced on branch `gaie/w1-layers` at commit
+`a17f258`, when the registry listed 35 test files and bound no scenario (L17 23 cases, L18 20).
+After the control-plane merge those receipts were withdrawn automatically (9 VERIFIED, 11
+UNVERIFIED as stale) until they were re-run. In an earlier run at a load average near 20 on four
+shared CPUs, `tests/test_p3_cage.py` (L09) failed 2 of 9 cases; the same cases failed on an
+untouched export of the base commit under that load (machine-wide per-user process and timing
+limits), and L09 passed when re-run.
