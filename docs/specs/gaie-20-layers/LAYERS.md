@@ -173,8 +173,7 @@ absent here and is bound, or moved to `unbound` with a reason, in the next regis
 | `tests/test_release_engine.py` | announced | Scenario G, lane scenario-g; bind to L11 (see Not yet bound). |
 | `tests/test_gaie_install_scenario_i.py` | announced | Scenario I, lane install; bind to L16 (see Not yet bound). |
 | `tests/test_assurance.py` | announced | L20 assurance module, lane assurance; bind to L20 (see Not yet bound). |
-| `tests/test_isolation_enforcement.py` | announced | SEC-07 and SEC-12 enforcement, lane sec-isolation; candidate L09. |
-| `tests/test_gaie_memory_journal.py` | announced | SEC-10 legacy memory journal, lane sec-findings; candidate L14. |
+| `tests/test_isolation_enforcement.py` | unbound | SEC-07 and SEC-12 enforcement (lane sec-isolation). It measures `read_caller_home` against the caller's own HOME and compares the live matrix with `isolation.json`; a layer run gives every test an empty private HOME, so 6 cases read `not-available` there (measured). CI runs it in discover and in the isolation job. |
 | `tests/test_motion_policy.py` | announced | Purposeful motion policy, lane motion-policy; its request asks for L08 with `engineering_os.motion_policy:validate` and `:report`. |
 | `tests/test_ported_motions.py` | announced | Ported motions, lane motion-port (it may use `.mjs` instead); candidate L08. |
 | `tests/test_ported_motions.mjs` | announced | Ported motions, lane motion-port (it may use `.py` instead); candidate L08. |
@@ -286,7 +285,7 @@ Responsibilities:
 - **Tools:** `python3`, `git`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `adaptive-agent-orchestration-engineer`, `agent-isolation-security-engineer`
-- **Tests:** `tests/test_os_orchestration.py`, `tests/test_swarm.py`, `tests/test_orchestrator.py`
+- **Tests:** `tests/test_os_orchestration.py`, `tests/test_swarm.py`, `tests/test_orchestrator.py`, `tests/test_w2_fixes_orchestration.py`, `tests/test_w2_fixes_orchestrator.py`
 - **Scenarios:** H — `tests/test_orchestrator.py` `ScenarioHTests`
 - **Evidence boundary:** Explicit invocations/file-state coordination; no continuous daemon claim
 - **Evidence status:** VERIFIED — 3/3 test files, 72 test cases passed, 1 skipped; 25 sources bound (`source_sha256` 36e25dea649003d3…).
@@ -408,7 +407,7 @@ Responsibilities:
 - **Tools:** `python3`, `git`
 - **Skills:** `skills/security-review/SKILL.md`
 - **Agents:** `agent-isolation-security-engineer`, `enterprise-security-privacy-engineer`, `testing-self-healing-engineer`
-- **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`, `tests/test_governor.py`, `tests/test_security_enterprise.py`, `tests/test_workspace_policy.py`, `tests/test_master_audit_permissions.py`
+- **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`, `tests/test_governor.py`, `tests/test_security_enterprise.py`, `tests/test_workspace_policy.py`, `tests/test_master_audit_permissions.py`, `tests/test_isolation_fixes_git.py`, `tests/test_isolation_fixes_planted_git.py`, `tests/test_isolation_fixes_relaunch.py`, `tests/test_isolation_fixes_governor.py`
 - **Scenarios:** E — `tests/test_governor.py` `StrictSandboxTests`, `SandboxTests`
 - **Evidence boundary:** SHA-pinned CI and test/audit evidence; no blanket compliance claim
 - **Evidence status:** VERIFIED — 9/9 test files, 201 test cases passed; 40 sources bound (`source_sha256` 41a26f47eb955ab6…).
@@ -448,7 +447,7 @@ Responsibilities:
 - **Tools:** `python3`
 - **Skills:** `skills/release-engineering/SKILL.md`, `skills/gaie-release/SKILL.md`
 - **Agents:** `github-integration-release-engineer`
-- **Tests:** `tests/test_release_provenance.py`, `tests/test_sdk.py`
+- **Tests:** `tests/test_release_provenance.py`, `tests/test_sdk.py`, `tests/test_review_fixes_sdk_submodules.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Existing provider projects preserved; incomplete permissions block relinking
 - **Evidence status:** VERIFIED — 2/2 test files, 18 test cases passed; 5 sources bound (`source_sha256` 39a862e5a5d7f3ad…).
@@ -489,7 +488,7 @@ Responsibilities:
 - **Tools:** `python3`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `engineering-reasoning-engineer`
-- **Tests:** `tests/test_reasoning.py`, `tests/test_reasoning_cases.py`
+- **Tests:** `tests/test_reasoning.py`, `tests/test_reasoning_cases.py`, `tests/test_w2_fixes_reasoning.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Deterministic ranking of supplied alternatives and schedules; no model reasoning or inferred causality
 - **Evidence status:** VERIFIED — 2/2 test files, 75 test cases passed; 7 sources bound (`source_sha256` c65d4bfcefef4ecd…).
@@ -509,7 +508,7 @@ Responsibilities:
 - **Tools:** `python3`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `persistent-memory-engineer`
-- **Tests:** `tests/test_engineering_memory.py`, `tests/test_gaie_factory.py`, `tests/test_memory_unified.py`
+- **Tests:** `tests/test_engineering_memory.py`, `tests/test_gaie_factory.py`, `tests/test_memory_unified.py`, `tests/test_gaie_memory_journal.py`, `tests/test_review_fixes_memory_readonly.py`, `tests/test_review_fixes_memory_resume_cli.py`, `tests/test_review_fixes_memory_secrets.py`
 - **Scenarios:** D — `tests/test_memory_unified.py` `ScenarioDTests`
 - **Evidence boundary:** Private file-backed memory outside Git; lexical retrieval, not embeddings; checksums detect corruption only
 - **Evidence status:** VERIFIED — 3/3 test files, 59 test cases passed; 14 sources bound (`source_sha256` 710ad550f12e7e17…).
@@ -550,7 +549,7 @@ Responsibilities:
 - **Tools:** `python3`, `node`, `git`
 - **Skills:** `skills/gaie-master-router/SKILL.md`, `skills/gaie-build/SKILL.md`, `skills/gaie-upgrade/SKILL.md`, `skills/gaie-audit/SKILL.md`
 - **Agents:** `master-build-engine-engineer`, `master-upgrade-engine-engineer`, `nl-router-project-registry-engineer`
-- **Tests:** `tests/test_factory.py`, `tests/test_gaie_router.py`, `tests/test_gaie_factory.py`, `tests/test_build_engine.py`, `tests/test_build_engine_e2e.py`, `tests/test_upgrade_engine.py`
+- **Tests:** `tests/test_factory.py`, `tests/test_gaie_router.py`, `tests/test_gaie_factory.py`, `tests/test_build_engine.py`, `tests/test_build_engine_e2e.py`, `tests/test_upgrade_engine.py`, `tests/test_review_fixes_upgrade_scope.py`
 - **Scenarios:** A — `tests/test_build_engine_e2e.py` `ScenarioATests`; B — `tests/test_upgrade_engine.py` `ScenarioB`
 - **Evidence boundary:** Plans and checks artifacts against supplied receipts; generates no complete application and deploys nothing
 - **Evidence status:** VERIFIED — 6/6 test files, 162 test cases passed; 28 sources bound (`source_sha256` 4fb0a1e7f3a88919…).
@@ -570,7 +569,7 @@ Responsibilities:
 - **Tools:** `python3`, `node`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `testing-self-healing-engineer`
-- **Tests:** `tests/test_healing.py`, `tests/test_self_healing_loop.py`
+- **Tests:** `tests/test_healing.py`, `tests/test_self_healing_loop.py`, `tests/test_w2_fixes_healing.py`, `tests/test_w2_fixes_patch.py`
 - **Scenarios:** F — `tests/test_self_healing_loop.py` `ScenarioF`
 - **Evidence boundary:** Repair proposals and fixed declarative checks; candidate code is never executed
 - **Evidence status:** VERIFIED — 2/2 test files, 67 test cases passed; 9 sources bound (`source_sha256` ddf31fcf7fe122b6…).

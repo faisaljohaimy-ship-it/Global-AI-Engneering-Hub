@@ -186,7 +186,9 @@
     "tests": [
       "tests/test_os_orchestration.py",
       "tests/test_swarm.py",
-      "tests/test_orchestrator.py"
+      "tests/test_orchestrator.py",
+      "tests/test_w2_fixes_orchestration.py",
+      "tests/test_w2_fixes_orchestrator.py"
     ],
     "scenarios": [
       {
@@ -564,7 +566,11 @@
       "tests/test_governor.py",
       "tests/test_security_enterprise.py",
       "tests/test_workspace_policy.py",
-      "tests/test_master_audit_permissions.py"
+      "tests/test_master_audit_permissions.py",
+      "tests/test_isolation_fixes_git.py",
+      "tests/test_isolation_fixes_planted_git.py",
+      "tests/test_isolation_fixes_relaunch.py",
+      "tests/test_isolation_fixes_governor.py"
     ],
     "scenarios": [
       {
@@ -695,7 +701,8 @@
     ],
     "tests": [
       "tests/test_release_provenance.py",
-      "tests/test_sdk.py"
+      "tests/test_sdk.py",
+      "tests/test_review_fixes_sdk_submodules.py"
     ],
     "scenarios": [],
     "evidence": {
@@ -808,7 +815,8 @@
     ],
     "tests": [
       "tests/test_reasoning.py",
-      "tests/test_reasoning_cases.py"
+      "tests/test_reasoning_cases.py",
+      "tests/test_w2_fixes_reasoning.py"
     ],
     "scenarios": [],
     "evidence": {
@@ -863,7 +871,11 @@
     "tests": [
       "tests/test_engineering_memory.py",
       "tests/test_gaie_factory.py",
-      "tests/test_memory_unified.py"
+      "tests/test_memory_unified.py",
+      "tests/test_gaie_memory_journal.py",
+      "tests/test_review_fixes_memory_readonly.py",
+      "tests/test_review_fixes_memory_resume_cli.py",
+      "tests/test_review_fixes_memory_secrets.py"
     ],
     "scenarios": [
       {
@@ -1014,7 +1026,8 @@
       "tests/test_gaie_factory.py",
       "tests/test_build_engine.py",
       "tests/test_build_engine_e2e.py",
-      "tests/test_upgrade_engine.py"
+      "tests/test_upgrade_engine.py",
+      "tests/test_review_fixes_upgrade_scope.py"
     ],
     "scenarios": [
       {
@@ -1084,7 +1097,9 @@
     ],
     "tests": [
       "tests/test_healing.py",
-      "tests/test_self_healing_loop.py"
+      "tests/test_self_healing_loop.py",
+      "tests/test_w2_fixes_healing.py",
+      "tests/test_w2_fixes_patch.py"
     ],
     "scenarios": [
       {

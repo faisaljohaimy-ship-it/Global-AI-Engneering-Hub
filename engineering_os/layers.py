@@ -479,6 +479,13 @@ PROCESS_ONLY_TESTS = {
     "tests/test_healing.py": "runs detectors.Sandbox, which " + _NESTED,
     "tests/test_self_healing_loop.py": "runs heal() through detectors.Sandbox, which " + _NESTED,
     "tests/test_upgrade_engine.py": "runs upgrade() through detectors.Sandbox, which " + _NESTED,
+    "tests/test_w2_fixes_healing.py": "runs heal() through detectors.Sandbox, which " + _NESTED,
+    "tests/test_w2_fixes_patch.py": "runs heal() through detectors.Sandbox, which " + _NESTED,
+    "tests/test_isolation_fixes_governor.py": "tests the governor sandbox itself (pr30-isolation F4, F6, F7) and " + _NESTED,
+    "tests/test_isolation_fixes_planted_git.py": "runs strict workspace children that plant Git metadata, which " + _NESTED,
+    "tests/test_isolation_fixes_relaunch.py": "relaunches the strict workspace supervisor, which " + _NESTED,
+    "tests/test_gaie_memory_journal.py": ("chowns its memory directories to uid 65534 to prove a foreign owner is refused; the "
+                                          "layer sandbox's user namespace maps only the caller, so chown gives EINVAL"),
 }
 
 
