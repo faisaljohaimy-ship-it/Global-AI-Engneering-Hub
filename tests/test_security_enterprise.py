@@ -6,6 +6,7 @@ value here is synthetic and built at run time from fragments, so the tree itself
 repository scanner and for engineering_os.security_audit. No network, no model, no deployment.
 """
 import contextlib
+import copy
 import json
 import os
 import pathlib
@@ -756,6 +757,102 @@ class BehaviouralProbeTests(unittest.TestCase):
                     mock.patch.object(security_audit, "PROBE_WAIT_SECONDS", 2):
                 self.assertTrue(self.probe(security_audit.probe_sdk_fifo))
 
+    @staticmethod
+    def plain_unittest(root, start="tests", pattern="test_*.py"):
+        """The planted test run the way an unsandboxed runner would: the caller's environment, no isolation."""
+        done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", start, "-p", pattern], cwd=root,
+                              capture_output=True, text=True, timeout=120)
+        return done.stdout + done.stderr
+
+    def test_sec07_probe_runs_a_target_test_and_measures_what_it_reached(self):
+        from engineering_os import detectors
+
+        def keyword_only(sandbox, root, start, pattern, **kwargs):
+            """Names governor.sandbox_run(require_fs_isolation=True) and never calls it."""
+            return {"status": "ok", "log_tail": self.plain_unittest(root, start, pattern)}
+
+        def contained(sandbox, root, start, pattern, **kwargs):
+            return {"status": "ok", "log_tail": "FAIL: test_probe\nAssertionError: probe-ran\n"}
+
+        def refused(sandbox, root, start, pattern, **kwargs):
+            raise detectors.DetectorError("full sandbox tier unavailable; refusing to run target code")
+
+        def silent(sandbox, root, start, pattern, **kwargs):
+            return {"status": "crashed", "log_tail": ""}
+        for runner, expected in ((keyword_only, True), (contained, False), (refused, False)):
+            with self.subTest(runner=runner.__name__), mock.patch.object(detectors.Sandbox, "run_tests", runner):
+                self.assertIs(self.probe(security_audit.probe_healing_sandbox), expected)
+        with mock.patch.object(detectors.Sandbox, "run_tests", silent):
+            with self.assertRaises(security_audit.ProbeInconclusive):
+                self.probe(security_audit.probe_healing_sandbox)
+
+    def test_sec12_probe_runs_a_layer_test_and_measures_what_it_reached(self):
+        from engineering_os import layers
+
+        def keyword_only(root, test, scratch, timeout):
+            """Mentions sandbox_run and env= and passes the caller's environment anyway."""
+            return {"status": "failed", "output_tail": self.plain_unittest(root), "reason": None}, []
+
+        def contained(root, test, scratch, timeout):
+            return {"status": "failed", "output_tail": "AssertionError: probe-ran", "reason": None}, []
+
+        def refused(root, test, scratch, timeout):
+            raise layers.LayerError("the governor sandbox is unavailable on this host")
+        for runner, expected in ((keyword_only, True), (contained, False), (refused, False)):
+            with self.subTest(runner=runner.__name__), mock.patch.object(layers, "_run_python_test", runner):
+                self.assertIs(self.probe(security_audit.probe_layers_environment), expected)
+
+    def test_sec16_probe_runs_the_generated_suite_and_measures_what_it_reached(self):
+        from engineering_os import build_engine
+
+        def keyword_only(target, e2e=True, timeout=1200):
+            """sandbox_run named, not used."""
+            return {"python": {"status": "failed", "error": self.plain_unittest(target)}, "e2e": {"status": "not-run"}}
+
+        def contained(target, e2e=True, timeout=1200):
+            return {"python": {"status": "failed", "error": "AssertionError: probe-ran"}, "e2e": {"status": "not-run"}}
+        for runner, expected in ((keyword_only, True), (contained, False)):
+            with self.subTest(runner=runner.__name__), mock.patch.object(build_engine, "run_suites", runner):
+                self.assertIs(self.probe(security_audit.probe_build_suites), expected)
+
+    def test_sec17_probe_measures_the_environment_each_media_child_receives(self):
+        from engineering_os import video_pipeline
+        import shutil
+
+        def stand_ins(environment):
+            def run(command, *, timeout=600, stdin=None, binary=False):
+                subprocess.run(command, input=stdin, capture_output=True, timeout=timeout, env=environment(), check=True)
+
+            def node(work, command, job_path, *, timeout=600):
+                subprocess.run([shutil.which("node"), "renderer.cjs", command, str(job_path)], cwd=str(work),
+                               capture_output=True, timeout=timeout, env=environment(), check=True)
+
+            def frames(work, job_path, command, *, frames, timeout):
+                node(work, "render", job_path, timeout=timeout)
+                subprocess.run(command, cwd=str(work), input=b"", capture_output=True, timeout=timeout,
+                               env=environment(), check=True)
+            return {"_run": run, "_node": node, "_render_frames": frames}
+
+        def minimal():
+            return {"PATH": os.environ["PATH"], "LANG": "C.UTF-8"}
+        for environment, expected in ((minimal, False), (lambda: dict(os.environ), True)):
+            with self.subTest(expected=expected), mock.patch.multiple(video_pipeline, **stand_ins(environment)):
+                self.assertIs(self.probe(security_audit.probe_video_children), expected)
+
+    def test_sec13_probe_counts_an_engine_that_ran_or_an_audited_allow(self):
+        from engineering_os import governor
+        self.assertFalse(self.probe(security_audit.probe_injection))
+
+        def honoured(engine, action, payload, *, grant, ctx):
+            raise control_plane.EngineFailure("reasoning: unknown payload field approval_token")
+
+        def allowed_then_refused(engine, action, payload, *, grant, ctx):
+            governor.audit(ctx["state_dir"], {"decision": "allow", "reason": "payload grant"})
+            raise PermissionError("refused afterwards")
+        for fake in (honoured, allowed_then_refused):
+            with self.subTest(fake=fake.__name__), mock.patch.object(control_plane, "invoke", fake):
+                self.assertTrue(self.probe(security_audit.probe_injection))
+
     def test_sec10_probe_measures_the_journal_append(self):
         from engineering_os import gaie_memory
         self.assertFalse(self.probe(security_audit.probe_legacy_journal))
@@ -767,6 +864,119 @@ class BehaviouralProbeTests(unittest.TestCase):
             return {"status": "stored", "id": None}
         with mock.patch.object(gaie_memory, "_journal_add", keyword_only):
             self.assertTrue(self.probe(security_audit.probe_legacy_journal))
+
+
+# ---------------------------------------------------------------- exec:sandbox must mean the governor sandbox
+
+class SandboxReached(Exception):
+    """Raised by the stand-in for governor.sandbox_run: the action did reach the sandbox."""
+
+
+# Actions that declare exec:sandbox but do not run their code through governor.sandbox_run yet, with the reason.
+EXEC_SANDBOX_EXCEPTIONS = {
+    ("layers", "verify"): "SEC-12 open: layers._run starts repository tests with Popen and the caller's environment",
+    ("context-intelligence", "optimize"): "tools/headroom_context.py runs the local SDK in a plain subprocess with a "
+                                         "private environment, not in the governor sandbox",
+    ("master-build", "build"): "SEC-16 open: build_engine.run_suites runs the generated tests without the OS sandbox",
+    ("master-upgrade", "upgrade"): "SEC-07 class: upgrade_engine runs the target's tests through detectors.Sandbox",
+    ("master-cinematic", "probe"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
+    ("master-cinematic", "render"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
+    ("master-cinematic", "qa"): "SEC-17 open: the video pipeline starts ffprobe and ffmpeg without the OS sandbox",
+    ("cinematic-production", "probe"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
+    ("cinematic-production", "render"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
+    ("cinematic-production", "qa"): "SEC-17 open: the video pipeline starts ffprobe and ffmpeg without the OS sandbox",
+}
+# Actions that do reach governor.sandbox_run, with a payload that gets them there.
+EXEC_SANDBOX_PAYLOADS = {("quality-assurance", "run-tests"): {"modules": ["tests.test_security"], "timeout": 60}}
+
+
+def exec_sandbox_actions(records):
+    return sorted((record["id"], name) for record in records for name, spec in record["actions"].items()
+                  if "exec:sandbox" in spec["permissions"])
+
+
+def unsandboxed_exec_actions(records, payloads=EXEC_SANDBOX_PAYLOADS, exceptions=EXEC_SANDBOX_EXCEPTIONS):
+    """Actions that declare exec:sandbox, are no listed exception, and are not shown to reach governor.sandbox_run."""
+    entrypoints = {record["id"]: record["entrypoint"] for record in records}
+    missing = []
+    for engine, action in exec_sandbox_actions(records):
+        if (engine, action) in exceptions:
+            continue
+        if (engine, action) not in payloads:
+            missing.append((engine, action, "no payload shows it reaching governor.sandbox_run"))
+            continue
+        from engineering_os import contracts
+
+        def reached(*args, **kwargs):
+            raise SandboxReached()
+        with tempfile.TemporaryDirectory(prefix="gaie-exec-") as state, \
+                mock.patch.object(governor, "sandbox_run", reached):
+            try:
+                contracts.resolve(entrypoints[engine])(action, copy.deepcopy(payloads[(engine, action)]),
+                                                       {"state_dir": state, "environ": {}, "root": ROOT})
+            except SandboxReached:
+                continue
+            except Exception as error:  # noqa: BLE001 - reported below
+                missing.append((engine, action, f"stopped before the sandbox: {type(error).__name__}"))
+                continue
+        missing.append((engine, action, "returned without calling governor.sandbox_run"))
+    return missing
+
+
+class ExecSandboxTruthTests(unittest.TestCase):
+    """exec:sandbox is a promise: every action that declares it reaches governor.sandbox_run or is an explicit,
+    reasoned exception (exec-sandbox-permission-truth)."""
+
+    def records(self):
+        rows = list(control_plane.load_registry())
+        from engineering_os import build_engine, video_pipeline
+        known = {row["id"] for row in rows}
+        rows += [module.ENGINE_RECORD for module in (build_engine, video_pipeline)
+                 if module.ENGINE_RECORD["id"] not in known]
+        return rows
+
+    def test_every_exec_sandbox_action_reaches_the_sandbox_or_is_a_listed_exception(self):
+        records = self.records()
+        self.assertIn(("quality-assurance", "run-tests"), exec_sandbox_actions(records))
+        self.assertEqual(unsandboxed_exec_actions(records), [])
+        for key, reason in EXEC_SANDBOX_EXCEPTIONS.items():
+            self.assertTrue(reason.strip(), key)
+
+    def test_a_new_exec_sandbox_action_with_a_plain_subprocess_fails_the_contract(self):
+        records = self.records() + [{"id": "probe-engine", "entrypoint": "engineering_os.adapters:quality_assurance",
+                                     "actions": {"contracts": {"side_effect": "none",
+                                                               "permissions": ["exec:sandbox", "secrets:none"]}}}]
+        payloads = {**EXEC_SANDBOX_PAYLOADS, ("probe-engine", "contracts"): {}}
+        self.assertEqual([row[:2] for row in unsandboxed_exec_actions(records, payloads)], [("probe-engine", "contracts")])
+        self.assertEqual([row[:2] for row in unsandboxed_exec_actions(records[:-1] + [{**records[-1], "id": "other"}])],
+                         [("other", "contracts")])
+
+
+def static_rows(report):
+    """Static hits by (rule, path, enclosing function, status): line numbers may move, the set may not."""
+    return sorted((row["rule"], row["location"].rsplit(":", 1)[0], row.get("function"), row["status"])
+                  for row in report["findings"] if row["kind"] == "static")
+
+
+def evidence_mismatches(evidence, live):
+    """Differences between committed evidence and a live report. A host-dependent probe's status is compared only
+    when the live host measures the same sandbox tier as the host the evidence was written on."""
+    problems = []
+    same_tier = evidence.get("sandbox_tier") == live.get("sandbox_tier")
+    recorded = {row["id"]: row for row in evidence["findings"] if row["kind"] == "registered"}
+    measured = {row["id"]: row for row in live["findings"] if row["kind"] == "registered"}
+    if set(recorded) != set(measured):
+        problems.append(("registered findings", sorted(set(recorded) ^ set(measured))))
+    for identifier in sorted(set(recorded) & set(measured)):
+        keys = ["severity", "location", "rule", "host_dependent"]
+        if same_tier or not recorded[identifier].get("host_dependent"):
+            keys.append("status")
+        for key in keys:
+            if recorded[identifier].get(key) != measured[identifier].get(key):
+                problems.append((identifier, key, recorded[identifier].get(key), measured[identifier].get(key)))
+    if static_rows(evidence) != static_rows(live):
+        problems.append(("static findings", static_rows(evidence), static_rows(live)))
+    return problems
 
 
 class LiveAuditTests(unittest.TestCase):
@@ -794,14 +1004,47 @@ class LiveAuditTests(unittest.TestCase):
 
     def test_the_committed_evidence_matches_a_live_run(self):
         evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
-        live = self.by_id()
-        recorded = {row["id"]: row for row in evidence["findings"] if row["kind"] == "registered"}
-        self.assertEqual(set(recorded), {key for key, row in live.items() if row["kind"] == "registered"})
-        for identifier, row in recorded.items():
-            self.assertEqual((row["status"], row["severity"]), (live[identifier]["status"], live[identifier]["severity"]),
-                             identifier)
+        self.assertEqual(evidence_mismatches(evidence, self.report), [])
         self.assertEqual(evidence["summary"]["open_critical_or_high"], [])
         self.assertEqual((evidence["network"], evidence["model_calls"], evidence["simulated"]), (False, 0, False))
+        self.assertIn(evidence["sandbox_tier"], ("full", "plain", "unknown"))
+
+    def test_the_findings_table_of_the_review_agrees_with_the_evidence(self):
+        import re
+        text = (ROOT / "docs/specs/gaie-20-layers/ENTERPRISE_SECURITY.md").read_text(encoding="utf-8")
+        table = {match.group(1): (match.group(2), match.group(3)) for match in
+                 re.finditer(r"^\| (SEC-\d+) \| (\w+) \| \**(\w+)\** \|", text, re.MULTILINE)}
+        evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
+        recorded = {row["id"]: (row["severity"], row["status"]) for row in evidence["findings"] if row["kind"] == "registered"}
+        self.assertEqual(table, recorded)
+        summary = evidence["summary"]
+        counts = (f"{len(evidence['findings'])} findings, {len(recorded)} registered and "
+                  f"{len(evidence['findings']) - len(recorded)} static. By status: open {summary['by_status']['open']}")
+        self.assertIn(counts, " ".join(text.split()))
+
+    def test_an_unreviewed_static_hit_breaks_the_evidence_match(self):
+        evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
+        files = security_audit.tracked_files(ROOT)
+        files["engineering_os/build_engine.py"] += b"\n\ndef _scratch(path):\n    path.mkdir(mode=0o755)\n"
+        with mock.patch.object(security_audit, "tracked_files", lambda root: files):
+            scratch = security_audit.run(ROOT, probes=False)
+        self.assertIn(("private-mode", "engineering_os/build_engine.py", "_scratch", "open"), static_rows(scratch))
+        registered = [row for row in self.report["findings"] if row["kind"] == "registered"]
+        self.assertTrue(evidence_mismatches(evidence, {**self.report, "findings": registered + scratch["findings"]}))
+
+    def test_host_dependent_statuses_are_compared_only_on_a_host_of_the_same_tier(self):
+        evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
+        flipped = copy.deepcopy(self.report)
+        for row in flipped["findings"]:
+            if row["id"] == "SEC-12":
+                row["status"] = "fixed" if row["status"] == "open" else "open"
+        other_host = {**flipped, "sandbox_tier": "full" if evidence["sandbox_tier"] != "full" else "plain"}
+        self.assertEqual(evidence_mismatches(evidence, other_host), [])
+        self.assertTrue(evidence_mismatches(evidence, {**flipped, "sandbox_tier": evidence["sandbox_tier"]}))
+        for row in flipped["findings"]:
+            if row["id"] == "SEC-03":
+                row["status"] = "open"
+        self.assertTrue(evidence_mismatches(evidence, other_host))
 
     def test_the_evidence_is_public_safe(self):
         text = EVIDENCE.read_text(encoding="utf-8")

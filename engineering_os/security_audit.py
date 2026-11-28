@@ -254,13 +254,20 @@ def static_findings(files):
 # Static hits reviewed and accepted, by (path, rule, enclosing function), with the reason.
 ACCEPTED = {
     ("scripts/security_scan.py", "git-dynamic-subcommand", "git"):
-        "reads the hub's own index (ls-files, diff --cached --name-only, cat-file): none refreshes the index or runs filters",
+        "every caller (index) passes fixed plumbing subcommands: ls-files --stage, diff --cached --name-only, cat-file "
+        "-s and cat-file blob; none reads the work tree, refreshes the index or runs fsmonitor, filters, textconv or "
+        "hooks. The root is the hub (default) or one the owner names with --root",
     ("hublink.py", "git-dynamic-subcommand", "_git"):
-        "runs only in the hub's own checkout (ROOT), never in a target repository",
+        "runs only in the hub's own checkout (ROOT), never in a target repository, with fixed subcommands: rev-parse, "
+        "cat-file -e, merge-base --is-ancestor, show <revision>:<path> (no --textconv) and ls-tree",
     ("engineering_os/adapters.py", "authority-from-payload", "security_governor"):
-        "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
+        "validate-grant and check evaluate a grant given as data (dry run): governor.check is pure (no audit write, no "
+        "state, no subprocess), takes the action spec from the registry, never from the payload, and approval_token=None "
+        "so a gated side effect is always refused; the result is marked dry_run and nothing consumes it as authority; "
+        "the control plane authorizes from its own grant argument (SEC-13)",
     ("engineering_os/governor.py", "private-mode", "_sandbox_init"):
-        "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
+        "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with "
+        "private propagation, read-only after pivot_root), not state files",
 }
 
 
@@ -533,15 +540,152 @@ def _source(relative):
     return path.read_text(encoding="utf-8") if path.is_file() and not path.is_symlink() else ""
 
 
+class ProbeInconclusive(AuditError):
+    """The planted code neither ran nor was refused, so the probe measured nothing (its finding reads open)."""
+
+
+PARENT_ONLY = "GAIE_PROBE_PARENT_ONLY"
+ESCAPE_TEST = """import os, unittest
+
+
+class Probe(unittest.TestCase):
+    def test_probe(self):
+        seen = ["probe-ran"]
+        if os.environ.get({env!r}):
+            seen.append("parent-environment")
+        try:
+            with open({marker!r}, encoding="utf-8") as handle:
+                seen.append("read-outside:" + handle.read().strip())
+        except OSError:
+            pass
+        try:
+            with open({escape!r}, "w", encoding="utf-8") as handle:
+                handle.write("escaped")
+            seen.append("write-outside")
+        except OSError:
+            pass
+        print(" ".join(seen), flush=True)
+        self.fail(" ".join(seen))
+"""
+
+
+@contextlib.contextmanager
+def _escape_fixture(base):
+    """A repository whose only test reports what it reached outside its workspace, with the caller's environment
+    holding a variable the test must not see: yields (repository, check(output) -> True when anything escaped)."""
+    outside, repository = base / "outside", base / "repository"
+    outside.mkdir(mode=0o700)
+    (repository / "tests").mkdir(parents=True, mode=0o700)
+    marker, escape = outside / "marker.txt", outside / "escaped.txt"
+    marker.write_text("outside-marker\n", encoding="utf-8")
+    (repository / "tests" / "test_probe.py").write_text(
+        ESCAPE_TEST.format(env=PARENT_ONLY, marker=str(marker), escape=str(escape)), encoding="utf-8")
+
+    def escaped(output):
+        output = output or ""
+        if escape.exists() or "read-outside" in output or "parent-environment" in output:
+            return True
+        if "probe-ran" not in output:
+            raise ProbeInconclusive("the planted test left no trace")
+        return False
+    previous = os.environ.get(PARENT_ONLY)
+    os.environ[PARENT_ONLY] = "1"
+    try:
+        yield repository, escaped
+    finally:
+        if previous is None:
+            os.environ.pop(PARENT_ONLY, None)
+        else:
+            os.environ[PARENT_ONLY] = previous
+
+
 def probe_healing_sandbox(base):
-    """True while detectors.Sandbox runs target code without the governor's OS sandbox."""
-    return "sandbox_run" not in _source("engineering_os/detectors.py")
+    """True when a target repository's test, run by detectors.Sandbox, reads a file outside its copy, writes outside
+    it or sees a variable of the caller's environment (SEC-07). A refusal to run (DetectorError or PermissionError,
+    as on a host without the governor's sandbox) is not exploitable; a run that leaves no trace is inconclusive."""
+    from . import detectors
+    with _escape_fixture(base) as (repository, escaped):
+        try:
+            result = detectors.Sandbox(base / "scratch", timeout=120).run_tests(repository, "tests", "test_*.py")
+        except (detectors.DetectorError, PermissionError):
+            return False
+        return escaped(result.get("log_tail"))
 
 
 def probe_layers_environment(base):
-    """True while layers.verify runs repository tests outside the governor sandbox with the caller's environment."""
-    text = _source("engineering_os/layers.py")
-    return "sandbox_run" not in text and "env=" not in text.split("def _run(", 1)[-1].split("\ndef ", 1)[0]
+    """True when a repository test run by layers.verify (its _run_python_test) reads a file outside the repository,
+    writes outside it or sees a variable of the caller's environment (SEC-12). A refusal (LayerError or
+    PermissionError) is not exploitable; a run that leaves no trace is inconclusive."""
+    from . import layers
+    with _escape_fixture(base) as (repository, escaped):
+        scratch = base / "scratch"
+        scratch.mkdir(mode=0o700)
+        try:
+            row, _ = layers._run_python_test(repository, "tests/test_probe.py", scratch, 120)
+        except (layers.LayerError, PermissionError):
+            return False
+        return escaped(row.get("output_tail", "") + " " + str(row.get("reason") or ""))
+
+
+MANAGE_PROBE = """import sys, unittest
+sys.path.insert(0, "tests")
+import test_probe
+unittest.main(module=test_probe, argv=["manage.py"])
+"""
+
+
+def probe_build_suites(base):
+    """True when the generated application's own tests, started by build_engine.run_suites, read a file outside the
+    application, write outside it or see a variable of the caller's environment (SEC-16)."""
+    from . import build_engine
+    with _escape_fixture(base) as (repository, escaped):
+        (repository / "manage.py").write_text(MANAGE_PROBE, encoding="utf-8")
+        python = build_engine.run_suites(repository, e2e=False, timeout=120)["python"]
+        return escaped(str(python.get("error") or ""))
+
+
+CHILD_STUB = """#!{python}
+import json, os, pathlib, sys
+name = pathlib.Path(sys.argv[0]).name
+pathlib.Path({seen!r}, name + "-" + str(os.getpid())).write_text(os.environ.get({env!r}, "absent"))
+if name == "node":
+    job = json.loads(pathlib.Path(sys.argv[3]).read_text("utf-8"))
+    result = "result-render.json" if sys.argv[2] == "render" else job["result_path"]
+    pathlib.Path(result).write_text(json.dumps({{"frames": []}}))
+elif sys.argv[1:] == ["--encode"]:
+    sys.stdin.buffer.read()
+"""
+
+
+def probe_video_children(base):
+    """True when a child the video pipeline starts (_run for ffmpeg/ffprobe, _node for the browser renderer,
+    _render_frames for renderer and encoder) sees a variable of the caller's environment (SEC-17). Stand-in
+    programs named node and ffmpeg record what they received; no real renderer or encoder runs."""
+    from . import video_pipeline
+    bin_dir, seen, work = base / "bin", base / "seen", base / "work"
+    for directory in (bin_dir, seen, work):
+        directory.mkdir(mode=0o700)
+    for name in ("node", "ffmpeg"):
+        (bin_dir / name).write_text(CHILD_STUB.format(python=sys.executable, seen=str(seen), env=PARENT_ONLY), encoding="utf-8")
+        os.chmod(bin_dir / name, 0o700)
+    job = work / "job.json"
+    job.write_text(json.dumps({"edition": 1, "result_path": str(work / "result.json")}), encoding="utf-8")
+    previous_path, previous = os.environ.get("PATH", ""), os.environ.get(PARENT_ONLY)
+    os.environ.update({"PATH": f"{bin_dir}{os.pathsep}{previous_path}", PARENT_ONLY: "1"})
+    try:
+        video_pipeline._run([str(bin_dir / "ffmpeg")], timeout=60)
+        video_pipeline._node(work, "probe", job, timeout=60)
+        video_pipeline._render_frames(work, job, [str(bin_dir / "ffmpeg"), "--encode"], frames=0, timeout=60)
+    finally:
+        os.environ["PATH"] = previous_path
+        if previous is None:
+            os.environ.pop(PARENT_ONLY, None)
+        else:
+            os.environ[PARENT_ONLY] = previous
+    records = [path.read_text() for path in seen.iterdir()]
+    if len(records) < 4:
+        raise ProbeInconclusive("not every stand-in child ran")
+    return any(record != "absent" for record in records)
 
 
 def probe_video_output_dir(base):
@@ -666,11 +810,20 @@ def probe_injection(base):
     try:
         cp.invoke("reasoning", "root-causes", smuggled, grant={**grant, "engines": {"memory": ["put"]}},
                   ctx={"state_dir": str(state)})
-    except PermissionError:
-        return False
-    except cp.ControlPlaneError:
-        return False
+    except cp.EngineFailure:
+        return True  # authorized and started: only the engine itself turned the payload down
+    except (PermissionError, cp.ControlPlaneError):
+        return _audit_allowed(state)
     return True
+
+
+def _audit_allowed(state):
+    """True when the governor audit log in `state` records any allow decision."""
+    from . import governor
+    path = state / governor.AUDIT_FILE
+    if not path.is_file():
+        return False
+    return any(json.loads(line).get("decision") == "allow" for line in path.read_text(encoding="utf-8").splitlines() if line)
 
 
 # id, severity, title, location, rule, status when the probe finds the weakness / does not, probe, evidence, control
@@ -705,9 +858,10 @@ FINDINGS = (
      "tests/test_security_enterprise.py::AnchorTests",
      "security_audit.audit_anchor / verify_audit_anchor; the owner must keep the anchor outside the state directory"),
     ("SEC-07", "medium", "Self-healing runs target repository code through detectors.Sandbox, a Python-level guard "
-     "without the governor's OS sandbox: files the user can read stay readable",
-     "engineering_os/detectors.py:Sandbox", "untrusted-code-outside-sandbox", ("open", "held"), probe_healing_sandbox,
-     "docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
+     "without the governor's OS sandbox: files the user can read stay readable and writable",
+     "engineering_os/detectors.py:Sandbox", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_healing_sandbox,
+     "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a "
+     "caller variable); docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
      "environment reduced to PATH/HOME/TMPDIR, loopback-only socket guard, timeouts, process-group kill; "
      "fix: run the driver through governor.sandbox_run (owner: self-healing)"),
     ("SEC-08", "low", "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository",
@@ -737,8 +891,9 @@ FINDINGS = (
      "with one link, opened O_NONBLOCK|O_NOFOLLOW and rechecked by fstat; the probe runs verify itself with a timeout"),
     ("SEC-12", "medium", "layers.verify declares exec:sandbox and secrets:none but runs repository tests outside the "
      "governor sandbox with the caller's whole environment",
-     "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", "held"), probe_layers_environment,
-     "probe_layers_environment",
+     "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_layers_environment,
+     "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and "
+     "looks for a caller variable)",
      "the tests are the hub's own; an agent that can write tests/ and holds layers.verify gets code execution "
      "with the owner's environment. fix: governor.sandbox_run like quality-assurance.run-tests (owner: layers)"),
     ("SEC-13", "info", "Payload text is data: an approval token, grant or instruction inside a payload grants nothing",
@@ -752,7 +907,26 @@ FINDINGS = (
     ("SEC-15", "info", "Oversized payloads are refused before authorization", "engineering_os/control_plane.py:invoke",
      "unbounded-input", ("open", "held"), probe_payload_bound, "tests/test_security_enterprise.py::PayloadSecretTests",
      "1 MiB canonical payload bound, 16 MiB result bound; governor scan bound 8 MiB, depth 64"),
+    ("SEC-16", "low", "The build engine runs the generated application's own tests (python3 -I manage.py test, node "
+     "tests/e2e/ui.e2e.mjs) without the governor's OS sandbox: files the user can read stay readable and writable",
+     "engineering_os/build_engine.py:run_suites", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_build_suites,
+     "probe_build_suites (a planted manage.py test reads a marker outside the application and writes outside it)",
+     "environment reduced to PATH/HOME/TMPDIR/LANG (no caller variables), private temporary HOME, the hub on no "
+     "path, timeouts; not enforced: filesystem and network isolation, and the timeout kills the direct child only. "
+     "The code under test is generated from the hub's own template. fix: governor.sandbox_run (owner: build engine)"),
+    ("SEC-17", "low", "The video pipeline starts ffmpeg, ffprobe and the node renderer with the caller's whole "
+     "environment and without the governor's OS sandbox",
+     "engineering_os/video_pipeline.py:_run", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_video_children,
+     "probe_video_children (stand-in node and ffmpeg programs record whether a caller variable reached _run, _node "
+     "and both children of _render_frames)",
+     "fixed argument lists (no shell), timeouts, a Playwright route that aborts requests leaving the page's origin; "
+     "not enforced: environment scrub, filesystem and network isolation. fix: env= with a minimal environment and "
+     "governor.sandbox_run (owner: cinematic; video_pipeline.py is reserved for the earlier session)"),
 )
+
+# Probes whose result depends on the governor sandbox tier this host provides: their committed status is a
+# measurement on the host recorded in the report (sandbox_tier), and another host may measure otherwise.
+HOST_DEPENDENT = frozenset({"SEC-07", "SEC-12", "SEC-16", "SEC-17"})
 
 
 def registered_findings():
@@ -766,6 +940,8 @@ def registered_findings():
                 exploitable, error = True, type(failure).__name__
         row = {"id": identifier, "rule": rule, "severity": severity, "status": weak if exploitable else strong,
                "location": location, "title": title, "kind": "registered", "evidence": evidence, "control": control}
+        if identifier in HOST_DEPENDENT:
+            row["host_dependent"] = True
         if error:
             row["probe_error"] = error
         rows.append(row)
@@ -774,19 +950,29 @@ def registered_findings():
 
 # ---------------------------------------------------------------- report
 
+def _sandbox_tier():
+    """The governor sandbox tier measured on this host ("full" or "plain"); "unknown" when it cannot be measured."""
+    try:
+        from . import governor
+        return governor.isolation_probe()["tier"]
+    except Exception:  # noqa: BLE001 - an unmeasurable tier is reported as such, never as full
+        return "unknown"
+
+
 def run(root=ROOT, *, probes=True):
     """The audit report: registered findings (measured) and static findings of the tracked tree."""
     root = pathlib.Path(root).resolve()
     static = static_findings(tracked_files(root))
     registered = registered_findings() if probes else []
     findings = registered + static
+    tier = _sandbox_tier() if probes else None
     summary = {"by_status": {name: sum(1 for f in findings if f["status"] == name) for name in STATUSES},
                "by_severity": {name: sum(1 for f in findings if f["severity"] == name) for name in SEVERITIES},
                "open_critical_or_high": sorted(f["id"] for f in findings if f["status"] == "open"
                                                and f["severity"] in ("critical", "high"))}
     return {"schema_version": SCHEMA_VERSION, "tool": "engineering_os.security_audit", "layer": "L09",
             "command": "python3 -m engineering_os.security_audit", "deterministic": True, "network": False,
-            "model_calls": 0, "simulated": False, "probes_run": probes,
+            "model_calls": 0, "simulated": False, "probes_run": probes, "sandbox_tier": tier,
             "scope": {"static": "tracked files; Python rules exclude " + ", ".join(STATIC_SCOPE_EXCLUDED),
                       "registered": "probes run against the modules imported from this checkout"},
             "summary": summary, "findings": findings}
