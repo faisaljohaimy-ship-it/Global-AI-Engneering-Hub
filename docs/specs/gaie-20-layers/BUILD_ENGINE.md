@@ -159,7 +159,14 @@ reason; unmapped criteria fail the requirements stage, so nothing downstream ver
 Non-functional statements map to named tests and checks only through a reviewed table of
 whole-statement forms (`_nfr_rules`: the statements `requirements` writes, matched in full,
 case-insensitive): no secrets in the repository → secret scan; parameterized SQL → injection
-test; input validation → validation tests; role check on every endpoint; CSRF token on
+test; input validation (on every write endpoint) → the per-entity validation unit tests and
+`test_validation_<table>` (POST, PUT with a full body and PATCH merged over the stored record:
+unknown, read-only, required, wrong type and over-long values refused, nothing changed) plus
+the link tests (link bodies); role check on every endpoint → `test_role_check_on_every_endpoint`
+(collection and item routes for every role, and PUT, PATCH and DELETE of a visible record by
+every non-admin role on its own and on another account's record, so a dropped `write:own`
+check fails), `test_unauthenticated_requests_refused` (every route, sub-resources included),
+the link, child and progress tests (per-role checks of those routes); CSRF token on
 cookie sessions; passwords stored as salted PBKDF2-SHA256 hashes → PBKDF2 test; rate limit on
 sign-in (N failures per M minutes) → lockout test only when (N, M) is `SIGNIN_LIMIT` (5, 15),
 the numbers `app/auth.py` implements for one e-mail from one client address in a sliding

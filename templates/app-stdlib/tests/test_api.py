@@ -108,6 +108,35 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(status, 400, field["name"])
             self.assertIn(field["name"], error["error"]["fields"])
         self.assertEqual(self.call("GET", self.path(entity) + "?limit=1")[2]["total"], before)
+        self._validation_on_update(entity, required)
+
+    def _validation_on_update(self, entity, required):
+        """PUT (full body) and PATCH (merged over the stored record) validate exactly like POST and
+        change nothing when they are refused."""
+        record = self.server.create(entity, 1, self.parents(entity))
+        path = self.path(entity, record["id"])
+        refs = {ref["field"]: record[ref["field"]] for ref in entity.references}
+        for method in ("PUT", "PATCH"):
+            status, _, error = self.call(method, path, {"__unknown__": "x", "id": 5, "created_by": 1})
+            self.assertEqual((status, error["error"]["code"]), (400, "validation_failed"), method)
+            self.assertEqual({key: error["error"]["fields"].get(key) for key in ("__unknown__", "id", "created_by")},
+                             {"__unknown__": "unknown_field", "id": "read_only", "created_by": "read_only"}, method)
+            for name in required:
+                self.assertEqual(error["error"]["fields"].get(name), "required" if method == "PUT" else None, (method, name))
+            for field in entity.fields:
+                bad = [] if field["type"] != "text" else "x" * (field.get("max", LIMITS["max_text"]) + 1)
+                body = {**sample(entity, 2, refs), field["name"]: bad} if method == "PUT" else {field["name"]: bad}
+                status, _, error = self.call(method, path, body)
+                self.assertEqual((status, error["error"]["code"]), (400, "validation_failed"), (method, field["name"]))
+                self.assertIn(field["name"], error["error"]["fields"], method)
+                if field.get("required"):
+                    status, _, error = self.call(method, path, {**body, field["name"]: None})
+                    self.assertEqual((status, error["error"]["fields"].get(field["name"])), (400, "required"),
+                                     (method, field["name"]))
+            for ref in entity.references:
+                status, _, error = self.call("PATCH", path, {ref["field"]: "1"})
+                self.assertEqual((status, error["error"]["fields"].get(ref["field"])), (400, "type"), ref["field"])
+        self.assertEqual(self.call("GET", path)[2], record, "a refused update changes nothing")
 
     def _not_found(self, entity):
         for path in (self.path(entity, 999999999), self.path(entity) + "/0", self.path(entity) + "/abc",
@@ -314,11 +343,20 @@ class ApiTests(unittest.TestCase):
 
     def test_unauthenticated_requests_refused(self):
         entity = SCHEMA.entities[0]
-        for method, path in (("GET", "/api/schema"), ("GET", self.path(entity)), ("POST", self.path(entity)),
-                             ("GET", self.path(entity, 1)), ("PATCH", self.path(entity, 1)),
-                             ("DELETE", self.path(entity, 1)), ("GET", "/api/session"), ("POST", "/api/logout"),
-                             ("GET", "/api/does-not-exist")):
-            status, _, body = self.call(method, path, {} if method in ("POST", "PATCH") else None, role=None)
+        routes = [("GET", "/api/schema"), ("GET", self.path(entity)), ("POST", self.path(entity)),
+                  ("GET", self.path(entity, 1)), ("PUT", self.path(entity, 1)), ("PATCH", self.path(entity, 1)),
+                  ("DELETE", self.path(entity, 1)), ("GET", "/api/session"), ("POST", "/api/logout"),
+                  ("GET", "/api/does-not-exist")]
+        for parent in SCHEMA.entities:
+            item = self.path(parent, 1)
+            for link in parent.links:
+                routes += [("GET", f"{item}/{link['segment']}"), ("POST", f"{item}/{link['segment']}"),
+                           ("DELETE", f"{item}/{link['segment']}/1")]
+            routes += [("GET", f"{item}/{child['collection']}") for child in parent.children]
+            if any(rule["parent"] == parent.name for rule in SCHEMA.rules.get("progress", [])):
+                routes.append(("GET", f"{item}/progress"))
+        for method, path in routes:
+            status, _, body = self.call(method, path, {} if method in ("POST", "PUT", "PATCH") else None, role=None)
             self.assertEqual((status, body["error"]["code"]), (401, "unauthenticated"), (method, path))
         bogus = {"cookie": "session=forged-token-value", "csrf": "x"}
         self.assertEqual(self.call("GET", self.path(entity), session=bogus)[0], 401)
@@ -337,6 +375,53 @@ class ApiTests(unittest.TestCase):
                         self.assertEqual((status, reply["error"]["code"]), (403, "forbidden"), (role, method, entity.name))
                     else:
                         self.assertNotIn(status, (401, 403), (role, method, entity.name, reply))
+        self._item_writes_for_roles()
+
+    def _reachable(self, entity, me, n):
+        """A record of `entity` created by the administrator that the account whose principal is `me`
+        may see (scoping included): a reached scoped record, or one under a reached scoped record."""
+        scoping = SCHEMA.auth.get("scoping")
+        root = SCHEMA.by_name[scoping["entity"]] if scoping else None
+        if root is None or not self._leads_to(entity, root):
+            return self.server.create(entity, n, self.parents(entity))
+        top = self.server.create(root, n, self.parents(root))
+        self._reach(root, top, me)
+        return top if entity is root else self._under(entity, root, top["id"], n)
+
+    def _item_writes_for_roles(self):
+        """Every non-admin role on every entity: PUT, PATCH and DELETE of a record it can see need the
+        role's write/delete permission, and a :own permission covers only records the account created."""
+        principal = SCHEMA.auth.get("principal") or {}
+        decided = 0
+        for role, permissions in self._non_admin_roles():
+            session, account_id, me = self._role_account(role)
+            scope = db.Scope(SCHEMA, {"id": account_id, "role": role}, me["id"] if me else None)
+            for entity in SCHEMA.entities:
+                keep = principal.get("email_field") if entity.name == principal.get("entity") else None
+                for owned in (False, True):
+                    record = self._reachable(entity, me, 2 + owned)
+                    if owned:
+                        self._own(entity, record, account_id)
+                    with db.session(self.server.db_path) as connection:
+                        seen = db.visible(connection, entity, record["id"], scope)
+                    field = next(f for f in entity.fields if f["name"] != keep)
+                    refs = {ref["field"]: record[ref["field"]] for ref in entity.references}
+                    bodies = {"PUT": sample(entity, 8, refs, **({keep: record[keep]} if keep else {})),
+                              "PATCH": {field["name"]: sample(entity, 9)[field["name"]]}, "DELETE": None}
+                    for method, need, done in (("PUT", "write", 200), ("PATCH", "write", 200), ("DELETE", "delete", 204)):
+                        mode = model.allowed(permissions, need)
+                        if mode is None or (seen and mode == "own" and not owned):
+                            expected = (403, "forbidden")
+                        else:
+                            expected = (done, None) if seen else (404, "not_found")
+                        decided += bool(seen and mode)
+                        status, _, reply = self.call(method, self.path(entity, record["id"]), bodies[method],
+                                                     session=session)
+                        code = reply["error"]["code"] if isinstance(reply, dict) and "error" in reply else None
+                        self.assertEqual((status, code), expected, (role, method, entity.name, owned, reply))
+                    gone = self.call("GET", self.path(entity, record["id"]))[0] == 404
+                    self.assertEqual(gone, expected == (204, None), (role, entity.name, owned))
+        self.assertTrue(decided or not self._non_admin_roles(), "no role reached an ownership decision")
 
     def test_csrf_token_required(self):
         entity = SCHEMA.entities[0]

@@ -217,5 +217,74 @@ class SignInStatementTests(MutatedApp):
                 self.assertGeneratedFails([LOCKOUT], self.mutant(name, path, old, new))
 
 
+ITEM_ROUTE = ('            mode = self._permit(account, method)\n'
+              '            scope = db.Scope(self.schema, account, account["principal_id"], own=(method in SAFE_METHODS and mode == "own"))\n'
+              '            if method in ("PUT", "PATCH"):\n'
+              '                return self._update(entity, record_id, account, scope, mode, partial=method == "PATCH")\n')
+VALIDATED = "        values = self._validated(entity, payload, base=stored if partial else None)"
+RAW_MERGE = "{**{c: stored.get(c) for c in entity.columns}, **{k: v for k, v in payload.items() if k in entity.columns}}"
+WRITE_MUTANTS = (  # (name, NFR statement whose evidence must catch it, [(path, old, new)])
+    ("patch-drops-write-own", "role check on every endpoint",
+     [("app/server.py", ITEM_ROUTE, ITEM_ROUTE.replace("scope, mode, partial", 'scope, "all" if method == "PATCH" else mode, partial'))]),
+    ("put-drops-write-own", "role check on every endpoint",
+     [("app/server.py", ITEM_ROUTE, ITEM_ROUTE.replace("scope, mode, partial", 'scope, "all" if method == "PUT" else mode, partial'))]),
+    ("put-patch-skip-the-permission", "role check on every endpoint",
+     [("app/server.py", ITEM_ROUTE, ITEM_ROUTE.replace("mode = self._permit(account, method)",
+                                                        'mode = "all" if method in ("PUT", "PATCH") else self._permit(account, method)'))]),
+    ("sub-resources-skip-the-permission", "role check on every endpoint",
+     [("app/server.py", 'modes = (self._permit(account, "PUT"), self._permit(account, "DELETE"))', 'modes = ("all",)'),
+      ("app/server.py", 'modes = (self._permit(account, "PUT" if method == "POST" else "GET"),)', 'modes = ("all",)'),
+      ("app/server.py", 'modes = (self._permit(account, "GET"),)', 'modes = ("all",)')]),
+    ("patch-skips-validation", "input validation on every write endpoint",
+     [("app/server.py", VALIDATED, f"        values = {RAW_MERGE} if partial else self._validated(entity, payload, base=None)")]),
+    ("put-skips-validation", "input validation on every write endpoint",
+     [("app/server.py", VALIDATED, "        values = self._validated(entity, payload, base=stored) if partial else "
+                                   "{c: payload.get(c) for c in entity.columns}")]),
+)
+
+
+class WriteEndpointEvidenceTests(MutatedApp):
+    """recheck-build W2-BU-06 evidence gap: 'role check on every endpoint' and 'input validation on every
+    write endpoint' are evidenced by generated tests that cover PUT and PATCH (ownership included) and
+    the link, child and progress routes, and those tests fail when the server drops the check."""
+
+    def evidence(self, statement):
+        spec = engine.validate_spec(requirements.parse(_APP._FIXTURE.COMMAND))
+        model = engine.derive_model(spec)
+        engine.compile_acceptance(spec, model)
+        return [test for test in engine.map_statement(model, spec["locales"], statement) if test.startswith("tests.")]
+
+    def test_rows_name_the_update_and_sub_resource_tests(self):
+        api = engine.API_ID
+        roles = set(self.evidence("role check on every endpoint"))
+        self.assertTrue({api + "test_role_check_on_every_endpoint", api + "test_unauthenticated_requests_refused",
+                         api + "test_links_project_members", api + "test_children_project_tasks",
+                         api + "test_progress_uses_one_aggregate_query"} <= roles, sorted(roles))
+        validation = set(self.evidence("input validation on every write endpoint"))
+        self.assertTrue({api + "test_validation_task", api + "test_validation_project", api + "test_links_project_members",
+                         engine.VALIDATION_ID + "test_types_task"} <= validation, sorted(validation))
+        source = (self.app / "tests/test_api.py").read_text(encoding="utf-8")
+        self.assertIn("def _item_writes_for_roles(self):", source)
+        self.assertIn("def _validation_on_update(self, entity, required):", source)
+
+    def test_the_rows_evidence_fails_when_put_or_patch_loses_a_check(self):
+        rows = {statement: self.evidence(statement)
+                for statement in ("role check on every endpoint", "input validation on every write endpoint")}
+        for tests in rows.values():
+            self.assertGeneratedPasses(tests)
+        for name, statement, edits in WRITE_MUTANTS:
+            with self.subTest(name):
+                copy = None
+                for path, old, new in edits:
+                    copy = self.mutant(name, path, old, new) if copy is None else self._edit(copy, path, old, new)
+                self.assertGeneratedFails(rows[statement], copy)
+
+    def _edit(self, copy, path, old, new):
+        source = (copy / path).read_text(encoding="utf-8")
+        self.assertTrue(old in source, f"the code a mutation changes is not in {path}")
+        (copy / path).write_text(source.replace(old, new), encoding="utf-8")
+        return copy
+
+
 if __name__ == "__main__":
     unittest.main()

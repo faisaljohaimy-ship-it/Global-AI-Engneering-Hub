@@ -859,7 +859,7 @@ def _nfr_rules(model, locales):
         (r"no secrets in (?:the )?(?:repo|repository)", ["static:security:secrets"], None),
         (r"parameteri[sz]ed sql(?: only)?", [API_ID + "test_sql_injection_is_inert"], None),
         (r"input validation(?: on every write endpoint)?", ["@validation"], None),
-        (r"role check on every endpoint", [API_ID + "test_role_check_on_every_endpoint",
+        (r"role check on every endpoint", ["@roles", API_ID + "test_role_check_on_every_endpoint",
                                            API_ID + "test_unauthenticated_requests_refused"], None),
         (r"csrf token on cookie sessions", [API_ID + "test_csrf_token_required", API_ID + "test_cross_origin_write_refused",
                                             API_ID + "test_login_logout_cycle"], None),
@@ -904,11 +904,21 @@ def map_statement(model, locales, text):
         found = pattern.fullmatch(statement)
         if found and (check is None or check(found)):
             evidence.update(ids)
-    if "@validation" in evidence:
+    links = [f"{API_ID}test_links_{entity['table']}_{link['segment'].replace('-', '_')}"
+             for entity in model["entities"] for link in entity["links"]]
+    if "@validation" in evidence:  # POST, PUT and PATCH per entity (test_validation_<table>) and link bodies
         evidence.discard("@validation")
+        evidence.update(links)
         for entity in model["entities"]:
             evidence.add(f"{API_ID}test_validation_{entity['table']}")
             evidence.update(f"{VALIDATION_ID}test_{check}_{entity['table']}" for check in ("required", "types", "max_length"))
+    if "@roles" in evidence:  # collection and item routes (PUT/PATCH/DELETE ownership) plus every sub-resource
+        evidence.discard("@roles")
+        evidence.update(links)
+        evidence.update(f"{API_ID}test_children_{entity['table']}_{child['collection'].replace('-', '_')}"
+                        for entity in model["entities"] for child in entity["children"])
+        if model["rules"]["progress"]:
+            evidence.add(API_ID + "test_progress_uses_one_aggregate_query")
     return sorted(evidence)
 
 
