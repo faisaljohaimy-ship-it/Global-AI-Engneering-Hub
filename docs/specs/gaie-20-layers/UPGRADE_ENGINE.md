@@ -229,6 +229,9 @@ and malformed steps are refused before anything is created.
   rollback journal (a crashed write) or a journal carrying a super-journal record, or with a
   `-wal` whose header does not verify, is refused before SQLite opens it: the engine never
   rolls back a journal it did not create. The owner recovers it with the application first.
+  A database listed in `gaie-upgrade.json` that is a symlink, or lies under a symlinked
+  directory, is refused before anything is copied (it would otherwise leave the data proof);
+  a listed database that does not exist is named in `baseline.databases_missing`.
 - Template fixes never invent content: images without `alt` are reported for the owner. Label
   text comes from the spec, otherwise from the control's name.
 - Tests prove only what they check; a validated upgrade is not a release approval. Only

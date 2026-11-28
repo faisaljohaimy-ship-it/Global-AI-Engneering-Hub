@@ -292,6 +292,17 @@ def load_manifest(root):
     return data
 
 
+def _refuse_linked_databases(root, manifest):
+    """A database the manifest lists must be a real file: ``list_files`` skips symlinks, so a listed one reached through
+    a symlink (the file or a directory on its path) would silently leave the data proof. Refused before anything is copied."""
+    for rel in manifest.get("databases") or []:
+        parts = pathlib.PurePosixPath(rel).parts
+        linked = next((part for part in (pathlib.PurePosixPath(*parts[:n]) for n in range(1, len(parts) + 1))
+                       if (root / part).is_symlink()), None)
+        _need(linked is None, f"Database {rel} listed in {MANIFEST} is reached through the symlink {linked}; its data cannot "
+                              "be proven, so the run is refused before anything was copied (list the real file instead)")
+
+
 def _test_spec(tests, root):
     if tests is None:
         start = root / "tests"
@@ -1566,6 +1577,7 @@ class _Run:
         tests_dir = self.tests["start"] if self.tests else None
         databases = self.manifest.get("databases") or sqlite_files(self.root, files, tests_dir)
         self.databases = [rel for rel in databases if rel in files]
+        self.databases_missing = sorted(set(databases) - set(self.databases))  # listed but not a file in the target
         self.data = {}
         for number, rel in enumerate(self.databases, 1):
             try:  # an upgrade reads its copy through a verified snapshot (committed -wal frames count); the audit writes nowhere
@@ -1577,7 +1589,8 @@ class _Run:
         self.definitions = self.defs(self.root, files)
         self.route_entries = self.routes(self.root)
         self.test_files = {rel: digest for rel, digest in self.original.items() if tests_dir and _under(rel, tests_dir)}
-        result = {"data": self.data, "assets": self.assets, "definitions": len(self.definitions), "routes": len(self.route_entries),
+        result = {"data": self.data, "databases_missing": self.databases_missing, "assets": self.assets,
+                  "definitions": len(self.definitions), "routes": len(self.route_entries),
                   "test_files": sorted(self.test_files)}
         if self.audit_only:
             result["tests"] = {"executed": False, "reason": "audit is read-only: the suite would run in a workspace copy"}
@@ -2422,6 +2435,7 @@ def upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extr
     route = route_command(command, environ=environ, workspace=root)
     resolved_workdir = _workdir(workdir, root)
     manifest = load_manifest(root)
+    _refuse_linked_databases(root, manifest)
     spec_tests = _test_spec(tests if tests is not None else manifest.get("tests"), root)
     spec_rel, spec = _load_spec(root, manifest)
     extra = _extra_steps(extra_steps)
