@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "notes": "Natural-language names for projects already listed in projects/registry.json. Public names only. Private projects, deployment targets, database targets and policies belong in the private overlay ($GAIE_HOME/projects.json), never here.",
+  "aliases": {
+    "biz-pulse-ar": ["سديد", "sadeed", "biz pulse", "biz-pulse-ar"],
+    "wow-bus": ["wow bus", "wow-bus", "واو باص"],
+    "n8n-docs": ["n8n docs", "n8n-docs"]
+  }
+}

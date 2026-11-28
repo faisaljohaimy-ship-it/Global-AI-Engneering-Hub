@@ -80,6 +80,34 @@
       ],
       "origin": "Owner-authorized local launcher plus shared instructions, copied from one reviewed merged hub commit. Audited Python dependencies are downloaded separately with exact versions and hashes; no third-party library binaries are redistributed in this pack.",
       "limits": "Selective development tool only; no proxy, wrapper, MCP registration, authentication changes, live model session, production runtime dependency or measured billing savings."
+    },
+    "gaie-factory": {
+      "summary": "GAIE software factory for a project: bilingual master router, build/upgrade/audit/cinematic/release skills, master prompts, private project memory and read-only inventory.",
+      "version": "1.0.0",
+      "skills": [
+        "gaie-master-router",
+        "gaie-build",
+        "gaie-upgrade",
+        "gaie-audit",
+        "gaie-cinematic",
+        "gaie-release"
+      ],
+      "files": {
+        "engineering_os/gaie_router.py": ".engineering/gaie/gaie_router.py",
+        "engineering_os/gaie_memory.py": ".engineering/gaie/gaie_memory.py",
+        "engineering_os/gaie_inventory.py": ".engineering/gaie/gaie_inventory.py",
+        "governance/policies/gaie-routes.json": ".engineering/gaie/gaie-routes.json",
+        "projects/registry.json": ".engineering/gaie/projects.json",
+        "projects/aliases.json": ".engineering/gaie/aliases.json",
+        "prompts/MASTER_BUILD.md": ".engineering/gaie/MASTER_BUILD.md",
+        "prompts/MASTER_UPGRADE.md": ".engineering/gaie/MASTER_UPGRADE.md"
+      },
+      "requires": [
+        "Python 3.10+",
+        "git for the workspace-origin guard"
+      ],
+      "origin": "Owner-authorized original engineering tooling in this hub, standard library only. Review at an immutable merged SHA; no third-party dependencies.",
+      "limits": "Development-time instructions and local tools only. Routing is deterministic lexical matching; no model, provider or deployment call, no agent daemon, no production runtime dependency. Host discovery and invocation of the skills need separate evidence in each environment."
     }
   }
 }

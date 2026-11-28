@@ -1,5 +1,17 @@
 # Changelog
 
+## Engineering OS0.2.0 — 2026-11-28
+
+Adds the GAIE software factory: a deterministic Arabic/English master router
+(`hub.py route`), master build and upgrade prompts, six `gaie-*` skills, a
+read-only verifier agent, private per-project engineering memory, read-only project
+inventory with a coverage matrix (`hub.py inventory`), public project aliases with
+a private overlay, the `gaie-factory` registration pack, an idempotent Claude Code
+bootstrap and a plugin manifest. Existing commands, SDK1.0.0, packs and motion
+sources are unchanged. No product was modified, no repository created and nothing
+deployed; host evidence is limited to skill discovery and invocation in clean
+sessions. See docs/GAIE_FACTORY.md and docs/evidence/2026-11-28-gaie-factory.md.
+
 ## Engineering OS0.1.1 — 2026-11-27
 
 Extends reviewed dependency proposals to all three isolated browser/quality
