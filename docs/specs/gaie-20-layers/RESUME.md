@@ -4,7 +4,7 @@ This page is the pick-up point for the last stretch of the twenty-layer work. It
 hand-written and updated at the end of every stage, then pushed. A new session resumes
 from this page and the branch, not from any conversation.
 
-Last updated: 2026-11-28, stage 2 (team at work).
+Last updated: 2026-11-28, stage 3 (security merge pushed, team relaunched).
 
 ## Where the work lives
 
@@ -25,7 +25,7 @@ their commits reach `main` through #31.
 | `0986919` | #27 at `b7097df` merged onto `main` `65c84fe`. Two Motion Lab test conflicts took `main`'s stricter ID-level checks, byte-identical to the reconciliation reviewed in #30 (`8a1bb60`). | 9 of 9 GitHub checks green on `0986919` |
 | `7aedd71` | #27 at `7f77665` merged in: digital shows scene kit, cinematic edition 2, SEC-08 fix. Clean merge. | CI on this commit: see #31 |
 
-Pending merge: the security hardening of #30 (`df35563`). Four files conflict with the
+Merged at `ff3368e`: the security hardening of #30 (`df35563`), resolved locally as `077a934`, `79a5e8d`, `30c7bfd`, `e3f4c8d`. Four files conflict with the
 later wave-2 work (`engineering_os/control_plane.py`, `engineering_os/governor.py`,
 `prompts/MASTER_BUILD.md`, `sdk/engineering_sdk.py`). Resolution keeps both sides; where
 they disagree the stricter, fail-closed behaviour wins.
@@ -95,6 +95,18 @@ tests, and the full suite runs once at the gate.
 - A release tag is created only when the owner publishes a GitHub Release whose target
   is the merge commit. Until then the truthful wording is "recorded, tag pending".
 
+## Restart record
+
+- 08:36Z: every lane of the first launch stopped on a model usage limit, nearly all before
+  writing anything. Only the motion-policy lane left files (uncommitted, unreviewed).
+- Lane briefs are kept outside Git in the session scratchpad (`briefs/lanes/<lane>.md`),
+  so a relaunch does not depend on the conversation. If the machine is lost, the briefs
+  are lost too: the scopes in the "Team at work" table above are the source to rewrite them.
+- Relaunched with 18 agents at once: the 13 engineering lanes and the 5 independent
+  reviews. Motion port and status documents start as lanes finish.
+- Each lane is merged here and pushed as soon as it passes the gate; no lane waits for
+  the others.
+
 ## Acceptance scenarios
 
 Verified by running each test file alone on `0986919`.
@@ -120,7 +132,7 @@ Status values: `open`, `in progress`, `done` (with the commit).
 
 | Id | Item | Status |
 |---|---|---|
-| pr30 | Review and merge the security hardening of #30 | in progress |
+| pr30 | Review and merge the security hardening of #30 | merged into this branch (`ff3368e`); independent review in progress |
 | motion-policy | Purposeful digital motion policy: one central policy file, validator, tests, registry build refuses a motion with no stated meaning | in progress |
 | motion-port | Bring over motions that exist only on earlier branches (`claude/native-motion-engines-wip`, `feat/chromium-motion-stack`), as they are | open |
 | agents-20 | Standing policy: a team of up to twenty specialist roles for every build and upgrade, bound to `governance/agent-roles.json` | open |
