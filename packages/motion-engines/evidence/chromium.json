@@ -15,7 +15,7 @@
   "core_sha256": "0fe34d1f484c3650ef7d9fcdbda9510585608e1a8d7abbceff4e22bb0af46d0c"
  },
  "summary": {
-  "passed": 61,
+  "passed": 67,
   "failed": 0
  },
  "results": [
@@ -56,14 +56,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.171,
-     "p95Ms": 0.3,
-     "maxMs": 0.4,
-     "framesPerSecond": 5853.7
+     "averageMs": 10.121,
+     "p95Ms": 16,
+     "maxMs": 21.5,
+     "framesPerSecond": 98.8
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.583,
-    "heapAfterAllChecksMB": 10.42
+    "heapGrowthPerInstanceMB": -1.547,
+    "heapAfterAllChecksMB": 10.2
    }
   },
   {
@@ -104,14 +104,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 3.15,
-     "p95Ms": 4.6,
-     "maxMs": 5.4,
-     "framesPerSecond": 317.5
+     "averageMs": 3.771,
+     "p95Ms": 5.9,
+     "maxMs": 6.5,
+     "framesPerSecond": 265.2
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.217,
-    "heapAfterAllChecksMB": 7.57
+    "heapGrowthPerInstanceMB": -1.071,
+    "heapAfterAllChecksMB": 6.69
    }
   },
   {
@@ -151,14 +151,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.633,
-     "p95Ms": 3.5,
-     "maxMs": 6,
-     "framesPerSecond": 379.7
+     "averageMs": 2.529,
+     "p95Ms": 3.3,
+     "maxMs": 5.5,
+     "framesPerSecond": 395.4
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.593,
-    "heapAfterAllChecksMB": 4.67
+    "heapGrowthPerInstanceMB": -0.556,
+    "heapAfterAllChecksMB": 4.45
    }
   },
   {
@@ -198,14 +198,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.513,
-     "p95Ms": 4.1,
-     "maxMs": 4.5,
-     "framesPerSecond": 398
+     "averageMs": 1.954,
+     "p95Ms": 3,
+     "maxMs": 3.2,
+     "framesPerSecond": 511.7
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.4,
-    "heapAfterAllChecksMB": 9.31
+    "heapGrowthPerInstanceMB": -2.06,
+    "heapAfterAllChecksMB": 13.27
    }
   },
   {
@@ -245,14 +245,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 3.921,
-     "p95Ms": 6.1,
-     "maxMs": 8.2,
-     "framesPerSecond": 255
+     "averageMs": 3.683,
+     "p95Ms": 5.4,
+     "maxMs": 6.9,
+     "framesPerSecond": 271.5
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.034,
-    "heapAfterAllChecksMB": 7.14
+    "heapGrowthPerInstanceMB": -1.62,
+    "heapAfterAllChecksMB": 10.65
    }
   },
   {
@@ -296,14 +296,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 10.392,
-     "p95Ms": 11.3,
-     "maxMs": 19.9,
-     "framesPerSecond": 96.2
+     "averageMs": 12.654,
+     "p95Ms": 14.5,
+     "maxMs": 22.1,
+     "framesPerSecond": 79
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.033,
-    "heapAfterAllChecksMB": 6.47
+    "heapGrowthPerInstanceMB": -0.997,
+    "heapAfterAllChecksMB": 6.91
    }
   },
   {
@@ -343,14 +343,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 7.65,
-     "p95Ms": 8.6,
-     "maxMs": 17,
-     "framesPerSecond": 130.7
+     "averageMs": 8,
+     "p95Ms": 11.3,
+     "maxMs": 15.7,
+     "framesPerSecond": 125
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.143,
-    "heapAfterAllChecksMB": 7.65
+    "heapGrowthPerInstanceMB": -1.509,
+    "heapAfterAllChecksMB": 13.58
    }
   },
   {
@@ -391,14 +391,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 10.825,
-     "p95Ms": 13.4,
-     "maxMs": 20.6,
-     "framesPerSecond": 92.4
+     "averageMs": 16.687,
+     "p95Ms": 28.2,
+     "maxMs": 81.7,
+     "framesPerSecond": 59.9
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.181,
-    "heapAfterAllChecksMB": 7.35
+    "heapGrowthPerInstanceMB": -0.668,
+    "heapAfterAllChecksMB": 4.93
    }
   },
   {
@@ -438,14 +438,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 8.733,
-     "p95Ms": 11.9,
-     "maxMs": 15.2,
-     "framesPerSecond": 114.5
+     "averageMs": 12.154,
+     "p95Ms": 15.1,
+     "maxMs": 19.5,
+     "framesPerSecond": 82.3
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.595,
-    "heapAfterAllChecksMB": 7.56
+    "heapGrowthPerInstanceMB": -0.888,
+    "heapAfterAllChecksMB": 9.32
    }
   },
   {
@@ -485,14 +485,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 13.304,
-     "p95Ms": 15,
-     "maxMs": 24.3,
-     "framesPerSecond": 75.2
+     "averageMs": 21.45,
+     "p95Ms": 25.5,
+     "maxMs": 37.9,
+     "framesPerSecond": 46.6
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.961,
-    "heapAfterAllChecksMB": 9.77
+    "heapGrowthPerInstanceMB": -0.888,
+    "heapAfterAllChecksMB": 9.33
    }
   },
   {
@@ -533,14 +533,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.354,
-     "p95Ms": 0.7,
-     "maxMs": 1.4,
-     "framesPerSecond": 2823.5
+     "averageMs": 0.375,
+     "p95Ms": 0.6,
+     "maxMs": 1.5,
+     "framesPerSecond": 2666.7
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.672,
-    "heapAfterAllChecksMB": 5.43
+    "heapGrowthPerInstanceMB": -0.819,
+    "heapAfterAllChecksMB": 6.31
    }
   },
   {
@@ -581,14 +581,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.346,
-     "p95Ms": 2.1,
-     "maxMs": 2.3,
-     "framesPerSecond": 2891.6
+     "averageMs": 8.958,
+     "p95Ms": 12.3,
+     "maxMs": 16.3,
+     "framesPerSecond": 111.6
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.619,
-    "heapAfterAllChecksMB": 14.25
+    "heapGrowthPerInstanceMB": -1.033,
+    "heapAfterAllChecksMB": 6.55
    }
   },
   {
@@ -629,14 +629,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 20.242,
-     "p95Ms": 28,
-     "maxMs": 37.7,
-     "framesPerSecond": 49.4
+     "averageMs": 12.167,
+     "p95Ms": 18.8,
+     "maxMs": 27.6,
+     "framesPerSecond": 82.2
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.473,
-    "heapAfterAllChecksMB": 13.37
+    "heapGrowthPerInstanceMB": -0.701,
+    "heapAfterAllChecksMB": 5.14
    }
   },
   {
@@ -680,14 +680,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 1.058,
+     "averageMs": 1.346,
      "p95Ms": 1.7,
-     "maxMs": 2.2,
-     "framesPerSecond": 944.9
+     "maxMs": 1.7,
+     "framesPerSecond": 743
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.106,
-    "heapAfterAllChecksMB": 8.47
+    "heapGrowthPerInstanceMB": -0.485,
+    "heapAfterAllChecksMB": 4.1
    }
   },
   {
@@ -728,14 +728,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 4.058,
-     "p95Ms": 11.2,
-     "maxMs": 14.3,
-     "framesPerSecond": 246.4
+     "averageMs": 2.296,
+     "p95Ms": 3.1,
+     "maxMs": 4.2,
+     "framesPerSecond": 435.6
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.363,
-    "heapAfterAllChecksMB": 10.29
+    "heapGrowthPerInstanceMB": -0.961,
+    "heapAfterAllChecksMB": 6.69
    }
   },
   {
@@ -777,13 +777,13 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 3.929,
-     "p95Ms": 14.6,
-     "maxMs": 35,
-     "framesPerSecond": 254.5
+     "averageMs": 3.887,
+     "p95Ms": 16.3,
+     "maxMs": 34.7,
+     "framesPerSecond": 257.2
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.472,
+    "heapGrowthPerInstanceMB": -0.582,
     "heapAfterAllChecksMB": 8.75
    }
   },
@@ -825,14 +825,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.413,
+     "averageMs": 0.4,
      "p95Ms": 0.6,
-     "maxMs": 1.2,
-     "framesPerSecond": 2424.2
+     "maxMs": 0.9,
+     "framesPerSecond": 2500
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.372,
-    "heapAfterAllChecksMB": 10.7
+    "heapGrowthPerInstanceMB": -0.85,
+    "heapAfterAllChecksMB": 6.47
    }
   },
   {
@@ -878,14 +878,61 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.85,
-     "p95Ms": 1.1,
-     "maxMs": 1.3,
-     "framesPerSecond": 1176.5
+     "averageMs": 0.533,
+     "p95Ms": 0.6,
+     "maxMs": 0.7,
+     "framesPerSecond": 1875
     },
     "fallback": null,
     "heapGrowthPerInstanceMB": -1.225,
-    "heapAfterAllChecksMB": 10.71
+    "heapAfterAllChecksMB": 10.13
+   }
+  },
+  {
+   "id": "dashboard-signal-pulse",
+   "module": "dashboard",
+   "engine": "svg",
+   "source_sha256": "1753d2cd8e3722556664ae2b6863a0e3ff2751c1d5a92182acd4d63b8fca14ef",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 122,
+     "spread": 0.148,
+     "largestChange": 0.0828,
+     "readback": "screenshot"
+    },
+    "signature": "7a64ec1a-dd05e89b-02d50280-17494808",
+    "export": "cli-renderer",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.042,
+     "p95Ms": 0.1,
+     "maxMs": 0.2,
+     "framesPerSecond": 24000
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.469,
+    "heapAfterAllChecksMB": 5.43
    }
   },
   {
@@ -930,14 +977,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.421,
-     "p95Ms": 0.8,
-     "maxMs": 2,
-     "framesPerSecond": 2376.2
+     "averageMs": 0.408,
+     "p95Ms": 0.7,
+     "maxMs": 0.9,
+     "framesPerSecond": 2449
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.85,
-    "heapAfterAllChecksMB": 6.26
+    "heapGrowthPerInstanceMB": -0.631,
+    "heapAfterAllChecksMB": 4.52
    }
   },
   {
@@ -978,14 +1025,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.671,
-     "p95Ms": 3.5,
-     "maxMs": 4.7,
-     "framesPerSecond": 374.4
+     "averageMs": 2.538,
+     "p95Ms": 4.1,
+     "maxMs": 4.9,
+     "framesPerSecond": 394.1
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.071,
-    "heapAfterAllChecksMB": 6.68
+    "heapGrowthPerInstanceMB": -0.704,
+    "heapAfterAllChecksMB": 8.22
    }
   },
   {
@@ -1026,10 +1073,10 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 10.346,
-     "p95Ms": 11.4,
-     "maxMs": 19.7,
-     "framesPerSecond": 96.7
+     "averageMs": 12.587,
+     "p95Ms": 16.7,
+     "maxMs": 17.7,
+     "framesPerSecond": 79.4
     },
     "fallback": null,
     "heapGrowthPerInstanceMB": -1.071,
@@ -1073,14 +1120,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 11.088,
-     "p95Ms": 13.1,
-     "maxMs": 21.4,
-     "framesPerSecond": 90.2
+     "averageMs": 13.404,
+     "p95Ms": 15,
+     "maxMs": 21.9,
+     "framesPerSecond": 74.6
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.875,
-    "heapAfterAllChecksMB": 12.23
+    "heapGrowthPerInstanceMB": -0.667,
+    "heapAfterAllChecksMB": 4.98
    }
   },
   {
@@ -1121,14 +1168,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 1.796,
-     "p95Ms": 1.8,
-     "maxMs": 3,
-     "framesPerSecond": 556.8
+     "averageMs": 2.262,
+     "p95Ms": 4.5,
+     "maxMs": 5.4,
+     "framesPerSecond": 442
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.521,
-    "heapAfterAllChecksMB": 4.05
+    "heapGrowthPerInstanceMB": -0.741,
+    "heapAfterAllChecksMB": 8.44
    }
   },
   {
@@ -1168,14 +1215,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.246,
-     "p95Ms": 3.6,
-     "maxMs": 4.1,
-     "framesPerSecond": 445.3
+     "averageMs": 2.913,
+     "p95Ms": 4.5,
+     "maxMs": 11.8,
+     "framesPerSecond": 343.3
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.595,
-    "heapAfterAllChecksMB": 7.58
+    "heapGrowthPerInstanceMB": -1.547,
+    "heapAfterAllChecksMB": 10.22
    }
   },
   {
@@ -1215,14 +1262,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.171,
-     "p95Ms": 3.1,
-     "maxMs": 3.7,
-     "framesPerSecond": 460.7
+     "averageMs": 1.958,
+     "p95Ms": 3.2,
+     "maxMs": 3.3,
+     "framesPerSecond": 510.6
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.888,
-    "heapAfterAllChecksMB": 5.58
+    "heapGrowthPerInstanceMB": -0.851,
+    "heapAfterAllChecksMB": 5.36
    }
   },
   {
@@ -1262,14 +1309,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 5.688,
-     "p95Ms": 6.7,
-     "maxMs": 9.7,
-     "framesPerSecond": 175.8
+     "averageMs": 0.158,
+     "p95Ms": 0.2,
+     "maxMs": 0.3,
+     "framesPerSecond": 6315.8
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.363,
-    "heapAfterAllChecksMB": 10.29
+    "heapGrowthPerInstanceMB": -2.04,
+    "heapAfterAllChecksMB": 15.24
    }
   },
   {
@@ -1309,10 +1356,10 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.942,
-     "p95Ms": 4.6,
-     "maxMs": 5.5,
-     "framesPerSecond": 339.9
+     "averageMs": 2.617,
+     "p95Ms": 4.1,
+     "maxMs": 4.3,
+     "framesPerSecond": 382.2
     },
     "fallback": null,
     "heapGrowthPerInstanceMB": -0.997,
@@ -1356,14 +1403,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.563,
-     "p95Ms": 4,
-     "maxMs": 4.2,
-     "framesPerSecond": 390.2
+     "averageMs": 3.079,
+     "p95Ms": 3.8,
+     "maxMs": 4.8,
+     "framesPerSecond": 324.8
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.667,
-    "heapAfterAllChecksMB": 4.92
+    "heapGrowthPerInstanceMB": -0.557,
+    "heapAfterAllChecksMB": 7.34
    }
   },
   {
@@ -1408,21 +1455,21 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.704,
-     "p95Ms": 4.8,
+     "averageMs": 3.108,
+     "p95Ms": 4.9,
      "maxMs": 4.9,
-     "framesPerSecond": 369.8
+     "framesPerSecond": 321.7
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.595,
-    "heapAfterAllChecksMB": 7.56
+    "heapGrowthPerInstanceMB": -0.741,
+    "heapAfterAllChecksMB": 8.44
    }
   },
   {
-   "id": "lighting-lens-flare",
-   "module": "lighting",
-   "engine": "webgl2-glsl",
-   "source_sha256": "9c25f527fa72493b0ee5ddb50f49240320e4f3be6c6bee7e51267306b339aae8",
+   "id": "hologram-scanline-reveal",
+   "module": "hologram",
+   "engine": "canvas2d",
+   "source_sha256": "5d5374bba30e85254a7eef353d539ed83764b533fd867a2341c614270dcc80df",
    "pass": true,
    "checks": {
     "draws": true,
@@ -1436,57 +1483,6 @@
     "transportWorks": true,
     "oneShotFinishes": true,
     "reducedMotionIsOneStillFrame": true,
-    "mirrorsUnderRtl": true,
-    "drawsInPortrait": true,
-    "lowerQualityStillDraws": true,
-    "exportsFrames": true,
-    "destroyReleasesEverything": true,
-    "releasesMemory": true
-   },
-   "measured": {
-    "frames": {
-     "distinctColours": 418,
-     "spread": 0.5919,
-     "largestChange": 0.3914,
-     "readback": "pixels"
-    },
-    "signature": "2dcf7ed7-e6000ec1-03cf118f-574c91a0",
-    "centroidX": {
-     "ltr": 0.445,
-     "rtl": 0.555
-    },
-    "export": "in-page",
-    "benchmark": {
-     "frames": 24,
-     "tier": "high",
-     "pixels": 57600,
-     "averageMs": 4.075,
-     "p95Ms": 5.2,
-     "maxMs": 7,
-     "framesPerSecond": 245.4
-    },
-    "fallback": null,
-    "heapGrowthPerInstanceMB": -1.18,
-    "heapAfterAllChecksMB": 7.87
-   }
-  },
-  {
-   "id": "lighting-studio-spotlight",
-   "module": "lighting",
-   "engine": "webgl2-glsl",
-   "source_sha256": "8a8b08e47f09b7f216b9bd9bc2a9b65ade7858ef2de8340342ccd4294f6109ee",
-   "pass": true,
-   "checks": {
-    "draws": true,
-    "changesOverTime": true,
-    "sameFrameForSameMoment": true,
-    "coloursChangeTheFrame": true,
-    "everyParameterChangesTheFrame": true,
-    "durationSetsTheSpeed": true,
-    "durationChangesTheFrame": true,
-    "easingChangesTheFrame": true,
-    "transportWorks": true,
-    "reducedMotionIsOneStillFrame": true,
     "directionNeutral": true,
     "drawsInPortrait": true,
     "lowerQualityStillDraws": true,
@@ -1496,72 +1492,25 @@
    },
    "measured": {
     "frames": {
-     "distinctColours": 98,
-     "spread": 0.6777,
-     "largestChange": 0.1193,
+     "distinctColours": 170,
+     "spread": 0.5607,
+     "largestChange": 0.3198,
      "readback": "pixels"
     },
-    "signature": "533d8f4f-b1e5e76e-33b87758-eaa17914",
+    "signature": "bb785c2b-7d89f542-cf7b4bbe-88fe4758",
     "export": "in-page",
     "benchmark": {
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.275,
-     "p95Ms": 0.6,
-     "maxMs": 1.4,
-     "framesPerSecond": 3636.4
+     "averageMs": 0.267,
+     "p95Ms": 0.4,
+     "maxMs": 0.4,
+     "framesPerSecond": 3750
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.399,
-    "heapAfterAllChecksMB": 12.92
-   }
-  },
-  {
-   "id": "lighting-volumetric-beams",
-   "module": "lighting",
-   "engine": "webgl2-glsl",
-   "source_sha256": "3201b634afe03ee97801dff153de40d62bfef71faa926c33372726f55696ba24",
-   "pass": true,
-   "checks": {
-    "draws": true,
-    "changesOverTime": true,
-    "sameFrameForSameMoment": true,
-    "coloursChangeTheFrame": true,
-    "everyParameterChangesTheFrame": true,
-    "durationSetsTheSpeed": true,
-    "durationChangesTheFrame": true,
-    "easingChangesTheFrame": true,
-    "transportWorks": true,
-    "reducedMotionIsOneStillFrame": true,
-    "directionNeutral": true,
-    "drawsInPortrait": true,
-    "lowerQualityStillDraws": true,
-    "exportsFrames": true,
-    "destroyReleasesEverything": true,
-    "releasesMemory": true
-   },
-   "measured": {
-    "frames": {
-     "distinctColours": 154,
-     "spread": 0.7797,
-     "largestChange": 0.1326,
-     "readback": "pixels"
-    },
-    "signature": "2ae15e73-5511241c-2ce845f7-1bc0d850",
-    "export": "in-page",
-    "benchmark": {
-     "frames": 24,
-     "tier": "high",
-     "pixels": 57600,
-     "averageMs": 3.213,
-     "p95Ms": 4.3,
-     "maxMs": 5.7,
-     "framesPerSecond": 311.3
-    },
-    "fallback": null,
-    "heapGrowthPerInstanceMB": -1.582,
-    "heapAfterAllChecksMB": 14.02
+    "heapGrowthPerInstanceMB": -1.12,
+    "heapAfterAllChecksMB": 10
    }
   },
   {
@@ -1604,14 +1553,204 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.012,
+     "averageMs": 0.017,
      "p95Ms": 0.1,
-     "maxMs": 0.2,
-     "framesPerSecond": 80000
+     "maxMs": 0.1,
+     "framesPerSecond": 60000
     },
     "fallback": null,
     "heapGrowthPerInstanceMB": -0.758,
     "heapAfterAllChecksMB": 7.12
+   }
+  },
+  {
+   "id": "micro-success-feedback",
+   "module": "micro",
+   "engine": "svg",
+   "source_sha256": "7a7d274a0cf8735753c81874960f88e688a6a20c4a1b2777f52e4b438bf19627",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 111,
+     "spread": 0.2934,
+     "largestChange": 0.2028,
+     "readback": "screenshot"
+    },
+    "signature": "b31c3891-dbb4c600-b552ed07-eb0f5407",
+    "export": "cli-renderer",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.021,
+     "p95Ms": 0.1,
+     "maxMs": 0.1,
+     "framesPerSecond": 48000
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.62,
+    "heapAfterAllChecksMB": 4.62
+   }
+  },
+  {
+   "id": "micro-toggle-transformation",
+   "module": "micro",
+   "engine": "dom",
+   "source_sha256": "7ff3ebdbefda11bc1258aad4b83e0258962583ac08d2eb9f7d68977a0f2a4c6c",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "everyTextChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "rendersArabicRightToLeft": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 179,
+     "spread": 0.2032,
+     "largestChange": 0.024,
+     "readback": "screenshot"
+    },
+    "signature": "881c13a9-8d1d67a8-6f79a2fb-beb4842a",
+    "export": "cli-renderer",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.008,
+     "p95Ms": 0.1,
+     "maxMs": 0.1,
+     "framesPerSecond": 120000
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.621,
+    "heapAfterAllChecksMB": 4.56
+   }
+  },
+  {
+   "id": "networks-data-transmission",
+   "module": "networks",
+   "engine": "canvas2d",
+   "source_sha256": "476e32d49833228cc5122198c6f7c5f5118c94118abd5cf2e0ef3c980c7e087b",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 160,
+     "spread": 0.0631,
+     "largestChange": 0.0204,
+     "readback": "pixels"
+    },
+    "signature": "76509878-ca7d7db4-2852f2a9-85a03581",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.271,
+     "p95Ms": 0.3,
+     "maxMs": 1.2,
+     "framesPerSecond": 3692.3
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.158,
+    "heapAfterAllChecksMB": 10.29
+   }
+  },
+  {
+   "id": "networks-distributed-system",
+   "module": "networks",
+   "engine": "canvas2d",
+   "source_sha256": "556fbed46afb4e5a5296711b6f9c3d40e93985b8e96d1e120ac6867a8be2e2b6",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 129,
+     "spread": 0.073,
+     "largestChange": 0.0178,
+     "readback": "pixels"
+    },
+    "signature": "2e27d4d8-d0d35b82-3601e9d5-7d2d5079",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.225,
+     "p95Ms": 0.3,
+     "maxMs": 0.3,
+     "framesPerSecond": 4444.4
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.116,
+    "heapAfterAllChecksMB": 9.49
    }
   },
   {
@@ -1652,14 +1791,108 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.317,
-     "p95Ms": 0.4,
-     "maxMs": 3.8,
-     "framesPerSecond": 3157.9
+     "averageMs": 3.908,
+     "p95Ms": 5,
+     "maxMs": 6.7,
+     "framesPerSecond": 255.9
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.839,
-    "heapAfterAllChecksMB": 14.03
+    "heapGrowthPerInstanceMB": -0.851,
+    "heapAfterAllChecksMB": 5.65
+   }
+  },
+  {
+   "id": "neural-inference-pipeline",
+   "module": "neural",
+   "engine": "canvas2d",
+   "source_sha256": "40ae53ae0cf27608006d335cf4a3aa2f0757d263a16ddbe8c154620a146eaf0e",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 389,
+     "spread": 0.2081,
+     "largestChange": 0.1503,
+     "readback": "pixels"
+    },
+    "signature": "c87bb4a5-401c00ec-c0495458-3c05124d",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.908,
+     "p95Ms": 1.1,
+     "maxMs": 1.3,
+     "framesPerSecond": 1100.9
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.744,
+    "heapAfterAllChecksMB": 5.25
+   }
+  },
+  {
+   "id": "neural-task-orchestration",
+   "module": "neural",
+   "engine": "canvas2d",
+   "source_sha256": "823cffdc6da0b0806a765ea7f04509af252eaad2db03cc5421f786f679fb6e10",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 190,
+     "spread": 0.087,
+     "largestChange": 0.0418,
+     "readback": "pixels"
+    },
+    "signature": "79cca871-f5f9d381-1716cf56-850ca670",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.221,
+     "p95Ms": 0.3,
+     "maxMs": 0.4,
+     "framesPerSecond": 4528.3
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.12,
+    "heapAfterAllChecksMB": 10.08
    }
   },
   {
@@ -1700,14 +1933,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.321,
-     "p95Ms": 1.9,
-     "maxMs": 1.9,
-     "framesPerSecond": 3116.9
+     "averageMs": 4.696,
+     "p95Ms": 5.2,
+     "maxMs": 9.3,
+     "framesPerSecond": 213
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.399,
-    "heapAfterAllChecksMB": 12.94
+    "heapGrowthPerInstanceMB": -0.411,
+    "heapAfterAllChecksMB": 4.06
    }
   },
   {
@@ -1747,14 +1980,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 8.746,
-     "p95Ms": 16.9,
-     "maxMs": 21.7,
-     "framesPerSecond": 114.3
+     "averageMs": 0.246,
+     "p95Ms": 0.6,
+     "maxMs": 1.3,
+     "framesPerSecond": 4067.8
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.704,
-    "heapAfterAllChecksMB": 5.67
+    "heapGrowthPerInstanceMB": -1.399,
+    "heapAfterAllChecksMB": 12.92
    }
   },
   {
@@ -1795,14 +2028,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.6,
-     "p95Ms": 0.7,
-     "maxMs": 7.8,
-     "framesPerSecond": 1666.7
+     "averageMs": 4.8,
+     "p95Ms": 7.2,
+     "maxMs": 7.3,
+     "framesPerSecond": 208.3
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.289,
-    "heapAfterAllChecksMB": 12.27
+    "heapGrowthPerInstanceMB": -0.558,
+    "heapAfterAllChecksMB": 4.27
    }
   },
   {
@@ -1842,14 +2075,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.292,
-     "p95Ms": 1.1,
-     "maxMs": 1.5,
-     "framesPerSecond": 3428.6
+     "averageMs": 4.125,
+     "p95Ms": 6.9,
+     "maxMs": 9.1,
+     "framesPerSecond": 242.4
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.326,
-    "heapAfterAllChecksMB": 12.48
+    "heapGrowthPerInstanceMB": -1.181,
+    "heapAfterAllChecksMB": 11.11
    }
   },
   {
@@ -1889,14 +2122,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.738,
-     "p95Ms": 1,
-     "maxMs": 1.4,
-     "framesPerSecond": 1355.9
+     "averageMs": 0.708,
+     "p95Ms": 0.9,
+     "maxMs": 1.1,
+     "framesPerSecond": 1411.8
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.494,
-    "heapAfterAllChecksMB": 4.79
+    "heapGrowthPerInstanceMB": -1.382,
+    "heapAfterAllChecksMB": 11
    }
   },
   {
@@ -1936,14 +2169,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 13.521,
-     "p95Ms": 20.7,
-     "maxMs": 25.4,
-     "framesPerSecond": 74
+     "averageMs": 7.942,
+     "p95Ms": 9.4,
+     "maxMs": 14.8,
+     "framesPerSecond": 125.9
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.96,
-    "heapAfterAllChecksMB": 7.21
+    "heapGrowthPerInstanceMB": -1.29,
+    "heapAfterAllChecksMB": 11.79
    }
   },
   {
@@ -1984,14 +2217,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.529,
-     "p95Ms": 0.7,
-     "maxMs": 0.8,
-     "framesPerSecond": 1889.8
+     "averageMs": 0.387,
+     "p95Ms": 0.5,
+     "maxMs": 0.5,
+     "framesPerSecond": 2580.6
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.115,
-    "heapAfterAllChecksMB": 9.96
+    "heapGrowthPerInstanceMB": -1.116,
+    "heapAfterAllChecksMB": 9.44
    }
   },
   {
@@ -2032,14 +2265,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 6.129,
-     "p95Ms": 9.1,
-     "maxMs": 13.6,
-     "framesPerSecond": 163.2
+     "averageMs": 0.212,
+     "p95Ms": 0.3,
+     "maxMs": 0.4,
+     "framesPerSecond": 4705.9
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.924,
-    "heapAfterAllChecksMB": 9.59
+    "heapGrowthPerInstanceMB": -1.217,
+    "heapAfterAllChecksMB": 11.34
    }
   },
   {
@@ -2081,7 +2314,7 @@
      "pixels": 57600,
      "averageMs": 0.025,
      "p95Ms": 0.1,
-     "maxMs": 0.1,
+     "maxMs": 0.2,
      "framesPerSecond": 40000
     },
     "fallback": null,
@@ -2126,14 +2359,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.254,
+     "averageMs": 0.242,
      "p95Ms": 0.7,
-     "maxMs": 1.3,
-     "framesPerSecond": 3934.4
+     "maxMs": 1.2,
+     "framesPerSecond": 4137.9
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.326,
-    "heapAfterAllChecksMB": 12.48
+    "heapGrowthPerInstanceMB": -1.399,
+    "heapAfterAllChecksMB": 12.92
    }
   },
   {
@@ -2174,10 +2407,10 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.7,
-     "p95Ms": 1.2,
-     "maxMs": 1.3,
-     "framesPerSecond": 1428.6
+     "averageMs": 0.779,
+     "p95Ms": 1.3,
+     "maxMs": 1.4,
+     "framesPerSecond": 1283.4
     },
     "fallback": null,
     "heapGrowthPerInstanceMB": -1.116,
@@ -2221,13 +2454,13 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 1.279,
-     "p95Ms": 1.5,
-     "maxMs": 1.8,
-     "framesPerSecond": 781.8
+     "averageMs": 2.508,
+     "p95Ms": 3.9,
+     "maxMs": 7.6,
+     "framesPerSecond": 398.7
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.521,
+    "heapGrowthPerInstanceMB": -0.411,
     "heapAfterAllChecksMB": 4.03
    }
   },
@@ -2268,14 +2501,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.713,
-     "p95Ms": 1.2,
-     "maxMs": 1.4,
-     "framesPerSecond": 1403.5
+     "averageMs": 0.675,
+     "p95Ms": 0.8,
+     "maxMs": 1.1,
+     "framesPerSecond": 1481.5
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.485,
-    "heapAfterAllChecksMB": 4.17
+    "heapGrowthPerInstanceMB": -1.263,
+    "heapAfterAllChecksMB": 9.5
    }
   },
   {
@@ -2315,10 +2548,10 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.404,
-     "p95Ms": 0.5,
-     "maxMs": 0.6,
-     "framesPerSecond": 2474.2
+     "averageMs": 0.575,
+     "p95Ms": 0.7,
+     "maxMs": 0.7,
+     "framesPerSecond": 1739.1
     },
     "fallback": null,
     "heapGrowthPerInstanceMB": -1.116,
@@ -2362,13 +2595,13 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 4.117,
-     "p95Ms": 4.9,
-     "maxMs": 7.6,
-     "framesPerSecond": 242.9
+     "averageMs": 5.313,
+     "p95Ms": 11,
+     "maxMs": 11.3,
+     "framesPerSecond": 188.2
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.521,
+    "heapGrowthPerInstanceMB": -0.412,
     "heapAfterAllChecksMB": 4.04
    }
   },
@@ -2410,14 +2643,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 1.558,
-     "p95Ms": 2.2,
-     "maxMs": 2.2,
-     "framesPerSecond": 641.7
+     "averageMs": 2.163,
+     "p95Ms": 3.2,
+     "maxMs": 4,
+     "framesPerSecond": 462.4
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.558,
-    "heapAfterAllChecksMB": 4.28
+    "heapGrowthPerInstanceMB": -0.521,
+    "heapAfterAllChecksMB": 4.06
    }
   },
   {
@@ -2462,13 +2695,13 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 1.483,
-     "p95Ms": 2.1,
-     "maxMs": 2.2,
-     "framesPerSecond": 674.2
+     "averageMs": 1.637,
+     "p95Ms": 2,
+     "maxMs": 5.1,
+     "framesPerSecond": 610.7
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.778,
+    "heapGrowthPerInstanceMB": -0.888,
     "heapAfterAllChecksMB": 5.57
    }
   },
@@ -2510,14 +2743,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.158,
-     "p95Ms": 0.3,
-     "maxMs": 0.3,
-     "framesPerSecond": 6315.8
+     "averageMs": 1.896,
+     "p95Ms": 2.7,
+     "maxMs": 3.1,
+     "framesPerSecond": 527.5
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.726,
-    "heapAfterAllChecksMB": 12.47
+    "heapGrowthPerInstanceMB": -0.997,
+    "heapAfterAllChecksMB": 6.95
    }
   },
   {
@@ -2558,108 +2791,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.371,
-     "p95Ms": 1.4,
-     "maxMs": 2,
-     "framesPerSecond": 2696.6
+     "averageMs": 2.825,
+     "p95Ms": 4.6,
+     "maxMs": 5.4,
+     "framesPerSecond": 354
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.363,
-    "heapAfterAllChecksMB": 12.71
-   }
-  },
-  {
-   "id": "shaders-raymarched-geometry",
-   "module": "shaders",
-   "engine": "webgl2-glsl",
-   "source_sha256": "7177040a50092205cf0dccc73863344898dfaa81af1bcfeca8041c51923f96b2",
-   "pass": true,
-   "checks": {
-    "draws": true,
-    "changesOverTime": true,
-    "sameFrameForSameMoment": true,
-    "coloursChangeTheFrame": true,
-    "everyParameterChangesTheFrame": true,
-    "durationSetsTheSpeed": true,
-    "durationChangesTheFrame": true,
-    "easingChangesTheFrame": true,
-    "transportWorks": true,
-    "reducedMotionIsOneStillFrame": true,
-    "directionNeutral": true,
-    "drawsInPortrait": true,
-    "lowerQualityStillDraws": true,
-    "exportsFrames": true,
-    "destroyReleasesEverything": true,
-    "releasesMemory": true
-   },
-   "measured": {
-    "frames": {
-     "distinctColours": 425,
-     "spread": 0.7786,
-     "largestChange": 0.2455,
-     "readback": "pixels"
-    },
-    "signature": "f09db55e-7aab9881-2614f8fd-94ec9e8d",
-    "export": "in-page",
-    "benchmark": {
-     "frames": 24,
-     "tier": "high",
-     "pixels": 57600,
-     "averageMs": 0.2,
-     "p95Ms": 0.3,
-     "maxMs": 0.6,
-     "framesPerSecond": 5000
-    },
-    "fallback": null,
-    "heapGrowthPerInstanceMB": -0.85,
-    "heapAfterAllChecksMB": 9.63
-   }
-  },
-  {
-   "id": "shaders-sdf-morph",
-   "module": "shaders",
-   "engine": "webgl2-glsl",
-   "source_sha256": "2caacfaae4ed1b853f7bd6105dfbdf1da96191970dd7cb3987c439a2d5fdd725",
-   "pass": true,
-   "checks": {
-    "draws": true,
-    "changesOverTime": true,
-    "sameFrameForSameMoment": true,
-    "coloursChangeTheFrame": true,
-    "everyParameterChangesTheFrame": true,
-    "durationSetsTheSpeed": true,
-    "durationChangesTheFrame": true,
-    "easingChangesTheFrame": true,
-    "transportWorks": true,
-    "reducedMotionIsOneStillFrame": true,
-    "directionNeutral": true,
-    "drawsInPortrait": true,
-    "lowerQualityStillDraws": true,
-    "exportsFrames": true,
-    "destroyReleasesEverything": true,
-    "releasesMemory": true
-   },
-   "measured": {
-    "frames": {
-     "distinctColours": 367,
-     "spread": 0.5935,
-     "largestChange": 0.4194,
-     "readback": "pixels"
-    },
-    "signature": "07dc8409-31a12b91-2eb7bedc-b11fad49",
-    "export": "in-page",
-    "benchmark": {
-     "frames": 24,
-     "tier": "high",
-     "pixels": 57600,
-     "averageMs": 0.342,
-     "p95Ms": 0.9,
-     "maxMs": 1.5,
-     "framesPerSecond": 2926.8
-    },
-    "fallback": null,
-    "heapGrowthPerInstanceMB": -1.363,
-    "heapAfterAllChecksMB": 12.7
+    "heapGrowthPerInstanceMB": -0.924,
+    "heapAfterAllChecksMB": 5.81
    }
   },
   {
@@ -2701,16 +2840,112 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 192.338,
-     "p95Ms": 214,
-     "maxMs": 371.5,
-     "framesPerSecond": 5.2
+     "averageMs": 162.967,
+     "p95Ms": 190.8,
+     "maxMs": 283.5,
+     "framesPerSecond": 6.1
     },
     "fallback": null,
     "webgpu": "WGSL verified through readback presentation",
     "canvasPresentation": "device lost here; recovered with the fallback (webgpu-lost)",
     "heapGrowthPerInstanceMB": -0.518,
     "heapAfterAllChecksMB": 5.35
+   }
+  },
+  {
+   "id": "story-system-evolution",
+   "module": "story",
+   "engine": "canvas2d",
+   "source_sha256": "0c3333222350c242a5c580e96ba3be45901c1c75131db7101eed2eb8421eac4d",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 130,
+     "spread": 0.3151,
+     "largestChange": 0.3008,
+     "readback": "pixels"
+    },
+    "signature": "3fa1d1bb-94c4f6d2-55ba6bf3-cdeffb2a",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.383,
+     "p95Ms": 0.5,
+     "maxMs": 0.6,
+     "framesPerSecond": 2608.7
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.119,
+    "heapAfterAllChecksMB": 10.07
+   }
+  },
+  {
+   "id": "story-transformation-journey",
+   "module": "story",
+   "engine": "canvas2d",
+   "source_sha256": "fd5ee753452f68d96c4a93a06207f87b0be4ca41c84b5244693bf1fbc545b392",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 146,
+     "spread": 0.2264,
+     "largestChange": 0.2463,
+     "readback": "pixels"
+    },
+    "signature": "84aa60bf-9d64f2b2-7ac09025-6ae7efbc",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.346,
+     "p95Ms": 0.7,
+     "maxMs": 0.8,
+     "framesPerSecond": 2891.6
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.741,
+    "heapAfterAllChecksMB": 7.21
    }
   },
   {
@@ -2753,14 +2988,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.612,
-     "p95Ms": 0.8,
-     "maxMs": 1,
-     "framesPerSecond": 1632.7
+     "averageMs": 0.579,
+     "p95Ms": 0.7,
+     "maxMs": 0.8,
+     "framesPerSecond": 1726.6
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.778,
-    "heapAfterAllChecksMB": 5.98
+    "heapGrowthPerInstanceMB": -0.962,
+    "heapAfterAllChecksMB": 6.32
    }
   },
   {
@@ -2801,14 +3036,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 2.888,
-     "p95Ms": 4.9,
-     "maxMs": 5,
-     "framesPerSecond": 346.3
+     "averageMs": 3.7,
+     "p95Ms": 6.6,
+     "maxMs": 7.2,
+     "framesPerSecond": 270.3
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.372,
-    "heapAfterAllChecksMB": 10.96
+    "heapGrowthPerInstanceMB": -0.924,
+    "heapAfterAllChecksMB": 6.39
    }
   },
   {
@@ -2849,14 +3084,14 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.417,
-     "p95Ms": 0.6,
-     "maxMs": 0.7,
-     "framesPerSecond": 2400
+     "averageMs": 0.508,
+     "p95Ms": 0.8,
+     "maxMs": 0.8,
+     "framesPerSecond": 1967.2
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -1.115,
-    "heapAfterAllChecksMB": 9.97
+    "heapGrowthPerInstanceMB": -1.106,
+    "heapAfterAllChecksMB": 9.92
    }
   },
   {
@@ -2896,14 +3131,61 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.287,
-     "p95Ms": 0.6,
-     "maxMs": 2.3,
-     "framesPerSecond": 3478.3
+     "averageMs": 5.121,
+     "p95Ms": 9.3,
+     "maxMs": 11.4,
+     "framesPerSecond": 195.3
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -2.022,
-    "heapAfterAllChecksMB": 14.24
+    "heapGrowthPerInstanceMB": -0.924,
+    "heapAfterAllChecksMB": 9.6
+   }
+  },
+  {
+   "id": "twin-sensor-propagation",
+   "module": "twin",
+   "engine": "webgl2-glsl",
+   "source_sha256": "a19156b871784f7ab668612792d71b3f02d9e53ee524d51230d2dcdc374156dd",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 286,
+     "spread": 0.7844,
+     "largestChange": 0.3734,
+     "readback": "pixels"
+    },
+    "signature": "783da3fa-49e63062-f8fc79ae-6b703f4b",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 4.654,
+     "p95Ms": 7,
+     "maxMs": 8.6,
+     "framesPerSecond": 214.9
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.18,
+    "heapAfterAllChecksMB": 7.87
    }
   },
   {
@@ -2945,13 +3227,13 @@
      "frames": 24,
      "tier": "high",
      "pixels": 57600,
-     "averageMs": 0.204,
-     "p95Ms": 0.5,
-     "maxMs": 0.6,
-     "framesPerSecond": 4898
+     "averageMs": 0.192,
+     "p95Ms": 0.4,
+     "maxMs": 0.4,
+     "framesPerSecond": 5217.4
     },
     "fallback": null,
-    "heapGrowthPerInstanceMB": -0.96,
+    "heapGrowthPerInstanceMB": -0.923,
     "heapAfterAllChecksMB": 6.62
    }
   }
