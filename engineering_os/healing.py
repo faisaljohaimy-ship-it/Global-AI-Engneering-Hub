@@ -4,8 +4,9 @@
 evidence and prove artifact properties of disposable copies. ``heal`` runs the
 governed loop DISCOVER -> ANALYZE -> DESIGN -> IMPLEMENT -> TEST -> CRITIQUE -> REPAIR
 -> VALIDATE over a target directory. It executes the target's own tests and app only
-inside an isolated copy in ``workdir`` through ``detectors.Sandbox`` (child process,
-fixed driver, loopback-only socket guard, timeouts; not an OS sandbox). The original
+inside an isolated copy in ``workdir`` through ``detectors.Sandbox`` (the governor's
+full OS sandbox by default; an audited process-only opt-in has no OS isolation; the
+report's ``sandbox`` field records the mode and the tier every run used). The original
 target is never written; the result is a unified diff, rollback data and a hash-chained
 receipt per stage. No shell, provider, model or production environment is used.
 Caller-supplied evidence needs a trusted collector; hashes do not authenticate it.
@@ -547,17 +548,20 @@ def apply_patch(files, patch):
     return result
 
 
-def introduced(reference, detection):
+def introduced(reference, detection, *, minimum="medium"):
     """What ``detection`` shows that ``reference`` did not: the fail-closed recheck of a repair.
 
     ``new_findings`` lists, once per stable ``key``, every key that has more instances in
     ``detection`` than in ``reference`` (absent before, or a second identical line next
-    to a known one) and whose worst instance is medium or higher (the loop's defect
-    threshold); ``instances`` and ``previously`` give both counts. ``not_rechecked`` are
+    to a known one) and whose worst instance is at least ``minimum`` (default medium, the
+    loop's defect and rejection threshold; ``"info"`` lists every introduced finding);
+    ``instances`` and ``previously`` give both counts. ``not_rechecked`` are
     detectors that ran for ``reference`` but did not run now (an app that no longer
     starts skips its integrations, so their findings cannot vanish unseen). Both lists
     are deterministic: no measured evidence is copied.
     """
+    if minimum not in RANK:
+        raise HealingError("Unknown severity threshold")
     known = collections.Counter(row["key"] for row in reference["findings"])
     groups = {}
     for row in detection["findings"]:
@@ -565,7 +569,7 @@ def introduced(reference, detection):
     new = {}
     for key, rows in groups.items():
         worst = max(rows, key=lambda row: RANK[row["severity"]])
-        if len(rows) > known[key] and RANK[worst["severity"]] >= RANK["medium"]:
+        if len(rows) > known[key] and RANK[worst["severity"]] >= RANK[minimum]:
             new[key] = {"key": key, "detector": worst["detector"], "kind": worst["kind"], "severity": worst["severity"],
                         "path": worst["location"]["path"], "symbol": worst["location"]["symbol"],
                         "instances": len(rows), "previously": known[key]}
@@ -1197,6 +1201,8 @@ class _Heal:
         detection = detectors.run_all(self.copy, self.manifest, tests_dir=self.spec["start"], runtime=True, sandbox=self.sandbox,
                                       ffprobe=self.ffprobe, security_baseline=self.security_baseline)
         added = introduced(self.initial, detection)
+        listed = [dict(row, blocking=RANK[row["severity"]] >= RANK["medium"])
+                  for row in introduced(self.initial, detection, minimum="info")["new_findings"]]
         final_keys = {row["key"] for row in detection["findings"]}
         unresolved = sorted({row["finding_key"] for row in self.accepted if row["finding_key"] and row["finding_key"] in final_keys})
         outcomes = final.get("tests", {})
@@ -1234,7 +1240,8 @@ class _Heal:
                   "detectors_rechecked": not added["not_rechecked"], "targeted_findings_resolved": not unresolved}
         validation = {"passed": all(checks.values()), "checks": checks, "regressions": regression["regressions"], "targeted_tests": targeted,
                       "targeted_still_failing": not_fixed, "final_tests": outcomes, "final_failing": self.failing(outcomes), "artifact": artifact,
-                      "blocked": self.blocked, "new_findings": added["new_findings"], "detectors_not_rechecked": added["not_rechecked"],
+                      "blocked": self.blocked, "new_findings": added["new_findings"], "introduced_findings": listed,
+                      "detectors_not_rechecked": added["not_rechecked"],
                       "targeted_findings_unresolved": unresolved}
         self.receipt("VALIDATE", len(self.iterations), {"tree": self.tree_sha(), "accepted": self.accepted}, {k: v for k, v in validation.items() if k != "final_tests"},
                      "passed" if validation["passed"] else "failed")
@@ -1334,11 +1341,15 @@ def _ledger(run, detection, final_outcomes):
         entries.append({"defect": label, "type": "finding" if row else "test", "kind": row["kind"] if row else "failing-test",
                         "severity": row["severity"] if row else "high", "location": row["location"] if row else None,
                         "root_causes": roots, "status": status, "repair": repair["item"] if repair else None, "reason": reason})
-    for row in _introduced_rows(run.initial, detection, introduced(run.initial, detection)["new_findings"]):
+    # Every introduced finding is listed, whatever its severity; only medium or higher ones
+    # rejected their candidate (and fail VALIDATE), lower ones are listed for review.
+    for row in _introduced_rows(run.initial, detection, introduced(run.initial, detection, minimum="info")["new_findings"]):
+        blocking = RANK[row["severity"]] >= RANK["medium"]
         entries.append({"defect": "finding:" + row["id"], "type": "finding", "kind": row["kind"], "severity": row["severity"],
                         "location": row["location"], "root_causes": [], "status": "introduced", "repair": None,
                         "reason": "absent at the start (or one more instance of a finding present at the start), "
-                                  "present in the final detection of the repaired copy"})
+                                  "present in the final detection of the repaired copy"
+                                  + ("" if blocking else "; below the medium rejection threshold: listed for review, not blocking")})
     return entries
 
 
@@ -1354,9 +1365,30 @@ def _introduced_rows(initial, detection, entries):
     return rows
 
 
+def _network_guard(sandbox):
+    """The network boundary the target code actually ran behind, from ``Sandbox.summary()``."""
+    if sandbox["os_sandbox"]:
+        return "os-network-namespace-private-loopback+python-socket-guard"
+    if "process-only" in sandbox["tiers"]:
+        return "python-socket-loopback-only"
+    return "target-code-not-run"
+
+
+def _isolation_limit(sandbox):
+    tiers = ", ".join(f"{tier} x{count}" for tier, count in sandbox["tiers"].items()) or "none"
+    if sandbox["os_sandbox"]:
+        return (f"Target code ran only in the governor's full OS sandbox (runs per tier: {tiers}); that tier still sees the "
+                "system directories read-only and has no seccomp filter (SELF_HEALING.md section 5).")
+    if "process-only" in sandbox["tiers"]:
+        return (f"Target code ran in the audited process-only mode (runs per tier: {tiers}): the socket guard is Python-level "
+                "and there is no OS isolation.")
+    return f"The governor's full OS sandbox was not available, so target code was not run (runs per tier: {tiers})."
+
+
 def _report_heal(run, validation, detection, patch, reverse, changed):
     ledger = _ledger(run, detection, validation["final_tests"])
-    remaining = [row for row in ledger if row["status"] in ("unrepaired", "introduced")]
+    remaining = [row for row in ledger if row["status"] == "unrepaired"
+                 or row["status"] == "introduced" and RANK[row["severity"]] >= RANK["medium"]]
     if run.accepted and validation["passed"]:
         status = "partially-repaired" if remaining else "repaired"
     elif run.accepted:
@@ -1380,6 +1412,7 @@ def _report_heal(run, validation, detection, patch, reverse, changed):
                 "reverse_patch_sha256": hashlib.sha256(reverse.encode("utf-8")).hexdigest() if changed else None,
                 "verified": validation["checks"]["patch_and_reverse_apply"]}
     initial = run.initial
+    sandbox = run.sandbox.summary()
     result = {
         "schema_version": VERSION, "engine": "gaie-self-healing", "layer": "L17", "status": status, "project": run.project,
         "target": {"original_sha256": sha(run.original), "files": len(run.original), "unchanged": validation["checks"]["original_unchanged"]},
@@ -1394,13 +1427,14 @@ def _report_heal(run, validation, detection, patch, reverse, changed):
         "rejected_patch": patch if changed and not validation["passed"] else None,
         "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest() if changed else None,
         "artifacts": artifacts, "rollback": rollback, "receipts": run.receipts, "receipt_chain_valid": verify_receipts(run.receipts),
+        "sandbox": sandbox,
         "guarantees": {"applied_in_place": False, "isolated_copy": True, "original_unchanged": validation["checks"]["original_unchanged"],
-                       "network_guard": "python-socket-loopback-only", "os_sandbox_claimed": False, "shell_used": False,
+                       "network_guard": _network_guard(sandbox), "os_sandbox_claimed": sandbox["os_sandbox"], "shell_used": False,
                        "production_mutations": 0, "deployment_allowed": False, "model_calls": 0, "requires_human_review": True},
         "evidence": {"deterministic": ["static detectors", "test outcomes", "root-cause graph", "repair candidates", "patch"],
                      "measured": ["performance timings", "memory samples"], "simulated": [], "ai_reasoning": []},
         "limits": ("Root causes are candidate roots over declared/observed dependencies, not causal proof. Repairs are only as good as "
-                   "the tests; a passing validation is not a release approval. The socket guard is Python-level, not an OS sandbox."),
+                   "the tests; a passing validation is not a release approval. " + _isolation_limit(sandbox)),
     }
     result["report_sha256"] = sha(result)
     _write_bytes(run.run_dir, "receipts.json", canonical(run.receipts))

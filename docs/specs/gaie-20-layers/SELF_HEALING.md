@@ -180,9 +180,12 @@ initial defect to its root causes and `repaired | resolved-indirectly | unrepair
   full tier nothing runs unless the process-only mode is chosen; that mode is no boundary:
   the Python guard is bypassable by native code, `ctypes` or `_socket`, and files and
   processes of the host are reachable (recorded as not-enforced in the evidence).
-- The heal report does not yet carry the sandbox summary (`Sandbox.summary()`); its
-  `guarantees.os_sandbox_claimed` stays `false` until healing.py records it (requested from
-  that file's owner). The per-run `isolation` records are in each `Sandbox` result and in the
-  runtime detector reports; the heal report does not copy them yet.
+- The heal report carries `sandbox` (`Sandbox.summary()`: the mode, the number of runs per
+  tier and `os_sandbox`). `guarantees.os_sandbox_claimed` is `true` only when every run used
+  the `governor-full` tier; `guarantees.network_guard` and `limits` follow the same summary
+  (`os-network-namespace-private-loopback+python-socket-guard`, `python-socket-loopback-only`
+  for the process-only opt-in, `target-code-not-run` when the sandbox refused). The per-run
+  `isolation` records stay in each `Sandbox` result and the runtime detector reports. The
+  upgrade engine's own report does not carry the summary yet (requested from its owner).
 - Only Python `unittest` suites are run; flaky tests are detected by two baseline
   runs only.
