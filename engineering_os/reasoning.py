@@ -235,6 +235,13 @@ def review_decision(planned, reviews, verification, *, now=None):
         blockers.append('plan_not_provisional')
     if not _fresh(planned['planned_at'], now):
         blockers.append('plan_expired')
+    selected = next((row for row in planned['request']['alternatives']
+                     if row['id'] == planned['selected']), None)
+    if selected is not None:
+        cited = set(selected['evidence_ids'])
+        if any(not _fresh(row['at'], now) for row in planned['request']['evidence']
+               if row['id'] in cited):
+            blockers.append('planning_evidence_expired')
     models, reviewers = set(), set()
     for row in _rows(reviews, maximum=20):
         _shape(row, {'reviewer', 'model', 'revision', 'decision', 'plan_sha256', 'source_sha256', 'evidence_sha256', 'at'})

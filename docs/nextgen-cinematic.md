@@ -59,17 +59,17 @@ Review findings remain material:
 ## Evidence and limits
 
 The committed `docs/evidence/nextgen-camera-chromium.json` is a reproducible local
-receipt from actual Chromium 156.0.8078.79 on Linux, controlled by the existing
+receipt from actual Chromium 159.0.8154.6 on Linux, controlled by the existing
 reviewed Playwright 1.65.1 lock. Six cases cover three IDs at 390×844 and 1280×720,
 with 18 sampled pixel frames, deterministic replay, frame changes, reduced-motion
 stability, RTL mirroring, PNG/SVG export, pause/stop and cleanup. Each case samples
-45 synchronous draws against a 25ms CPU budget. The first run's maximum p95 was
-4.7ms. This is headless lab evidence, not measured display FPS, a real phone test,
+45 synchronous draws against a 25ms CPU budget. The integrated run's maximum p95 was
+5.9ms. This is headless lab evidence, not measured display FPS, a real phone test,
 or a production SLO. A visual contact sheet was inspected outside Git.
 
 `engineering_os.cinematic.audit_inventory(request=None, *, now=None)` and
 `catalog_report()` check the inspected inventory, current source hashes, receipt
-freshness (at most 24h), unique browser/viewport matrices, pixel hashes, required
+exact reviewed receipt-byte checksum, freshness (at most 24h), unique browser/viewport matrices, pixel hashes, required
 behavior and CPU budgets. Missing, stale, future, malformed, changed or failed
 proof withdraws runtime eligibility. The default requires Chromium, Firefox and
 WebKit, so its current all-browser operational count is **zero**. A request scoped

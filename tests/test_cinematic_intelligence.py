@@ -74,6 +74,11 @@ class CinematicTests(unittest.TestCase):
         self.request['max_p95_ms'] = .1
         self.assertEqual(self.report()['operational_for_requested_browsers_count'], 0)
 
+    def test_timestamp_only_receipt_refresh_withdraws_claim(self):
+        self.mutate_receipt(lambda r: r.update(recorded_at_utc=dt.datetime.fromtimestamp(
+            self.now, dt.timezone.utc).isoformat()))
+        self.assertEqual(self.report()['operational_for_requested_browsers_count'], 0)
+
     def test_request_rejects_paths_invalid_browsers_and_non_finite(self):
         for change in [{'path': '/tmp/source'}, {'required_browsers': ['unknown']}, {'required_browsers': ['chromium', 'chromium']}, {'max_p95_ms': float('inf')}, {'max_age_seconds': True}, {'schema_version': True}]:
             with self.assertRaises(cinematic.CinematicError):

@@ -86,11 +86,19 @@ class AnalysisTests(unittest.TestCase):
             analyze(request, now=1001)
 
     def test_nonfinite_boolean_zero_and_negative_metrics_rejected(self):
-        for field, value in [("baseline_ms", 0), ("baseline_ms", -1), ("current_ms", float("nan")), ("current_ms", float("inf")), ("current_ms", True), ("max_ratio", 0.5)]:
+        for field, value in [("baseline_ms", 0), ("baseline_ms", -1), ("current_ms", float("nan")), ("current_ms", float("inf")), ("current_ms", True), ("max_ratio", 0.5), ("current_ms", 10**500)]:
             request = self.request()
             request["performance"][0][field] = value
             with self.assertRaises(HealingError):
                 analyze(request, now=1001)
+
+    def test_persistent_failing_tests_still_require_investigation(self):
+        request = self.request()
+        request.update(baseline_tests={'smoke': 'failed'}, current_tests={'smoke': 'failed'},
+                       failures=[], performance=[], dependencies=[])
+        result = analyze(request, now=1001)
+        self.assertEqual(result['status'], 'review-required')
+        self.assertEqual(result['proposals'][0]['kind'], 'investigate-persistent-failure')
 
     def test_unknown_fields_schema_and_unpinned_dependency_rejected(self):
         for mutation in (lambda r: r.update(schema_version=True), lambda r: r.update(command="run"),

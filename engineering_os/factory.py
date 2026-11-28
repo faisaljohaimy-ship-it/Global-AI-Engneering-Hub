@@ -9,8 +9,10 @@ Keep project artifacts and receipts in private project storage, outside this hub
 
 import copy
 import hashlib
+import os
 import pathlib
 import re
+import stat
 
 from .orchestration import DIGEST, _slug, _text, canonical, load_json, sha
 
@@ -169,7 +171,21 @@ def _read_artifact(root, relative, expected):
         if path.is_symlink():
             raise FactoryError('Symlink artifact refused')
     try:
-        with path.open('rb') as stream:
+        directory = os.open('/', os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for part in path.parts[1:-1]:
+                child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=directory)
+                os.close(directory)
+                directory = child
+            fd = os.open(path.name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW,
+                         dir_fd=directory)
+        finally:
+            os.close(directory)
+        with os.fdopen(fd, 'rb') as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_ARTIFACT_BYTES:
+                raise FactoryError('Artifact must be a bounded regular file')
             raw = stream.read(MAX_ARTIFACT_BYTES + 1)
         if not raw or len(raw) > MAX_ARTIFACT_BYTES or hashlib.sha256(raw).hexdigest() != expected:
             raise FactoryError('Artifact bytes missing, oversized or changed')

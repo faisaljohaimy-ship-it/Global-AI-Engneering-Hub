@@ -1,0 +1,46 @@
+name: Next generation intelligence
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nextgen-intelligence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  camera-runtime:
+    name: Original camera motions in Chromium
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/nextgen-browsers
+      NEXTGEN_CAMERA_RECEIPT: ${{ runner.temp }}/nextgen-evidence/camera-chromium.json
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Check original mechanisms and existing SDK compatibility
+        run: node --test tests/test_nextgen_camera.mjs tests/test_universal_motion_sdk.mjs
+      - name: Install the existing reviewed exact browser lock
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --prefix motion-library/chromium-stack
+          motion-library/chromium-stack/node_modules/.bin/playwright install --with-deps chromium --only-shell
+      - name: Require fresh real renders in desktop and mobile viewports
+        run: node tests/test_nextgen_camera_browser.mjs
+      - name: Preserve this run's source-bound proof without promoting registry claims
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nextgen-camera-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/nextgen-evidence/
+          if-no-files-found: warn
+          retention-days: 7

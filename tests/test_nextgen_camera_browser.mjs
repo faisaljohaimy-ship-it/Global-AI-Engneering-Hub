@@ -12,7 +12,7 @@ const playwright=req('playwright'),version=req('playwright/package.json').versio
 assert.equal(version,JSON.parse(readFileSync(resolve(root,'motion-library/chromium-stack/package.json'))).devDependencies.playwright);
 const browserName=process.env.MOTION_BROWSER??'chromium';
 assert(['chromium','firefox','webkit'].includes(browserName));
-const server=await serve(root),browser=await playwright[browserName].launch(browserName==='chromium'?{executablePath:process.env.MOTION_CHROMIUM_EXECUTABLE??'/usr/bin/chromium',args:['--no-sandbox']}:{});
+const server=await serve(root),browser=await playwright[browserName].launch(browserName==='chromium'&&process.env.MOTION_CHROMIUM_EXECUTABLE?{executablePath:process.env.MOTION_CHROMIUM_EXECUTABLE}:{});
 const errors=[],external=[],cases=[];
 try{
  for(const viewport of [{width:390,height:844},{width:1280,height:720}]){

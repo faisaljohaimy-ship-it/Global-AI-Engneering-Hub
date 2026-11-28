@@ -24,6 +24,7 @@ INPUTS = frozenset({CAMERA_SOURCE, 'packages/motion-sdk/index.mjs',
                    'motion-library/chromium-stack/package-lock.json'})
 CHECKS = frozenset({'drawn', 'changes', 'deterministic', 'reduced_motion', 'rtl',
                     'exports', 'pause', 'stop', 'cleanup', 'cpu_budget'})
+RECEIPT_SHA256 = {'chromium': '74f651227883ac0083c695d83f736c670d41de5cef8fac0f90b68a83b137e186'}
 
 
 class CinematicError(ValueError):
@@ -101,6 +102,8 @@ def _inventory():
 
 def _receipt(browser, now, max_age, budget):
     """A malformed, stale or changed receipt withdraws every affected runtime claim."""
+    if _hash(f'docs/evidence/nextgen-camera-{browser}.json') != RECEIPT_SHA256.get(browser):
+        raise CinematicError('Changed or unreviewed receipt bytes')
     value = _read(f'docs/evidence/nextgen-camera-{browser}.json')
     if not isinstance(value, dict) or value.get('schema_version') != 1 or value.get('status') != 'passed' or value.get('browser') != browser:
         raise CinematicError('Invalid browser receipt')

@@ -46,6 +46,17 @@ def verification(planned):
 
 
 class ReasoningTests(unittest.TestCase):
+    def test_selected_evidence_must_still_be_fresh_at_review_time(self):
+        value = request()
+        value['evidence'][0]['at'] = NOW - 86400
+        planned = plan(value, now=NOW)
+        checks = verification(planned)
+        for check in checks:
+            check['plan_sha256'] = planned['plan_sha256']
+        result = review_decision(planned, reviews(planned), checks, now=NOW + 1)
+        self.assertEqual(result['decision'], 'blocked')
+        self.assertIn('planning_evidence_expired', result['blockers'])
+
     def setUp(self):
         self.request = request()
 

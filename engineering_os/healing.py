@@ -48,7 +48,7 @@ def _digest(value):
 
 
 def _finite(value, low=0, high=1e12):
-    if isinstance(value, bool) or not isinstance(value, (float, int)) or not math.isfinite(value) or not low <= value <= high:
+    if isinstance(value, bool) or not isinstance(value, (float, int)) or not low <= value <= high or not math.isfinite(value):
         raise HealingError("Invalid finite metric")
     return value
 
@@ -115,6 +115,8 @@ def analyze(request, *, now=None):
     regressions = sorted(key for key, status in before.items() if status == "passed" and after.get(key) != "passed")
     new_failures = sorted(key for key, status in after.items() if status == "failed" and key not in before)
     missing = sorted(set(before) - set(after))
+    persistent_failures = sorted(key for key, status in after.items()
+                                 if status == 'failed' and before.get(key) == 'failed')
     perf, seen = [], set()
     for row in _rows(request["performance"]):
         _fields(row, {"id", "baseline_ms", "current_ms", "max_ratio"})
@@ -154,6 +156,9 @@ def analyze(request, *, now=None):
         proposals.append({"kind": "restore-failing-contract", "targets": sorted(set(regressions + new_failures)), "required_checks": ["baseline-reproducer", "candidate-runtime-suite", "security", "independent-review"]})
     if missing:
         proposals.append({"kind": "restore-test-coverage", "targets": missing, "required_checks": ["unchanged-test-manifest"]})
+    if persistent_failures:
+        proposals.append({"kind": "investigate-persistent-failure", "targets": persistent_failures,
+                          "required_checks": ["reproducer", "candidate-runtime-suite", "independent-review"]})
     if conflicts:
         proposals.append({"kind": "reconcile-dependency-pins", "targets": sorted(row["package"] for row in conflicts), "required_checks": ["lockfile-review", "dependency-audit", "runtime-suite"]})
     if perf:

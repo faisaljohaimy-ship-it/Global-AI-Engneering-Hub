@@ -180,6 +180,13 @@ class FactoryTests(unittest.TestCase):
         path.unlink()
         self.assertEqual(self.evaluate(receipts)['verified_count'], 0)
 
+    def test_named_pipe_artifact_is_rejected_without_blocking(self):
+        receipts = self.fixtures()
+        path = self.root / receipts[0]['artifact']['path']
+        path.unlink()
+        os.mkfifo(path)
+        self.assertEqual(self.evaluate(receipts)['verified_count'], 0)
+
     def test_unknown_duplicate_receipts_and_mutated_plan_rejected(self):
         receipts = self.fixtures()
         with self.assertRaises(FactoryError):
