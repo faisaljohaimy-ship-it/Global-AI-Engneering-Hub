@@ -1,0 +1,10 @@
+# Optional fragment for a trusted Codex project or a dedicated Codex profile.
+[mcp_servers.context7]
+enabled = false
+required = false
+url = "https://mcp.context7.com/mcp"
+bearer_token_env_var = "GAIE_CODEX_CONTEXT7_TOKEN"
+enabled_tools = ["resolve-library-id", "query-docs"]
+default_tools_approval_mode = "prompt"
+startup_timeout_sec = 10
+tool_timeout_sec = 20
