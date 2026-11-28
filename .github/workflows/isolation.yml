@@ -51,9 +51,11 @@ jobs:
       - name: Run the isolation tests with every skip treated as a failure
         env:
           GAIE_REQUIRE_FULL_SANDBOX: "1"
+          TMPDIR: /tmp
         run: |
           set -euo pipefail
-          python3 -m unittest -v tests.test_governor tests.test_workspace_policy tests.test_master_audit_permissions 2>&1 | tee "$RUNNER_TEMP/isolation-tests.log"
+          python3 -m unittest -v tests.test_governor tests.test_workspace_policy tests.test_master_audit_permissions \
+            tests.test_self_healing_loop 2>&1 | tee "$RUNNER_TEMP/isolation-tests.log"
           if grep -n ' \.\.\. skipped' "$RUNNER_TEMP/isolation-tests.log"; then
             echo "::error::an isolation test was skipped; on this job a skip is a failure"
             exit 1
