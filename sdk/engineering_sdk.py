@@ -196,7 +196,9 @@ def checkout_guard(root):
 
     Every submodule config Git would read is checked; one that cannot be resolved and checked is refused,
     never skipped. `target` runs its status with submodules ignored, so a populated submodule must sit at
-    its recorded commit; changes inside a submodule's working files are not inspected."""
+    its recorded commit; changes inside a submodule's working files are not inspected. A populated
+    submodule that records submodules of its own is refused: nested gitlinks are not traversed, so their
+    Git directories (embedded, or reached through a gitfile anywhere) are never trusted (recheck-authz F1)."""
     if pathlib.Path(git(root, "rev-parse", "--show-toplevel").strip()).resolve() != pathlib.Path(root).resolve():
         raise ValueError("release checkout is not its own Git work tree root")
     keys = _keys(git(root, "config", "--list", "--show-scope", "--includes", "-z"), {"local", "worktree"})
@@ -210,6 +212,12 @@ def checkout_guard(root):
             raise ValueError("release checkout hides changes (assume-unchanged or skip-worktree entries)")
         if mode == "160000":
             keys += _submodule_keys(root, common / "modules", name, recorded)
+            populated = pathlib.Path(root, name)  # no link on the way: _submodule_keys checked every part
+            if os.path.lexists(populated / ".git") and any(
+                    item.split(" ", 1)[0] == "160000"
+                    for item in filter(None, git(populated, "ls-files", "--stage", "-z").split("\0"))):
+                raise ValueError("release checkout has a nested submodule (a submodule inside a submodule); "
+                                 "nested submodules are refused, not inspected")
     if any(FILTER_SETTING.fullmatch(key) for key in keys):
         raise ValueError("release checkout defines Git filter programs; inspect its .git/config")
 

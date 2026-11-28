@@ -44,7 +44,7 @@ def plain_status(repo, home):
     """What the engine used to run: `git status` with the checkout's own settings and a user HOME."""
     env = {"PATH": os.defpath, "HOME": str(home), "GIT_CONFIG_NOSYSTEM": "1", "LC_ALL": "C"}
     subprocess.run(["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=normal"],
-                   capture_output=True, env=env, timeout=60)
+                   stdin=subprocess.DEVNULL, capture_output=True, env=env, timeout=60)  # an fsmonitor hook reads stdin
 
 
 class PlantedProgramsNeverRun(unittest.TestCase):
@@ -107,9 +107,11 @@ class PlantedProgramsNeverRun(unittest.TestCase):
 
     def run_all(self, f, record_path):
         """eligibility, plan, record and verify-record of an earlier record; the planted log must stay absent."""
+        type(self).count += 1
+        later = f["here"] / f"later{self.count}.json"
         results = {"eligibility": engine.engine("eligibility", self.payload(f), {}),
                    "plan": engine.engine("plan", self.payload(f, now=F.NOW), {}),
-                   "record": engine.engine("record", self.payload(f, now=F.NOW, out=str(f["here"] / "later.json")), {}),
+                   "record": engine.engine("record", self.payload(f, now=F.NOW, out=str(later)), {}),
                    "verify-record": engine.engine("verify-record", {"root": str(f["repo"]), "profile": copy.deepcopy(F.PROFILE),
                                                                     "record_path": str(record_path)}, {})}
         self.assertFalse(f["log"].exists(), f"a planted program ran: {f['log'].read_text() if f['log'].exists() else ''}")
@@ -122,15 +124,24 @@ class PlantedProgramsNeverRun(unittest.TestCase):
         return out
 
     def test_nested_submodule_filter_and_fsmonitor_never_run(self):
+        """checkout_guard refuses nested submodules (test_recheck_fixes_sdk_nested); with the guard bypassed
+        the engine's own Git calls still never run the planted programs."""
+        bypass = mock.patch.object(engine._sdk(), "checkout_guard", lambda root: None)
         for mode in ("gitfile", "embedded"):
             with self.subTest(mode=mode):
                 f = self.checkout()
-                record_path = self.first_record(f)
+                with bypass:
+                    record_path = self.first_record(f)
                 self.plant_nested(f, mode)
-                results = self.run_all(f, record_path)
-                for action, result in results.items():
-                    codes = {row["code"] for row in result.get("refusals", result.get("reasons", []))}
-                    self.assertLessEqual(codes, {"checkout-unsafe"}, (mode, action))
+                with bypass:
+                    results = self.run_all(f, record_path)
+                self.assertEqual([results[name]["decision"] for name in ("eligibility", "plan", "record")],
+                                 ["ELIGIBLE"] * 3, "status ignores submodules, as in sdk target()")
+                self.assertEqual(results["verify-record"]["status"], "VERIFIED")
+                for action, result in self.run_all(f, record_path).items():
+                    rows = result["refusals"] if "refusals" in result else result["reasons"]
+                    self.assertEqual([row["code"] for row in rows], ["checkout-unsafe"], (mode, action))
+                    self.assertIn("nested submodule", rows[0]["detail"])
                 plain_status(f["repo"], f["here"])
                 self.assertTrue(f["log"].exists(), "control: plain `git status` runs the nested filter")
 
