@@ -53,7 +53,11 @@ export function defineMotion(definition) {
   if (!Number.isInteger(d.duration) || d.duration < 100 || d.duration > 120000) fail(id, 'duration must be an integer number of milliseconds from 100 to 120000');
   if (!EASINGS.includes(d.easing)) fail(id, `easing must be one of ${EASINGS.join(', ')}`);
   if (!Array.isArray(d.colors) || d.colors.length < 3 || d.colors.length > 5) fail(id, 'colors must list three to five hex colours: background first');
-  d.colors.forEach(hexToRgb);
+  try {
+    d.colors.forEach(hexToRgb);
+  } catch {
+    fail(id, 'colors must be written as #rgb or #rrggbb');
+  }
   const params = d.params ?? {};
   if (Object.keys(params).length < 2) fail(id, 'at least two configurable parameters are required');
   for (const [name, spec] of Object.entries(params)) numeric(id, name, spec);

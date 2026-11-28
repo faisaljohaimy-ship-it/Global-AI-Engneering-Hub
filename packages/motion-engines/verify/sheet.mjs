@@ -3,11 +3,11 @@
 // The harness proves a motion works; only eyes can tell whether it looks right.
 //
 //   node packages/motion-engines/verify/sheet.mjs --module quantum --out /tmp/quantum.png [--direction rtl]
-import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serve } from './serve.mjs';
 import { scan } from '../tools/build_registry.mjs';
+import { CHROMIUM_ARGS, loadPlaywright } from '../tools/playwright.mjs';
 
 const sdk = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const option = (name) => {
@@ -20,9 +20,9 @@ if (!out || !entries.length) {
   console.error('Usage: sheet.mjs --out FILE.png [--module key | --id id] [--direction rtl]');
   process.exit(2);
 }
-const { chromium } = createRequire(import.meta.url)('playwright');
+const { chromium } = loadPlaywright().playwright;
 const server = await serve(sdk);
-const browser = await chromium.launch({ args: ['--enable-unsafe-webgpu', '--enable-features=Vulkan,WebGPU', '--use-webgpu-adapter=swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: CHROMIUM_ARGS });
 try {
   const page = await browser.newPage({ viewport: { width: 3 * 324 + 8, height: 400 }, deviceScaleFactor: 1 });
   await page.goto(`${server.origin}/verify/harness.html`);

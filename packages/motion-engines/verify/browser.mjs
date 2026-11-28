@@ -9,11 +9,11 @@
 // Playwright is a tool of the machine running this script, not a dependency of the SDK.
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serve } from './serve.mjs';
 import { coreHash, scan } from '../tools/build_registry.mjs';
+import { CHROMIUM_ARGS, loadPlaywright } from '../tools/playwright.mjs';
 
 const sdk = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const option = (name) => {
@@ -29,15 +29,18 @@ if (!selected.length) {
 }
 
 let playwright;
+let playwrightVersion;
 try {
-  playwright = createRequire(import.meta.url)('playwright');
-} catch {
-  console.error('Playwright is required to produce browser evidence.');
+  ({ playwright, version: playwrightVersion } = loadPlaywright());
+} catch (error) {
+  console.error(error.message);
   process.exit(2);
 }
-const launch = browserName === 'chromium'
-  ? { args: ['--enable-unsafe-webgpu', '--enable-features=Vulkan,WebGPU', '--use-webgpu-adapter=swiftshader', '--ignore-gpu-blocklist', '--enable-precise-memory-info', '--js-flags=--expose-gc'] }
-  : {};
+if (!['chromium', 'firefox', 'webkit'].includes(browserName)) {
+  console.error('--browser must be chromium, firefox or webkit');
+  process.exit(2);
+}
+const launch = browserName === 'chromium' ? { args: CHROMIUM_ARGS } : {};
 const TIMEOUT_MS = Number(option('timeout') ?? 300) * 1000;
 const server = await serve(sdk);
 const browser = await playwright[browserName].launch(launch);
@@ -312,7 +315,7 @@ try {
     const extension = gl && gl.getExtension('WEBGL_debug_renderer_info');
     return { webgl2: Boolean(gl), webgpu: Boolean(navigator.gpu), renderer: extension ? gl.getParameter(extension.UNMASKED_RENDERER_WEBGL) : 'unknown' };
   });
-  engine = { browser: browserName, version: browser.version(), playwright: createRequire(import.meta.url)('playwright/package.json').version, platform: process.platform, ...renderer };
+  engine = { browser: browserName, version: browser.version(), playwright: playwrightVersion, platform: process.platform, ...renderer };
 } finally {
   await browser.close();
   server.close();
