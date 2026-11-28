@@ -330,7 +330,8 @@ def validate_spec(spec, *, allow_open_questions=False):
               UnsupportedSpec)
         seen_pairs.add(pair)
     features = spec["features"]
-    _need(isinstance(features, list) and 1 <= len(features) <= 100, "spec.features: 1-100 features")
+    # The factory traces at most 100 requirements: up to 80 features plus up to 12 NFR categories.
+    _need(isinstance(features, list) and 1 <= len(features) <= 80, "spec.features: 1-80 features")
     feature_ids = set()
     for feature in features:
         _need(isinstance(feature, dict) and set(feature) == {"id", "title", "acceptance"},
