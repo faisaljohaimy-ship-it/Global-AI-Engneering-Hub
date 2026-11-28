@@ -548,7 +548,8 @@ def _classify(code, limit, cpu_used, cpu_seconds):
 def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, strict=False, loopback=False):
     """Run cmd inside user+mount+pid(+net) namespaces under a minimal read-only root.
     loopback=True brings up lo of the sandbox's own network namespace (127.0.0.1 and ::1 inside
-    the sandbox only; the host network, host loopback included, stays unreachable)."""
+    the sandbox only; the host network, host loopback included, stays unreachable) and hides
+    /etc as the strict profiles do."""
     unshare = shutil.which("unshare", path=_cage().ENV["PATH"])
     if not strict:
         readable = sorted(set(readable) | set(_exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable)))
@@ -677,8 +678,10 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
 
     loopback=True (full tier, non-strict, network=False only) brings up the loopback interface
     of the sandbox's own network namespace, so a test can run a local server and a client inside
-    one sandbox. The host's loopback and every other host address stay unreachable. It is refused
-    where the full sandbox cannot be built; the default is unchanged (no interface is up)."""
+    one sandbox. The host's loopback and every other host address stay unreachable. It is meant
+    for untrusted code, so /etc is hidden as in the strict profiles (name the interpreter file
+    itself: a link through /etc/alternatives dangles). It is refused where the full sandbox cannot
+    be built; the default is unchanged (no interface is up, /etc stays readable)."""
     if isinstance(cmd, (str, bytes)) or not isinstance(cmd, (list, tuple)) or not cmd or not all(
             isinstance(a, str) and "\0" not in a for a in cmd) or not cmd[0]:
         raise GovernorDenied("invalid-command", "argv list of text, no shell string")
@@ -883,6 +886,9 @@ def _sandbox_init(raw):
         if spec.get("loopback"):
             step = "loopback up"
             _loopback_up()
+            step = "hide /etc"  # the loopback profile is for untrusted code: no host configuration files
+            if os.path.isdir("/etc") and not os.path.islink("/etc") and os.path.ismount("/etc"):
+                call(libc.umount2(b"/etc", MNT_DETACH), "umount /etc")
         step = "drop capabilities"
         for cap in range(last_cap + 1):
             call(libc.prctl(24, cap, 0, 0, 0), "PR_CAPBSET_DROP")

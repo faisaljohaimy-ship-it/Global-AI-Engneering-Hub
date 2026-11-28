@@ -965,6 +965,8 @@ try:
     client.close()
 except OSError as exc:
     r["inside_exchange"] = "errno:%s" % exc.errno
+import os
+r["etc"] = sorted(os.listdir("/etc")) if os.path.isdir("/etc") else "absent"
 for name, target in (("host_address", (host, port)), ("public_ip", ("1.1.1.1", 443))):
     if target[0] == "-":
         continue
@@ -1006,7 +1008,7 @@ print(json.dumps(r, sort_keys=True))
             listeners.append(listener)
         port = listeners[0].getsockname()[1]
         host = host_address() or "-"
-        command = (sys.executable, "-I", "-S", "-c", self.INSIDE, str(port), host)
+        command = (os.path.realpath(sys.executable), "-I", "-S", "-c", self.INSIDE, str(port), host)
         if governor.isolation_probe()["tier"] != "full":
             self.assertFalse(require_full_tier(), "GAIE_REQUIRE_FULL_SANDBOX=1 but the full tier is missing")
             with self.denied("network-isolation-unavailable"):
@@ -1017,6 +1019,7 @@ print(json.dumps(r, sort_keys=True))
         self.assertTrue(result["fs_isolated"] and result["network_isolated"])
         seen = json.loads(result["stdout"])
         self.assertEqual(seen["inside_exchange"], "X")  # same port number as the host listener: own namespace
+        self.assertEqual(seen["etc"], [])  # host configuration files (passwd, shadow, keys) are not mounted
         self.assertEqual(seen["public_ip"], "errno:101")
         if host != "-":
             self.assertEqual(seen["host_address"], "errno:101")
@@ -1024,7 +1027,9 @@ print(json.dumps(r, sort_keys=True))
             with self.assertRaises(BlockingIOError):
                 listener.accept()
         default = self.run_in(command, timeout=20)  # the default is unchanged: no interface is up
-        self.assertEqual(json.loads(default["stdout"])["inside_exchange"], "errno:101", default["stderr"])
+        plain_profile = json.loads(default["stdout"])
+        self.assertEqual(plain_profile["inside_exchange"], "errno:101", default["stderr"])
+        self.assertIn("passwd", plain_profile["etc"])  # unchanged default: legacy calls still see /etc
 
 
 class EvidenceTests(unittest.TestCase):
