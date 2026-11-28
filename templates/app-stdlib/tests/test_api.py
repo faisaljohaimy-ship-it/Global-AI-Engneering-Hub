@@ -165,33 +165,53 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call("GET", f"{self.path(entity, 999999999)}/{link['segment']}")[0], 404)
         self._link_permissions(entity, link)
 
+    # -- helpers for per-role checks --------------------------------------------
+    def _role_account(self, role):
+        """A fresh signed-in account with `role`: (session, account id, its principal record or None)."""
+        email = f"{role}.{time.time_ns()}@example.invalid"
+        session = self.server.login(role, email=email)
+        with db.session(self.server.db_path) as connection:
+            account_id = db.account_by_email(connection, email)["id"]
+        principal, me = SCHEMA.auth.get("principal"), None
+        if principal:
+            person = SCHEMA.by_name[principal["entity"]]
+            me = self.server.create(person, 1, self.parents(person), **{principal["email_field"]: email})
+        return session, account_id, me
+
+    def _reach(self, entity, record, me):
+        """Make `record` of the scoped entity visible to the account whose principal is `me`."""
+        scoping = SCHEMA.auth.get("scoping")
+        if scoping and me is not None and entity.name == scoping["entity"]:
+            link = next(item for item in entity.links if item["link_table"] == scoping["link_table"])
+            self.assertEqual(self.call("POST", f"{self.path(entity, record['id'])}/{link['segment']}",
+                                       {link["target_key"]: me["id"]})[0], 201)
+
+    def _own(self, entity, record, account_id):
+        """Mark `record` as created by the account (what POST as that account records)."""
+        with db.session(self.server.db_path) as connection:
+            connection.execute("UPDATE " + db.ident(entity.table) + " SET created_by = ? WHERE id = ?",
+                               (account_id, record["id"]))
+
+    def _readable(self, entity, records, session):
+        """Ids among `records` that GET /api/<collection>/{id} returns to this session."""
+        return {row["id"] for row in records if self.call("GET", self.path(entity, row["id"]), session=session)[0] == 200}
+
+    def _non_admin_roles(self):
+        return [(role, frozenset(perms)) for role, perms in sorted(SCHEMA.auth["roles"].items()) if "*" not in perms]
+
     def _link_permissions(self, entity, link):
         """Every non-admin role: adding a link needs write on the parent record, removing one needs
-        write and delete; a :own permission covers only parent records the account created."""
-        scoping, principal = SCHEMA.auth.get("scoping"), SCHEMA.auth.get("principal")
+        write and delete; a :own permission covers only parent records the account created. Listing
+        the links is readable exactly when the parent is and shows only targets the role can read."""
         target_entity = SCHEMA.by_name[link["entity"]]
-        for role, permissions in sorted(SCHEMA.auth["roles"].items()):
-            if "*" in permissions:
-                continue
-            email = f"links.{role}.{time.time_ns()}@example.invalid"
-            session = self.server.login(role, email=email)
-            with db.session(self.server.db_path) as connection:
-                account_id = db.account_by_email(connection, email)["id"]
-            me = None
-            if scoping and principal and entity.name == scoping["entity"]:
-                person = SCHEMA.by_name[principal["entity"]]
-                me = self.server.create(person, 1, self.parents(person), **{principal["email_field"]: email})
-                member_link = next(item for item in entity.links if item["link_table"] == scoping["link_table"])
+        for role, permissions in self._non_admin_roles():
+            session, account_id, me = self._role_account(role)
             write, remove = model.allowed(permissions, "write"), model.allowed(permissions, "delete")
             for owned in (False, True):
                 source = self.server.create(entity, 1, self.parents(entity))
                 if owned:
-                    with db.session(self.server.db_path) as connection:
-                        connection.execute("UPDATE " + db.ident(entity.table) + " SET created_by = ? WHERE id = ?",
-                                           (account_id, source["id"]))
-                if me is not None:
-                    self.assertEqual(self.call("POST", f"{self.path(entity, source['id'])}/{member_link['segment']}",
-                                               {member_link["target_key"]: me["id"]})[0], 201)
+                    self._own(entity, source, account_id)
+                self._reach(entity, source, me)
                 path = f"{self.path(entity, source['id'])}/{link['segment']}"
                 kept = self.server.create(target_entity, 2, self.parents(target_entity))
                 self.assertEqual(self.call("POST", path, {link["target_key"]: kept["id"]})[0], 201)
@@ -219,9 +239,15 @@ class ApiTests(unittest.TestCase):
                 self.assertEqual(status, add_status, (case, reply))
                 status, _, reply = self.call("DELETE", f"{path}/{kept['id']}", session=session)
                 self.assertEqual(status, remove_status, (case, reply))
-                listed = {row["id"] for row in self.call("GET", path)[2]["items"]}
+                linked = self.call("GET", path)[2]["items"]
+                listed = {row["id"] for row in linked}
                 self.assertEqual((added["id"] in listed, kept["id"] in listed), (add_status == 201, remove_status != 204),
                                  case)
+                status, _, page = self.call("GET", path, session=session)
+                self.assertEqual(status, self.call("GET", self.path(entity, source["id"]), session=session)[0], case)
+                if status == 200:
+                    self.assertEqual({row["id"] for row in page["items"]}, self._readable(target_entity, linked, session),
+                                     case)
 
     def _children(self, parent, child):
         entity = child["entity"]
@@ -236,6 +262,28 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(set(inside) <= ids)
         self.assertNotIn(outside, ids)
         self.assertTrue(all(row[child["field"]] == mine["id"] for row in page["items"]))
+        self._children_for_roles(parent, child)
+
+    def _children_for_roles(self, parent, child):
+        """Every non-admin role: a child listing is readable exactly when the parent record is and
+        lists exactly the children the role can read directly (read:own and scoping included)."""
+        entity = child["entity"]
+        for role, _ in self._non_admin_roles():
+            session, account_id, me = self._role_account(role)
+            for owned in (False, True):
+                record = self.server.create(parent, 1, self.parents(parent))
+                if owned:
+                    self._own(parent, record, account_id)
+                self._reach(parent, record, me)
+                refs = self.parents(entity)
+                kids = [self.server.create(entity, n, {**refs, child["field"]: record["id"]}) for n in (1, 2)]
+                self._own(entity, kids[1], account_id)
+                case = (role, "own record" if owned else "another account's record")
+                status, _, page = self.call("GET", f"{self.path(parent, record['id'])}/{child['collection']}"
+                                                   f"?limit={LIMITS['max_page_size']}", session=session)
+                self.assertEqual(status, self.call("GET", self.path(parent, record["id"]), session=session)[0], case)
+                if status == 200:
+                    self.assertEqual({row["id"] for row in page["items"]}, self._readable(entity, kids, session), case)
 
     # -- authentication, authorization and security ---------------------------
     def test_health(self):
@@ -375,6 +423,22 @@ class ApiTests(unittest.TestCase):
                 connection.close()
             self.assertEqual(result["percent"], 0)
             self.assertEqual(len([s for s in statements if s.lstrip().upper().startswith("SELECT")]), 1, statements)
+            child = SCHEMA.by_name[rule["child"]]
+            for role, _ in self._non_admin_roles():
+                session, account_id, me = self._role_account(role)
+                for owned in (False, True):
+                    record = self.server.create(parent, 1, self.parents(parent))
+                    if owned:
+                        self._own(parent, record, account_id)
+                    self._reach(parent, record, me)
+                    refs = {**self.parents(child), rule["fk"]: record["id"]}
+                    kids = [self.server.create(child, n, refs) for n in (1, 2)]
+                    self._own(child, kids[1], account_id)
+                    case = (role, "own record" if owned else "another account's record")
+                    status, _, body = self.call("GET", f"{self.path(parent, record['id'])}/progress", session=session)
+                    self.assertEqual(status, self.call("GET", self.path(parent, record["id"]), session=session)[0], case)
+                    if status == 200:
+                        self.assertEqual(body[f"total_{rule['key']}"], len(self._readable(child, kids, session)), case)
 
     def test_security_headers(self):
         for path, role in (("/", None), ("/static/app.js", None), ("/api/health", None), ("/api/nope", None),

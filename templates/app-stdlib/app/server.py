@@ -481,7 +481,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         A link belongs to its parent record: adding one is a write on the parent and
         removing one is a write and a delete on it. A `:own` permission covers only
         parent records the account created, and both changes pass the CSRF and
-        same-origin checks, exactly like PATCH/DELETE of the parent itself.
+        same-origin checks, exactly like PATCH/DELETE of the parent itself. Reads first
+        authorize the parent exactly like GET of the parent itself (read:own included)
+        and then return only children, link targets and counts the role may read.
         """
         name = rest[0]
         link = next((item for item in entity.links if item["segment"] == name), None)
@@ -499,12 +501,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         else:
             raise ApiError(404, "not_found", "no such resource")
         mode = "own" if "own" in modes else "all"
-        scope = db.Scope(self.schema, account, account["principal_id"])
+        scope = db.Scope(self.schema, account, account["principal_id"], own=(method in SAFE_METHODS and mode == "own"))
         with db.session(self.app.db_path) as connection:
             if not db.visible(connection, entity, record_id, scope):
                 raise ApiError(404, "not_found", "no such record")
             if name == "progress" and link is None and child is None:
-                return self._json(200, {"id": record_id, **db.progress(connection, self.schema, rule, record_id)})
+                return self._json(200, {"id": record_id, **db.progress(connection, self.schema, rule, record_id, scope)})
         if child is not None and link is None:
             return self._list(child["entity"], query, scope, equals={child["field"]: record_id})
         if len(rest) == 2:
@@ -517,7 +519,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._json(204, None)
         if method in SAFE_METHODS:
             with db.session(self.app.db_path) as connection:
-                items = db.link_targets(connection, self.schema, link, record_id)
+                items = db.link_targets(connection, self.schema, link, record_id, scope)
             return self._json(200, {"items": items, "total": len(items)})
         body = self._body()
         target = body.get(link["target_key"])

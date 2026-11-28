@@ -165,5 +165,45 @@ class LinkAuthorizationTests(GeneratedApp):
         self.assertIn("_link_permissions", (self.app / "tests/test_api.py").read_text(encoding="utf-8"))
 
 
+class ReadOwnSubResourceTests(GeneratedApp):
+    """W2-BU-02: children, links and progress authorize the parent like GET of the parent (read:own included)."""
+
+    @classmethod
+    def spec(cls):
+        spec = requirements.parse(_FIXTURE.COMMAND)
+        for role in spec["roles"]:
+            if role["id"] == "member":
+                role["permissions"] = ["read:own", "write:own"]
+        return spec
+
+    def test_read_own_role_reads_nothing_through_another_accounts_parent(self):
+        result = self.scenario("""
+            assert SCHEMA.permissions("member") == {"read:own", "write:own"}
+            project = new("Project", 1)
+            bob = server.login("member", email="bob@example.invalid")
+            me = new("Member", 1, email="bob@example.invalid")
+            base = "/api/projects/%d" % project["id"]
+            assert status("POST", base + "/members", {"member_id": me["id"]}) == 201
+            new("Task", 1, project_id=project["id"])
+            for key, path in (("project", base), ("tasks", base + "/tasks"), ("members", base + "/members"),
+                              ("progress", base + "/progress"), ("milestones", base + "/milestones")):
+                result[key] = status("GET", path, who=bob)
+            own = call("POST", "/api/projects", sample(SCHEMA.by_name["Project"], 2), bob)[2]
+            mine = "/api/projects/%d" % own["id"]
+            bobs = call("POST", "/api/tasks", sample(SCHEMA.by_name["Task"], 3, {"project_id": own["id"]}), bob)[2]
+            new("Task", 4, project_id=own["id"])
+            result["own_project_tasks"] = ids("GET", mine + "/tasks", bob)
+            result["bobs_task"] = bobs["id"]
+            result["own_progress"] = call("GET", mine + "/progress", None, bob)[2]
+            result["own_members"] = ids("GET", mine + "/members", bob)
+            result["admin_sees_both_tasks"] = len(ids("GET", mine + "/tasks")[1])
+        """)
+        self.assertEqual({key: result[key] for key in ("project", "tasks", "members", "progress", "milestones")},
+                         {key: 404 for key in ("project", "tasks", "members", "progress", "milestones")})
+        self.assertEqual(result["own_project_tasks"], [200, [result["bobs_task"]]])
+        self.assertEqual((result["own_progress"]["total_tasks"], result["admin_sees_both_tasks"]), (1, 2))
+        self.assertEqual(result["own_members"], [200, []], "the member record was created by the admin, not by bob")
+
+
 if __name__ == "__main__":
     unittest.main()

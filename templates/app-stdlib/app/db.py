@@ -318,12 +318,14 @@ def delete(connection, schema, entity, record_id):
 
 # -- many-to-many links and aggregates -----------------------------------------
 
-def link_targets(connection, schema, link, source_id):
+def link_targets(connection, schema, link, source_id, scope=UNSCOPED):
+    """Linked target records of one source record that `scope` may see."""
     target = schema.by_name[link["entity"]]
-    sql = ("SELECT t.* FROM " + ident(target.table) + " t JOIN " + ident(link["link_table"]) + " l ON l."
-           + ident("target_id") + " = t." + ident("id") + " WHERE l." + ident("source_id") + " = ? ORDER BY t."
-           + ident("id"))
-    return [_record(target, row) for row in connection.execute(sql, (source_id,))]
+    linked = ("SELECT " + ident("target_id") + " FROM " + ident(link["link_table"]) + " WHERE "
+              + ident("source_id") + " = ?")
+    where, params = _where(target, scope, [ident("id") + " IN (" + linked + ")"], [source_id])
+    sql = "SELECT * FROM " + ident(target.table) + where + " ORDER BY " + ident("id")
+    return [_record(target, row) for row in connection.execute(sql, params)]
 
 
 def add_link(connection, link, source_id, target_id):
@@ -341,13 +343,14 @@ def remove_link(connection, link, source_id, target_id):
     return bool(connection.execute(sql, (source_id, target_id)).rowcount)
 
 
-def progress(connection, schema, rule, parent_id):
-    """Completion of a parent's children in ONE aggregate query."""
+def progress(connection, schema, rule, parent_id, scope=UNSCOPED):
+    """Completion of a parent's children that `scope` may see, in ONE aggregate query."""
     child = schema.by_name[rule["child"]]
     done = rule["done"]
+    where, params = _where(child, scope, [ident(rule["fk"]) + " = ?"], [parent_id])
     sql = ("SELECT COUNT(*), COALESCE(SUM(CASE WHEN " + ident(rule["field"]) + " IN (" + _marks(len(done))
-           + ") THEN 1 ELSE 0 END), 0) FROM " + ident(child.table) + " WHERE " + ident(rule["fk"]) + " = ?")
-    total, finished = connection.execute(sql, (*done, parent_id)).fetchone()
+           + ") THEN 1 ELSE 0 END), 0) FROM " + ident(child.table) + where)
+    total, finished = connection.execute(sql, (*done, *params)).fetchone()
     return {f"total_{rule['key']}": total, f"done_{rule['key']}": finished,
             "percent": (finished * 100 // total) if total else 0}
 
