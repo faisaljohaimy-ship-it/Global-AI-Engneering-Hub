@@ -94,13 +94,15 @@
       ],
       "files": {
         "engineering_os/gaie_router.py": ".engineering/gaie/gaie_router.py",
+        "engineering_os/workspace_policy.py": ".engineering/gaie/workspace_policy.py",
         "engineering_os/gaie_memory.py": ".engineering/gaie/gaie_memory.py",
         "engineering_os/gaie_inventory.py": ".engineering/gaie/gaie_inventory.py",
         "governance/policies/gaie-routes.json": ".engineering/gaie/gaie-routes.json",
         "projects/registry.json": ".engineering/gaie/projects.json",
         "projects/aliases.json": ".engineering/gaie/aliases.json",
         "prompts/MASTER_BUILD.md": ".engineering/gaie/MASTER_BUILD.md",
-        "prompts/MASTER_UPGRADE.md": ".engineering/gaie/MASTER_UPGRADE.md"
+        "prompts/MASTER_UPGRADE.md": ".engineering/gaie/MASTER_UPGRADE.md",
+        "agents/gaie-verifier.md": ".claude/agents/gaie-verifier.md"
       },
       "requires": [
         "Python 3.10+",

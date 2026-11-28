@@ -284,9 +284,25 @@ class IntegrityTests(Base):
             self.assertEqual(front["name"], name)
             self.assertLessEqual(len(front["description"]), 1536)
             self.assertRegex(front["description"], "[ء-ي]", f"{name} needs Arabic trigger phrases")
-        self.assertIn("allowed-tools: Read, Grep, Glob, Bash", (ROOT / "skills/gaie-audit/SKILL.md").read_text())
-        agent = (ROOT / "agents/gaie-verifier.md").read_text()
-        self.assertIn("tools: Read, Grep, Glob, Bash", agent)
+
+    def test_audit_host_artifacts_bind_the_read_only_verifier(self):
+        skill = (ROOT / "skills/gaie-audit/SKILL.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/gaie-verifier.md").read_text(encoding="utf-8")
+        skill_config = dict(line.split(": ", 1) for line in skill.split("---\n")[1].strip().splitlines())
+        agent_config = dict(line.split(": ", 1) for line in agent.split("---\n")[1].strip().splitlines())
+        self.assertEqual(skill_config["context"], "fork")
+        self.assertEqual(skill_config["agent"], agent_config["name"])
+        self.assertEqual(skill_config["background"], "false")
+        self.assertEqual(skill_config["allowed-tools"].split(", "), ["Read", "Grep", "Glob"])
+        self.assertEqual(agent_config["tools"].split(", "), ["Read", "Grep", "Glob"])
+        self.assertEqual(set(agent_config), {"name", "description", "tools", "disallowedTools"})
+        self.assertTrue({"Bash", "Write", "Edit", "Agent", "Skill", "mcp__*"} <=
+                        set(agent_config["disallowedTools"].split(", ")))
+        self.assertNotIn("!`", skill)
+
+        pack = json.loads((ROOT / "catalog/packs.json").read_text(encoding="utf-8"))["packs"]["gaie-factory"]
+        self.assertEqual(pack["files"]["agents/gaie-verifier.md"], ".claude/agents/gaie-verifier.md")
+        self.assertEqual(pack["files"]["engineering_os/workspace_policy.py"], ".engineering/gaie/workspace_policy.py")
 
     def test_plugin_manifests_stay_inside_the_repository(self):
         plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
@@ -308,11 +324,18 @@ class IntegrityTests(Base):
             self.assertTrue(hublink.verify(project)["ok"])
         for name in SKILLS:
             self.assertEqual((project / ".claude/skills" / name / "SKILL.md").read_bytes(), (ROOT / "skills" / name / "SKILL.md").read_bytes())
+        self.assertEqual((project / ".claude/agents/gaie-verifier.md").read_bytes(),
+                         (ROOT / "agents/gaie-verifier.md").read_bytes())
+        env = {**os.environ, **self.env}
+        env.pop("PYTHONDONTWRITEBYTECODE", None)
+        env.pop("PYTHONPYCACHEPREFIX", None)
         run = subprocess.run([sys.executable, ".engineering/gaie/gaie_router.py", "route", "افحص سديد"],
-                             capture_output=True, text=True, cwd=project, env={**os.environ, **self.env})
+                             capture_output=True, text=True, cwd=project, env=env)
+        self.assertEqual(run.returncode, 0, run.stderr or run.stdout)
         plan = json.loads(run.stdout)
         self.assertEqual((plan["engine"], plan["read_only"]), ("AUDIT", True))
         self.assertTrue(all(row["available"] for row in plan["skills"] if row["skill"].startswith("gaie-")))
+        self.assertFalse((project / ".engineering/gaie/__pycache__").exists())
         run = subprocess.run([sys.executable, ".engineering/gaie/gaie_inventory.py", "."], capture_output=True, text=True, cwd=project)
         self.assertTrue(json.loads(run.stdout)["signals"]["hub_linked"])
 

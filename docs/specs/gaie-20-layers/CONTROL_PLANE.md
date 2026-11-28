@@ -91,8 +91,6 @@ receipt {request_sha256, result_sha256, grant_id, side_effect, duration_ms, at,
          source_sha256 = sha256({file: sha256(bytes)} over adapters.py + engine sources)}
   ▼ contracts.validate_receipt
 adapters.append_usage → <state_dir>/economics/ledger.jsonl (0600, flock, O_APPEND)
-adapters.record_checkpoint (only if ctx.task_id) → memory "checkpoint" record in
-  <state_dir>/memory via MemoryStore
   ▼
 {"ok": true, "engine", "action", "result", "receipt"}
 ```
@@ -101,6 +99,13 @@ Payloads are data. Authorization comes only from `grant` and `ctx["approval_toke
 payload field named `approval_token`, `grant` or `ctx`, or instruction text anywhere in a
 payload, is passed to the engine as plain data and changes nothing (tested). Audit rows
 carry digests and reasons, never payloads.
+
+A task ID adds correlation to operational accounting. To persist a memory entry
+or checkpoint, invoke the explicit memory action using a separate state-write
+grant. The static `master-audit` actions issue no child processes.
+`quality-assurance.run-tests` requires the measured filesystem and network
+isolation tier and uses a private disposable write root with the validated hub
+source mounted read-only. See [MASTER security acceptance](MASTER_SECURITY_ACCEPTANCE.md).
 
 Ledger row (`kind: control-plane-invocation`): engine, action, status, task_id, project,
 grant_id, side_effect, duration_ms, request/result/source digests, `execution:

@@ -8,8 +8,11 @@ and the SDK the release engine calls).
 - Repeatable audit: `python3 -m engineering_os.security_audit` (code: `engineering_os/security_audit.py`).
 - Evidence: `docs/evidence/gaie-20-layers/security-findings.json`, written by
   `python3 -m engineering_os.security_audit --out docs/evidence/gaie-20-layers/security-findings.json`.
-- Tests: `python3 -m unittest tests.test_security_enterprise` (51 tests: a regression test for each
+- Tests: `python3 -m unittest tests.test_security_enterprise` (58 tests: a regression test for each
   fixed finding, the audit's positive and negative cases, and a live run checked against the evidence).
+- Re-measured after the MASTER security hardening (`MASTER_SECURITY_ACCEPTANCE.md`) was merged: SEC-03 and
+  SEC-05 keep their status under the stricter descriptor-based checks, SEC-09 moved from accepted to fixed,
+  and the evidence file was rewritten by the command above.
 
 The audit makes no network request and no model call, and it reads no clock. Each status in the evidence
 comes from a probe that re-runs the exploit in a private temporary directory, or checks the control, on
@@ -48,7 +51,7 @@ Each cell names the control and says whether it is enforced in code (**code**) o
 | control plane (L04) | E: authority smuggled in a payload. I: a credential in a payload. D: huge payloads. T: state written into a directory others can reach | code: authority only from grant and `ctx['approval_token']` (SEC-13 held), `secrets:none` enforced by `check_payload` (SEC-02 fixed), 1 MiB payload / 16 MiB result bounds (SEC-15 held), private state dir checked before any engine runs (SEC-05 fixed), allow audited before the run |
 | adapters (L04) | E: a path field the governor never checked. I: payload text in errors | code: `PATH_FIELDS` checked by the governor; error audit rows keep the class name only. proc.: new path-bearing actions must be added to `PATH_FIELDS` (see R7) |
 | master-release / SDK (L11) | E/T: Git in a checkout an agent prepared runs its programs (`core.fsmonitor`, `post-index-change`, filter drivers), or is redirected (`core.worktree`, `GIT_DIR`) or blinded (assume-unchanged) | code: SEC-01 fixed. `sdk.engineering_sdk.git` runs with fsmonitor and hooks off, no system config, no inherited `GIT_*`, no index writes. `checkout_guard` refuses filter programs (local, worktree, included and submodule configs), a foreign work tree and hidden index entries. SEC-11 fixed: no FIFO or device reads |
-| master-router, project registry (L03/L15) | T/I: a private registry that others can swap or read. T: `git remote` in a workspace | code: `GAIE_HOME` outside Git, 0600 file through `mkstemp`, home must be caller-owned and not writable by group or others (SEC-04 fixed); `remote get-url` refreshes no index and `GIT_*` is stripped (SEC-09 accepted) |
+| master-router, project registry (L03/L15) | T/I: a private registry that others can swap or read. T: `git remote` in a workspace | code: `GAIE_HOME` outside Git, 0600 file through `mkstemp`, home must be caller-owned and not writable by group or others (SEC-04 fixed); the router launches no Git itself: `workspace_policy._git` checks a `--workspace` with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited `GIT_*`, no index writes, and a write scope refuses filter, hook-path, include and URL-rewrite settings (SEC-09 fixed) |
 | memory, gaie_memory (L14) | I: secrets or private data in memory. T: an edited store or checkpoint. D: unbounded stores | code: secret guard, 0600/0700, locked atomic writes, owner/mode/link checks (`_open_private`), sealed checkpoints that restore only into an empty store (SEC-14 held), size bounds. Frozen legacy journal lacks the owner/link check (SEC-10 open, low) |
 | reasoning, requirements, economics (L13/L15/L19) | E: text treated as instructions. D: large inputs | code: pure deterministic functions over bounded JSON; no eval/exec, no subprocess, no network (static rules, 0 hits). `economics --out` writes where the owner points it (proc.) |
 | self-healing, detectors (L17) | E/I: target repository code runs (tests, servers, timing probes) | code: a disposable copy, fixed driver (no shell), environment reduced to PATH, HOME and TMPDIR, loopback-only socket guard, timeouts, process-group kill, an unchanged-target check afterwards. **Open (SEC-07, medium):** no OS sandbox, so the target code can read any file the user can read |
@@ -57,7 +60,7 @@ Each cell names the control and says whether it is enforced in code (**code**) o
 | cinematic, video pipeline (L18) | T/I: media written into the repository, or into a directory others can read | code: refused inside the repository. **Open (SEC-08, low):** the directory is created (umask mode) before that check |
 | context-intelligence (L02) | T: a retrieval id that climbs out of the store | code: ids are SHA-256 hex only; the store lives under private state |
 | hub.py, gaie_bootstrap (L01/L16) | T: writes through symlinks into target projects | code: exclusive creates (`open("x")`, `O_EXCL|O_NOFOLLOW`), symlink components refused, an install manifest limited to known paths |
-| quality-assurance (L09) | E: tests escape | code: `governor.sandbox_run(network=False)` with a minimal environment |
+| quality-assurance (L09) | E: tests escape | code: strict `governor.sandbox_run(require_fs_isolation=True)`: one temporary writable workspace, the hub read-only, no network, no environment passthrough; refused when the full sandbox tier is unavailable |
 
 ## 3. Controls per layer: what code enforces and what the owner must do
 
@@ -89,13 +92,13 @@ static hits with path:line and rule, never a value).
 |---|---|---|---|---|---|
 | SEC-01 | high | fixed | release target check ran the checkout's own Git programs (fsmonitor, index hook, filters); `core.worktree`, `GIT_DIR` and assume-unchanged could hide changes | `sdk/engineering_sdk.py` `target` | `GitCheckoutTests` (12 tests, the exploit premise shown on plain Git first) |
 | SEC-02 | high | fixed | `secrets:none` was declared on all 53 actions but not enforced; a credential-shaped payload reached the engine | `engineering_os/control_plane.py` `invoke` | `PayloadSecretTests` |
-| SEC-03 | medium | fixed | the audit log was appended although others could read it, it was hard-linked to another file, another user owned it, or its directory was writable by others; `verify_audit` followed a swapped path and blocked on a FIFO | `engineering_os/governor.py` `audit`, `verify_audit` | `AuditLogTests` |
+| SEC-03 | medium | fixed | the audit log was appended although others could read it, it was hard-linked to another file, another user owned it, or its directory was writable by others; `verify_audit` followed a swapped path and blocked on a FIFO. Now both open the log relative to the descriptor of a caller-owned mode 0700 directory | `engineering_os/governor.py` `audit`, `verify_audit` | `AuditLogTests` |
 | SEC-04 | medium | fixed | the private project registry was written into a `GAIE_HOME` that another user owned or could write | `engineering_os/project_registry.py` `_write` | `RegistryHomeTests` |
 | SEC-05 | medium | fixed | a state directory open to others was refused only after the engine had written state | `engineering_os/control_plane.py` `_context` | `StateDirectoryTests` |
 | SEC-06 | low | mitigated | the hash chain cannot see records removed from its end, or the whole log removed | `governor.verify_audit` | `AnchorTests` (anchor helper in `security_audit`) |
 | SEC-07 | medium | **open** | self-healing runs target code without an OS sandbox | `engineering_os/detectors.py` `Sandbox` | probe; SELF_HEALING.md limits |
 | SEC-08 | low | **open** | video output directory is created (umask mode) before the "outside the repository" check | `engineering_os/video_pipeline.py` `_outside_repository` | probe |
-| SEC-09 | low | accepted | router workspace probe runs `git remote get-url` without the hardening flags | `engineering_os/gaie_router.py` `workspace` | probe (no index refresh, `GIT_*` stripped) |
+| SEC-09 | low | fixed | router workspace probe ran `git remote get-url` without the hardening flags; the MASTER security hardening removed `gaie_router.workspace` and checks a workspace only through the hardened validator | `engineering_os/workspace_policy.py` `_git` | `WorkspaceGitTests` (7 tests, the exploit premise shown on plain Git first) |
 | SEC-10 | low | **open** | frozen gaie_memory journal is appended without an owner, mode or link check | `engineering_os/gaie_memory.py` `_journal_add` | probe |
 | SEC-11 | low | fixed | SDK `verify` accepted a FIFO or device named in the manifest and would block on it | `sdk/engineering_sdk.py` `safe_path` | `test_fifo_capability_file_is_refused_without_blocking` |
 | SEC-12 | medium | **open** | `layers.verify` declares `exec:sandbox`/`secrets:none` but runs repository tests unsandboxed with the caller's environment | `engineering_os/layers.py` `_run` | probe |
@@ -108,6 +111,11 @@ Static hits that were reviewed and accepted (rule, enclosing function, reason in
 - `private-mode` in `governor._sandbox_init`: mount points inside the sandbox's private tmpfs.
 - `git-dynamic-subcommand` in `hublink._git` and `scripts/security_scan.git`: these run only in the hub's own checkout, with
   read-only subcommands.
+
+Static hit that is open and not yet reviewed: `private-mode` in `build_engine._write_files` (medium). The build engine,
+merged after this review, creates the generated application directory with mode 0755 when it does not exist yet. The default
+workspace above it is created 0700, and a directory the operator created 0700 and verified with `route --workspace` keeps
+its mode. Owner: build engine.
 
 Read-only cross-check with `swarm/phase3/SECURITY.md` and its reviews:
 - Links written through: kit faults 1/2. Same class here is SEC-03 (audit log).
@@ -136,8 +144,9 @@ The swarm itself was not changed.
   still run.
 - **R7. Engines registered later** (for example `video_pipeline.invoke` with `out_dir`/`path`, or `requirements`) need their
   path fields in `adapters.PATH_FIELDS`, or the governor never sees those paths.
-- **R8. Governor limits** (SECURITY_GOVERNOR.md §9): no process-count cap for uid-0-mapped sandboxes, no seccomp, and
-  `network=True` means the host network.
+- **R8. Governor limits** (SECURITY_GOVERNOR.md §9): no process-count cap for uid-0-mapped sandboxes. Legacy
+  (non-strict) calls install no seccomp filter, and their `network=True` means the host network. Only the strict
+  profiles (`require_fs_isolation`, `read_only`) deny socket creation, hide `/etc` and refuse to run without the full tier.
 - **R9.** Session identifiers appear in `swarm/` runbooks. They are not credentials, and swarm/ is out of scope for changes.
 
 ## 6. Operating the audit

@@ -30,6 +30,7 @@ import hashlib
 import os
 import pathlib
 import re
+import stat
 import unicodedata
 import uuid
 
@@ -719,16 +720,33 @@ def _credential_source(relative, text):
 class MemoryStore:
     """A user-owned, locked local store outside Git; not an access-control service."""
 
-    def __init__(self, state_dir, project=None, create=True):
+    def __init__(self, state_dir, project=None, create=True, *, read_only=False):
         if project is not None:
             _slug(project)
         self.project = project
+        self._read_only = read_only
         directory = pathlib.Path(state_dir).absolute()
+        self.path = directory / STATE_FILE
+        self._cache = None
+        if read_only:
+            if ".." in directory.parts:
+                raise IsolationError("Memory directory must be normalized")
+            for ancestor in (directory, *directory.parents):
+                if ancestor.is_symlink():
+                    raise CoordinationError("Symlink state directory refused")
+                if os.path.lexists(ancestor / ".git"):
+                    raise CoordinationError("Task state must remain outside Git repositories")
+            try:
+                info = directory.stat()
+            except FileNotFoundError:
+                raise MissingMemory("No private memory recorded here") from None
+            if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+                raise CoordinationError("State directory must be user-owned mode 0700")
+            self.directory = directory
+            return
         if not create and not ((directory / STATE_FILE).is_file() or (directory / LEGACY_STATE_FILE).is_file()):
             raise MissingMemory("No private memory recorded here")
         self.directory = _safe_directory(directory)
-        self.path = self.directory / STATE_FILE
-        self._cache = None
         with self._locked():
             if not self.path.exists() and not self.path.is_symlink():
                 legacy = self.directory / LEGACY_STATE_FILE
@@ -754,8 +772,13 @@ class MemoryStore:
             raise IsolationError("Project memory escaped its root")
         return store
 
+    def _require_write(self):
+        if self._read_only:
+            raise MemoryError("A read-only memory store cannot be written")
+
     @contextlib.contextmanager
     def _locked(self):
+        self._require_write()
         _safe_directory(self.directory)
         fd = _open_private(self.directory / LOCK_FILE, os.O_RDWR | os.O_CREAT)
         try:
@@ -773,7 +796,16 @@ class MemoryStore:
         self._cache = None
 
     def _load(self):
-        data = _read_bytes(self.path)
+        try:
+            data = _read_bytes(self.path)
+        except FileNotFoundError:
+            if not self._read_only:
+                raise
+            try:
+                legacy = _read_bytes(self.directory / LEGACY_STATE_FILE)
+            except FileNotFoundError:
+                raise MissingMemory("No private memory recorded here") from None
+            return _bind(_from_v1(load_json(legacy)), self.project)
         digest = hashlib.sha256(data).hexdigest()
         if self._cache is None or self._cache[0] != digest:
             state = _parse(data)
@@ -807,14 +839,17 @@ class MemoryStore:
                       key=lambda item: item[1]["seq"])
 
     def _view(self, project, use):
-        """Read under the lock: `use(state, rows)` gets only this project's rows, in insertion order."""
+        """Give `use(state, rows)` only this project's snapshot rows, in insertion order."""
         self._check(project)
-        with self._locked():
-            state = self._load()
+        state = self.snapshot()
         self._check(project, state)
         return use(state, self._rows(state, project))
 
     def snapshot(self):
+        if self._read_only:
+            # Writers atomically replace the journal. A reader sees one complete
+            # revision without creating a lock or persisting a legacy migration.
+            return self._load()
         with self._locked():
             return self._load()
 
@@ -1564,6 +1599,7 @@ class MemoryStore:
 
     def checkpoint(self, destination):
         """Write a new SHA-256 sealed checkpoint file into a private directory outside Git."""
+        self._require_write()
         destination = pathlib.Path(destination).absolute()
         _safe_directory(destination.parent)
         if destination.exists() or destination.is_symlink():
@@ -1577,6 +1613,7 @@ class MemoryStore:
 
     def restore(self, checkpoint, expected_sha256=None):
         """Restore into an empty store; tampered, unexpected or foreign-project checkpoints are refused."""
+        self._require_write()
         checkpoint = pathlib.Path(checkpoint).absolute()
         _safe_directory(checkpoint.parent)
         data = _read_bytes(checkpoint)

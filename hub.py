@@ -1,8 +1,14 @@
+import sys
+
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
 import argparse
 import json
+import os
 import pathlib
 import re
-import sys
+import stat
 
 import hublink
 from engineering_os import control, gaie_inventory, gaie_router
@@ -297,6 +303,38 @@ def invoke_command(args):
         sys.exit(1)
 
 
+def workspace_run(args):
+    """Launch one local work unit using the operator's private assignment file."""
+    from engineering_os import governor, workspace_policy
+
+    try:
+        path = pathlib.Path(args.assignments).absolute()
+        if path != path.resolve() or any((parent / ".git").exists() for parent in path.parents):
+            raise ValueError("The assignment file must be outside Git at a canonical path.")
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                    or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077):
+                raise ValueError("The assignment file must be private and owned by the operator.")
+            data = handle.read(64 * 1024 + 1)
+        if len(data) > 64 * 1024:
+            raise ValueError("The assignment file exceeds its size limit.")
+        assignments = json.loads(data.decode("utf-8"), object_pairs_hook=_no_duplicates)
+        command = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+        if not command:
+            raise ValueError("An explicit child command is required.")
+        result = workspace_policy.WorkspaceSupervisor(assignments).run(args.agent, command, timeout=args.timeout)
+    except governor.GovernorDenied as error:
+        print(json.dumps({"status": "denied", "reason": error.reason}))
+        sys.exit(3)
+    except (OSError, ValueError, TypeError) as error:
+        print(json.dumps({"status": "denied", "reason": str(error)}))
+        sys.exit(3)
+    print(json.dumps(result))
+    sys.exit(0 if result["returncode"] == 0 else 1)
+
+
 def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="cmd", required=True)
@@ -341,6 +379,11 @@ def main():
     route_parser = commands.add_parser("route")
     route_parser.add_argument("text")
     route_parser.add_argument("--workspace")
+    workspace_parser = commands.add_parser("workspace-run", help="Run a local command in an assigned isolated workspace")
+    workspace_parser.add_argument("--assignments", required=True, help="Operator-owned private assignment JSON file")
+    workspace_parser.add_argument("--agent", required=True, help="Agent identity selected by the trusted operator")
+    workspace_parser.add_argument("--timeout", required=True, type=float)
+    workspace_parser.add_argument("argv", nargs=argparse.REMAINDER)
     inventory_parser = commands.add_parser("inventory")
     inventory_parser.add_argument("target")
     projects_parser = commands.add_parser("projects")
@@ -417,6 +460,8 @@ def main():
         if result["status"] != "routed":
             print(json.dumps(result, indent=2, ensure_ascii=False))
             sys.exit(2)
+    elif args.cmd == "workspace-run":
+        workspace_run(args)
     elif args.cmd == "inventory":
         result = gaie_inventory.inventory(args.target)
     elif args.cmd == "engines":

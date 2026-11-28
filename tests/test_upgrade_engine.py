@@ -545,6 +545,79 @@ class MigrationGuard(unittest.TestCase):
             self.assertEqual(engine.data_preserved(before, db)[0], ["table tasks: row checksum changed"])
 
 
+class RegisteredProjectScope(unittest.TestCase):
+    """A command that names a registered project runs only on that project's verified isolated worktree."""
+
+    SADEED = "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar.git"
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix="gaie-upgrade-scope-")
+        self.addCleanup(temporary.cleanup)
+        self.base = pathlib.Path(temporary.name).resolve()
+        self.environ = {"GAIE_HOME": str(self.base / "gaie-home")}
+
+    def linked(self, name, origin):
+        checkout, worktree = self.base / f"{name}-canonical", self.base / f"{name}-worktree"
+        checkout.mkdir(mode=0o700)
+
+        def git(*args):
+            subprocess.run(["git", "-C", str(checkout), *args], check=True, capture_output=True)
+
+        git("init", "-q", "-b", "main")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-qm", "base")
+        git("remote", "add", "origin", origin)
+        git("update-ref", "refs/remotes/origin/main", "HEAD")
+        git("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+        git("worktree", "add", "-qb", f"codex/gaie-upgrade-{name}", str(worktree))
+        worktree.chmod(0o700)
+        return checkout, worktree
+
+    def route(self, command, workspace):
+        return engine.route_command(command, environ=self.environ, workspace=workspace)
+
+    def test_upgrade_and_audit_accept_only_the_verified_worktree_of_the_named_project(self):
+        checkout, worktree = self.linked("sadeed", self.SADEED)
+        _, foreign = self.linked("other", "https://github.com/example/another-project.git")
+        for command, mode in (("Upgrade Sadeed", "upgrade"), ("طور سديد", "upgrade"), ("Audit Sadeed", "audit"), ("افحص سديد", "audit")):
+            with self.subTest(command=command):
+                route = self.route(command, worktree)
+                self.assertEqual((route["mode"], route["project"], route["target_resolution"]),
+                                 (mode, "biz-pulse-ar", "registered-project"))
+                for unverified in (checkout, foreign, ROOT, FIXTURE):
+                    with self.subTest(workspace=unverified.name), self.assertRaises(UpgradeError) as caught:
+                        self.route(command, unverified)
+                    self.assertIn("not its verified isolated checkout", str(caught.exception))
+
+    def test_a_dirty_worktree_is_refused_for_an_upgrade_and_readable_for_an_audit(self):
+        _, worktree = self.linked("sadeed", self.SADEED)
+        (worktree / "untracked.txt").write_text("local edit\n", encoding="utf-8")
+        with self.assertRaises(UpgradeError) as caught:
+            self.route("Upgrade Sadeed", worktree)
+        self.assertIn("clean dedicated worktree", str(caught.exception))
+        self.assertEqual(self.route("Audit Sadeed", worktree)["mode"], "audit")
+
+    def test_several_named_projects_are_refused_for_one_target(self):
+        _, worktree = self.linked("sadeed", self.SADEED)
+        for command in ("Upgrade Sadeed and Wow Bus", "Audit Sadeed and Wow Bus"):
+            with self.subTest(command=command), self.assertRaises(UpgradeError) as caught:
+                self.route(command, worktree)
+            self.assertIn("One explicit target per run", str(caught.exception))
+
+    def test_questions_and_read_only_wording_never_start_an_upgrade(self):
+        _, worktree = self.linked("sadeed", self.SADEED)
+        for command in ("Can you upgrade Sadeed?", "هل يمكن تطوير سديد؟", "Upgrade Sadeed, read-only", "طور سديد بدون تعديل",
+                        "Upgrade the task management system without changes"):
+            with self.subTest(command=command), self.assertRaises(UpgradeError) as caught:
+                self.route(command, worktree)
+            self.assertIn("Command not routable", str(caught.exception))
+        with tempfile.TemporaryDirectory() as scratch:
+            workdir = pathlib.Path(scratch) / "never"
+            with self.assertRaises(UpgradeError):
+                upgrade(FIXTURE, command="Can you upgrade the task management system?", workdir=workdir, now=NOW,
+                        environ=self.environ)
+            self.assertFalse(workdir.exists())
+
+
 class Units(unittest.TestCase):
     def test_route_command_maps_intents_to_areas(self):
         environ = {"GAIE_HOME": tempfile.gettempdir() + "/gaie-upgrade-unit-home"}

@@ -60,9 +60,16 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
 
 1. **ROUTE** (before anything is created) — `route_command`: `release`/deploy (also inside a
    multi-operation command), `build`, the `cinematic` media scope, all-projects runs,
-   production words (`production`, «الإنتاج»), unroutable or ambiguous commands are refused. A
-   command that names a registered project must be run on that project's checkout
-   (`workspace_matches`); otherwise the target is an explicit local path. Policy refusals:
+   production words (`production`, «الإنتاج»), unroutable or ambiguous commands are refused,
+   and so are questions and commands that mix an operation with read-only or no-change
+   wording (the router returns a clarification without an intent). A command that names one
+   registered project must be run on that project's verified isolated worktree: for an
+   upgrade the router's `workspace_matches` (a clean, private linked worktree of the
+   registered repository on a `codex/` or `claude/` branch), for an audit the same
+   `workspace_policy.validate_workspace` identity check without the cleanliness rule. Several
+   named projects are refused for one target. Otherwise the target is an explicit local
+   path. The route is a plan and never a write grant; the engine writes only under the
+   caller's `workdir`. Policy refusals:
    `network`, `deploy`, any `environment` other than `isolated-copy`, unknown fields.
    `workdir` must be outside the target and outside every Git repository. A requested change
    that `diff_specs` marks breaking is refused here.

@@ -37,7 +37,7 @@ import tempfile
 import time
 import urllib.parse
 
-from . import detectors, economics, gaie_inventory, gaie_router, healing, reasoning, requirements
+from . import detectors, economics, gaie_inventory, gaie_router, healing, reasoning, requirements, workspace_policy
 from .memory import MemoryError as _MemoryError, MemoryStore
 from .orchestration import SLUG, CoordinationError, canonical, sha
 
@@ -153,6 +153,26 @@ def _policy(policy):
     return merged
 
 
+def _verified_checkout(plan, workspace):
+    """True when ``workspace`` is the verified isolated checkout of the one registered project a routed plan names.
+
+    The router validates the workspace of a writing intent itself (``workspace_matches``: a clean, private linked
+    worktree of the registered repository on an isolated branch). An audit plan carries no workspace verdict, so
+    the same read-only validator confirms the checkout's identity here; a dirty tree is acceptable to a reader.
+    """
+    targets = plan.get("targets") or []
+    if len(targets) != 1:
+        return False
+    if plan.get("intent") != "audit":
+        return targets[0].get("workspace_matches") is True
+    try:
+        workspace_policy.validate_workspace(workspace, intent="upgrade", expected_repository=targets[0].get("repository"),
+                                            registered_path=targets[0].get("path"), require_clean=False)
+    except workspace_policy.WorkspacePolicyError:
+        return False
+    return True
+
+
 def route_command(command, *, environ=None, workspace=None):
     """Classify an owner command with the master router; refuse what the upgrade engine must never do.
 
@@ -166,7 +186,9 @@ def route_command(command, *, environ=None, workspace=None):
           "Production target refused: the upgrade engine works only on an isolated copy and never touches production")
     try:
         plan = gaie_router.route(command, environ=environ, workspace_path=workspace)
-        verbs, prohibited, focus, everything, _negated = gaie_router.classify(command, gaie_router.policy())
+        # classify() also returns the negation flags. route() consumes them: no-change or read-only wording next to
+        # a mutation verb comes back as a clarification without an intent, refused below as not routable.
+        verbs, prohibited, focus, everything = gaie_router.classify(command, gaie_router.policy())[:4]
     except (gaie_router.RouteError, OSError, ValueError) as error:
         raise UpgradeError(f"Router refused the command: {error}") from None
     intent, reason = plan.get("intent"), plan.get("reason", "")
@@ -178,9 +200,11 @@ def route_command(command, *, environ=None, workspace=None):
     _need(not everything, "One explicit target per run: an all-projects upgrade is refused")
     if plan["status"] == "routed":
         project, resolution = plan.get("project"), "registered-project"
-        if workspace is not None and project is not None:
-            matches = [t.get("workspace_matches") for t in plan.get("targets", [])]
-            _need(matches and all(matches), f"The command names the registered project {project!r}, but the target is not its checkout")
+        if workspace is not None:
+            _need(project is not None, "One explicit target per run: the command names several registered projects")
+            _need(_verified_checkout(plan, workspace),
+                  f"The command names the registered project {project!r}, but the target is not its verified isolated checkout"
+                  + "".join(f" ({blocker})" for blocker in plan.get("blockers") or []))
         focus = plan.get("focus", [])
     else:
         _need("known_projects" in plan, f"Command needs clarification: {reason}")

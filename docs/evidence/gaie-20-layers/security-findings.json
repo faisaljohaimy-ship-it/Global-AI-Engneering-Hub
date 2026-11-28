@@ -25,7 +25,7 @@
       "title": "Control plane did not enforce secrets:none: a credential-shaped payload reached the engine"
     },
     {
-      "control": "fstat after O_NOFOLLOW open: regular, caller-owned, one link, no group/other bits; state dir not writable by others; verify_audit opens with O_NOFOLLOW",
+      "control": "O_NOFOLLOW open relative to the directory descriptor of a caller-owned mode 0700 state dir, then fstat: regular, caller-owned, one link, no group/other bits (rechecked under the lock); verify_audit opens the same way",
       "evidence": "tests/test_security_enterprise.py::AuditLogTests",
       "id": "SEC-03",
       "kind": "registered",
@@ -91,15 +91,15 @@
       "title": "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository"
     },
     {
-      "control": "`git remote get-url` refreshes no index and runs no hook or filter; GIT_* variables are stripped",
-      "evidence": "probe_router_workspace",
+      "control": "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope refuses configs with includes, URL rewrites, filters or core.hooksPath",
+      "evidence": "tests/test_security_enterprise.py::WorkspaceGitTests",
       "id": "SEC-09",
       "kind": "registered",
-      "location": "engineering_os/gaie_router.py:workspace",
+      "location": "engineering_os/workspace_policy.py:_git",
       "rule": "git-untrusted-checkout",
       "severity": "low",
-      "status": "accepted",
-      "title": "Router workspace probe runs git in a workspace without the hardening flags"
+      "status": "fixed",
+      "title": "Router workspace probe ran git in a workspace without the hardening flags"
     },
     {
       "control": "O_NOFOLLOW, 0600 on create, 0700 directories; fix: reuse orchestration._open_private (owner: memory)",
@@ -169,10 +169,10 @@
     },
     {
       "function": "security_governor",
-      "id": "authority-from-payload:engineering_os/adapters.py:781",
+      "id": "authority-from-payload:engineering_os/adapters.py:782",
       "justification": "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
       "kind": "static",
-      "location": "engineering_os/adapters.py:781",
+      "location": "engineering_os/adapters.py:782",
       "rule": "authority-from-payload",
       "severity": "high",
       "status": "accepted",
@@ -180,10 +180,10 @@
     },
     {
       "function": "security_governor",
-      "id": "authority-from-payload:engineering_os/adapters.py:796",
+      "id": "authority-from-payload:engineering_os/adapters.py:797",
       "justification": "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
       "kind": "static",
-      "location": "engineering_os/adapters.py:796",
+      "location": "engineering_os/adapters.py:797",
       "rule": "authority-from-payload",
       "severity": "high",
       "status": "accepted",
@@ -212,11 +212,21 @@
       "title": "a Git helper takes its subcommand from the caller and is not hardened"
     },
     {
+      "function": "_write_files",
+      "id": "private-mode:engineering_os/build_engine.py:1425",
+      "kind": "static",
+      "location": "engineering_os/build_engine.py:1425",
+      "rule": "private-mode",
+      "severity": "medium",
+      "status": "open",
+      "title": "engine state created with mode 0o755 (group/other bits set)"
+    },
+    {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:693",
+      "id": "private-mode:engineering_os/governor.py:819",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:693",
+      "location": "engineering_os/governor.py:819",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -224,10 +234,10 @@
     },
     {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:711",
+      "id": "private-mode:engineering_os/governor.py:837",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:711",
+      "location": "engineering_os/governor.py:837",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -250,14 +260,14 @@
       "high": 4,
       "info": 3,
       "low": 7,
-      "medium": 7
+      "medium": 8
     },
     "by_status": {
-      "accepted": 7,
-      "fixed": 6,
+      "accepted": 6,
+      "fixed": 7,
       "held": 3,
       "mitigated": 1,
-      "open": 4
+      "open": 5
     },
     "open_critical_or_high": []
   },
