@@ -57,6 +57,10 @@ MAX_SPEC_BYTES = 512 * 1024
 MAX_TEXT = 10000
 MAX_BODY_BYTES = 64 * 1024
 PBKDF2_ITERATIONS = 600000
+# Sign-in limit the template implements and tests.test_api.ApiTests.test_login_lockout proves:
+# (failures, minutes) for one e-mail from one client address in any sliding window
+# (templates/app-stdlib/app/auth.py LOCKOUT_FAILURES, LOCKOUT_SECONDS; the test's STATED_SIGNIN_LIMIT).
+SIGNIN_LIMIT = (5, 15)
 MISSING_ID = 999999999
 SLUG = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 IDENT = re.compile(r"[a-z][a-z0-9_]{0,62}")
@@ -855,12 +859,13 @@ def _nfr_rules(model, locales):
         (r"no secrets in (?:the )?(?:repo|repository)", ["static:security:secrets"], None),
         (r"parameteri[sz]ed sql(?: only)?", [API_ID + "test_sql_injection_is_inert"], None),
         (r"input validation(?: on every write endpoint)?", ["@validation"], None),
-        (r"role check on every endpoint", [API_ID + "test_role_check_on_every_endpoint",
+        (r"role check on every endpoint", ["@roles", API_ID + "test_role_check_on_every_endpoint",
                                            API_ID + "test_unauthenticated_requests_refused"], None),
         (r"csrf token on cookie sessions", [API_ID + "test_csrf_token_required", API_ID + "test_cross_origin_write_refused",
                                             API_ID + "test_login_logout_cycle"], None),
         (r"passwords stored as salted pbkdf2-sha256 hashes", [API_ID + "test_passwords_are_salted_pbkdf2"], None),
-        (r"rate limit on sign-in \(5 failures per 15 minutes\)", [API_ID + "test_login_lockout"], None),
+        (r"rate limit on sign-in \((?P<failures>\d{1,4}) failures per (?P<minutes>\d{1,4}) minutes\)",
+         [API_ID + "test_login_lockout"], lambda m: (int(m["failures"]), int(m["minutes"])) == SIGNIN_LIMIT),
         (r"p95 api latency < (?P<ms>\d{1,5}) ms locally(?: with (?P<records>[\d,]{1,9}) records)?",
          [API_ID + "test_list_latency_budget"],
          lambda m: int(m["ms"]) == numbers["p95_ms"]
@@ -899,11 +904,21 @@ def map_statement(model, locales, text):
         found = pattern.fullmatch(statement)
         if found and (check is None or check(found)):
             evidence.update(ids)
-    if "@validation" in evidence:
+    links = [f"{API_ID}test_links_{entity['table']}_{link['segment'].replace('-', '_')}"
+             for entity in model["entities"] for link in entity["links"]]
+    if "@validation" in evidence:  # POST, PUT and PATCH per entity (test_validation_<table>) and link bodies
         evidence.discard("@validation")
+        evidence.update(links)
         for entity in model["entities"]:
             evidence.add(f"{API_ID}test_validation_{entity['table']}")
             evidence.update(f"{VALIDATION_ID}test_{check}_{entity['table']}" for check in ("required", "types", "max_length"))
+    if "@roles" in evidence:  # collection and item routes (PUT/PATCH/DELETE ownership) plus every sub-resource
+        evidence.discard("@roles")
+        evidence.update(links)
+        evidence.update(f"{API_ID}test_children_{entity['table']}_{child['collection'].replace('-', '_')}"
+                        for entity in model["entities"] for child in entity["children"])
+        if model["rules"]["progress"]:
+            evidence.add(API_ID + "test_progress_uses_one_aggregate_query")
     return sorted(evidence)
 
 

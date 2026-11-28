@@ -824,12 +824,28 @@ def _analyse(text, index, control):
 # "without english", «بدون الإنجليزية», "remove the user role", «احذف دور المستخدم»), and the
 # filler words allowed between the remove/negation word and that name. Matched on router-normalized
 # tokens with the same clitic/plural variants as the lexicon.
-_LANGUAGE_NAMES = {"ar": ("arabic", "عربي", "عربية", "العربية"),
-                   "en": ("english", "إنجليزي", "إنجليزية", "الإنجليزية", "انجليزي", "انجليزية", "إنكليزي", "إنكليزية")}
+_LANGUAGE_NAMES = {"ar": ("arabic", "ar", "عربي", "عربية", "العربية"),
+                   "en": ("english", "en", "إنجليزي", "إنجليزية", "الإنجليزية", "انجليزي", "انجليزية", "إنكليزي",
+                          "إنكليزية")}
 _ROLE_WORDS = ("role", "roles", "دور", "أدوار", "الدور", "الأدوار")
 _REMOVAL_FILLERS = ("the", "a", "an", "any", "both", "and", "or", "nor", "in", "use", "using", "language", "languages",
                     "locale", "locales", "interface", "ui", "version", "support", "translation", "translations", "اللغة",
                     "لغة", "اللغتين", "واجهة", "الواجهة", "النسخة", "نسخة", "دعم", "ترجمة")
+# Remove and negation wordings the shared lexicon's control words do not list ("stop supporting
+# english", «وإزالة اللغة الإنجليزية», «من غير الإنجليزية»); used only to find locale and role removals.
+_EXTRA_SIGNALS = {"remove": ("stop supporting", "stop", "discontinue", "eliminate", "get rid of", "إزالة", "حذف", "إلغاء",
+                             "أوقف", "إيقاف", "امسح"),
+                  "negations": ("من غير", "بغير", "مش")}
+# Words allowed only between the remove/negation word and the name ("we dont need english",
+# «لا نريد اللغة العربية», «لا حاجة للإنجليزية», "no longer support english").
+_LEAD_WORDS = ("we", "i", "you", "do", "does", "need", "needs", "want", "wants", "require", "requires", "longer", "for",
+               "of", "to", "supporting", "offering", "providing", "نريد", "أريد", "نحتاج", "أحتاج", "يحتاج", "تحتاج",
+               "نبغى", "حاجة", "إلى", "عن", "توفير")
+# "<name> is not needed" / «الإنجليزية غير مطلوبة»: a name, then (copula) negator need-word, ends its clause.
+_COPULA = ("is", "are", "be", "isnt", "arent")
+_POST_NEGATORS = ("not", "no", "غير", "ليست", "ليس")
+_NOT_NEEDED = ("needed", "required", "wanted", "necessary", "supported", "مطلوب", "مطلوبة", "ضروري", "ضرورية", "لازم",
+               "لازمة", "مدعوم", "مدعومة")
 
 
 def _normalized(words):
@@ -839,6 +855,13 @@ def _normalized(words):
 _LANGUAGE_TOKENS = {key: _normalized(words) for key, words in _LANGUAGE_NAMES.items()}
 _ROLE_TOKENS = _normalized(_ROLE_WORDS)
 _FILLER_TOKENS = _normalized(_REMOVAL_FILLERS)
+_LEAD_TOKENS = _normalized(_LEAD_WORDS)
+_COPULA_TOKENS, _POST_NEGATOR_TOKENS, _NOT_NEEDED_TOKENS = (_normalized(_COPULA), _normalized(_POST_NEGATORS),
+                                                            _normalized(_NOT_NEEDED))
+_EXTRA_INDEX = {}
+for _order, (_cat, _phrase) in enumerate((cat, tuple(_words(word))) for cat, words in _EXTRA_SIGNALS.items()
+                                          for word in words):
+    _EXTRA_INDEX.setdefault(_phrase[0], []).append({"cat": _cat, "phrase": _phrase, "order": _order})
 
 
 # --------------------------------------------------------------------------- builder
@@ -867,6 +890,8 @@ _Q = {
                      "The command negates the role '{name}' of an existing system: remove it or keep it?"),
     "role_needed": ("الدور «{name}» لا يُحذف: هو الدور الوحيد أو دور الصلاحيات الكاملة (*) الوحيد. أكّد إبقاءه.",
                     "The role '{name}' cannot be removed: it is the only role or the only full-permission (*) role. Confirm keeping it."),
+    "role_or_entity": ("«{name}» اسم دور واسم كيان معًا: هل يقصد الأمر الدور (role) أم الكيان وسجلاته (entity)؟",
+                       "'{name}' names both a role and an entity: does the command mean the role or the entity and its records?"),
 }
 _A = {
     "domain-pack": ("طُبّقت حزمة المجال «{name}» الإصدار {version} بكياناتها الافتراضية: {entities}.",
@@ -1339,17 +1364,22 @@ class _Builder:
             self.note("removed" if change else "excluded", "role-" + key, name=key)
 
     def removal_requests(self, spec, sentences):
-        """Locales and roles that a removal ("remove the Arabic locale") or a negation ("without english")
-        names directly; also the (sentence, position) of each role name, which then names no entity.
+        """Locales and roles that a removal ("remove the Arabic locale", «وإزالة اللغة الإنجليزية") or a
+        negation ("without english", «لا نريد اللغة العربية», "english is not needed") names directly;
+        also the (sentence, position) of each role name, which then names no entity.
 
-        A name counts only when it follows the remove/negation word in the same clause with nothing but
-        filler words in between (a remove word only at a command position, as in _analyse) and ends the
-        clause or is followed by a filler, a role word or another name ("no arabic title" names a field,
-        not the locale). A role name needs the word role/دور next to it unless it is a lexicon role keyword.
+        A name counts when it follows the remove/negation word in the same clause with nothing but filler
+        (or, before it, want/need) words in between (a remove word only at a command position, as in
+        _analyse) and ends the clause or is followed by a filler, a role word or another name ("no arabic
+        title" names a field, not the locale); or when it opens its clause (or follows a coordinator) and
+        only "is not needed" / «غير مطلوبة» follows. A role name next to the word role/دور is the role (also by the first word
+        of a longer label: «دور العضو»). Without that word, a role name that an entity name covers
+        entirely (the member role and the Member entity) is ambiguous: an open question role_or_entity
+        decides, and until it is answered neither the role nor the entity changes.
         """
         removals, role_words = {"locale": [], "role": []}, set()
         lexicon_roles = {row["id"]: row for row in self.lexicon["roles"]}
-        phrases = []
+        phrases, heads = [], {}
         for role in spec["roles"]:
             words = [role["id"].replace("-", " ").replace("_", " ")]
             if isinstance(role.get("label"), dict):
@@ -1360,48 +1390,105 @@ class _Builder:
                 phrase = tuple(_words(word))
                 if phrase:
                     phrases.append((phrase, role["id"], word in [w for lang in LOCALES for w in keywords.get(lang, [])]))
+                    heads.setdefault(phrase[0], set()).add(role["id"])
         phrases.sort(key=lambda row: -len(row[0]))
         for index, sentence in enumerate(sentences):
             words = sentence["raw"]
             variants = [_variants(word) for word in words]
-            signals = [h for h in sentence["hits"] if h["cat"] in ("signal:remove", "signal:negations", "signal:coordinators")]
+            entities = [(h["pos"], h["end"], h["key"][1]) for h in sentence["hits"] if h["cat"] == "entity"]
+            signals = [(h["pos"], h["end"], h["key"]) for h in sentence["hits"]
+                       if h["cat"] in ("signal:remove", "signal:negations", "signal:coordinators")]
             for start, end in sentence.get("clauses", []):
-                coordinators = {h["pos"] for h in signals if h["key"] == "coordinators" and start <= h["pos"] < end}
-                for signal in (h for h in signals if h["key"] in ("remove", "negations") and start <= h["pos"] < end):
-                    s = signal["pos"]
-                    if signal["key"] == "remove" and not (s == start or (s - 1) in coordinators or words[s][:1] in "وف"):
+                signals += [(start + k, start + k + n, row["cat"]) for k, n, row in _scan(words[start:end], _EXTRA_INDEX)]
+
+            def free(k, end):  # the name ending before k modifies nothing after it
+                return k >= end or bool(variants[k] & (_FILLER_TOKENS | _ROLE_TOKENS)) or any(
+                    variants[k] & tokens for tokens in _LANGUAGE_TOKENS.values())
+
+            def role_at(q, end, role_word):
+                """(role id, end, lexicon keyword?) of the role named at q: a whole id/label/keyword phrase or,
+                after a role word, the first word of exactly one role's phrase."""
+                match = next((row for row in phrases if q + len(row[0]) <= end
+                              and all(row[0][k] in variants[q + k] for k in range(len(row[0])))), None)
+                if match is not None:
+                    return match[1], q + len(match[0]), match[2]
+                owners = set().union(*(heads.get(variant, set()) for variant in variants[q]))
+                if role_word and len(owners) == 1:
+                    return next(iter(owners)), q + 1, False
+                return None
+
+            def take_role(q, after, key, explicit, how):
+                covered = any(s <= q and e >= after for s, e, _ in entities)
+                if covered and not explicit:
+                    text = " ".join(words[q:after])
+                    answer = self.ask("role_or_entity", ["role", "entity"], text, key)
+                    if answer == "entity":
+                        return
+                    role_words.update((index, k) for k in range(q, after))
+                    if answer != "role":
+                        return
+                else:
+                    role_words.update((index, k) for k in range(q, after))
+                removals["role"].append((key, how))
+
+            for start, end in sentence.get("clauses", []):
+                coordinators = {s for s, e, cat in signals if cat == "coordinators" and start <= s < end}
+                for s, signal_end, cat in sorted({row for row in signals if row[2] in ("remove", "negations")
+                                                  and start <= row[0] < end}):
+                    if cat == "remove" and not (s == start or (s - 1) in coordinators or words[s][:1] in "وف"):
                         continue
-                    how = "remove" if signal["key"] == "remove" else "negated"
-                    q, role_word = signal["end"], False
-
-                    def free(k):  # the name ending before k modifies nothing after it
-                        return k >= end or bool(variants[k] & (_FILLER_TOKENS | _ROLE_TOKENS)) or any(
-                            variants[k] & tokens for tokens in _LANGUAGE_TOKENS.values())
-
+                    how = "remove" if cat == "remove" else "negated"
+                    q, role_word, named = signal_end, False, False
                     while q < end:
                         if variants[q] & _ROLE_TOKENS:
                             role_word, q = True, q + 1
                             continue
                         language = next((key for key, tokens in _LANGUAGE_TOKENS.items() if variants[q] & tokens), None)
                         if language is not None:
-                            if not free(q + 1):
+                            if not free(q + 1, end):
                                 break
                             removals["locale"].append((language, how))
-                            q += 1
+                            q, named = q + 1, True
                             continue
-                        match = next((row for row in phrases if q + len(row[0]) <= end
-                                      and all(row[0][k] in variants[q + k] for k in range(len(row[0])))), None)
-                        if match is not None:
-                            after = q + len(match[0])
-                            if (role_word or match[2] or (after < end and variants[after] & _ROLE_TOKENS)) and free(after):
-                                removals["role"].append((match[1], how))
-                                role_words.update((index, k) for k in range(q, after))
-                            q = after
+                        found = role_at(q, end, role_word)
+                        if found is not None:
+                            key, after, keyword = found
+                            explicit = role_word or (after < end and bool(variants[after] & _ROLE_TOKENS))
+                            if (explicit or keyword or not named) and free(after, end):
+                                take_role(q, after, key, explicit, how)
+                            q, named = after, True
                             continue
-                        if variants[q] & _FILLER_TOKENS:
+                        if variants[q] & _FILLER_TOKENS or (not named and variants[q] & _LEAD_TOKENS):
                             q += 1
                             continue
                         break
+                # "<name> is not needed": the name opens the clause or follows a coordinator ("and english",
+                # «والإنجليزية»), then only fillers, a copula, a negator and a need-word end the clause
+                subjects = {start} | {c + 1 for c in coordinators} | {k for k in range(start, end) if words[k][:1] in "وف"}
+                for q in sorted(subjects):
+                    while q < end and q not in coordinators and variants[q] & _FILLER_TOKENS:
+                        q += 1
+                    if q >= end:
+                        continue
+                    language = next((key for key, tokens in _LANGUAGE_TOKENS.items() if variants[q] & tokens), None)
+                    found = None if language is not None else role_at(q, end, False)
+                    after = q + 1 if language is not None else (found[1] if found else None)
+                    if after is None:
+                        continue
+                    k, role_word = after, False
+                    while k < end and variants[k] & (_FILLER_TOKENS | _ROLE_TOKENS):
+                        role_word = role_word or bool(variants[k] & _ROLE_TOKENS)
+                        k += 1
+                    if k < end and variants[k] & _COPULA_TOKENS:
+                        k += 1
+                    if not (k < end and variants[k] & _POST_NEGATOR_TOKENS):
+                        continue
+                    k += 2 if k + 1 < end and "longer" in variants[k + 1] else 1  # "not needed", "no longer needed"
+                    if k + 1 == end and variants[k] & _NOT_NEEDED_TOKENS:
+                        if language is not None:
+                            removals["locale"].append((language, "negated"))
+                        else:
+                            take_role(q, after, found[0], role_word, "negated")
         for key in removals:
             seen, unique = set(), []
             for item in removals[key]:
@@ -1621,8 +1708,8 @@ class _Builder:
         for qid in unused:  # refine(): an earlier answer made this question moot (e.g. intent=change)
             self.note("answer-moot", qid, name=f"{qid}={self.answers.pop(qid)}")
         order = ["intent", "base", "domain", "product_type", "database", "field_entity", "remove_field", "feature_entity",
-                 "relation", "ai_use_case", "ai_provider", "integration", "locale_removal", "locale_needed", "role_removal",
-                 "role_needed"]
+                 "relation", "ai_use_case", "ai_provider", "integration", "locale_removal", "locale_needed", "role_or_entity",
+                 "role_removal", "role_needed"]
         questions = sorted(self.questions.values(), key=lambda q: (order.index(q["id"].split(":")[0]), q["id"]))
         source = {"command": self.text, "language": self.language, "sha256": _text_sha(self.text),
                   "answers": {k: self.answers[k] for k in sorted(self.answers)}, "knowledge_sha256": self.knowledge["sha256"]}

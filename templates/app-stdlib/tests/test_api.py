@@ -12,6 +12,9 @@ from app import db, model, seed as seeding
 
 LIMITS = SCHEMA.limits
 METHOD_NEED = (("GET", "read"), ("POST", "write"), ("DELETE", "delete"))
+# "rate limit on sign-in (5 failures per 15 minutes)": the numbers test_login_lockout proves
+# (the build engine maps that statement to the test only with these numbers)
+STATED_SIGNIN_LIMIT = (5, 15 * 60)
 
 
 class ApiTests(unittest.TestCase):
@@ -105,6 +108,35 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(status, 400, field["name"])
             self.assertIn(field["name"], error["error"]["fields"])
         self.assertEqual(self.call("GET", self.path(entity) + "?limit=1")[2]["total"], before)
+        self._validation_on_update(entity, required)
+
+    def _validation_on_update(self, entity, required):
+        """PUT (full body) and PATCH (merged over the stored record) validate exactly like POST and
+        change nothing when they are refused."""
+        record = self.server.create(entity, 1, self.parents(entity))
+        path = self.path(entity, record["id"])
+        refs = {ref["field"]: record[ref["field"]] for ref in entity.references}
+        for method in ("PUT", "PATCH"):
+            status, _, error = self.call(method, path, {"__unknown__": "x", "id": 5, "created_by": 1})
+            self.assertEqual((status, error["error"]["code"]), (400, "validation_failed"), method)
+            self.assertEqual({key: error["error"]["fields"].get(key) for key in ("__unknown__", "id", "created_by")},
+                             {"__unknown__": "unknown_field", "id": "read_only", "created_by": "read_only"}, method)
+            for name in required:
+                self.assertEqual(error["error"]["fields"].get(name), "required" if method == "PUT" else None, (method, name))
+            for field in entity.fields:
+                bad = [] if field["type"] != "text" else "x" * (field.get("max", LIMITS["max_text"]) + 1)
+                body = {**sample(entity, 2, refs), field["name"]: bad} if method == "PUT" else {field["name"]: bad}
+                status, _, error = self.call(method, path, body)
+                self.assertEqual((status, error["error"]["code"]), (400, "validation_failed"), (method, field["name"]))
+                self.assertIn(field["name"], error["error"]["fields"], method)
+                if field.get("required"):
+                    status, _, error = self.call(method, path, {**body, field["name"]: None})
+                    self.assertEqual((status, error["error"]["fields"].get(field["name"])), (400, "required"),
+                                     (method, field["name"]))
+            for ref in entity.references:
+                status, _, error = self.call("PATCH", path, {ref["field"]: "1"})
+                self.assertEqual((status, error["error"]["fields"].get(ref["field"])), (400, "type"), ref["field"])
+        self.assertEqual(self.call("GET", path)[2], record, "a refused update changes nothing")
 
     def _not_found(self, entity):
         for path in (self.path(entity, 999999999), self.path(entity) + "/0", self.path(entity) + "/abc",
@@ -311,11 +343,20 @@ class ApiTests(unittest.TestCase):
 
     def test_unauthenticated_requests_refused(self):
         entity = SCHEMA.entities[0]
-        for method, path in (("GET", "/api/schema"), ("GET", self.path(entity)), ("POST", self.path(entity)),
-                             ("GET", self.path(entity, 1)), ("PATCH", self.path(entity, 1)),
-                             ("DELETE", self.path(entity, 1)), ("GET", "/api/session"), ("POST", "/api/logout"),
-                             ("GET", "/api/does-not-exist")):
-            status, _, body = self.call(method, path, {} if method in ("POST", "PATCH") else None, role=None)
+        routes = [("GET", "/api/schema"), ("GET", self.path(entity)), ("POST", self.path(entity)),
+                  ("GET", self.path(entity, 1)), ("PUT", self.path(entity, 1)), ("PATCH", self.path(entity, 1)),
+                  ("DELETE", self.path(entity, 1)), ("GET", "/api/session"), ("POST", "/api/logout"),
+                  ("GET", "/api/does-not-exist")]
+        for parent in SCHEMA.entities:
+            item = self.path(parent, 1)
+            for link in parent.links:
+                routes += [("GET", f"{item}/{link['segment']}"), ("POST", f"{item}/{link['segment']}"),
+                           ("DELETE", f"{item}/{link['segment']}/1")]
+            routes += [("GET", f"{item}/{child['collection']}") for child in parent.children]
+            if any(rule["parent"] == parent.name for rule in SCHEMA.rules.get("progress", [])):
+                routes.append(("GET", f"{item}/progress"))
+        for method, path in routes:
+            status, _, body = self.call(method, path, {} if method in ("POST", "PUT", "PATCH") else None, role=None)
             self.assertEqual((status, body["error"]["code"]), (401, "unauthenticated"), (method, path))
         bogus = {"cookie": "session=forged-token-value", "csrf": "x"}
         self.assertEqual(self.call("GET", self.path(entity), session=bogus)[0], 401)
@@ -334,6 +375,53 @@ class ApiTests(unittest.TestCase):
                         self.assertEqual((status, reply["error"]["code"]), (403, "forbidden"), (role, method, entity.name))
                     else:
                         self.assertNotIn(status, (401, 403), (role, method, entity.name, reply))
+        self._item_writes_for_roles()
+
+    def _reachable(self, entity, me, n):
+        """A record of `entity` created by the administrator that the account whose principal is `me`
+        may see (scoping included): a reached scoped record, or one under a reached scoped record."""
+        scoping = SCHEMA.auth.get("scoping")
+        root = SCHEMA.by_name[scoping["entity"]] if scoping else None
+        if root is None or not self._leads_to(entity, root):
+            return self.server.create(entity, n, self.parents(entity))
+        top = self.server.create(root, n, self.parents(root))
+        self._reach(root, top, me)
+        return top if entity is root else self._under(entity, root, top["id"], n)
+
+    def _item_writes_for_roles(self):
+        """Every non-admin role on every entity: PUT, PATCH and DELETE of a record it can see need the
+        role's write/delete permission, and a :own permission covers only records the account created."""
+        principal = SCHEMA.auth.get("principal") or {}
+        decided = 0
+        for role, permissions in self._non_admin_roles():
+            session, account_id, me = self._role_account(role)
+            scope = db.Scope(SCHEMA, {"id": account_id, "role": role}, me["id"] if me else None)
+            for entity in SCHEMA.entities:
+                keep = principal.get("email_field") if entity.name == principal.get("entity") else None
+                for owned in (False, True):
+                    record = self._reachable(entity, me, 2 + owned)
+                    if owned:
+                        self._own(entity, record, account_id)
+                    with db.session(self.server.db_path) as connection:
+                        seen = db.visible(connection, entity, record["id"], scope)
+                    field = next(f for f in entity.fields if f["name"] != keep)
+                    refs = {ref["field"]: record[ref["field"]] for ref in entity.references}
+                    bodies = {"PUT": sample(entity, 8, refs, **({keep: record[keep]} if keep else {})),
+                              "PATCH": {field["name"]: sample(entity, 9)[field["name"]]}, "DELETE": None}
+                    for method, need, done in (("PUT", "write", 200), ("PATCH", "write", 200), ("DELETE", "delete", 204)):
+                        mode = model.allowed(permissions, need)
+                        if mode is None or (seen and mode == "own" and not owned):
+                            expected = (403, "forbidden")
+                        else:
+                            expected = (done, None) if seen else (404, "not_found")
+                        decided += bool(seen and mode)
+                        status, _, reply = self.call(method, self.path(entity, record["id"]), bodies[method],
+                                                     session=session)
+                        code = reply["error"]["code"] if isinstance(reply, dict) and "error" in reply else None
+                        self.assertEqual((status, code), expected, (role, method, entity.name, owned, reply))
+                    gone = self.call("GET", self.path(entity, record["id"]))[0] == 404
+                    self.assertEqual(gone, expected == (204, None), (role, entity.name, owned))
+        self.assertTrue(decided or not self._non_admin_roles(), "no role reached an ownership decision")
 
     def test_csrf_token_required(self):
         entity = SCHEMA.entities[0]
@@ -368,47 +456,92 @@ class ApiTests(unittest.TestCase):
         self.assertEqual((status, error["error"]["code"]), (403, "cross_origin"))
 
     def test_login_lockout(self):
-        email, password = self.server.account(ADMIN)
-        for _ in range(5):
-            self.assertEqual(self.call("POST", "/api/login", {"email": email, "password": "wrong-" + password}, role=None)[0], 401)
-        self.assertEqual(self.call("POST", "/api/login", {"email": email, "password": password}, role=None)[0], 429)
-        # the backoff is per (e-mail, client address) and expires; nobody locks an account from elsewhere
+        """One e-mail from one client address: exactly 5 failed sign-ins are checked in any 15 minutes
+        (sliding window); per client address and per e-mail across addresses, a ceiling."""
         from app import auth
+        failures, window = STATED_SIGNIN_LIMIT
+        self.assertEqual((auth.LOCKOUT_FAILURES, auth.LOCKOUT_SECONDS), (failures, window))
+        email, password = self.server.account(ADMIN)
+        for _ in range(failures):
+            self.assertEqual(self.call("POST", "/api/login", {"email": email, "password": "wrong-" + password}, role=None)[0], 401)
+        status, headers, error = self.call("POST", "/api/login", {"email": email, "password": password}, role=None)
+        self.assertEqual((status, error["error"]["code"]), (429, "too_many_attempts"))
+        self.assertRegex(headers.get("retry-after", ""), r"^[1-9][0-9]*$")
+        self.assertLessEqual(int(headers["retry-after"]), window)
         sessions, now = auth.Sessions(SCHEMA), [1000.0]
         sessions.clock = lambda: now[0]
-        email, password = self.server.account(ADMIN)
-        with db.session(self.server.db_path) as connection:
-            for _ in range(auth.LOCKOUT_FAILURES):
-                with self.assertRaises(auth.AuthError) as failed:
-                    sessions.login(connection, email, "wrong-" + password, source="198.51.100.7")
-                self.assertEqual(failed.exception.status, 401)
-            with self.assertRaises(auth.AuthError) as locked:
-                sessions.login(connection, email, password, source="198.51.100.7")
-            self.assertEqual(locked.exception.status, 429)
-            self.assertTrue(sessions.login(connection, email, password, source="203.0.113.9")[0])
-            now[0] += auth.BACKOFF_SECONDS + 1
-            with self.assertRaises(auth.AuthError) as again:
-                sessions.login(connection, email, "wrong-" + password, source="198.51.100.7")
-            self.assertEqual(again.exception.status, 401)
-            now[0] += auth.BACKOFF_SECONDS + 1
-            with self.assertRaises(auth.AuthError) as longer:
-                sessions.login(connection, email, password, source="198.51.100.7")
-            self.assertEqual(longer.exception.status, 429, "the backoff doubled after a further failure")
-            now[0] += auth.BACKOFF_SECONDS * 2
-            self.assertTrue(sessions.login(connection, email, password, source="198.51.100.7")[0])
-            # an unknown e-mail costs the same PBKDF2 work as a wrong password
-            calls = []
-            original = auth.hash_password
-            auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or original(*args, **kwargs)
+        calls, original = [], auth.hash_password
+        auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or original(*args, **kwargs)
+
+        def attempt(who, secret, source, at=None):
+            """(status, hashes computed, Retry-After) of one sign-in through Sessions.login at time `at`."""
+            if at is not None:
+                now[0] = 1000.0 + at
+            del calls[:]
             try:
-                with self.assertRaises(auth.AuthError):
-                    sessions.login(connection, f"nobody.{time.time_ns()}@example.invalid", password, source="x")
-            finally:
+                sessions.login(connection, who, secret, source=source)
+                return 200, len(calls), None
+            except auth.AuthError as error:
+                return error.status, len(calls), error.retry_after
+        email, password = self.server.account(ADMIN)
+        target, secret = self.server.account(ADMIN)
+        try:
+            with db.session(self.server.db_path) as connection:
+                # one wrong password per second for 30 minutes: exactly `failures` are checked in each window
+                checked, refused = [], []
+                for second in range(2 * window):
+                    status, hashes, retry = attempt(email, "wrong-" + password, "198.51.100.7", at=second)
+                    if status == 401:
+                        checked.append(second)
+                        self.assertEqual(hashes, 1)
+                    else:
+                        refused.append((status, hashes, retry, second))
+                self.assertEqual(checked, list(range(failures)) + [window + n for n in range(failures)])
+                for status, hashes, retry, second in refused:  # refused until the oldest failure is `window` old
+                    self.assertEqual((status, hashes, retry), (429, 0, (window if second < window else 2 * window) - second))
+                self.assertEqual(attempt(email, password, "198.51.100.7", at=2 * window - 1)[:2], (429, 0),
+                                 "the right password is not checked while the window is full")
+                self.assertEqual(attempt(email, password, "203.0.113.9")[0], 200, "another address is not refused")
+                self.assertEqual(attempt(email, password, "198.51.100.7", at=2 * window)[0], 200)
+                # the window slides: failures spread over 15 minutes still count together
+                start = 3 * window
+                for n in range(failures):
+                    self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.8", at=start + n * 200)[0], 401)
+                self.assertEqual(attempt(email, password, "198.51.100.8", at=start + window - 50)[::2], (429, 50))
+                self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.8", at=start + window)[0], 401)
+                self.assertEqual(attempt(email, password, "198.51.100.8", at=start + window + 1)[::2], (429, 199))
+                # an unknown e-mail costs the same PBKDF2 work as a wrong password, and is counted the same
+                stranger = f"nobody.{time.time_ns()}@example.invalid"
+                for n in range(failures):
+                    self.assertEqual(attempt(stranger, password, "x")[:2], (401, 1))
+                    self.assertEqual(calls, [SCHEMA.auth["pbkdf2_iterations"]])
+                self.assertEqual(attempt(stranger, password, "x")[:2], (429, 0))
+                # one address rotating e-mails: ADDRESS_FAILURES failures, then refused before hashing
+                now[0] += window
+                auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or ("", "")
+                for n in range(auth.ADDRESS_FAILURES):
+                    self.assertEqual(attempt(f"spray.{n}@example.invalid", password, "192.0.2.1")[:2], (401, 1), n)
+                self.assertEqual(attempt("spray.next@example.invalid", password, "192.0.2.1")[:2], (429, 0))
+                self.assertEqual(attempt(email, "wrong-" + password, "192.0.2.2")[0], 401)
+                # one e-mail from many addresses: ACCOUNT_FAILURES failures in all, then every address waits
+                # except one that signed in to it before (it keeps its own pair and address limits)
                 auth.hash_password = original
-            self.assertEqual(calls, [SCHEMA.auth["pbkdf2_iterations"]])
+                self.assertEqual(attempt(target, secret, "198.20.0.1")[0], 200)
+                for n in range(auth.ACCOUNT_FAILURES):
+                    source = f"198.18.{n // failures}.1"
+                    self.assertEqual(attempt(target.upper() if n % 2 else target, password, source)[0], 401, n)
+                self.assertEqual(attempt(target, secret, "198.19.0.1")[:2], (429, 0), "the ceiling holds new addresses")
+                self.assertEqual(attempt(target, secret, "198.20.0.1")[0], 200, "a known address is not held")
+                for _ in range(failures):
+                    self.assertEqual(attempt(target, "wrong-" + secret, "198.20.0.1")[0], 401)
+                self.assertEqual(attempt(target, secret, "198.20.0.1")[:2], (429, 0), "but keeps its own pair limit")
+                now[0] += window
+                self.assertEqual(attempt(target, secret, "198.19.0.1")[0], 200, "the ceiling expires")
+        finally:
+            auth.hash_password = original
         for n in range(auth.MAX_TRACKED + 5):
-            sessions._fail((f"user{n}@example.invalid", "x"))
-        self.assertLessEqual(len(sessions._failures), auth.MAX_TRACKED)
+            sessions._admit(sessions._keys(f"user{n}@example.invalid", f"10.{n // 65536}.{n // 256 % 256}.{n % 256}"))
+        self.assertTrue(all(len(table) <= auth.MAX_TRACKED for table in sessions._failures.values()))
 
     def test_passwords_are_salted_pbkdf2(self):
         password = secrets.token_urlsafe(24)

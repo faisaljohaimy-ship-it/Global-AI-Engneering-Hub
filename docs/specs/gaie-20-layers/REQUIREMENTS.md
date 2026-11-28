@@ -62,11 +62,22 @@ owner text ──► gaie_router.route()           (which engine? build / upgrad
    another pack / exclude / remove), fields, generic features, integrations, AI use cases,
    roles, NFR keywords, product type, database, locale.
    A locale or role named right after a remove verb or a negation (only filler words such as
-   "the", "language", «اللغة» between, and the name ending the phrase — "no arabic title" names
-   a field) is removed: "remove the Arabic locale", «واحذف الإنجليزية», "without english",
-   «بدون الإنجليزية», "remove the user role", «احذف دور المستخدم», "without managers" (a role
-   needs the word role/دور next to it unless it is a lexicon role keyword; a role name is then
-   not read as an entity). A new system simply does not get it (`excluded:locale-<id>` /
+   "the", "language", «اللغة» between, before the name also want/need words — "we dont need",
+   «لا نريد», «لا حاجة لـ» — and the name ending the phrase — "no arabic title" names a field)
+   is removed: "remove the Arabic locale", "remove the en locale", «واحذف الإنجليزية»,
+   «وإزالة اللغة الإنجليزية», "stop supporting english", "without english", «من غير
+   الإنجليزية», «لا نريد اللغة العربية», "remove the user role", «احذف دور المستخدم», «وأزل دور
+   العضو», "without managers", «بدون مدير المشروع». So is a name that opens its clause (or
+   follows "and"/و) and is followed only by "is not needed/required" or «غير مطلوبة/ضرورية»
+   ("english is not needed"). Besides the lexicon's control words, `requirements.py` knows a
+   few more remove/negation wordings for this purpose only (`_EXTRA_SIGNALS`: «إزالة», «حذف»,
+   «إلغاء», "stop (supporting)", «من غير», …). A role is named by its id, label or lexicon
+   keywords; next to the word role/دور also by the first word of its label («دور العضو» → the
+   member role). A role name is then not read as an entity. Without the word role/دور, a role
+   name that an entity name covers entirely ("remove members": the member role and the Member
+   entity) is ambiguous: it becomes the open question `role_or_entity:<role>` and neither changes
+   until it is answered; a longer role label wins over the entity word inside it ("remove project
+   managers" is the manager role, not the Project entity). A new system simply does not get it (`excluded:locale-<id>` /
    `excluded:role-<id>`); a change removes it (`removed:…`, which `diff_specs` flags as
    breaking). A negation in a change command, or a removal of the only locale, the only role or
    the only `*` role, is never applied silently: it becomes the open question below.
@@ -134,6 +145,7 @@ plurals and `acceptance_ar` everywhere.
 | `integration:<id>` | `approve`, `exclude` | `refine` |
 | `locale_removal:<locale>` / `role_removal:<role>` | `remove`, `keep` | `refine` (a negation in a change command) |
 | `locale_needed:<locale>` / `role_needed:<role>` | `keep` | `refine` (the only locale, the only role or the only `*` role cannot be removed) |
+| `role_or_entity:<role>` | `role`, `entity` | `refine` (a removed or negated name is both that role and an entity: `role` applies it to the role, `entity` to the entity) |
 
 ## 4. Acceptance grammar (machine-checkable)
 
