@@ -14,7 +14,11 @@ WORKFLOWS = {
     '.github/workflows/security.yml': {'Tracked secrets and Python execution hazards'},
     '.github/workflows/dependency-audit.yml': {'Audit exact tracked npm locks'},
     '.github/workflows/motion-cross-browser.yml': {'Motion Studio in firefox', 'Motion Studio in webkit'},
+    '.github/workflows/nextgen-intelligence.yml': {'Original camera motions in Chromium'},
 }
+# Workflows that run on a push to main without gating a release, each mapped to the reason.
+# tests/test_release_provenance.py requires every push-triggered workflow to be in WORKFLOWS or here.
+NOT_RELEASE_GATING = {}
 
 
 def approved_runs(document, commit, repository, now=None):
