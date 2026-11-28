@@ -247,9 +247,9 @@
       if (spec.type === 'datetime' && shown) shown = shown.slice(0, 16);
       input.value = shown;
     }
-    const label = el('label', { for: id, text: fieldText(entity, spec.name) });
-    const wrapper = el('div', { className: spec.type === 'bool' ? 'field checkbox' : 'field' }, [label]);
-    if (spec.required) wrapper.append(el('span', { className: 'req', 'aria-hidden': 'true', text: '*' }));
+    const head = el('div', { className: 'label-row' }, [el('label', { for: id, text: fieldText(entity, spec.name) })]);
+    if (spec.required) head.append(el('span', { className: 'req', 'aria-hidden': 'true', text: '*' }));
+    const wrapper = el('div', { className: spec.type === 'bool' ? 'field checkbox' : 'field' }, [head]);
     wrapper.append(input, el('span', { id: describedBy, className: 'error' }));
     return wrapper;
   }

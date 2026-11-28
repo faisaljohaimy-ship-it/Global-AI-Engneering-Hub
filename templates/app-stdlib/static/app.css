@@ -73,6 +73,7 @@ main:focus { outline: none; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field.checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 .field label { font-weight: 600; }
+.label-row { display: flex; gap: 0.25rem; align-items: baseline; }
 .req { color: var(--danger); margin-inline-start: 0.15rem; }
 input, select, textarea, button { font: inherit; }
 input, select, textarea {
@@ -96,7 +97,8 @@ button[aria-pressed="true"], button[aria-current="page"] { background: var(--acc
 .table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; inline-size: 100%; }
 th, td { text-align: start; padding: 0.5rem 0.6rem; border-block-end: 1px solid var(--border); vertical-align: top; }
-td.row-actions { white-space: nowrap; display: flex; gap: 0.4rem; }
+td.row-actions { white-space: nowrap; }
+td.row-actions button { margin-inline-end: 0.4rem; }
 .empty { color: var(--muted); }
 .footer { color: var(--muted); padding: 1rem 1.5rem; font-size: 0.9rem; text-align: center; }
 @media (prefers-reduced-motion: reduce) {
