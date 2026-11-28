@@ -682,6 +682,7 @@ class FacadeAndVendoringTests(Base):
         self.assertEqual(self.run_cli(module, "why", "ADR-0001")[1]["answers"][0]["decision"], "Use a durable queue.")
         self.assertEqual(self.run_cli(module, "recall", "TimeoutError: job 7 exceeded 30s")[1][0]["status"], "unverified-fix")
         self.assertEqual(self.run_cli(module, "solutions")[1][0]["status"], "unverified")
+        self.assertEqual(self.run_cli(module, "status", "--root", str(self.repo))[1], {path: "fresh" for path in REPO})
         brief = self.run_cli(module, "brief")[1]
         self.assertEqual((brief["open_tasks"][0]["task_id"], brief["symbol_index"]["files"]), ("jobs", 3))
         code, sealed = self.run_cli(module, "checkpoint", "--to", str(self.private / "cli.json"))

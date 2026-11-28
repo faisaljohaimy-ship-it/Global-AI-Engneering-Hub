@@ -4,8 +4,8 @@ A facade over the unified engine `engineering_os.memory` (layer L14). Each proje
 an isolated engine store at $GAIE_HOME/memory/<project>/memory.jsonl, outside every
 Git repository; a query names exactly one project and never reads another. The PR #26
 API and CLI are kept (add, search, related, promote, entries) and the engine adds
-brief, next, where, why, adr, task, failure, recall, solutions, index, checkpoint
-and restore. Legacy append-only journals (entries.jsonl) are verified and imported
+brief, next, where, why, adr, task, failure, recall, solutions, index, status,
+checkpoint and restore. Legacy append-only journals (entries.jsonl) are verified and imported
 into the engine on first use, so nothing written by an older copy is lost.
 
 Vendored alone (a skill engine directory or project pack without memory.py,
@@ -403,6 +403,7 @@ def main(argv=None):
     commands.add_parser("recall", help="known failures for a signature").add_argument("signature")
     commands.add_parser("solutions").add_argument("--source-root")
     commands.add_parser("index", help="index Python symbols of a source tree").add_argument("--root", required=True)
+    commands.add_parser("status", help="indexed files: fresh, stale or missing in a checkout").add_argument("--root", required=True)
     commands.add_parser("checkpoint").add_argument("--to", required=True)
     restore = commands.add_parser("restore")
     restore.add_argument("--from", dest="source", required=True)
@@ -445,6 +446,8 @@ def main(argv=None):
             result = memory.call("solutions", source_root=args.source_root, create=False)
         elif args.cmd == "index":
             result = memory.call("index_repository", args.root, engine=args.engine)
+        elif args.cmd == "status":
+            result = memory.call("symbol_status", args.root, create=False)
         elif args.cmd == "checkpoint":
             result = memory.call("checkpoint", args.to, create=False)
         else:
