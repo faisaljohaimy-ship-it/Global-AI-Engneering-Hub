@@ -4,7 +4,7 @@
   "packs": {
     "engineering-sdk": {
       "summary": "Versioned offline integrity, deployment identity and release guards plus read-only MCP discovery.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "skills": [
         "engineering-sdk"
       ],
