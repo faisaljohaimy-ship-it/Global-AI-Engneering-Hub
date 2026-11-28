@@ -51,7 +51,7 @@ class ChecksCatchBugs(unittest.TestCase):
 
     def test_graph_bug(self):
         self.assertTrue(self.broken("graph", "and name in self._reach(other))", "and name in self.needs[other])"))
-        self.assertTrue(self.broken("graph", "needs.discard(pick)", "pass"))
+        self.assertTrue(self.broken("graph", "result.append(pick)", "result.insert(0, pick)"))
 
     def test_expr_bug(self):
         self.assertTrue(self.broken("expr", 'if token == "-":\n            return -factor()', 'if token == "-":\n            return factor()'))
