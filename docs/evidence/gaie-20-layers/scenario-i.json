@@ -9,10 +9,10 @@
  "produced_by": "python3 tests/test_gaie_install_scenario_i.py record",
  "checked_by": "python3 -m unittest tests.test_gaie_install_scenario_i",
  "recorded_on": "2026-11-28",
- "hub_revision": "f6abcdfc962626e1bafda6fde567f7dcb870891d",
+ "hub_revision": "ce4530f5ff4a9ec9ad898eb5d1014baed2af5987",
  "hub_worktree_clean": true,
  "sources": {
-  "digest": "0293097242b080b2a150cf25620b5090fc4367b4f88d33edeaffe112d7c5e68b",
+  "digest": "94b54142ad9a73c8d23f0cf98fce0090a96854560f9da41fb4650c74d8042edf",
   "files": {
    ".claude-plugin/marketplace.json": "81f55caa3712bacbd824a557f1d357cbb23ce3bb853c358705194d6e8d3a6c73",
    ".claude-plugin/plugin.json": "542273ea9a0d0695c6fe685d5c47ea9919ec930e7aa30953af118ae1adf41afa",
@@ -26,11 +26,11 @@
    "engineering_os/memory.py": "5f332f425aa38768df0d960022f881743b238394ab029898b3405ff2685188be",
    "engineering_os/orchestration.py": "deaa04d226913f35b413caffc727b0a5ab33c8bdb259de582d6bac3ec53388b3",
    "engineering_os/project_registry.py": "a3e4a2f02e327bbb4a672ef583d2654725ce40124f17d0688d39a239b8651537",
-   "engineering_os/workspace_policy.py": "7095e9b72d72bbd7ce1e9ae2a75874244ec2664df501b046b9517b4d4964b8a7",
+   "engineering_os/workspace_policy.py": "793866d83e6f1fac6bfdc9b36b4bf9688163d425c8b2f1eaeb2161868d8ee47c",
    "governance/agent-roles.json": "4c5a58bc3662d65973e9ff845d16a65c60c576186bd8e97760be36f0b28cb3e9",
    "governance/policies/agent-team.json": "8f95edc7df1c80899d28ec40d106486634386780a7d19507f2749c747d038794",
    "governance/policies/gaie-routes.json": "779af4f2dad92a38023f3150dfc7903c52a41c39657d56b72ac2fb95c29c37f0",
-   "hub.py": "d835561fecddf2df944fbf2ccabace857e68636e1c121f7f31283e3c9eb71b53",
+   "hub.py": "22329bac3fd8ae7f7427cacb16d04f9a44783e50ddbc6550ec4359dc52878ca2",
    "projects/aliases.json": "18cfae39b9c6b0be4615e59fe6029edf77f9ad52f67e30c9ca4cdb2aa503c3a1",
    "projects/registry.json": "48164120535956b8f90956be62256f4b53cceb6d57a0e7ea4264644cab5eb901",
    "prompts/MASTER_BUILD.md": "d45579e201c497fe113959338bb0b2725cd57300b2215dbffa764b22d7eed159",
@@ -1294,8 +1294,8 @@
    "stderr": null
   },
   "cli.cache": {
-   "files": 1063,
-   "bytes": 22007456,
+   "files": 1069,
+   "bytes": 22175618,
    "has_pycache": true
   },
   "cli.home": [
