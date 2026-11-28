@@ -1,0 +1,219 @@
+{
+ "schema_version": 1,
+ "recorded": "2026-11-28",
+ "receipt": "docs/evidence/capability-activation-2026-11-28.json",
+ "selection": "newest stable release published before 2026-11-14 (a fourteen-day wait); Python locks resolved with --exclude-newer on that date",
+ "labels": [
+  "DISCOVERED",
+  "REVIEWED",
+  "INSTALLED",
+  "OPERATIONAL",
+  "TESTED",
+  "HOST VERIFIED",
+  "ACTUALLY USED",
+  "BLOCKED"
+ ],
+ "label_meaning": {
+  "HOST VERIFIED": "called from the agent session as it was, without a restart or outside set-up",
+  "ACTUALLY USED": "used for real work in the session, not only in a test"
+ },
+ "registry_note": "catalog/registry.json still lists all six as discovered. Approval and the upstream git revision for the three entries where it is null are left to the coordinator.",
+ "tools": [
+  {
+   "id": "pydantic/pydantic-ai",
+   "package": "pydantic-ai-slim",
+   "ecosystem": "pypi",
+   "version": "2.68.0",
+   "published": "2026-11-12",
+   "license": "MIT",
+   "lock": "activation/locks/pydantic-ai/requirements.lock",
+   "artifact_sha256": [
+    "7e545ad147ee955d3ee83532ad793570a444a3e7c290328c4809b67a32c78a01",
+    "bb2fe81f198b77da7686f7b78c78c8a8ce966807c77d9ae277950fc20b77b165"
+   ],
+   "upstream_git_revision": null,
+   "test": "activation/tests/pydantic_ai_typed_tool.py",
+   "labels": [
+    "DISCOVERED",
+    "REVIEWED",
+    "INSTALLED",
+    "OPERATIONAL",
+    "TESTED",
+    "HOST VERIFIED"
+   ],
+   "review": {
+    "commercial": "Licence permits commercial use. No paid service, account or key was used.",
+    "reviewer": "Claude Code session, for review by the hub's coordinator",
+    "security": "17 packages, all hash-pinned; PyPI lists no advisory for the pinned release; the test switches real provider requests off and ran with no network."
+   },
+   "pack_evidence": {
+    "ai-intelligence": "typed tool call, explicit authorisation, bounded execution, invalid output, timeout and refusal: six cases passed"
+   },
+   "not_proven": [
+    "a call to a real model provider",
+    "use from Codex",
+    "use inside a registered project"
+   ]
+  },
+  {
+   "id": "UKGovernmentBEIS/inspect_ai",
+   "package": "inspect-ai",
+   "ecosystem": "pypi",
+   "version": "0.3.289",
+   "published": "2026-11-10",
+   "license": "MIT",
+   "lock": "activation/locks/inspect-ai/requirements.lock",
+   "artifact_sha256": [
+    "1514e76bb8e98e7e70b3c3174c06cd01f8348887c5fa108aadf833c2b4306f07",
+    "8305f0216ec52d9c0d1f8c385a6a3829dd77fcf65b33a4313bb295f2a9d27468"
+   ],
+   "upstream_git_revision": null,
+   "test": "activation/tests/inspect_ai_mock_eval.py",
+   "labels": [
+    "DISCOVERED",
+    "REVIEWED",
+    "INSTALLED",
+    "OPERATIONAL",
+    "TESTED",
+    "HOST VERIFIED"
+   ],
+   "review": {
+    "commercial": "Licence permits commercial use. No paid service, account or key was used.",
+    "reviewer": "Claude Code session, for review by the hub's coordinator",
+    "security": "80 packages, all hash-pinned; PyPI lists no advisory for the pinned release."
+   },
+   "not_proven": [
+    "an evaluation against a real model",
+    "use from Codex",
+    "a run with no network (it downloads a tokenizer file once)"
+   ],
+   "pack_evidence": {
+    "agent-evaluation": "partial: one offline evaluation scoring a right and a wrong answer, a time limit and a failing solver. No comparison across hosts."
+   }
+  },
+  {
+   "id": "promptfoo/promptfoo",
+   "package": "promptfoo",
+   "ecosystem": "npm",
+   "version": "0.125.1",
+   "published": "2026-10-25",
+   "license": "MIT",
+   "lock": "activation/locks/promptfoo/package-lock.json",
+   "artifact_integrity": "sha512-nogBhixdp69icwkg1EI0syZ4zAmAjJyWeLcqxAkTldbHi0qirOslwHvkUQhQmg65lQLrIKyMOMLXlBlSc6LRrg==",
+   "upstream_git_revision": null,
+   "test": "activation/tests/promptfoo/promptfooconfig.yaml",
+   "labels": [
+    "DISCOVERED",
+    "REVIEWED",
+    "INSTALLED",
+    "OPERATIONAL",
+    "TESTED",
+    "HOST VERIFIED"
+   ],
+   "review": {
+    "commercial": "Licence permits commercial use. No paid service, account or key was used.",
+    "reviewer": "Claude Code session, for review by the hub's coordinator",
+    "security": "691 packages installed with install scripts disabled; npm audit reported 5 moderate advisories in its dependency tree and none high or critical; telemetry and update check switched off by environment variables; 758 MB on disk."
+   },
+   "pack_evidence": {
+    "agent-evaluation": "partial: one offline evaluation with a passing and a failing assertion. The comparison across hosts that the acceptance line asks for was not run."
+   },
+   "not_proven": [
+    "an evaluation against a real model",
+    "a comparison across agent hosts"
+   ]
+  },
+  {
+   "id": "microsoft/playwright-mcp",
+   "package": "@playwright/mcp",
+   "ecosystem": "npm",
+   "version": "0.0.85",
+   "published": "2026-11-09",
+   "license": "Apache-2.0",
+   "lock": "activation/locks/playwright-mcp/package-lock.json",
+   "artifact_integrity": "sha512-bSfECMbLXhJdWkGhLzNMxTZuazG+9IDJ679gflji3yyD94e7ARnGdqmJmG6lTPB+gYX+OiFLmX5myBl62+wZEw==",
+   "upstream_git_revision": "4e0794dd0a0176519830a5ed27b491137cf9338f",
+   "test": "activation/tests/mcp_browser_probe.py",
+   "labels": [
+    "DISCOVERED",
+    "REVIEWED",
+    "INSTALLED",
+    "OPERATIONAL",
+    "TESTED"
+   ],
+   "review": {
+    "commercial": "Licence permits commercial use. No paid service, account or key was used.",
+    "reviewer": "Claude Code session, for review by the hub's coordinator",
+    "security": "3 packages, npm audit clean. It depends on an alpha build of Playwright (1.66.0-alpha-2026-11-09), so it was pointed at the browser already on the machine with --executable-path and downloaded none. Run headless with an in-memory profile."
+   },
+   "pack_evidence": {
+    "browser-intelligence": "navigation, snapshot, console and screenshot on a synthetic page with an isolated profile, and a rejected call: six checks passed. Discovery by an agent host was not tested."
+   },
+   "not_proven": [
+    "attachment to an agent session (driven by a stdio probe)",
+    "use from Codex",
+    "Firefox or WebKit"
+   ]
+  },
+  {
+   "id": "ChromeDevTools/chrome-devtools-mcp",
+   "package": "chrome-devtools-mcp",
+   "ecosystem": "npm",
+   "version": "1.13.0",
+   "published": "2026-11-11",
+   "license": "Apache-2.0",
+   "lock": "activation/locks/chrome-devtools-mcp/package-lock.json",
+   "artifact_integrity": "sha512-Yf4qhS0+2oo7c+gOySMDHQt4ZL/yKXG2Mxxzjk0gcArINtcQ3tLiQVzAW6g2nsyQzAGhkcLwWWBAtlx3Bg+Spg==",
+   "upstream_git_revision": "b1e35e3ab1774664dfc66a2cb813a392535fe160",
+   "test": "activation/tests/mcp_browser_probe.py",
+   "labels": [
+    "DISCOVERED",
+    "REVIEWED",
+    "INSTALLED",
+    "OPERATIONAL",
+    "TESTED"
+   ],
+   "review": {
+    "commercial": "Licence permits commercial use. No paid service, account or key was used.",
+    "reviewer": "Claude Code session, for review by the hub's coordinator",
+    "security": "1 package with no dependencies, npm audit clean. Run with --no-usage-statistics and --no-performance-crux, headless, isolated profile. Its optional peer packages were not installed."
+   },
+   "pack_evidence": {
+    "browser-intelligence": "the same six checks passed"
+   },
+   "not_proven": [
+    "attachment to an agent session (driven by a stdio probe)",
+    "use from Codex",
+    "performance tracing"
+   ]
+  },
+  {
+   "id": "upstash/context7",
+   "package": "@upstash/context7-mcp",
+   "ecosystem": "npm",
+   "version": "4.7.0",
+   "published": "2026-11-12",
+   "license": "MIT",
+   "lock": null,
+   "upstream_git_revision": null,
+   "test": "activation/tests/context7_probe.py",
+   "labels": [
+    "DISCOVERED",
+    "REVIEWED",
+    "BLOCKED"
+   ],
+   "blocked_by": "Two things. Its service refuses requests without an API key once the shared anonymous allowance is used: both requests were answered with a quota message, so it needs a free key from the owner. And its lock is not committed: the hub's dependency scan accepts at most eight npm locks and this would be the ninth. It was installed and started once in the session from the package and checksum recorded here.",
+   "review": {
+    "commercial": "MIT. The service has a free tier; no paid plan was used.",
+    "security": "104 packages installed with install scripts disabled; npm audit reported 1 moderate advisory and none high or critical. It sends a library name and a question to context7.com: send no code and no project text.",
+    "reviewer": "Claude Code session, for review by the hub's coordinator"
+   },
+   "not_proven": [
+    "any documentation returned",
+    "use from Codex",
+    "attachment to an agent session"
+   ],
+   "artifact_integrity": "sha512-t3Jqm0hGQtkZvx5mwrBZMEiedqhmltVwhOiFKgnzDBcOXUZNqtVSQShaBLmUNVjsIRoV202THb/BEYlJF5Dajg=="
+  }
+ ]
+}
