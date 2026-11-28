@@ -549,7 +549,7 @@ Responsibilities:
 - **Tools:** `python3`, `node`, `git`
 - **Skills:** `skills/gaie-master-router/SKILL.md`, `skills/gaie-build/SKILL.md`, `skills/gaie-upgrade/SKILL.md`, `skills/gaie-audit/SKILL.md`
 - **Agents:** `master-build-engine-engineer`, `master-upgrade-engine-engineer`, `nl-router-project-registry-engineer`
-- **Tests:** `tests/test_factory.py`, `tests/test_gaie_router.py`, `tests/test_gaie_factory.py`, `tests/test_build_engine.py`, `tests/test_build_engine_e2e.py`, `tests/test_upgrade_engine.py`, `tests/test_review_fixes_upgrade_scope.py`, `tests/test_build_fixes_app.py`
+- **Tests:** `tests/test_factory.py`, `tests/test_gaie_router.py`, `tests/test_gaie_factory.py`, `tests/test_build_engine.py`, `tests/test_build_engine_e2e.py`, `tests/test_upgrade_engine.py`, `tests/test_review_fixes_upgrade_scope.py`, `tests/test_build_fixes_app.py`, `tests/test_upgrade_fixes_clauses.py`, `tests/test_upgrade_fixes_journal.py`, `tests/test_upgrade_fixes_linked_db.py`, `tests/test_upgrade_fixes_origin.py`, `tests/test_upgrade_fixes_original.py`, `tests/test_upgrade_fixes_requests.py`, `tests/test_upgrade_fixes_schema_memory.py`, `tests/test_upgrade_fixes_schema_modules.py`, `tests/test_upgrade_fixes_sql.py`, `tests/test_upgrade_fixes_wal.py`
 - **Scenarios:** A — `tests/test_build_engine_e2e.py` `ScenarioATests`; B — `tests/test_upgrade_engine.py` `ScenarioB`
 - **Evidence boundary:** Plans and checks artifacts against supplied receipts; generates no complete application and deploys nothing
 - **Evidence status:** VERIFIED — 6/6 test files, 162 test cases passed; 28 sources bound (`source_sha256` 4fb0a1e7f3a88919…).

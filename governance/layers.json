@@ -1030,7 +1030,17 @@
       "tests/test_build_engine_e2e.py",
       "tests/test_upgrade_engine.py",
       "tests/test_review_fixes_upgrade_scope.py",
-      "tests/test_build_fixes_app.py"
+      "tests/test_build_fixes_app.py",
+      "tests/test_upgrade_fixes_clauses.py",
+      "tests/test_upgrade_fixes_journal.py",
+      "tests/test_upgrade_fixes_linked_db.py",
+      "tests/test_upgrade_fixes_origin.py",
+      "tests/test_upgrade_fixes_original.py",
+      "tests/test_upgrade_fixes_requests.py",
+      "tests/test_upgrade_fixes_schema_memory.py",
+      "tests/test_upgrade_fixes_schema_modules.py",
+      "tests/test_upgrade_fixes_sql.py",
+      "tests/test_upgrade_fixes_wal.py"
     ],
     "scenarios": [
       {
