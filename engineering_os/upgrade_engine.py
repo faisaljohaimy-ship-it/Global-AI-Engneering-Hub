@@ -28,7 +28,6 @@ import fnmatch
 import hashlib
 import html
 import html.parser
-import os
 import pathlib
 import pprint
 import re
@@ -1128,12 +1127,12 @@ def _performance_tests(step_id, schemas, findings):
 # --------------------------------------------------------------------------- the run
 
 class _Run:
-    def __init__(self, root, workdir, route, manifest, spec_tests, spec_rel, spec, policy, now, environ):
+    def __init__(self, root, workdir, route, manifest, spec_tests, spec_rel, spec, policy, now):
         self.root, self.workdir, self.route, self.manifest, self.tests = root, workdir, route, manifest, spec_tests
-        self.spec_rel, self.spec, self.policy, self.now, self.environ = spec_rel, spec, policy, now, environ
+        self.spec_rel, self.spec, self.policy, self.now = spec_rel, spec, policy, now
         self.audit_only = route["mode"] == "audit"
         self.project = route["project"] or manifest.get("name") or (spec or {}).get("slug") or _slugify(root.name)
-        self.receipts, self.journal, self.backups, self.steps, self.findings = [], {}, {}, [], []
+        self.receipts, self.journal, self.backups, self.steps = [], {}, {}, []
         self.durations, self.stage_seconds, self.test_runs, self.counter = [], {}, 0, 0
         self.passing, self.baseline_tests, self.flaky, self.blocked, self.security_baseline = [], {}, [], None, None
         self.patch = self.reverse = ""
@@ -1330,7 +1329,6 @@ class _Run:
         for row in opportunities:
             row["id"] = f"{row['kind']}-{sha([row['path'], row['line'], row['symbol']])[:10]}"
         self.opportunities = opportunities
-        self.inventory = inventory
         result = {"inventory": {key: inventory[key] for key in ("files_scanned", "file_kinds", "surfaces", "stack", "signals", "findings", "boundary")},
                   "coverage_matrix": inventory["coverage_matrix"],
                   "detectors": [{k: r[k] for k in ("detector", "status", "reason", "method")} | {"findings": len(r["findings"])} for r in detection["detectors"]],
@@ -1443,11 +1441,16 @@ class _Run:
     def preview(self, kind, area, generator):
         ids = {"code": "code-repair-defects", "security": "security-input-validation", "ui": "ui-accessibility-rtl",
                "performance": "performance-query-indexes", "assets": "assets-backup-unused"}
-        titles = {"code": ("Repair detected defects with the self-healing loop", "إصلاح العيوب المكتشفة بحلقة الإصلاح الذاتي"),
-                  "security": ("Validate input on every write endpoint from the specification", "التحقق من المدخلات في كل نقطة كتابة من المواصفة"),
-                  "ui": ("Accessible, right-to-left aware templates", "قوالب متاحة وتدعم الاتجاه من اليمين لليسار"),
-                  "performance": ("Index filtered queries with a reversible, data-preserving migration", "فهرسة الاستعلامات المصفاة بترحيل قابل للتراجع يحفظ البيانات"),
-                  "assets": ("Move unreferenced assets to a recoverable backup", "نقل الأصول غير المستخدمة إلى نسخة احتياطية قابلة للاسترجاع")}
+        titles = {"code": ("Repair detected defects with the self-healing loop",
+                           "إصلاح العيوب المكتشفة بحلقة الإصلاح الذاتي"),
+                  "security": ("Validate input on every write endpoint from the specification",
+                               "التحقق من المدخلات في كل نقطة كتابة من المواصفة"),
+                  "ui": ("Accessible, right-to-left aware templates",
+                         "قوالب متاحة وتدعم الاتجاه من اليمين لليسار"),
+                  "performance": ("Index filtered queries with a reversible, data-preserving migration",
+                                  "فهرسة الاستعلامات المصفاة بترحيل قابل للتراجع يحفظ البيانات"),
+                  "assets": ("Move unreferenced assets to a recoverable backup",
+                             "نقل الأصول غير المستخدمة إلى نسخة احتياطية قابلة للاسترجاع")}
         also = {"security": ["architecture", "code", "tests"], "performance": ["database", "tests"], "ui": ["tests"], "code": ["tests"]}
         step = {"id": ids[kind], "area": area, "also": also.get(kind, []), "origin": "engine",
                 "title": {"en": titles[kind][0], "ar": titles[kind][1]}, "generator": generator, "status": "planned", "reason": None}
@@ -1929,7 +1932,7 @@ class _Run:
         }
         regressions = sorted(t for t in self.passing if not _passed(outcomes.get(t)))
         fixed = sorted(t for t, o in self.baseline_tests.items() if not _passed(o) and o != "skipped" and _passed(outcomes.get(t)))
-        self.final_outcomes, self.changed, self.patch, self.reverse = outcomes, changed, patch, reverse
+        self.changed, self.patch, self.reverse = changed, patch, reverse
         result = {"passed": all(checks.values()), "checks": checks, "regressions": regressions,
                   "tests": {"baseline_passing": len(self.passing), "final_total": len(outcomes),
                             "final_passing": sum(1 for o in outcomes.values() if _passed(o)), "new_tests": len(new_ids),
@@ -2059,7 +2062,7 @@ def upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extr
           "Requested change refused: it would remove data or functions (" + ", ".join(
               f"{row['kind']} {row.get('entity', '')}{'.' + row['field'] if row.get('field') else ''}".strip()
               for row in requested.get("breaking", [])) + "); a breaking change needs an owner-designed migration and approval")
-    run = _Run(root, resolved_workdir, route, manifest, spec_tests, spec_rel, spec, policy, now, environ)
+    run = _Run(root, resolved_workdir, route, manifest, spec_tests, spec_rel, spec, policy, now)
     run.route_command, run.target_spec, run.requested = command, spec, requested
     if run.audit_only:
         return _audit_report(run, extra, started)
