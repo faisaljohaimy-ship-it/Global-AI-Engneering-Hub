@@ -40,7 +40,7 @@ import subprocess
 import sys
 import time
 
-from . import contracts
+from . import agent_team, contracts
 from .adapters import load_path_module
 from .contracts import ContractError, SIDE_EFFECTS, side_effect_rank, validate_grant
 from .economics import EconomicsError, recommend_concurrency
@@ -55,13 +55,16 @@ ENGINES_FILE = "governance/engines.json"
 PLAN_SCHEMA = "gaie.orchestration-plan/1"
 EVIDENCE_KIND = "gaie.scenario-h/1"
 
+# The three numbers come from the central agent-team policy (governance/policies/agent-team.json),
+# which cites the evidence file behind each one; tests/test_agent_team.py pins them to that evidence.
+_TEAM_POLICY = agent_team.load_policy(ROOT / agent_team.POLICY_FILE)
 # One host session ran at most 20 agents at once (swarm/phase3/capacity.py SESSION, measured).
-MAX_AGENTS = 20
+MAX_AGENTS = _TEAM_POLICY["session_limit"]
 # Policy, not a measurement: at 11 agents on 4 shared CPUs, five agents' full-suite runs recorded fork
 # EAGAIN, BlockingIOError and timeouts in load-sensitive subprocess tests (load average 8.5-29), see
 # docs/evidence/gaie-20-layers/scenario-h.json host_pressure; 2 agents per CPU keeps a 4-CPU host at 8.
-AGENTS_PER_CPU = 2
-START_AGENTS = 4
+AGENTS_PER_CPU = _TEAM_POLICY["concurrency"]["agents_per_cpu"]
+START_AGENTS = _TEAM_POLICY["concurrency"]["start"]
 GRANT_TTL_SECONDS = 4 * 3600
 LEASE_TTL = 900
 MAX_TASKS = 128
