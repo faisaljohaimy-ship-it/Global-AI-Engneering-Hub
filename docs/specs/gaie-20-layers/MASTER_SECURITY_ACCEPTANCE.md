@@ -99,8 +99,17 @@ engines remain plan and artifact-evaluation functions. The deterministic
 local entry points that a trusted operator calls directly. A route gives them
 no grant. The build engine writes only under the operator's build workspace.
 It reaches a remote and records the project in the private registry only
-through its approved `publish` step. The upgrade engine writes only under the
-caller's `workdir` and never changes the target. A command that names a
+through its approved `publish` step. The upgrade engine's own writes go only
+under the caller's `workdir` and never change the target; the target's tests
+that it runs execute in the governor's OS sandbox where the host has the full
+tier (the copy read-only, one writable directory per run, no host network,
+nothing of the host outside the system directories), and are refused where it
+does not, unless the caller explicitly opts into the recorded process-only
+mode, which is no boundary (SEC-07, sec-isolation lane). The build engine's
+`run_suites` still runs the generated application's own unit, API and browser
+suites as plain child processes with a reduced environment, outside the
+governor sandbox; the app's tests need a loopback server, which the strict
+profile denies (pr30-isolation F5, build part, open). A command that names a
 registered project runs only on that project's verified isolated worktree.
 Native autonomous execution requires a trusted dispatcher to authenticate the
 selected agent.
