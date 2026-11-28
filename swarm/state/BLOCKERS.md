@@ -1,0 +1,13 @@
+# Blockers
+
+How each of these was observed is in `evidence/host-limits.json`.
+
+| Blocker | Effect | Who can remove it |
+|---|---|---|
+| Each new agent in this session starts with about 222,000 tokens of context | Twenty one-task agents cost 16 million input tokens; at that stage's 801,572 a task a hundred would be about 80 million, a projection and not a measurement | Likely the owner, by running the swarm from a session with one repository and few connectors attached; not tested |
+| A new agent type is loaded only when a session starts | The ladder's workers had every tool. After a restart the minimal worker ran once: 42.5% less starting context | Removed for the next run: the type is now loaded |
+| Throughput stopped rising between ten and twenty agents | More agents made each one slower, not the stage faster | Cause not established: the agents' records only show that each took twice as long |
+| The host shows no subscription allowance | Limits had to be absolute and low | The host |
+| The workflow tool allows two agents at once on a four-core machine | The ladder used the agent tool instead | The host |
+| Context7 and a tokenizer download are refused by the network policy | Context7 not installed; Inspect AI's test and exact token counts unavailable | The owner: allow those hosts |
+| No native programmatic tool calling and no native language-server tool | Local scripts and `sym` stand in | The host |

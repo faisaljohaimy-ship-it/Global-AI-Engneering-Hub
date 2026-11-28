@@ -1,0 +1,418 @@
+{
+ "ladder": [
+  {
+   "label": "s01",
+   "actual_agents": 1,
+   "peak_concurrent_agents": 1,
+   "tasks": 5,
+   "verified_tasks": 5,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 69,
+   "hidden_tests_total": 69,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 18.2,
+   "agents_replying_done": 0,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 23.23,
+   "sum_of_agent_seconds": 23.23,
+   "effective_concurrency": 1.0,
+   "tasks_per_minute": 12.91,
+   "models": [
+    "claude-haiku-5-5"
+   ],
+   "agent_tokens": {
+    "input_uncached": 6,
+    "cache_write": 243604,
+    "cache_read": 460006,
+    "input_total": 703616,
+    "output": 5389,
+    "total": 709005
+   },
+   "cache_read_share": 0.6538,
+   "model_roundtrips": 3,
+   "tool_calls": 11,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 6562,
+   "per_verified_task": {
+    "input_total": 140723,
+    "output": 1078,
+    "roundtrips": 0.6,
+    "agent_seconds": 4.65
+   },
+   "helper_calls": {},
+   "orchestrator_tokens": {
+    "input_uncached": 8,
+    "cache_write": 3926,
+    "cache_read": 2124313,
+    "input_total": 2128247,
+    "output": 1655,
+    "roundtrips": 3
+   },
+   "orchestrator_share_of_all_tokens": 0.75,
+   "machine": {
+    "samples": 40,
+    "peak_load_1m": 0.05,
+    "least_memory_available_mb": 15280,
+    "peak_host_process_rss_mb": 502,
+    "host_process_cpu_seconds": 1.6
+   },
+   "registered_agents": 1,
+   "started": "2026-11-28T02:24:39.618708Z",
+   "finished": "2026-11-28T02:25:19.384708Z",
+   "ownership": {
+    "submitted": 5,
+    "approved": 5,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 5
+    },
+    "revision": 20
+   },
+   "all_tokens_with_orchestrator": 2838907,
+   "verified_tasks_per_million_tokens": 1.76
+  },
+  {
+   "label": "s05",
+   "actual_agents": 5,
+   "peak_concurrent_agents": 5,
+   "tasks": 5,
+   "verified_tasks": 5,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 72,
+   "hidden_tests_total": 72,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 26.2,
+   "agents_replying_done": 5,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 21.81,
+   "sum_of_agent_seconds": 82.28,
+   "effective_concurrency": 3.77,
+   "tasks_per_minute": 13.75,
+   "models": [
+    "claude-haiku-5-5"
+   ],
+   "agent_tokens": {
+    "input_uncached": 36,
+    "cache_write": 912459,
+    "cache_read": 3273712,
+    "input_total": 4186207,
+    "output": 10012,
+    "total": 4196219
+   },
+   "cache_read_share": 0.782,
+   "model_roundtrips": 18,
+   "tool_calls": 22,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 8921,
+   "per_verified_task": {
+    "input_total": 837241,
+    "output": 2002,
+    "roundtrips": 3.6,
+    "agent_seconds": 16.46
+   },
+   "helper_calls": {
+    "script": 5
+   },
+   "speedup_against_one_agent": 1.07,
+   "parallel_efficiency": 0.213,
+   "orchestrator_tokens": {
+    "input_uncached": 4,
+    "cache_write": 13079,
+    "cache_read": 1422755,
+    "input_total": 1435838,
+    "output": 7840,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.256,
+   "machine": {
+    "samples": 103,
+    "peak_load_1m": 0.19,
+    "least_memory_available_mb": 15223,
+    "peak_host_process_rss_mb": 537,
+    "host_process_cpu_seconds": 3.3
+   },
+   "registered_agents": 5,
+   "started": "2026-11-28T02:25:19.776429Z",
+   "finished": "2026-11-28T02:27:02.676396Z",
+   "ownership": {
+    "submitted": 5,
+    "approved": 5,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 10
+    },
+    "revision": 40
+   },
+   "all_tokens_with_orchestrator": 5639897,
+   "verified_tasks_per_million_tokens": 0.89
+  },
+  {
+   "label": "s10",
+   "actual_agents": 10,
+   "peak_concurrent_agents": 10,
+   "tasks": 10,
+   "verified_tasks": 10,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 141,
+   "hidden_tests_total": 141,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 23.8,
+   "agents_replying_done": 10,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 20.37,
+   "sum_of_agent_seconds": 144.12,
+   "effective_concurrency": 7.08,
+   "tasks_per_minute": 29.46,
+   "models": [
+    "claude-haiku-5-5"
+   ],
+   "agent_tokens": {
+    "input_uncached": 70,
+    "cache_write": 1821636,
+    "cache_read": 6306927,
+    "input_total": 8128633,
+    "output": 18001,
+    "total": 8146634
+   },
+   "cache_read_share": 0.7759,
+   "model_roundtrips": 35,
+   "tool_calls": 43,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 16099,
+   "per_verified_task": {
+    "input_total": 812863,
+    "output": 1800,
+    "roundtrips": 3.5,
+    "agent_seconds": 14.41
+   },
+   "helper_calls": {
+    "script": 9
+   },
+   "speedup_against_one_agent": 2.28,
+   "parallel_efficiency": 0.228,
+   "orchestrator_tokens": {
+    "input_uncached": 4,
+    "cache_write": 11455,
+    "cache_read": 1448692,
+    "input_total": 1460151,
+    "output": 3993,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.152,
+   "machine": {
+    "samples": 56,
+    "peak_load_1m": 0.33,
+    "least_memory_available_mb": 15117,
+    "peak_host_process_rss_mb": 634,
+    "host_process_cpu_seconds": 5.5
+   },
+   "registered_agents": 10,
+   "started": "2026-11-28T02:27:03.123959Z",
+   "finished": "2026-11-28T02:27:59.165258Z",
+   "ownership": {
+    "submitted": 10,
+    "approved": 10,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 20
+    },
+    "revision": 80
+   },
+   "all_tokens_with_orchestrator": 9610778,
+   "verified_tasks_per_million_tokens": 1.04
+  },
+  {
+   "label": "s20",
+   "actual_agents": 20,
+   "peak_concurrent_agents": 20,
+   "tasks": 20,
+   "verified_tasks": 20,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 282,
+   "hidden_tests_total": 282,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 22.8,
+   "agents_replying_done": 20,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 40.49,
+   "sum_of_agent_seconds": 582.6,
+   "effective_concurrency": 14.39,
+   "tasks_per_minute": 29.64,
+   "models": [
+    "claude-haiku-5-5"
+   ],
+   "agent_tokens": {
+    "input_uncached": 138,
+    "cache_write": 3643506,
+    "cache_read": 12387797,
+    "input_total": 16031441,
+    "output": 37602,
+    "total": 16069043
+   },
+   "cache_read_share": 0.7727,
+   "model_roundtrips": 69,
+   "tool_calls": 85,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 31113,
+   "per_verified_task": {
+    "input_total": 801572,
+    "output": 1880,
+    "roundtrips": 3.45,
+    "agent_seconds": 29.13
+   },
+   "helper_calls": {
+    "script": 19
+   },
+   "speedup_against_one_agent": 2.29,
+   "parallel_efficiency": 0.115,
+   "orchestrator_tokens": {
+    "input_uncached": 4,
+    "cache_write": 688471,
+    "cache_read": 803869,
+    "input_total": 1492344,
+    "output": 8251,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.085,
+   "machine": {
+    "samples": 114,
+    "peak_load_1m": 0.86,
+    "least_memory_available_mb": 14994,
+    "peak_host_process_rss_mb": 753,
+    "host_process_cpu_seconds": 11.3
+   },
+   "registered_agents": 20,
+   "started": "2026-11-28T02:28:00.043065Z",
+   "finished": "2026-11-28T02:29:53.755107Z",
+   "ownership": {
+    "submitted": 20,
+    "approved": 20,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 40
+    },
+    "revision": 160
+   },
+   "all_tokens_with_orchestrator": 17569638,
+   "verified_tasks_per_million_tokens": 1.14
+  }
+ ],
+ "configuration_trace": {
+  "A": {
+   "chars": 83424,
+   "tokens": 33437,
+   "answers_present": 4
+  },
+  "B": {
+   "chars": 29537,
+   "tokens": 16393,
+   "answers_present": 4,
+   "tokens_saved_against_A_percent": 51.0
+  },
+  "C": {
+   "chars": 30370,
+   "tokens": 16739,
+   "answers_present": 5,
+   "tokens_saved_against_A_percent": 49.9
+  },
+  "D": {
+   "chars": 6497,
+   "tokens": 2210,
+   "answers_present": 5,
+   "tokens_saved_against_A_percent": 93.4
+  }
+ },
+ "configuration_agents": {
+  "kind": "one real agent per configuration on the same generated project, each in its own Git worktree; one sample each, so differences are an observation, not a rate",
+  "agents": {
+   "A": {
+    "check": {
+     "tests_pass": true,
+     "files_changed": [
+      "inv/m0.py"
+     ],
+     "lines_added": 1,
+     "lines_removed": 1,
+     "only_the_broken_module_changed": true,
+     "answer_fields_correct": {
+      "fixed_function": true,
+      "direct_callers": true,
+      "failed_event_ids": true,
+      "build_error_code": true
+     },
+     "score": 5,
+     "out_of": 5
+    },
+    "model": "claude-sonnet-5-5",
+    "seconds": 20.37,
+    "roundtrips": 8,
+    "input_uncached": 16,
+    "cache_write": 239581,
+    "cache_read": 1646142,
+    "input_total": 1885739,
+    "output": 1276,
+    "tool_calls": 8,
+    "tools": {
+     "Read": 1,
+     "Bash": 6,
+     "SubagentHandback": 1
+    },
+    "helpers": {
+     "script": 2
+    },
+    "repeated_reads": 0,
+    "tool_output_chars": 7021
+   },
+   "D": {
+    "check": {
+     "tests_pass": true,
+     "files_changed": [
+      "inv/m0.py"
+     ],
+     "lines_added": 1,
+     "lines_removed": 1,
+     "only_the_broken_module_changed": true,
+     "answer_fields_correct": {
+      "fixed_function": true,
+      "direct_callers": true,
+      "failed_event_ids": true,
+      "build_error_code": true
+     },
+     "score": 5,
+     "out_of": 5
+    },
+    "model": "claude-sonnet-5-5",
+    "seconds": 17.36,
+    "roundtrips": 7,
+    "input_uncached": 14,
+    "cache_write": 238546,
+    "cache_read": 1406588,
+    "input_total": 1645148,
+    "output": 1197,
+    "tool_calls": 7,
+    "tools": {
+     "Read": 1,
+     "Bash": 5,
+     "SubagentHandback": 1
+    },
+    "helpers": {
+     "hr": 2,
+     "script": 3
+    },
+    "repeated_reads": 0,
+    "tool_output_chars": 6046
+   }
+  },
+  "token_savings_D_against_A_percent": 12.8,
+  "tool_output_chars_saved_percent": 13.9,
+  "not_run": "Configurations B and C with real agents, and more than one sample: the token limit set before the experiment left no room."
+ }
+}

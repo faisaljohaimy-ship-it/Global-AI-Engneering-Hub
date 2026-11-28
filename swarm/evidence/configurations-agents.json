@@ -1,0 +1,85 @@
+{
+ "kind": "one real agent per configuration on the same generated project, each in its own Git worktree; one sample each, so differences are an observation, not a rate",
+ "agents": {
+  "A": {
+   "check": {
+    "tests_pass": true,
+    "files_changed": [
+     "inv/m0.py"
+    ],
+    "lines_added": 1,
+    "lines_removed": 1,
+    "only_the_broken_module_changed": true,
+    "answer_fields_correct": {
+     "fixed_function": true,
+     "direct_callers": true,
+     "failed_event_ids": true,
+     "build_error_code": true
+    },
+    "score": 5,
+    "out_of": 5
+   },
+   "model": "claude-sonnet-5-5",
+   "seconds": 20.37,
+   "roundtrips": 8,
+   "input_uncached": 16,
+   "cache_write": 239581,
+   "cache_read": 1646142,
+   "input_total": 1885739,
+   "output": 1276,
+   "tool_calls": 8,
+   "tools": {
+    "Read": 1,
+    "Bash": 6,
+    "SubagentHandback": 1
+   },
+   "helpers": {
+    "script": 2
+   },
+   "repeated_reads": 0,
+   "tool_output_chars": 7021
+  },
+  "D": {
+   "check": {
+    "tests_pass": true,
+    "files_changed": [
+     "inv/m0.py"
+    ],
+    "lines_added": 1,
+    "lines_removed": 1,
+    "only_the_broken_module_changed": true,
+    "answer_fields_correct": {
+     "fixed_function": true,
+     "direct_callers": true,
+     "failed_event_ids": true,
+     "build_error_code": true
+    },
+    "score": 5,
+    "out_of": 5
+   },
+   "model": "claude-sonnet-5-5",
+   "seconds": 17.36,
+   "roundtrips": 7,
+   "input_uncached": 14,
+   "cache_write": 238546,
+   "cache_read": 1406588,
+   "input_total": 1645148,
+   "output": 1197,
+   "tool_calls": 7,
+   "tools": {
+    "Read": 1,
+    "Bash": 5,
+    "SubagentHandback": 1
+   },
+   "helpers": {
+    "hr": 2,
+    "script": 3
+   },
+   "repeated_reads": 0,
+   "tool_output_chars": 6046
+  }
+ },
+ "token_savings_D_against_A_percent": 12.8,
+ "tool_output_chars_saved_percent": 13.9,
+ "not_run": "Configurations B and C with real agents, and more than one sample: the token limit set before the experiment left no room."
+}

@@ -1,0 +1,37 @@
+{
+ "recorded": "2026-11-28",
+ "machine": {
+  "cores": 4,
+  "memory_gb": 15.7,
+  "how": "os.cpu_count and /proc/meminfo"
+ },
+ "agent_tool": {
+  "largest_batch_started": 20,
+  "peak_concurrent_measured": 20,
+  "how": "overlap of first-to-last activity in the twenty agents' records; no cap was met up to 20"
+ },
+ "workflow_tool": {
+  "documented_cap": "min(16, cores - 2) agents at once per workflow, which is 2 on this machine",
+  "agents_in_this_run": 4,
+  "peak_concurrent_measured": 2,
+  "how": "the same overlap measure on the four reviewers' records"
+ },
+ "agent_definitions": {
+  "observed": "A definition written during the session was not usable: the host answered that agent type 'swarm-worker' was not found and listed the types it had loaded at the start.",
+  "how": "one refused call at the start of stage one",
+  "after_restart": "After the session's worker process restarted, the same definition was listed and one agent ran with it (evidence/minimal-worker.json)."
+ },
+ "network": {
+  "http_status_and_proxy_status": {
+   "mcp.context7.com": "000/403",
+   "context7.com": "000/403",
+   "openaipublic.blob.core.windows.net": "000/403",
+   "pypi.org": "200/000",
+   "registry.npmjs.org": "200/000",
+   "nodejs.org": "307/200"
+  },
+  "how": "one HTTPS request to each host through the session's proxy; 000/403 means the proxy refused the connection"
+ },
+ "subscription_allowance": "Nothing available to the session reported it: no tool, no variable, no field in a reply. This is an absence that was observed, not a measurement.",
+ "task_store": "engineering_os/orchestration.py, review(): a task becomes done only when testing, security and release have each approved it. The experiment's checker is the testing reviewer, so its forty tasks stay in review."
+}
