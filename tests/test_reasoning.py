@@ -155,7 +155,7 @@ class ReasoningTests(unittest.TestCase):
             self.planned()
 
     def test_numeric_and_list_bounds_reject_nonfinite_bool_and_duplicates(self):
-        for value in [True, float('nan'), float('inf'), -1, '1']:
+        for value in [True, float('nan'), float('inf'), -1, '1', 10 ** 500]:
             self.request = request()
             self.request['nodes'][0]['risk'] = value
             with self.subTest(value=value), self.assertRaises(ReasoningError):

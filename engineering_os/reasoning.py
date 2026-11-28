@@ -39,7 +39,7 @@ def _digest(value):
 
 
 def _number(value, low=0, high=10**9, integer=False):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high or integer and type(value) is not int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not low <= value <= high or not math.isfinite(value) or integer and type(value) is not int:
         raise ReasoningError("Invalid bounded finite number")
     return value
 
