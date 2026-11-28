@@ -311,7 +311,7 @@ def prep(ident: str | None) -> int:
     model, out, ids = resolve(spec, stages), HOME / "work" / spec["id"], []
     out.mkdir(parents=True, exist_ok=True)
     if spec["kind"] == "task":
-        ids = [item["id"] for item in tasks.make(out, spec["size"], spec["first"], spec["tasks"], spec.get("mode", "lean"), PLAN["seed"])]
+        ids = [item["id"] for item in tasks.make(out, spec["size"], spec["first"], spec["tasks"], spec.get("mode", "lean"), spec.get("seed", PLAN["seed"]))]
         scheduler.own(HOME / "state", spec["id"], ids)
     (HOME / "current").write_text(spec["id"])
     checked = None

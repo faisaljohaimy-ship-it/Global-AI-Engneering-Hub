@@ -42,7 +42,8 @@ import workload  # noqa: E402
 HOME = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm")) / "p2"
 ID = re.compile(r"[SMLX]-\d{4}")
 ATTEMPTS = 3
-RAW_CAP, LEAN_CAP = 400000, 4000  # a plain stage shows whole files: its cap must be above the largest file of a project, or part of an answer is hidden
+RAW_CAP, LEAN_CAP = 60000, 4000
+LONG_LINE, AROUND, MATCHES_ON_A_LINE = 400, 80, 60  # a line longer than this is shown match by match, with this much text around each
 PROJECT_FILE = re.compile(r"(inv|tests|data|logs)(/[A-Za-z0-9_.-]+)?")
 FACTS = ("fixed_function", "direct_callers", "failed_event_ids", "build_error_code")
 
@@ -243,8 +244,22 @@ def grep(ident: str, pattern: str, name: str = "") -> None:
     try:
         for path in files:
             for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-                if wanted.search(line):
-                    hits.append(f"{path.relative_to(folder)}:{number}:{line}")
+                if len(line) <= LONG_LINE:
+                    if wanted.search(line):
+                        hits.append(f"{path.relative_to(folder)}:{number}:{line}")
+                    continue
+                # A data file written as one line of 70,000 characters matched whole, and filled a worker's context without
+                # showing it where the match was. Each match of a long line is shown with the text around it instead.
+                found = 0
+                for match in wanted.finditer(line):
+                    found += 1
+                    if found <= MATCHES_ON_A_LINE:
+                        first, last = max(0, match.start() - AROUND), min(len(line), match.end() + AROUND)
+                        hits.append(f"{path.relative_to(folder)}:{number}:at {match.start()}: {'...' if first else ''}{line[first:last]}{'...' if last < len(line) else ''}")
+                    if match.end() == match.start():  # an empty match on every position would never end
+                        break
+                if found > MATCHES_ON_A_LINE:
+                    hits.append(f"{path.relative_to(folder)}:{number}: {found - MATCHES_ON_A_LINE} more matches on this line are not shown; narrow the search")
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
     limit = LEAN_CAP if kit["mode"] == "lean" else RAW_CAP

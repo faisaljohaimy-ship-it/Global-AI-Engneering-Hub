@@ -71,12 +71,16 @@ def carried_over() -> dict:
     teams = sorted((HERE / "evidence").glob("team*.json"))
     parts["third_phase_development_agents"] = sum(json.loads(path.read_text())["totals"]["input_tokens"] for path in teams)
     parts["allowance_for_probe_agents_of_the_team_sessions"] = PROBE_ALLOWANCE * len(teams)
+    earlier = [json.loads(path.read_text()) for path in sorted((HERE / "evidence").glob("run-*.json"))]  # attempts of this run that ended early: their agents ran, so they count
+    parts["earlier_attempts_of_this_run"] = sum(s["agent_tokens"]["input_total"] + (s.get("other_agents_during_the_stage") or {}).get("input_tokens", 0)
+                                                for document in earlier for s in document["stages"] if not s.get("skipped"))
     apart = sum((s.get("orchestrator_tokens") or {}).get("input_total", 0) for s in json.loads(second.read_text())["stages"]) if second.exists() else 0
     return {"total": sum(parts.values()), "parts": parts,
             "reported_apart": {"orchestrator_of_the_second_phase_run": apart,
+                               "orchestrator_of_earlier_attempts_of_this_run": sum((s.get("orchestrator_tokens") or {}).get("input_total", 0) for document in earlier for s in document["stages"]),
                                "development_agents_in_the_total": {path.name: json.loads(path.read_text())["totals"]["input_tokens"] for path in teams},
                                "note": "The limit has counted the input tokens of the experiment's agents since the first phase. Not in the total: what the orchestrating sessions "
-                                       "read. Only the second phase's run has that figure, given here; the orchestrating sessions of the first phase, of the trial, of the two team "
+                                       "read. The second phase's run and the earlier attempts of this run have that figure, given here; the orchestrating sessions of the first phase, of the trial, of the two team "
                                        "sessions and of this run are not in the total, and this run's is measured per stage beside its agents. The authoring session is in no figure. "
                                        "The allowance for the team sessions' probe agents is a copy of the second phase's probe stage, an estimate. The development agents of the first "
                                        "round and the development agents of the second round are in the total, from team.json and team2.json. An input token is counted each time it is read, cache reads included."}}
