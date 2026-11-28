@@ -11,20 +11,26 @@
     "process_count_limit": false
   },
   "host": {
+    "apparmor_restrict_unprivileged_userns": null,
     "caller_is_root": true,
+    "ipv6": false,
     "kernel": "6.18",
+    "libseccomp": true,
     "machine": "x86_64",
+    "max_user_namespaces": "64271",
+    "measured_here_only": "values hold for this host; other hosts measure their own tier",
     "python": "3.13.18",
+    "uid_is_root": true,
+    "unprivileged_userns_clone": null,
     "unshare": "unshare from util-linux 2.39.3"
   },
   "measured": true,
   "measured_on": "2026-11-28",
   "not_enforced": [
     "number of processes: a sandbox mapped to uid 0 is exempt from RLIMIT_NPROC (bounded by timeout only)",
-    "unix sockets inside allowed_paths or read_paths can be connected to",
-    "network=True shares the host network, including loopback services",
-    "system directories (/usr, /etc, /bin, /sbin, /lib*) are readable",
-    "kernel attack surface: no seccomp filter is installed"
+    "the base probe does not measure strict profile socket, filesystem or environment restrictions",
+    "legacy calls can reach visible unix sockets and opt into the host network",
+    "system runtime directories are read-only; legacy calls can also read host /etc"
   ],
   "probes": [
     {
@@ -38,7 +44,7 @@
       "result": true
     },
     {
-      "command": "unshare --user --map-root-user --mount --propagation private --pid --fork --kill-child --net -- python3 -I -S -c <governor._sandbox_init> <spec>; then python3 -I -S -c <probe>",
+      "command": "unshare --user --map-root-user --mount --propagation private --pid --fork --kill-child --net -- python3 -I -B -S -c <governor._sandbox_init> <spec>; then python3 -I -S -c <probe>",
       "name": "full sandbox walls, checked from inside and from the host",
       "result": {
         "cap_eff": "0000000000000000",
@@ -53,12 +59,562 @@
         "write_outside": "FileNotFoundError:2",
         "write_usr": "OSError:30"
       }
+    },
+    {
+      "command": "python3 scripts/isolation_evidence.py --out docs/evidence/gaie-20-layers/isolation.json",
+      "name": "isolation property matrix: real children per launcher, checked inside and from the host",
+      "result": {
+        "launchers": {
+          "detectors.Sandbox os": {
+            "launch": {
+              "isolation": {
+                "environment": "exact-minimal",
+                "fs_isolated": true,
+                "launcher": "governor.sandbox_run",
+                "limit": null,
+                "mode": "os",
+                "network": "private-loopback",
+                "opt_in": false,
+                "tier": "governor-full"
+              },
+              "status": "ok"
+            },
+            "properties": {
+              "af_inet6_host_loopback": {
+                "observed": "not applicable here",
+                "status": "not-available"
+              },
+              "af_inet_host_address": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "af_inet_host_loopback": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "af_unix_outside": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "ambient_environment_variable": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "capabilities": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "child_process_contained": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "descendant_outlives_run": {
+                "observed": "host sees 0 survivor(s) after the run",
+                "status": "enforced"
+              },
+              "git_pointer_write": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "host_pid_visible": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "read_caller_home": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "read_etc_passwd": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "read_outside_file": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "write_outside_workspace": {
+                "observed": "held inside the target test; host sees escaped.txt: False",
+                "status": "enforced"
+              }
+            },
+            "ran": true,
+            "role": "self-healing and upgrade runs of target tests (default isolation 'os')"
+          },
+          "detectors.Sandbox process-only": {
+            "launch": {
+              "isolation": {
+                "audit_log": "governor-audit.jsonl",
+                "environment": "exact-minimal",
+                "fs_isolated": false,
+                "launcher": "subprocess",
+                "mode": "process-only",
+                "network": "python-guard-only",
+                "opt_in": true,
+                "tier": "process-only"
+              },
+              "status": "ok"
+            },
+            "properties": {
+              "af_inet6_host_loopback": {
+                "observed": "not applicable here",
+                "status": "not-available"
+              },
+              "af_inet_host_address": {
+                "observed": "ok:connected",
+                "status": "not-enforced"
+              },
+              "af_inet_host_loopback": {
+                "observed": "ok:connected",
+                "status": "not-enforced"
+              },
+              "af_unix_outside": {
+                "observed": "ok:connected",
+                "status": "not-enforced"
+              },
+              "ambient_environment_variable": {
+                "observed": "held inside the target test",
+                "status": "enforced"
+              },
+              "capabilities": {
+                "observed": "CapEff 000001fffeffffff euid 0",
+                "status": "not-enforced"
+              },
+              "child_process_contained": {
+                "observed": "child exit 0",
+                "status": "not-enforced"
+              },
+              "descendant_outlives_run": {
+                "observed": "host sees 0 survivor(s) after the run",
+                "status": "enforced"
+              },
+              "git_pointer_write": {
+                "observed": "ok:1",
+                "status": "not-enforced"
+              },
+              "host_pid_visible": {
+                "observed": "ok:None",
+                "status": "not-enforced"
+              },
+              "read_caller_home": {
+                "observed": "ok:16832",
+                "status": "not-enforced"
+              },
+              "read_etc_passwd": {
+                "observed": "ok:2792",
+                "status": "not-enforced"
+              },
+              "read_outside_file": {
+                "observed": "ok:host-only",
+                "status": "not-enforced"
+              },
+              "write_outside_workspace": {
+                "observed": "ok:1; host sees escaped.txt: True",
+                "status": "not-enforced"
+              }
+            },
+            "ran": true,
+            "role": "explicit, audited opt-in without OS isolation (recorded in every result)"
+          },
+          "governor.sandbox_run loopback": {
+            "launch": {
+              "fs_isolated": true,
+              "network_isolated": true
+            },
+            "properties": {
+              "af_inet6_host_loopback": {
+                "observed": "host has no IPv6",
+                "status": "not-available"
+              },
+              "af_inet_host_address": {
+                "observed": "OSError:101",
+                "status": "enforced"
+              },
+              "af_inet_host_loopback": {
+                "observed": "ConnectionRefusedError:111",
+                "status": "enforced"
+              },
+              "af_unix_outside": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "ambient_environment_variable": {
+                "observed": "absent; names: HOME,LANG,LC_CTYPE,PATH",
+                "status": "enforced"
+              },
+              "capabilities": {
+                "observed": "CapEff 0000000000000000 euid 0",
+                "status": "enforced"
+              },
+              "child_process_contained": {
+                "observed": "child exit 1",
+                "status": "enforced"
+              },
+              "descendant_outlives_run": {
+                "observed": "host sees 0 survivor(s) after the run",
+                "status": "enforced"
+              },
+              "git_pointer_write": {
+                "observed": "ok:1",
+                "status": "not-enforced"
+              },
+              "host_pid_visible": {
+                "observed": "ProcessLookupError:3",
+                "status": "enforced"
+              },
+              "read_caller_home": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_etc_passwd": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_outside_file": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "write_outside_workspace": {
+                "observed": "FileNotFoundError:2; host sees escaped.txt: False",
+                "status": "enforced"
+              }
+            },
+            "ran": true,
+            "role": "governor sandbox, loopback=True (non-strict, private loopback, /etc hidden)"
+          },
+          "governor.sandbox_run strict": {
+            "launch": {
+              "fs_isolated": true,
+              "network_isolated": true
+            },
+            "properties": {
+              "af_inet6_host_loopback": {
+                "observed": "host has no IPv6",
+                "status": "not-available"
+              },
+              "af_inet_host_address": {
+                "observed": "PermissionError:1",
+                "status": "enforced"
+              },
+              "af_inet_host_loopback": {
+                "observed": "PermissionError:1",
+                "status": "enforced"
+              },
+              "af_unix_outside": {
+                "observed": "PermissionError:1",
+                "status": "enforced"
+              },
+              "ambient_environment_variable": {
+                "observed": "absent; names: HOME,LANG,LC_CTYPE,PATH",
+                "status": "enforced"
+              },
+              "capabilities": {
+                "observed": "CapEff 0000000000000000 euid 0",
+                "status": "enforced"
+              },
+              "child_process_contained": {
+                "observed": "child exit 1",
+                "status": "enforced"
+              },
+              "descendant_outlives_run": {
+                "observed": "host sees 0 survivor(s) after the run",
+                "status": "enforced"
+              },
+              "git_pointer_write": {
+                "observed": "OSError:30",
+                "status": "enforced"
+              },
+              "host_pid_visible": {
+                "observed": "ProcessLookupError:3",
+                "status": "enforced"
+              },
+              "read_caller_home": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_etc_passwd": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_outside_file": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "write_outside_workspace": {
+                "observed": "FileNotFoundError:2; host sees escaped.txt: False",
+                "status": "enforced"
+              }
+            },
+            "ran": true,
+            "role": "governor sandbox, require_fs_isolation=True (quality-assurance.run-tests, workspace supervisor, layers.verify strict profile)"
+          },
+          "layers._run loopback": {
+            "launch": {
+              "environment": "scrubbed",
+              "limit": null,
+              "profile": "loopback",
+              "reason": null,
+              "sandboxed": true,
+              "tier": "full"
+            },
+            "properties": {
+              "af_inet6_host_loopback": {
+                "observed": "host has no IPv6",
+                "status": "not-available"
+              },
+              "af_inet_host_address": {
+                "observed": "OSError:101",
+                "status": "enforced"
+              },
+              "af_inet_host_loopback": {
+                "observed": "ConnectionRefusedError:111",
+                "status": "enforced"
+              },
+              "af_unix_outside": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "ambient_environment_variable": {
+                "observed": "absent; names: HOME,LANG,PATH,TMPDIR",
+                "status": "enforced"
+              },
+              "capabilities": {
+                "observed": "CapEff 0000000000000000 euid 0",
+                "status": "enforced"
+              },
+              "child_process_contained": {
+                "observed": "child exit 1",
+                "status": "enforced"
+              },
+              "descendant_outlives_run": {
+                "observed": "host sees 0 survivor(s) after the run",
+                "status": "enforced"
+              },
+              "git_pointer_write": {
+                "observed": "no .git pointer in this launcher's writable scope",
+                "status": "not-available"
+              },
+              "host_pid_visible": {
+                "observed": "ProcessLookupError:3",
+                "status": "enforced"
+              },
+              "read_caller_home": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_etc_passwd": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_outside_file": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "write_outside_workspace": {
+                "observed": "FileNotFoundError:2; host sees escaped.txt: False",
+                "status": "enforced"
+              }
+            },
+            "ran": true,
+            "role": "layers.verify profile for tests that run a local server"
+          },
+          "layers._run process-only": {
+            "launch": {
+              "environment": "scrubbed",
+              "profile": "process-only",
+              "reason": "measurement",
+              "sandboxed": false,
+              "tier": "full"
+            },
+            "properties": {
+              "af_inet6_host_loopback": {
+                "observed": "host has no IPv6",
+                "status": "not-available"
+              },
+              "af_inet_host_address": {
+                "observed": "ok:connected",
+                "status": "not-enforced"
+              },
+              "af_inet_host_loopback": {
+                "observed": "ok:connected",
+                "status": "not-enforced"
+              },
+              "af_unix_outside": {
+                "observed": "ok:connected",
+                "status": "not-enforced"
+              },
+              "ambient_environment_variable": {
+                "observed": "absent; names: HOME,LANG,PATH,TMPDIR",
+                "status": "enforced"
+              },
+              "capabilities": {
+                "observed": "CapEff 000001fffeffffff euid 0",
+                "status": "not-enforced"
+              },
+              "child_process_contained": {
+                "observed": "child exit 0",
+                "status": "not-enforced"
+              },
+              "descendant_outlives_run": {
+                "observed": "host sees 0 survivor(s) after the run",
+                "status": "enforced"
+              },
+              "git_pointer_write": {
+                "observed": "no .git pointer in this launcher's writable scope",
+                "status": "not-available"
+              },
+              "host_pid_visible": {
+                "observed": "ok:None",
+                "status": "not-enforced"
+              },
+              "read_caller_home": {
+                "observed": "ok:16832",
+                "status": "not-enforced"
+              },
+              "read_etc_passwd": {
+                "observed": "ok:2792",
+                "status": "not-enforced"
+              },
+              "read_outside_file": {
+                "observed": "ok:host-only",
+                "status": "not-enforced"
+              },
+              "write_outside_workspace": {
+                "observed": "ok:1; host sees escaped.txt: True",
+                "status": "not-enforced"
+              }
+            },
+            "ran": true,
+            "role": "layers.verify exception list and hosts without the full tier"
+          },
+          "layers._run strict": {
+            "launch": {
+              "environment": "scrubbed",
+              "limit": null,
+              "profile": "strict",
+              "reason": null,
+              "sandboxed": true,
+              "tier": "full"
+            },
+            "properties": {
+              "af_inet6_host_loopback": {
+                "observed": "host has no IPv6",
+                "status": "not-available"
+              },
+              "af_inet_host_address": {
+                "observed": "PermissionError:1",
+                "status": "enforced"
+              },
+              "af_inet_host_loopback": {
+                "observed": "PermissionError:1",
+                "status": "enforced"
+              },
+              "af_unix_outside": {
+                "observed": "PermissionError:1",
+                "status": "enforced"
+              },
+              "ambient_environment_variable": {
+                "observed": "absent; names: HOME,LANG,PATH,TMPDIR",
+                "status": "enforced"
+              },
+              "capabilities": {
+                "observed": "CapEff 0000000000000000 euid 0",
+                "status": "enforced"
+              },
+              "child_process_contained": {
+                "observed": "child exit 1",
+                "status": "enforced"
+              },
+              "descendant_outlives_run": {
+                "observed": "host sees 0 survivor(s) after the run",
+                "status": "enforced"
+              },
+              "git_pointer_write": {
+                "observed": "no .git pointer in this launcher's writable scope",
+                "status": "not-available"
+              },
+              "host_pid_visible": {
+                "observed": "ProcessLookupError:3",
+                "status": "enforced"
+              },
+              "read_caller_home": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_etc_passwd": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "read_outside_file": {
+                "observed": "FileNotFoundError:2",
+                "status": "enforced"
+              },
+              "write_outside_workspace": {
+                "observed": "FileNotFoundError:2; host sees escaped.txt: False",
+                "status": "enforced"
+              }
+            },
+            "ran": true,
+            "role": "layers.verify default profile"
+          }
+        },
+        "plain_tier_behaviour": {
+          "detectors.Sandbox (default os)": {
+            "observed": "the governor's full OS sandbox is not available on this host (tier plain)",
+            "status": "refused"
+          },
+          "governor.sandbox_run loopback": {
+            "observed": "network-isolation-unavailable",
+            "status": "refused"
+          },
+          "governor.sandbox_run strict": {
+            "observed": "filesystem-isolation-unavailable",
+            "status": "refused"
+          },
+          "layers._run (verify)": {
+            "observed": "runs as process-only with the scrubbed environment; recorded: governor full sandbox unavailable on this host (tier plain)",
+            "status": "not-enforced"
+          },
+          "nothing executed by a refusing launcher": {
+            "observed": "flag file absent",
+            "status": "enforced"
+          }
+        },
+        "properties": [
+          "write_outside_workspace",
+          "read_outside_file",
+          "read_etc_passwd",
+          "read_caller_home",
+          "ambient_environment_variable",
+          "af_inet_host_loopback",
+          "af_inet_host_address",
+          "af_inet6_host_loopback",
+          "af_unix_outside",
+          "git_pointer_write",
+          "host_pid_visible",
+          "capabilities",
+          "child_process_contained",
+          "descendant_outlives_run"
+        ],
+        "sources": {
+          "engineering_os/detectors.py:DRIVER,Sandbox,_interpreter,_tail,_output_limit,_sweep,_stop": "5cab62c0cfbbc7b36984e8eedf5f407b9ac32c9cd297c9290dabc86602716545",
+          "engineering_os/governor.py:sandbox_run,_run_full,_run_plain,_launch,_environment,_strict_paths,_inspect_scope,_exec_prefix,_disable_socket_creation,_loopback_up,_sandbox_init,isolation_probe,_probe_sandbox,isolation_report": "fb74fd8abd3417ff7eda62187b8327b26fb6dc562621afcb100f9ee3a156df83",
+          "engineering_os/layers.py:_python,_outside_system,_workspace,_git_metadata,_scrubbed_env,_profile,_run": "b001f6c6a8a35968ba59715f778fd426dff5c21c7b798b1067bec317b01f7742",
+          "scripts/isolation_evidence.py": "422ac98d7f6ff95d3b0a37e473b527c4a6669058ca72e3a989416daa68eb16e9"
+        },
+        "statuses": [
+          "enforced",
+          "not-enforced",
+          "refused",
+          "not-available"
+        ]
+      }
     }
   ],
   "schema": "gaie-isolation/v1",
   "simulated": false,
   "tests": [
-    "tests/test_governor.py"
+    "tests/test_governor.py",
+    "tests/test_isolation_enforcement.py"
   ],
   "tier": "full"
 }

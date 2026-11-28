@@ -921,6 +921,121 @@ print(len(procs))
         self.assertEqual(checks["cap_eff"], "0000000000000000")
 
 
+def require_full_tier():
+    """True when GAIE_REQUIRE_FULL_SANDBOX=1: a missing full tier is then a failure, never a skip."""
+    return os.environ.get("GAIE_REQUIRE_FULL_SANDBOX") == "1"
+
+
+def host_address():
+    """A non-loopback IPv4 address of this host (the source of its default route), or None."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        try:
+            probe.connect(("192.0.2.1", 9))  # UDP connect sends nothing; it only selects a source
+        except OSError:
+            return None
+        address = probe.getsockname()[0]
+    return None if address.startswith("127.") or address == "0.0.0.0" else address
+
+
+class RequiredTierTests(unittest.TestCase):
+    def test_required_full_tier_is_present(self):
+        """CI sets GAIE_REQUIRE_FULL_SANDBOX=1 on a runner with user namespaces: this fails there,
+        instead of letting SandboxTests skip, when the full tier cannot be built."""
+        probe = governor.isolation_probe()
+        if not require_full_tier():
+            raise unittest.SkipTest(f"GAIE_REQUIRE_FULL_SANDBOX is not set (tier here: {probe['tier']})")
+        self.assertEqual(probe["tier"], "full", f"the full sandbox is required here; probe: {probe}")
+
+
+class LoopbackSandboxTests(Workspace):
+    """loopback=True: a private loopback inside the sandbox; the host network stays unreachable."""
+
+    INSIDE = r"""
+import json, socket, sys, threading
+port, host = int(sys.argv[1]), sys.argv[2]
+r = {}
+server = socket.socket()
+try:
+    server.bind(("127.0.0.1", port))  # the host listener holds this port in the host namespace
+    server.listen(1)
+    def serve():
+        peer, _ = server.accept()
+        peer.sendall(peer.recv(1).upper())
+        peer.close()
+    threading.Thread(target=serve, daemon=True).start()
+    client = socket.create_connection(("127.0.0.1", port), timeout=3)
+    client.sendall(b"x")
+    r["inside_exchange"] = client.recv(1).decode()
+    client.close()
+except OSError as exc:
+    r["inside_exchange"] = "errno:%s" % exc.errno
+import os
+r["etc"] = sorted(os.listdir("/etc")) if os.path.isdir("/etc") else "absent"
+for name, target in (("host_address", (host, port)), ("public_ip", ("1.1.1.1", 443))):
+    if target[0] == "-":
+        continue
+    try:
+        socket.create_connection(target, timeout=2).close()
+        r[name] = "connected"
+    except OSError as exc:
+        r[name] = "errno:%s" % exc.errno
+print(json.dumps(r, sort_keys=True))
+"""
+
+    def test_loopback_argument_is_checked_on_every_host(self):
+        for reason, kw in (("invalid-limit", {"loopback": "yes"}),
+                           ("invalid-sandbox-mode", {"loopback": True, "network": True}),
+                           ("invalid-sandbox-mode", {"loopback": True, "require_fs_isolation": True}),
+                           ("invalid-sandbox-mode", {"loopback": True, "read_only": True, "allowed_paths": [],
+                                                     "read_paths": [self.workspace]})):
+            with self.subTest(kw=kw), self.denied(reason):
+                self.run_in(**kw)
+        plain = {"tier": "plain", "root_netns": True, "userns_netns": True, "unshare": True, "root": True,
+                 "full_checks": None}
+        marker = self.workspace / "ran.txt"
+        with mock.patch.object(governor, "isolation_probe", return_value=plain), \
+                mock.patch.object(governor, "_run_plain", side_effect=AssertionError("plain dispatch forbidden")):
+            with self.denied("network-isolation-unavailable"):
+                self.run_in(("sh", "-c", f"echo x > {marker}"), loopback=True)
+        self.assertFalse(marker.exists())
+
+    def test_private_loopback_or_measured_refusal(self):
+        listeners = []
+        for address in ("127.0.0.1", host_address()):
+            if address is None:
+                continue
+            listener = socket.socket()
+            self.addCleanup(listener.close)
+            listener.bind((address, 0 if not listeners else listeners[0].getsockname()[1]))
+            listener.listen(4)
+            listener.setblocking(False)
+            listeners.append(listener)
+        port = listeners[0].getsockname()[1]
+        host = host_address() or "-"
+        command = (os.path.realpath(sys.executable), "-I", "-S", "-c", self.INSIDE, str(port), host)
+        if governor.isolation_probe()["tier"] != "full":
+            self.assertFalse(require_full_tier(), "GAIE_REQUIRE_FULL_SANDBOX=1 but the full tier is missing")
+            with self.denied("network-isolation-unavailable"):
+                self.run_in(command, loopback=True, timeout=20)
+            return
+        result = self.run_in(command, loopback=True, timeout=20)
+        self.assertEqual(result["returncode"], 0, result["stderr"])
+        self.assertTrue(result["fs_isolated"] and result["network_isolated"])
+        seen = json.loads(result["stdout"])
+        self.assertEqual(seen["inside_exchange"], "X")  # same port number as the host listener: own namespace
+        self.assertEqual(seen["etc"], [])  # host configuration files (passwd, shadow, keys) are not mounted
+        self.assertEqual(seen["public_ip"], "errno:101")
+        if host != "-":
+            self.assertEqual(seen["host_address"], "errno:101")
+        for listener in listeners:
+            with self.assertRaises(BlockingIOError):
+                listener.accept()
+        default = self.run_in(command, timeout=20)  # the default is unchanged: no interface is up
+        plain_profile = json.loads(default["stdout"])
+        self.assertEqual(plain_profile["inside_exchange"], "errno:101", default["stderr"])
+        self.assertIn("passwd", plain_profile["etc"])  # unchanged default: legacy calls still see /etc
+
+
 class EvidenceTests(unittest.TestCase):
     def test_isolation_evidence_is_measured_and_public_safe(self):
         evidence = json.loads(EVIDENCE.read_text())
