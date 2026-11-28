@@ -572,7 +572,9 @@
       "tests/test_isolation_fixes_git.py",
       "tests/test_isolation_fixes_planted_git.py",
       "tests/test_isolation_fixes_relaunch.py",
-      "tests/test_isolation_fixes_governor.py"
+      "tests/test_isolation_fixes_governor.py",
+      "tests/test_recheck_fixes_remote_ascii.py",
+      "tests/test_recheck_fixes_repo_id.py"
     ],
     "scenarios": [
       {
@@ -704,7 +706,10 @@
     "tests": [
       "tests/test_release_provenance.py",
       "tests/test_sdk.py",
-      "tests/test_review_fixes_sdk_submodules.py"
+      "tests/test_review_fixes_sdk_submodules.py",
+      "tests/test_recheck_fixes_release_git.py",
+      "tests/test_recheck_fixes_sdk_nested.py",
+      "tests/test_recheck_fixes_sdk_promisor.py"
     ],
     "scenarios": [],
     "evidence": {
@@ -878,7 +883,9 @@
       "tests/test_gaie_memory_journal.py",
       "tests/test_review_fixes_memory_readonly.py",
       "tests/test_review_fixes_memory_resume_cli.py",
-      "tests/test_review_fixes_memory_secrets.py"
+      "tests/test_review_fixes_memory_secrets.py",
+      "tests/test_recheck_fixes_memory_arabic.py",
+      "tests/test_recheck_fixes_memory_doc.py"
     ],
     "scenarios": [
       {

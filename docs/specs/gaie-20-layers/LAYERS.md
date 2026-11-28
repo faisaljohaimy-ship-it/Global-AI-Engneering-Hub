@@ -407,7 +407,7 @@ Responsibilities:
 - **Tools:** `python3`, `git`
 - **Skills:** `skills/security-review/SKILL.md`
 - **Agents:** `agent-isolation-security-engineer`, `enterprise-security-privacy-engineer`, `testing-self-healing-engineer`
-- **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`, `tests/test_governor.py`, `tests/test_security_enterprise.py`, `tests/test_workspace_policy.py`, `tests/test_master_audit_permissions.py`, `tests/test_isolation_fixes_git.py`, `tests/test_isolation_fixes_planted_git.py`, `tests/test_isolation_fixes_relaunch.py`, `tests/test_isolation_fixes_governor.py`
+- **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`, `tests/test_governor.py`, `tests/test_security_enterprise.py`, `tests/test_workspace_policy.py`, `tests/test_master_audit_permissions.py`, `tests/test_isolation_fixes_git.py`, `tests/test_isolation_fixes_planted_git.py`, `tests/test_isolation_fixes_relaunch.py`, `tests/test_isolation_fixes_governor.py`, `tests/test_recheck_fixes_remote_ascii.py`, `tests/test_recheck_fixes_repo_id.py`
 - **Scenarios:** E — `tests/test_governor.py` `StrictSandboxTests`, `SandboxTests`
 - **Evidence boundary:** SHA-pinned CI and test/audit evidence; no blanket compliance claim
 - **Evidence status:** VERIFIED — 9/9 test files, 201 test cases passed; 40 sources bound (`source_sha256` 41a26f47eb955ab6…).
@@ -447,7 +447,7 @@ Responsibilities:
 - **Tools:** `python3`
 - **Skills:** `skills/release-engineering/SKILL.md`, `skills/gaie-release/SKILL.md`
 - **Agents:** `github-integration-release-engineer`
-- **Tests:** `tests/test_release_provenance.py`, `tests/test_sdk.py`, `tests/test_review_fixes_sdk_submodules.py`
+- **Tests:** `tests/test_release_provenance.py`, `tests/test_sdk.py`, `tests/test_review_fixes_sdk_submodules.py`, `tests/test_recheck_fixes_release_git.py`, `tests/test_recheck_fixes_sdk_nested.py`, `tests/test_recheck_fixes_sdk_promisor.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Existing provider projects preserved; incomplete permissions block relinking
 - **Evidence status:** VERIFIED — 2/2 test files, 18 test cases passed; 5 sources bound (`source_sha256` 39a862e5a5d7f3ad…).
@@ -508,7 +508,7 @@ Responsibilities:
 - **Tools:** `python3`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `persistent-memory-engineer`
-- **Tests:** `tests/test_engineering_memory.py`, `tests/test_gaie_factory.py`, `tests/test_memory_unified.py`, `tests/test_gaie_memory_journal.py`, `tests/test_review_fixes_memory_readonly.py`, `tests/test_review_fixes_memory_resume_cli.py`, `tests/test_review_fixes_memory_secrets.py`
+- **Tests:** `tests/test_engineering_memory.py`, `tests/test_gaie_factory.py`, `tests/test_memory_unified.py`, `tests/test_gaie_memory_journal.py`, `tests/test_review_fixes_memory_readonly.py`, `tests/test_review_fixes_memory_resume_cli.py`, `tests/test_review_fixes_memory_secrets.py`, `tests/test_recheck_fixes_memory_arabic.py`, `tests/test_recheck_fixes_memory_doc.py`
 - **Scenarios:** D — `tests/test_memory_unified.py` `ScenarioDTests`
 - **Evidence boundary:** Private file-backed memory outside Git; lexical retrieval, not embeddings; checksums detect corruption only
 - **Evidence status:** VERIFIED — 3/3 test files, 59 test cases passed; 14 sources bound (`source_sha256` 710ad550f12e7e17…).
