@@ -1455,6 +1455,16 @@ def _git(cwd, *args, moment=None, env=None, check=True):
 
 def _write_files(target, files):
     target.mkdir(mode=0o700, exist_ok=True)
+    # check_target also accepts an existing empty directory, which keeps its own mode (measured: 0777 stayed
+    # 0777): make it private when the caller owns it, refuse it otherwise (recheck-security item 5). The
+    # directory is opened without following a link and changed through that descriptor.
+    handle = os.open(target, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        _need(os.fstat(handle).st_uid == os.geteuid(), f"the target directory {target} is not owned by the caller",
+              WorkspaceError)
+        os.fchmod(handle, 0o700)
+    finally:
+        os.close(handle)
     for relative, data in sorted(files.items()):
         parts = pathlib.PurePosixPath(relative).parts
         _need(parts and not relative.startswith("/") and ".." not in parts and parts[0] != ".git",
