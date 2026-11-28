@@ -11,9 +11,9 @@
   "phase2_output_tokens": 6000000
  },
  "figures": {
-  "input_tokens_counted": 82772460,
+  "input_tokens_counted": 93239544,
   "cap": 150000000,
-  "agents_started_in_phase_2": 41,
+  "agents_started_in_phase_2": 261,
   "projected_for_stage": null
  },
  "stages": [
@@ -804,6 +804,383 @@
     "handed_in": 20,
     "given_up": 0,
     "workers_that_drew_a_task": 20,
+    "most_tasks_one_worker_took": 1,
+    "batch_allowed": 1,
+    "agent_calls_per_message": 20
+   },
+   "counted_before_this_run": {
+    "total": 80363944,
+    "parts": {
+     "first_phase": 36168638,
+     "second_phase_trial_in_the_authoring_session": 2219321,
+     "second_phase_stages": 29793041,
+     "third_phase_development_agents": 9532903,
+     "allowance_for_probe_agents_of_the_team_sessions": 95954,
+     "earlier_attempts_of_this_run": 2554087
+    },
+    "reported_apart": {
+     "orchestrator_of_the_second_phase_run": 19656431,
+     "orchestrator_of_earlier_attempts_of_this_run": 689575,
+     "development_agents_in_the_total": {
+      "team.json": 3896199,
+      "team2.json": 5636704
+     },
+     "note": "The limit has counted the input tokens of the experiment's agents since the first phase. Not in the total: what the orchestrating sessions read. The second phase's run and the earlier attempts of this run have that figure, given here; the orchestrating sessions of the first phase, of the trial, of the two team sessions and of this run are not in the total, and this run's is measured per stage beside its agents. The authoring session is in no figure. The allowance for the team sessions' probe agents is a copy of the second phase's probe stage, an estimate. The development agents of the first round and the development agents of the second round are in the total, from team.json and team2.json. An input token is counted each time it is read, cache reads included."
+    }
+   }
+  },
+  {
+   "label": "b20",
+   "actual_agents": 20,
+   "peak_concurrent_agents": 20,
+   "tasks": 100,
+   "verified_tasks": 100,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 1410,
+   "hidden_tests_total": 1410,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 20.5,
+   "agents_replying_done": 18,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 49.19,
+   "sum_of_agent_seconds": 672.72,
+   "effective_concurrency": 13.68,
+   "tasks_per_minute": 121.98,
+   "models": [
+    "haiku"
+   ],
+   "agent_tokens": {
+    "input_uncached": 544,
+    "cache_write": 442319,
+    "cache_read": 5111151,
+    "input_total": 5554014,
+    "output": 75852,
+    "total": 5629866
+   },
+   "cache_read_share": 0.9203,
+   "model_roundtrips": 264,
+   "tool_calls": 256,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 90903,
+   "per_verified_task": {
+    "input_total": 55540,
+    "output": 759,
+    "roundtrips": 2.64,
+    "agent_seconds": 6.73
+   },
+   "helper_calls": {},
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 142809,
+    "cache_read": 261600,
+    "input_total": 404412,
+    "output": 3539,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.068,
+   "machine": {
+    "samples": 76,
+    "peak_load_1m": 0.91,
+    "least_memory_available_mb": 15284,
+    "peak_host_process_rss_mb": 533,
+    "host_process_cpu_seconds": 18.8
+   },
+   "kind": "task",
+   "size": "small",
+   "agent_type": "swarm-queue",
+   "model": "haiku",
+   "effort": "low",
+   "mode": null,
+   "delivery": "queue",
+   "registered_agents": 20,
+   "started": "2026-11-28T06:03:19.370090Z",
+   "finished": "2026-11-28T06:04:34.804195Z",
+   "first_request_context": {
+    "median": 5595,
+    "least": 5595,
+    "most": 5595
+   },
+   "first_request_read_from_cache": 0.4406,
+   "cache_written": {
+    "five_minutes": 442319,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 1443818,
+   "swk_calls": 236,
+   "refused_calls": 0,
+   "foreign_calls": 0,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-queue"
+   ],
+   "replies_per_agent": {
+    "median": 13.0,
+    "most": 15
+   },
+   "ownership": {
+    "submitted": 100,
+    "approved": 100,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 130
+    },
+    "revision": 520
+   },
+   "not_verified": [],
+   "worker_command": {
+    "hand_ins": 116,
+    "calls": 216,
+    "characters_printed": 85403,
+    "headroom_views": 0
+   },
+   "per_verified_task_cost_units": 14438,
+   "guard_enforced": true,
+   "index_cross_check": null,
+   "other_agents_during_the_stage": {
+    "agents": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "note": "Agents of another type that began while the stage was open. They are not its workers; their tokens count against the limit."
+   },
+   "agents_that_wrote_no_reply": 0,
+   "ledger": {
+    "agents": 20,
+    "tool_calls": 256,
+    "by_class": {
+     "hand-back": 20,
+     "worker command": 236
+    },
+    "by_tool": {
+     "Bash": 236,
+     "SubagentHandback": 20
+    },
+    "calls_a_gate_must_have_seen_by_agent_type": {
+     "swarm-queue": 236
+    },
+    "calls_outside_the_contract_that_ran": {},
+    "clean": true,
+    "agents_with_type_not_recorded": 0,
+    "empty_records": 0,
+    "unreadable_lines": 0,
+    "results_without_a_call": 0,
+    "repeated_call_ids": 0,
+    "repeated_result_ids": 0,
+    "gate": {
+     "calls_the_gate_saw_by_agent_type": {
+      "swarm-queue": 236
+     },
+     "calls_in_records_the_gate_did_not_see": {},
+     "compared_by": "agent",
+     "agents_the_gate_saw_that_have_no_record_here": 0,
+     "their_calls": 0,
+     "refused_by_the_gate_in_its_own_record": 0,
+     "gate_lines_unusable": 0,
+     "reconciled": true
+    },
+    "agents_of_other_types_started_during_the_stage": 0
+   },
+   "queue": {
+    "tasks": 100,
+    "left_waiting": 0,
+    "claimed_and_not_handed_in": 0,
+    "handed_in": 100,
+    "given_up": 0,
+    "workers_that_drew_a_task": 20,
+    "most_tasks_one_worker_took": 5,
+    "batch_allowed": 5,
+    "agent_calls_per_message": 20
+   },
+   "counted_before_this_run": {
+    "total": 80363944,
+    "parts": {
+     "first_phase": 36168638,
+     "second_phase_trial_in_the_authoring_session": 2219321,
+     "second_phase_stages": 29793041,
+     "third_phase_development_agents": 9532903,
+     "allowance_for_probe_agents_of_the_team_sessions": 95954,
+     "earlier_attempts_of_this_run": 2554087
+    },
+    "reported_apart": {
+     "orchestrator_of_the_second_phase_run": 19656431,
+     "orchestrator_of_earlier_attempts_of_this_run": 689575,
+     "development_agents_in_the_total": {
+      "team.json": 3896199,
+      "team2.json": 5636704
+     },
+     "note": "The limit has counted the input tokens of the experiment's agents since the first phase. Not in the total: what the orchestrating sessions read. The second phase's run and the earlier attempts of this run have that figure, given here; the orchestrating sessions of the first phase, of the trial, of the two team sessions and of this run are not in the total, and this run's is measured per stage beside its agents. The authoring session is in no figure. The allowance for the team sessions' probe agents is a copy of the second phase's probe stage, an estimate. The development agents of the first round and the development agents of the second round are in the total, from team.json and team2.json. An input token is counted each time it is read, cache reads included."
+    }
+   }
+  },
+  {
+   "label": "q200",
+   "actual_agents": 200,
+   "peak_concurrent_agents": 20,
+   "tasks": 200,
+   "verified_tasks": 197,
+   "verified_success_rate": 98.5,
+   "hidden_tests_passed": 2782,
+   "hidden_tests_total": 2820,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 21.7,
+   "agents_replying_done": 0,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 345.86,
+   "sum_of_agent_seconds": 1434.03,
+   "effective_concurrency": 4.15,
+   "tasks_per_minute": 34.18,
+   "models": [
+    "haiku"
+   ],
+   "agent_tokens": {
+    "input_uncached": 800,
+    "cache_write": 2718670,
+    "cache_read": 2193600,
+    "input_total": 4913070,
+    "output": 185190,
+    "total": 5098260
+   },
+   "cache_read_share": 0.4465,
+   "model_roundtrips": 400,
+   "tool_calls": 401,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 210016,
+   "per_verified_task": {
+    "input_total": 24939,
+    "output": 940,
+    "roundtrips": 2.03,
+    "agent_seconds": 7.28
+   },
+   "helper_calls": {
+    "script": 2
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 25,
+    "cache_write": 91403,
+    "cache_read": 3870930,
+    "input_total": 3962358,
+    "output": 35527,
+    "roundtrips": 15
+   },
+   "orchestrator_share_of_all_tokens": 0.44,
+   "machine": {
+    "samples": 516,
+    "peak_load_1m": 0.64,
+    "least_memory_available_mb": 15267,
+    "peak_host_process_rss_mb": 556,
+    "host_process_cpu_seconds": 48.1
+   },
+   "kind": "task",
+   "size": "small",
+   "agent_type": "swarm-queue-1",
+   "model": "haiku",
+   "effort": "low",
+   "mode": null,
+   "delivery": "queue",
+   "registered_agents": 200,
+   "started": "2026-11-28T06:05:03.200711Z",
+   "finished": "2026-11-28T06:13:38.842048Z",
+   "first_request_context": {
+    "median": 5486,
+    "least": 5486,
+    "most": 5486
+   },
+   "first_request_read_from_cache": 0.9996,
+   "cache_written": {
+    "five_minutes": 2718670,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 4544448,
+   "swk_calls": 399,
+   "refused_calls": 2,
+   "foreign_calls": 0,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-queue-1"
+   ],
+   "replies_per_agent": {
+    "median": 2.0,
+    "most": 2
+   },
+   "ownership": {
+    "submitted": 199,
+    "approved": 197,
+    "rejected": 2,
+    "failed": 1,
+    "task_states": {
+     "review": 327,
+     "blocked": 2,
+     "failed": 1
+    },
+    "revision": 1319
+   },
+   "not_verified": [
+    "S-1345",
+    "S-1435",
+    "S-1468"
+   ],
+   "worker_command": {
+    "hand_ins": 199,
+    "calls": 399,
+    "characters_printed": 203378,
+    "headroom_views": 0
+   },
+   "per_verified_task_cost_units": 23068,
+   "guard_enforced": true,
+   "index_cross_check": null,
+   "other_agents_during_the_stage": {
+    "agents": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "note": "Agents of another type that began while the stage was open. They are not its workers; their tokens count against the limit."
+   },
+   "agents_that_wrote_no_reply": 0,
+   "ledger": {
+    "agents": 200,
+    "tool_calls": 401,
+    "by_class": {
+     "refused by the gate": 2,
+     "worker command": 399
+    },
+    "by_tool": {
+     "Bash": 401
+    },
+    "calls_a_gate_must_have_seen_by_agent_type": {
+     "swarm-queue-1": 401
+    },
+    "calls_outside_the_contract_that_ran": {},
+    "clean": true,
+    "agents_with_type_not_recorded": 0,
+    "empty_records": 0,
+    "unreadable_lines": 0,
+    "results_without_a_call": 0,
+    "repeated_call_ids": 0,
+    "repeated_result_ids": 0,
+    "gate": {
+     "calls_the_gate_saw_by_agent_type": {
+      "swarm-queue-1": 401
+     },
+     "calls_in_records_the_gate_did_not_see": {},
+     "compared_by": "agent",
+     "agents_the_gate_saw_that_have_no_record_here": 0,
+     "their_calls": 0,
+     "refused_by_the_gate_in_its_own_record": 2,
+     "gate_lines_unusable": 0,
+     "reconciled": true
+    },
+    "agents_of_other_types_started_during_the_stage": 0
+   },
+   "queue": {
+    "tasks": 200,
+    "left_waiting": 0,
+    "claimed_and_not_handed_in": 24,
+    "handed_in": 176,
+    "given_up": 0,
+    "workers_that_drew_a_task": 200,
     "most_tasks_one_worker_took": 1,
     "batch_allowed": 1,
     "agent_calls_per_message": 20
