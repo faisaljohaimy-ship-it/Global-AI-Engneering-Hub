@@ -581,7 +581,9 @@
       "tests/test_sec_fixes_2_layers.py",
       "tests/test_sec_fixes_2_governor.py",
       "tests/test_sec_fixes_2_sweep.py",
-      "tests/test_sec_fixes_2_prefix.py"
+      "tests/test_sec_fixes_2_prefix.py",
+      "tests/test_remote_fixes_authority.py",
+      "tests/test_remote_fixes_percent_host.py"
     ],
     "scenarios": [
       {
@@ -716,7 +718,8 @@
       "tests/test_review_fixes_sdk_submodules.py",
       "tests/test_recheck_fixes_release_git.py",
       "tests/test_recheck_fixes_sdk_nested.py",
-      "tests/test_recheck_fixes_sdk_promisor.py"
+      "tests/test_recheck_fixes_sdk_promisor.py",
+      "tests/test_remote_fixes_sdk_promisor.py"
     ],
     "scenarios": [],
     "evidence": {
@@ -964,7 +967,8 @@
       "tests/test_factory.py",
       "tests/test_requirements.py",
       "tests/test_build_fixes_requirements.py",
-      "tests/test_build_fixes_recheck_requirements.py"
+      "tests/test_build_fixes_recheck_requirements.py",
+      "tests/test_remote_fixes_remote_slug.py"
     ],
     "scenarios": [],
     "evidence": {
@@ -1059,7 +1063,8 @@
       "tests/test_upgrade_fixes_sql.py",
       "tests/test_upgrade_fixes_wal.py",
       "tests/test_sec_fixes_2_build.py",
-      "tests/test_build_fixes_recheck_app.py"
+      "tests/test_build_fixes_recheck_app.py",
+      "tests/test_remote_fixes_remote_slug.py"
     ],
     "scenarios": [
       {
