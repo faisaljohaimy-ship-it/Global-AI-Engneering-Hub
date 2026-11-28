@@ -3,6 +3,7 @@ import json
 import pathlib
 import unittest
 from html.parser import HTMLParser
+from urllib.parse import urlsplit
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CATALOG = json.loads((ROOT / "motion-library/MOTION_CATALOG.json").read_text())
@@ -33,7 +34,9 @@ class LabParser(HTMLParser):
 
 class MotionLabTests(unittest.TestCase):
     def test_true_counts_and_engine_coverage(self):
-        self.assertEqual(len(CATALOG["entries"]), 142)
+        self.assertEqual(len(CATALOG["entries"]), 156)  # 142 + 14 documented specifications indexed on main (bf96921)
+        catalog_ids = [entry["id"] for entry in CATALOG["entries"]]
+        self.assertEqual(len(catalog_ids), len(set(catalog_ids)))
         rows = COMPONENTS["components"]
         self.assertEqual(len(rows), 30)
         engines = [row["engine"] for row in rows]
@@ -45,6 +48,27 @@ class MotionLabTests(unittest.TestCase):
         self.assertEqual(engines.count("three-adapter"), 1)
         implemented = {row["id"] for row in CATALOG["entries"] if row["status"] == "implemented"}
         self.assertTrue(implemented <= set(row["id"] for row in rows))
+
+    def test_documentation_discovery_additions_are_specification_only(self):
+        additions = [
+            entry for entry in CATALOG["entries"]
+            if entry.get("origin") == "official documentation discovery 2026-11-28"
+        ]
+        self.assertEqual(len(additions), 14)
+        component_ids = {component["id"] for component in COMPONENTS["components"]}
+        for entry in additions:
+            with self.subTest(motion=entry["id"]):
+                self.assertRegex(entry["id"], r"^research-[a-z0-9]+(?:-[a-z0-9]+)*$")
+                self.assertTrue(entry["name"].strip())
+                self.assertTrue(entry["hint"].strip())
+                self.assertIn(entry["category"], {"Cinema", "Interactive", "UI"})
+                self.assertEqual(entry["status"], "specification")
+                self.assertIs(entry["runtime_verified"], False)
+                self.assertNotIn(entry["id"], component_ids)
+                reference = urlsplit(entry["reference"])
+                self.assertEqual(reference.scheme, "https")
+                self.assertIn(reference.netloc, {"developer.mozilla.org", "motion.dev", "www.remotion.dev"})
+                self.assertTrue(reference.path)
 
     def test_every_component_maps_to_catalog_and_valid_spec(self):
         catalog_ids = {row["id"] for row in CATALOG["entries"]}

@@ -7,6 +7,8 @@ import { serve } from '../motion-library/verify/serve.mjs';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const components = JSON.parse(readFileSync(resolve(repository, 'motion-library/components.json'), 'utf8')).components;
+const catalogIds = JSON.parse(readFileSync(resolve(repository, 'motion-library/MOTION_CATALOG.json'), 'utf8'))
+  .entries.map((entry) => entry.id);
 const playwright = createRequire(new URL('../motion-library/verify/package.json', import.meta.url))('playwright');
 const executablePath = process.env.MOTION_CHROMIUM_EXECUTABLE;
 const server = await serve(repository);
@@ -26,12 +28,13 @@ try {
   await page.goto(`${server.origin}/motion-lab/index.html`);
   await page.waitForFunction(() => document.documentElement.dataset.labReady === 'true');
 
-  const listed = await page.locator('#motionList .catalog-button').count();
-  assert.equal(listed, 142);
+  const listedIds = await page.locator('#motionList .catalog-button')
+    .evaluateAll((buttons) => buttons.map((button) => button.dataset.id));
+  assert.deepEqual(listedIds, catalogIds, 'Motion Lab must list every catalog ID in order');
   const initial = await page.evaluate(() => structuredClone(window.__motionLabReport));
   assert.deepEqual(
     { indexed: initial.indexed, implemented: initial.implemented, tested: initial.tested, used: initial.used },
-    { indexed: 142, implemented: 30, tested: 30, used: 30 },
+    { indexed: catalogIds.length, implemented: 30, tested: 30, used: 30 },
   );
 
   for (const component of components) {
@@ -60,7 +63,7 @@ try {
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(failedRequests, []);
   assert.deepEqual(externalRequests, []);
-  console.log(`Motion Lab: ${listed} indexed, ${components.length} executable controls passed`);
+  console.log(`Motion Lab: ${listedIds.length} indexed, ${components.length} executable controls passed`);
 } finally {
   await browser.close();
   server.close();
