@@ -19,6 +19,9 @@ argument-hint: "[project] [media scope]"
    deterministic renderer is `motion-library/render/render.mjs`
    (`cinematic-production`). Remotion, Blender, Three.js, WebGPU and similar engines
    need their own license review and a runtime proof in this environment before use.
+   Choose only motions that are purposeful under `governance/policies/motion-purpose.json`
+   (a stated digital meaning in English and Arabic, no unseeded randomness); a
+   legacy-unclassified motion is used only by owner decision and labelled as such.
 5. Produce the media for real: render the video, generate licensed voice-over,
    licensed or original music and effects, synchronize audio to picture, add
    captions, grade colour, encode efficiently, and test playback on mobile and

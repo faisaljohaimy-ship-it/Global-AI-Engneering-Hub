@@ -106,6 +106,15 @@ def integration_evidence():
     return load_json(path).get("programs", []) if path.exists() else []
 
 
+def motion_purpose():
+    """Purposeful-motion policy summary (governance/policies/motion-purpose.json); report() never raises."""
+    from engineering_os import motion_policy
+
+    report = motion_policy.report()
+    return {"policy": report["policy"], "policy_version": report["policy_version"], "ok": report["ok"],
+            "classes": report["classes"], "unclassified": report["unclassified"], "violations": len(report["violations"])}
+
+
 def audit():
     rows = registry()
     motions = motion_catalog()
@@ -149,6 +158,7 @@ def audit():
                           "implemented":len(catalog_implemented | component_ids)+expansion['implemented'],
                           "tested":len(catalog_implemented | automated_components)+expansion['tested'],
                           "runtime_verified":len(browser_verified)+expansion['runtime_verified']},
+        "motion_purpose": motion_purpose(),
     }
 
 

@@ -80,7 +80,9 @@ Give the system its own modern visual identity: typography, colour, spacing, dep
 iconography, cards, tables, charts, dialogs, micro-interactions. Learn from leading
 engineering and design practice without copying any company's identity or implying
 affiliation. Select motion from the Universal Motion SDK and motion library first;
-use 3D, shaders or video where they help comprehension, within the frame budget.
+every motion must be purposeful under `governance/policies/motion-purpose.json` (a
+stated digital meaning in English and Arabic, no unseeded randomness); use 3D,
+shaders or video where they help comprehension, within the frame budget.
 Honour reduced motion, RTL and LTR, and accessibility. Films and voice follow
 `skills/gaie-cinematic`: a script is not a finished film.
 
