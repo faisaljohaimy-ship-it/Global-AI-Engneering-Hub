@@ -9,10 +9,10 @@
  "produced_by": "python3 tests/test_gaie_install_scenario_i.py record",
  "checked_by": "python3 -m unittest tests.test_gaie_install_scenario_i",
  "recorded_on": "2026-11-28",
- "hub_revision": "ce4530f5ff4a9ec9ad898eb5d1014baed2af5987",
- "hub_worktree_clean": true,
+ "hub_revision": "4878539814cc93b987731354e2757a82d491ac63",
+ "hub_worktree_clean": false,
  "sources": {
-  "digest": "94b54142ad9a73c8d23f0cf98fce0090a96854560f9da41fb4650c74d8042edf",
+  "digest": "26a158005f471f93fa4d3bad9774bd101395280926cf2a895bd3996f406d8b43",
   "files": {
    ".claude-plugin/marketplace.json": "81f55caa3712bacbd824a557f1d357cbb23ce3bb853c358705194d6e8d3a6c73",
    ".claude-plugin/plugin.json": "542273ea9a0d0695c6fe685d5c47ea9919ec930e7aa30953af118ae1adf41afa",
@@ -33,8 +33,8 @@
    "hub.py": "22329bac3fd8ae7f7427cacb16d04f9a44783e50ddbc6550ec4359dc52878ca2",
    "projects/aliases.json": "18cfae39b9c6b0be4615e59fe6029edf77f9ad52f67e30c9ca4cdb2aa503c3a1",
    "projects/registry.json": "48164120535956b8f90956be62256f4b53cceb6d57a0e7ea4264644cab5eb901",
-   "prompts/MASTER_BUILD.md": "d45579e201c497fe113959338bb0b2725cd57300b2215dbffa764b22d7eed159",
-   "prompts/MASTER_UPGRADE.md": "4f8f29f6f169c7cc2605cf50562a696890bb61c4f3c103c7f495817c414a2e34",
+   "prompts/MASTER_BUILD.md": "ade3058112e9f70dfb2fbf6984304e2193f7d24e8478e865f394b4d8011cb420",
+   "prompts/MASTER_UPGRADE.md": "383ad2cdc75d210aa006b64d428645f3550d941576a421bd9fd6b7666590bbd5",
    "scripts/gaie_bootstrap.py": "292e5f5e93ee9f167984b527847cd7857f1753ca74f14d912df5948ce6795bc6",
    "scripts/security_scan.py": "dc337fa07d1facce3244e25c21ba00d2a2aba66f93e91b2b55b646d1ba53baac",
    "skills/gaie-audit/SKILL.md": "456c76fe24992fab3b205f05b6ffbe02f94cb42043e9a96dc26e96d5c9e8fe51",
@@ -1087,7 +1087,8 @@
     }
    ],
    "directory_checks": [
-    "ICON_MISSING"
+    "ICON_MISSING",
+    "PRIVACY_URL_MISSING"
    ]
   },
   "cli.validate.strict": {
@@ -1143,7 +1144,8 @@
     }
    ],
    "directory_checks": [
-    "ICON_MISSING"
+    "ICON_MISSING",
+    "PRIVACY_URL_MISSING"
    ]
   },
   "cli.marketplace.add": {
@@ -1294,8 +1296,8 @@
    "stderr": null
   },
   "cli.cache": {
-   "files": 1069,
-   "bytes": 22175618,
+   "files": 1091,
+   "bytes": 22547706,
    "has_pycache": true
   },
   "cli.home": [

@@ -64,7 +64,7 @@ class HubTests(unittest.TestCase):
   self.assertEqual(result['motions_runtime_verified'],29)
   self.assertEqual(result['motions_used'],30)
   self.assertEqual(result['motion_lab_components'],30)
-  self.assertEqual(result['integrations_indexed'],23)  # + Context7 (remote MCP), probed by integrations/context7/probe.py
+  self.assertEqual(result['integrations_indexed'],22)
   self.assertEqual(result['integrations_probed'],22)
   self.assertEqual(result['integrations_available'],12)
   self.assertEqual(result['registered_public_projects'],3)
