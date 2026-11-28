@@ -963,7 +963,8 @@
       "tests/test_intelligence.py",
       "tests/test_factory.py",
       "tests/test_requirements.py",
-      "tests/test_build_fixes_requirements.py"
+      "tests/test_build_fixes_requirements.py",
+      "tests/test_build_fixes_recheck_requirements.py"
     ],
     "scenarios": [],
     "evidence": {
@@ -1057,7 +1058,8 @@
       "tests/test_upgrade_fixes_schema_modules.py",
       "tests/test_upgrade_fixes_sql.py",
       "tests/test_upgrade_fixes_wal.py",
-      "tests/test_sec_fixes_2_build.py"
+      "tests/test_sec_fixes_2_build.py",
+      "tests/test_build_fixes_recheck_app.py"
     ],
     "scenarios": [
       {

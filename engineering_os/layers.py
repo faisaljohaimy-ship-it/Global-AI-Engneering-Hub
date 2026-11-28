@@ -491,6 +491,7 @@ SANDBOX_NOFILE = 1024
 ETC_VISIBLE = ("/etc/ld.so.cache", "/etc/alternatives")
 TOOLS = ("node",)  # tools the hub's tests start by name; their bin directory is mounted read-only
 LOOPBACK_TESTS = frozenset({"tests/test_build_fixes_app.py",  # starts generated apps on 127.0.0.1
+                            "tests/test_build_fixes_recheck_app.py",  # the same, for the sign-in limits
                             "tests/test_heal_fixes_2_findings.py"})  # its runtime detectors pick a free loopback port
 # Measured 2026-11-28 (every layer-bound test file and the wave-2 candidates, strict and loopback):
 # all others pass inside the strict profile. These cannot be measured there, so they run in the
