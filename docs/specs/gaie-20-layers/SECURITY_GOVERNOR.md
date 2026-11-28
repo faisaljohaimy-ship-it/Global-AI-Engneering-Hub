@@ -185,6 +185,54 @@ permissions of the calling user. Tests: `SandboxArgumentTests.test_fallback_tier
 | host pids invisible; a `setsid` background child does not survive the run | `…test_own_pid_namespace_and_nothing_survives_the_run` |
 | timeout, CPU, memory and file-size limits | `…test_timeout_and_cpu_limits_are_enforced`, `…test_memory_and_file_size_limits_are_enforced` |
 
+### Program mounts of strict runs (pr30-isolation recheck item 1)
+
+Strict calls hide `/etc` and everything outside `/usr /bin /sbin /lib*`, the workspace and
+`read_paths`. The governor resolves `cmd[0]` on the host and pid 1 executes that real file
+(argv[0] unchanged). For that file, and for the hub's own interpreter (it is pid 1 and imports C
+modules such as `resource` after `pivot_root`), the governor adds read-only only what starts them
+when they lie outside those directories:
+
+- the directory holding the file when it is named `bin` or `sbin`, otherwise the file alone;
+- for a Python interpreter (`<prefix>/bin/pythonX.Y`, or a file that links `libpythonX.Y`), the
+  standard library directory `<prefix>/lib*/pythonX.Y`, which holds `lib-dynload` and
+  `site-packages`;
+- the ELF interpreter and every shared library reached through `DT_RPATH` or `DT_RUNPATH`
+  (`$ORIGIN` expanded; an entry with `$LIB` or `$PLATFORM` is not searched), recursively. The ELF
+  headers are parsed as data within fixed bounds; nothing is loaded or run (no `ldd`). A library
+  reached through a link is mounted as its file at the path the loader opens. A "library" that is
+  not an ELF file is refused, never mounted.
+
+`share/`, `etc/`, `include/` and the rest of an install prefix are never mounted. A program or
+library under a home directory (`/root`, `/home`, `$HOME` and every account's home except `/` and
+system directories) or in a directory that a non-root user can change (another owner, a group or
+world write bit, or an access ACL on it or any directory above it) is refused with
+`program-not-visible` before launch. The hub's own interpreter is exempt from that ownership rule
+(GitHub runners keep it in `/opt/hostedtoolcache`, which the runner user owns), not from the
+breadth rule: no mount is `/`, a top-level directory such as `/opt`, a system directory or a
+directory holding `/tmp`, `/var/tmp` or a home directory, and none may overlap the workspace.
+
+Before this, a strict run mounted the whole prefix (the parent of `bin/`) and accepted one inside
+the home directory: a child started as `<prefix>/bin/tool` printed a secret planted in
+`<prefix>/share/keyrings/`, and `/root/.cargo/bin/cargo` would have mounted `/root/.cargo`. Measured
+after the change: on this host `node` (`/opt/node22/bin/node`) sees `/opt/node22` as `bin` only;
+`/usr/bin/python3`, `cc --version` and `/opt/ruby-3.3.6/bin/ruby` (its `libruby` reached through a
+`DT_RUNPATH` link) run; with the hub interpreter in a CI-shaped `/opt` stand-in (a static build, and
+one with a shared `libpython` and `DT_RUNPATH $ORIGIN/../lib` as on GitHub runners) a strict child
+of that interpreter imports `ssl`, `sqlite3` and `decimal` and sees `bin` and `lib` only, with the
+planted `share/` and `etc/` secrets absent.
+
+Every result of the full tier carries `"mounts"`: the table pid 1 read back from
+`/proc/self/mountinfo` before the command started (`[path, path inside its filesystem, type, ro|rw]`,
+the symlinks of the system directories and the library aliases); `None` in the plain tier.
+`isolation_report()` records the table of one strict run of the hub's interpreter with the
+workspace and private paths masked, the flag
+`strict_mounts_only_bin_stdlib_and_linked_libraries`, and what stays visible: the whole bin
+directory of such a program and the whole standard library directory (site-packages included).
+Legacy and loopback calls still mount the whole prefix of `cmd[0]` and of the hub's interpreter,
+but a `cmd[0]` prefix under a home directory or in a directory a non-root user can change is not
+mounted there either (the program then exits 127). Tests: `tests/test_isolation_fixes_mounts.py`.
+
 ## 8. Threat model
 
 Actors: an agent that requests engine actions (it may be confused or adversarial), code that

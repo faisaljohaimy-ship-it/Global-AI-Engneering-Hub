@@ -1,9 +1,10 @@
 """pr30-isolation governor fixes, measured on a real sandbox where the host allows it.
 
 F4: strict mode hides /etc and /opt. The requested program is resolved on the host and its real file is
-executed (so /etc/alternatives links cannot dangle), and the install prefixes of that program and of the
-sandbox's own interpreter (pid 1 imports C modules such as resource after pivot_root) are mounted
-read-only in both tiers. A whole top-level directory such as /opt is never mounted.
+executed (so /etc/alternatives links cannot dangle), and what that program and the sandbox's own interpreter
+(pid 1 imports C modules such as resource after pivot_root) need is mounted read-only. A whole top-level
+directory such as /opt is never mounted. Since the recheck (item 1, tests/test_isolation_fixes_mounts.py) a
+strict run mounts only their bin directory, standard library and linked libraries, never the whole prefix.
 
 F6: a strict child cannot create a nested user namespace (which held a full capability set inside it):
 unshare and clone with CLONE_NEWUSER are refused and clone3 reports ENOSYS so libc falls back to clone.
@@ -44,8 +45,11 @@ class PrefixRuleTests(Workspace):
     def test_broad_prefixes_are_never_mountable(self):
         for path in ("/", "/opt", "/usr", "/tmp", os.path.expanduser("~"), os.path.dirname(os.path.expanduser("~"))):
             with self.subTest(path=path), self.assertRaises(GovernorDenied):
-                governor._mountable_prefix(path)
-        self.assertEqual(governor._mountable_prefix(str(self.base)), str(self.base))
+                governor._mountable_prefix(path, trusted=True)
+        # recheck item 1: a directory under /tmp (world-writable) is mounted only for the hub's own interpreter
+        self.assertEqual(governor._mountable_prefix(str(self.base), trusted=True), str(self.base))
+        with self.assertRaisesRegex(GovernorDenied, "non-root user can change"):
+            governor._mountable_prefix(str(self.base))
 
     def test_interpreter_prefix_outside_system_directories_is_reported_once(self):
         relocated = self.base / "toolcache" / "Python" / "x64"
@@ -76,10 +80,15 @@ class PrefixRuleTests(Workspace):
         tool.parent.mkdir()
         tool.write_text("#!/bin/sh\necho tool\n")
         tool.chmod(0o755)
-        self.assertEqual(governor._strict_program(str(tool), "/usr/bin:/bin", "/", visible),
-                         (str(tool), [str(self.base)]))
+        with self.assertRaisesRegex(GovernorDenied, "non-root user can change"):  # recheck item 1: /tmp is world-writable
+            governor._strict_program(str(tool), "/usr/bin:/bin", "/", visible)
+        own = governor._program_mounts(os.path.realpath(sys.executable), visible, own=True)
+        with mock.patch.object(governor, "_foreign_writer", return_value=None):
+            real, mounts = governor._strict_program(str(tool), "/usr/bin:/bin", "/", visible)
+        self.assertEqual(real, str(tool))
+        self.assertEqual(set(mounts) - set(own), {(str(tool.parent), str(tool.parent))})  # its bin directory, not the prefix
         real = os.path.realpath(shutil.which("sh", path="/usr/bin:/bin"))
-        self.assertEqual(governor._strict_program("sh", "/usr/bin:/bin", "/", visible), (real, []))
+        self.assertEqual(governor._strict_program("sh", "/usr/bin:/bin", "/", visible), (real, sorted(set(own))))
 
 
 @unittest.skipUnless(FULL, "needs the full namespace sandbox")
@@ -113,7 +122,12 @@ class StrictProgramTests(Workspace):
         tool.parent.mkdir()
         tool.write_text("#!/bin/sh\necho tool\n")
         tool.chmod(0o755)
-        with self.assertRaisesRegex(GovernorDenied, "overlap a program prefix"):
+        inside = tool.parent / "ws"  # recheck item 1: only the bin directory is mounted now, so nest the workspace in it
+        inside.mkdir(mode=0o700)
+        with mock.patch.object(governor, "_foreign_writer", return_value=None), \
+                self.assertRaisesRegex(GovernorDenied, "overlap a program prefix"):
+            governor.sandbox_run([str(tool)], cwd=inside, timeout=20, allowed_paths=[inside], require_fs_isolation=True)
+        with self.assertRaisesRegex(GovernorDenied, "non-root user can change"):  # without the mock /tmp refuses it first
             self.strict([str(tool)])
 
 

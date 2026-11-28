@@ -35,12 +35,16 @@ import json
 import math
 import os
 import platform
+import pwd
+import re
 import shutil
 import signal
 import socket
 import stat
+import struct
 import subprocess
 import sys
+import sysconfig
 import tempfile
 
 from engineering_os import contracts
@@ -547,13 +551,15 @@ def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, str
     # pid 1 is this interpreter: after pivot_root it still imports C modules (os.wait4 loads resource)
     # from its own install, which lies outside the system directories on e.g. GitHub runners.
     system = tuple(d for d in SYSTEM_DIRS if not (strict and d == "/etc"))
-    runtime = interpreter_prefixes(system + tuple(allowed) + tuple(readable))
+    aliases = []
     if strict:  # /etc is hidden: pid 1 execs the host-resolved file itself, so alternatives links cannot dangle
-        _, prefix = _strict_program(cmd[0], env["PATH"], cwd, system + tuple(allowed + readable + runtime))
-        runtime += prefix
-        if any(_is_inside(root, path) or _is_inside(path, root) for path in runtime for root in allowed):
+        _, mounts = _strict_program(cmd[0], env["PATH"], cwd, system + tuple(allowed + readable))
+        if any(_is_inside(root, path) or _is_inside(path, root) for pair in mounts for path in pair for root in allowed):
             raise GovernorDenied("invalid-sandbox-mode", "the writable workspace must not overlap a program prefix")
+        runtime = [target for target, source in mounts if target == source]
+        aliases = [[target, source] for target, source in mounts if target != source]
     else:
+        runtime = interpreter_prefixes(system + tuple(allowed) + tuple(readable))
         runtime += _exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable + runtime)
     readable = sorted(set(readable) | set(runtime))
     status_r, status_w = os.pipe()
@@ -561,7 +567,7 @@ def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, str
             "env_names": sorted(env), "status_fd": status_w, "strict": strict}
     argv = [unshare, "--user", "--map-root-user", "--mount", "--propagation", "private",
             "--pid", "--fork", "--kill-child"] + ([] if network else ["--net"]) + [
-            "--", sys.executable, "-I", "-B", "-S", "-c", _BOOT, ROOT, json.dumps(spec)]
+            "--", sys.executable, "-I", "-B", "-S", "-c", _BOOT, ROOT, json.dumps(dict(spec, aliases=aliases))]
     try:
         proc, out, err, limit = _launch(argv, cwd="/", env=env, timeout=timeout, limits=limits,
                                         net_in_child=False, pass_fds=(status_w,))
@@ -575,14 +581,19 @@ def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, str
     if "ready" not in lines and (strict or limit is None):
         first = stderr.strip().splitlines()[-1:] or ["no diagnostic"]
         raise GovernorDenied("sandbox-setup-failed", _safe(first[0]))
-    code, cpu_used = proc.returncode, None
+    code, cpu_used, table = proc.returncode, None, None
     for line in lines:
         if line.startswith("exit "):
             _, value, used = line.split()
             code, cpu_used = int(value), float(used)
+        elif line.startswith("mounts "):  # what pid 1 mounted, reported before the command started
+            try:
+                table = json.loads(line[len("mounts "):])
+            except ValueError:
+                table = None
     return {"returncode": code, "stdout": stdout, "stderr": stderr,
             "limit": _classify(code, limit, cpu_used, limits["cpu_seconds"]),
-            "network_isolated": not network, "fs_isolated": True}
+            "network_isolated": not network, "fs_isolated": True, "mounts": table}
 
 
 def _exec_prefix(program, path, cwd, visible):
@@ -605,25 +616,267 @@ def _install_prefix(real):
     return _mountable_prefix(os.path.dirname(os.path.dirname(real)))
 
 
-def _mountable_prefix(path):
+def _mountable_prefix(path, *, trusted=False):
     """Never /, a whole top-level directory such as /opt, a system directory, a kernel tree, or a
-    directory that holds a scratch root or the home directory."""
+    directory that holds a scratch root or a home directory. Unless `trusted` (the hub's own
+    interpreter), also never a directory under a home directory or one a non-root user can change."""
     prefix = _real_path(path, "program prefix")
-    common = {"/tmp", "/var/tmp", os.path.realpath(os.path.expanduser("~"))}
+    common = {"/tmp", "/var/tmp", *_home_roots()}
     if prefix.count("/") < 2 or any(_is_inside(root, prefix) for root in common):
         raise GovernorDenied("program-not-visible", "an install prefix is too broad to mount read-only")
+    if not trusted:
+        _trusted_source(prefix)
     return prefix
 
 
+def _home_roots():
+    """Every home directory of this host: /root, /home, the caller's HOME and each account's home
+    directory except / and those inside a system directory (service accounts such as bin use /bin)."""
+    roots = {"/root", "/home", os.path.expanduser("~"), os.environ.get("HOME") or "/"}
+    try:
+        roots.update(entry.pw_dir for entry in pwd.getpwall())
+    except (OSError, KeyError):
+        pass
+    found = set()
+    for root in roots:
+        if isinstance(root, str) and os.path.isabs(root):
+            real = os.path.realpath(root)
+            if real != "/" and not any(_is_inside(real, tree) for tree in SYSTEM_DIRS + _KERNEL_TREES):
+                found.add(real)
+    return sorted(found)
+
+
+def _foreign_writer(path):
+    """The first of the real path `path` and the directories above it that someone other than root
+    can change (another owner, a group or world write bit, an access ACL), or None."""
+    current = path
+    while True:
+        info = os.lstat(current)
+        try:
+            os.getxattr(current, "system.posix_acl_access", follow_symlinks=False)
+            acl = True
+        except OSError as exc:
+            acl = exc.errno not in (errno.ENODATA, errno.EOPNOTSUPP)  # an unreadable ACL counts as foreign
+        if info.st_uid != 0 or info.st_mode & 0o022 or acl:
+            return current
+        if current == "/":
+            return None
+        current = os.path.dirname(current)
+
+
+def _trusted_source(path):
+    """GovernorDenied unless the real path `path` lies outside every home directory and neither it
+    nor a directory above it can be changed by a non-root user (pr30-isolation recheck item 1)."""
+    if any(_is_inside(path, home) for home in _home_roots()):
+        raise GovernorDenied("program-not-visible", "a program under a home directory is not mounted")
+    try:
+        writer = _foreign_writer(path)
+    except OSError:
+        writer = path
+    if writer is not None:
+        raise GovernorDenied("program-not-visible", "a program in a directory a non-root user can change is not mounted")
+
+
 def interpreter_prefixes(visible=SYSTEM_DIRS):
-    """Read-only mounts the sandbox's own interpreter needs: its install prefixes outside `visible`."""
+    """Read-only mounts the sandbox's own interpreter needs in a legacy or loopback run: its install
+    prefixes outside `visible` (strict runs mount less, see _program_mounts)."""
     found = []
     for path in (sys.base_prefix, sys.base_exec_prefix, os.path.dirname(os.path.dirname(os.path.realpath(sys.executable)))):
         real = os.path.realpath(path)
         if not any(_is_inside(real, root) for root in tuple(visible) + tuple(found)):
             found = [prefix for prefix in found if not _is_inside(prefix, real)]
-            found.append(_mountable_prefix(real))
+            found.append(_mountable_prefix(real, trusted=True))
     return found
+
+
+_ELF_HEADER = {True: "HHIQQQIHHHHHH", False: "HHIIIIIHHHHHH"}  # after e_ident; ELF64 / ELF32
+_ELF_PHDR = {True: "IIQQQQQQ", False: "IIIIIIII"}
+_ELF_DYN = {True: "qQ", False: "iI"}
+_PT_LOAD, _PT_DYNAMIC, _PT_INTERP = 1, 2, 3
+_DT_NULL, _DT_NEEDED, _DT_STRTAB, _DT_RPATH, _DT_RUNPATH = 0, 1, 5, 15, 29
+_PYTHON_FILE = re.compile(r"(?:lib)?python(\d+\.\d+t?)(?:\.so(?:\.\d+)*)?")
+
+
+def _elf_links(path):
+    """(PT_INTERP, DT_NEEDED names, DT_RPATH entries, DT_RUNPATH entries) of the ELF file `path`,
+    read as data within fixed bounds: nothing is loaded or run (no ldd). None when the file is not
+    ELF (a script); GovernorDenied when an ELF file cannot be parsed."""
+    def bad(what):
+        return GovernorDenied("program-not-visible", f"the program's ELF {what} cannot be read")
+
+    with open(path, "rb") as handle:
+        size = os.fstat(handle.fileno()).st_size
+
+        def read(offset, length):
+            if offset < 0 or length < 0 or offset + length > size:
+                raise bad("layout")
+            handle.seek(offset)
+            data = handle.read(length)
+            if len(data) != length:
+                raise bad("layout")
+            return data
+
+        ident = handle.read(16)
+        if len(ident) < 16 or ident[:4] != b"\x7fELF":
+            return None
+        if ident[4] not in (1, 2) or ident[5] not in (1, 2):
+            raise bad("class")
+        wide, order = ident[4] == 2, "<" if ident[5] == 1 else ">"
+        header = struct.unpack(order + _ELF_HEADER[wide], read(16, struct.calcsize(order + _ELF_HEADER[wide])))
+        phoff, phentsize, phnum = header[4], header[8], header[9]
+        phdr = order + _ELF_PHDR[wide]
+        if phnum > 1024 or phentsize < struct.calcsize(phdr):
+            raise bad("program headers")
+        loads, dynamic, interp = [], None, None
+        for index in range(phnum):
+            fields = struct.unpack(phdr, read(phoff + index * phentsize, struct.calcsize(phdr)))
+            kind, offset, vaddr, filesz = ((fields[0], fields[2], fields[3], fields[5]) if wide
+                                           else (fields[0], fields[1], fields[2], fields[4]))
+            if kind == _PT_LOAD:
+                loads.append((vaddr, offset, filesz))
+            elif kind == _PT_DYNAMIC:
+                dynamic = (offset, filesz)
+            elif kind == _PT_INTERP:
+                if filesz > 4096:
+                    raise bad("interpreter")
+                interp = os.fsdecode(read(offset, filesz).split(b"\0")[0])
+        needed, rpath, runpath = [], [], []
+        if dynamic is None:
+            return interp, needed, rpath, runpath
+        entry = order + _ELF_DYN[wide]
+        offset, filesz = dynamic
+        if filesz > 1 << 20:
+            raise bad("dynamic section")
+        strtab, names = None, []
+        for tag, value in struct.iter_unpack(entry, read(offset, filesz - filesz % struct.calcsize(entry))):
+            if tag == _DT_NULL:
+                break
+            if tag == _DT_STRTAB:
+                strtab = value
+            elif tag in (_DT_NEEDED, _DT_RPATH, _DT_RUNPATH):
+                names.append((tag, value))
+        if not names:
+            return interp, needed, rpath, runpath
+        base = next((off + strtab - va for va, off, length in loads if strtab is not None and va <= strtab < va + length), None)
+        if base is None or len(names) > 4096:
+            raise bad("string table")
+        for tag, value in names:
+            chunk = read(base + value, min(4096, size - base - value)) if 0 <= base + value < size else b""
+            if b"\0" not in chunk:
+                raise bad("string")
+            text = os.fsdecode(chunk.split(b"\0")[0])
+            {_DT_NEEDED: needed, _DT_RPATH: rpath, _DT_RUNPATH: runpath}[tag].append(text)
+        return interp, needed, rpath, runpath
+
+
+def _search_dirs(entries, origin):
+    """DT_RPATH/DT_RUNPATH entries as absolute directories ($ORIGIN expanded; an entry with another
+    dynamic string token such as $LIB or $PLATFORM is not searched, so nothing is guessed)."""
+    found = []
+    for entry in entries:
+        for item in entry.split(":"):
+            item = item.replace("${ORIGIN}", origin).replace("$ORIGIN", origin)
+            if item and "$" not in item and os.path.isabs(item):
+                found.append(os.path.normpath(item))
+    return found
+
+
+def _linked_libraries(program):
+    """(path the loader opens, real file) for the ELF interpreter of `program` and every shared object
+    it reaches through DT_RPATH or DT_RUNPATH, recursively. Objects the loader finds in its default
+    directories are not listed: those lie in the system directories, which every sandbox shows."""
+    links = _elf_links(program)
+    if links is None:
+        return []
+    found = {}
+    if links[0]:
+        if not os.path.isabs(links[0]) or not os.path.isfile(links[0]):
+            raise GovernorDenied("program-not-visible", "the program's ELF interpreter cannot be resolved")
+        found[os.path.normpath(links[0])] = os.path.realpath(links[0])
+    queue, seen, inherited = [(os.path.dirname(program), links)], {program}, None
+    while queue:
+        origin, (_, needed, rpath, runpath) = queue.pop(0)
+        rpath, runpath = _search_dirs(rpath, origin), _search_dirs(runpath, origin)
+        if inherited is None:  # the executable's DT_RPATH also applies to its libraries (unless it has DT_RUNPATH)
+            inherited = [] if runpath else rpath
+        directories = runpath or rpath + [d for d in inherited if d not in rpath]
+        for name in needed:
+            for directory in directories if "/" not in name else ():
+                candidate = os.path.join(directory, name)
+                if not os.path.isfile(candidate):
+                    continue
+                real = os.path.realpath(candidate)
+                found.setdefault(candidate, real)
+                if real not in seen:
+                    seen.add(real)
+                    sub = _elf_links(real)
+                    if sub is None or len(seen) > 256:
+                        raise GovernorDenied("program-not-visible", "a linked library is not a bounded ELF file")
+                    queue.append((os.path.dirname(candidate), sub))
+                break
+    return sorted(found.items())
+
+
+def _python_library(real, needed, own):
+    """The standard library directories (lib/pythonX.Y, which holds lib-dynload and site-packages)
+    of a Python interpreter installed as <prefix>/bin/<file>; [] for any other program."""
+    bin_dir = os.path.dirname(real)
+    if os.path.basename(bin_dir) != "bin":
+        return []
+    prefixes = {os.path.dirname(bin_dir)}
+    versions = {match.group(1) for match in map(_PYTHON_FILE.fullmatch, [os.path.basename(real), *needed]) if match}
+    found = set()
+    if own:
+        versions.add("%d.%d%s" % (*sys.version_info[:2], "t" if "t" in getattr(sys, "abiflags", "") else ""))
+        prefixes |= {os.path.realpath(sys.base_prefix), os.path.realpath(sys.base_exec_prefix)}
+        found |= {os.path.realpath(sysconfig.get_path(name)) for name in ("stdlib", "platstdlib")}
+    for prefix in prefixes:
+        for libdir in ("lib", "lib64"):
+            for version in versions:
+                directory = os.path.join(prefix, libdir, "python" + version)
+                if os.path.isfile(os.path.join(directory, "os.py")) or os.path.isdir(os.path.join(directory, "lib-dynload")):
+                    found.add(os.path.realpath(directory))
+    return sorted(path for path in found if os.path.isdir(path))
+
+
+def _program_mounts(real, visible, *, own=False):
+    """Read-only (target, source) mounts a strict run of the resolved program file `real` needs from
+    outside `visible`: its bin directory (the file alone when it does not live in one), the standard
+    library of a Python interpreter, and the files its ELF interpreter, DT_RPATH and DT_RUNPATH name
+    (mounted at the path the loader opens). Never share/, etc/ or the whole install prefix. Unless
+    `own` (the hub's own interpreter), anything under a home directory or in a directory a non-root
+    user can change is refused (GovernorDenied program-not-visible)."""
+    def shown(path, extra=()):
+        return any(_is_inside(path, root) for root in tuple(visible) + tuple(extra))
+
+    if shown(real):
+        return []
+    if not own:
+        _trusted_source(real)
+    bin_dir = os.path.dirname(real)
+    try:
+        links = _elf_links(real)
+        libraries = _linked_libraries(real)
+    except OSError:
+        raise GovernorDenied("program-not-visible", "the program file cannot be read") from None
+    directories = [bin_dir] if os.path.basename(bin_dir) in ("bin", "sbin") else []
+    directories += _python_library(real, links[1] if links else [], own)
+    directories = sorted({_mountable_prefix(path, trusted=own) for path in directories if not shown(path)})
+    directories = [d for d in directories if not shown(d, [o for o in directories if o != d])]
+    files = [] if shown(real, directories) else [(real, real)]
+    for target, source in libraries:
+        if shown(target, directories):  # the link is visible: show the file it leads to
+            target = source
+        if not shown(source, directories) or target != source:
+            files.append((target, source))
+    mounts = [(path, path) for path in directories]
+    for target, source in sorted(set(files)):
+        if not own:
+            _trusted_source(source)
+        if not os.path.isfile(source):
+            raise GovernorDenied("program-not-visible", "a linked library is not a regular file")
+        mounts.append((target, source))
+    return mounts
 
 
 def _resolve_program(program, path, cwd):
@@ -634,13 +887,16 @@ def _resolve_program(program, path, cwd):
 
 
 def _strict_program(program, path, cwd, visible):
-    """Resolve cmd[0] on the host for a strict run: (real file to exec, prefixes to mount read-only)."""
+    """Resolve cmd[0] on the host for a strict run: (real file to exec, read-only (target, source)
+    mounts for it and for the hub's own interpreter, which is pid 1, from outside `visible`)."""
     real = _resolve_program(program, path, cwd)
     if real is None:
         raise GovernorDenied("program-not-visible", "the program cannot be resolved to an executable file")
-    if any(_is_inside(real, root) for root in visible):
-        return real, []
-    return real, [_install_prefix(real)]
+    own = os.path.realpath(sys.executable)
+    mounts = _program_mounts(own, visible, own=True)
+    if real != own:
+        mounts += _program_mounts(real, tuple(visible) + tuple(t for t, s in mounts if t == s), own=False)
+    return real, sorted(set(mounts))
 
 
 def _run_plain(cmd, *, cwd, timeout, network, env, limits, probe):
@@ -658,7 +914,7 @@ def _run_plain(cmd, *, cwd, timeout, network, env, limits, probe):
     code = proc.returncode
     return {"returncode": code, "stdout": _text(out), "stderr": _text(err),
             "limit": _classify(code, limit, None, limits["cpu_seconds"]),
-            "network_isolated": not network, "fs_isolated": False}
+            "network_isolated": not network, "fs_isolated": False, "mounts": None}
 
 
 def _strict_paths(allowed, readable, read_only):
@@ -714,7 +970,16 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
     cwd must lie inside allowed_paths (after realpath). With the full sandbox (see
     isolation_probe) the command sees a read-only minimal root (system directories, read_paths)
     where only allowed_paths are writable, has no capabilities, its own pid namespace, and no
-    network unless network=True. stdout/stderr are capped by file_mb.
+    network unless network=True. stdout/stderr are capped by file_mb. The result's "mounts" is
+    the mount table pid 1 read back from /proc/self/mountinfo before the command started
+    (None in the plain tier, which has no filesystem isolation).
+
+    A strict run (require_fs_isolation or read_only) adds, for cmd[0] and for this interpreter
+    when they lie outside the system directories, only their bin directory, a Python
+    interpreter's standard library directory and the shared libraries their ELF interpreter,
+    DT_RPATH and DT_RUNPATH name; never share/, etc/ or a whole install prefix. A program under
+    a home directory or in a directory a non-root user can change is refused
+    (program-not-visible) unless it is this interpreter.
 
     Use require_fs_isolation for governed execution. It refuses the plain tier, network
     and inherited environment, and permits writes only to one private workspace.
@@ -868,6 +1133,12 @@ def _sandbox_init(raw):
                 handles[path] = (grab(path), True)
         for path in spec["readable"]:
             handles[path] = (grab(path), True)
+        for target, source in spec.get("aliases", ()):  # a linked library: its file at the path the loader opens
+            if not os.path.isabs(target) or os.path.normpath(target) != target or target in handles:
+                raise OSError(errno.EINVAL, "alias target")
+            handles[target] = (grab(source), True)
+            if not stat.S_ISREG(os.fstat(handles[target][0]).st_mode):
+                raise OSError(errno.EPERM, "an aliased mount is not a regular file")
         for path in spec["allowed"]:
             handles[path] = (grab(path), False)
             marker = os.path.join(path, ".git")
@@ -945,6 +1216,8 @@ def _sandbox_init(raw):
     except OSError as exc:
         os.write(2, f"governor-sandbox: setup failed at {step}: {os.strerror(exc.errno or 0)}\n".encode())
         os._exit(125)
+    report = "mounts " + json.dumps(_mount_table(links, spec.get("aliases", ())), sort_keys=True)
+    os.write(status, (report if len(report) < 32768 else 'mounts {"omitted": "larger than 32 KiB"}').encode() + b"\n")
     os.write(status, b"ready\n")
     child = os.fork()
     if child == 0:
@@ -964,6 +1237,25 @@ def _sandbox_init(raw):
             code = os.waitstatus_to_exitcode(wstatus)
             os.write(status, f"exit {code} {usage.ru_utime + usage.ru_stime:.3f}\n".encode())
             os._exit(code if code >= 0 else 128 - code)
+
+
+def _mount_table(links, aliases):
+    """What this mount namespace shows, read back from /proc/self/mountinfo after the root is built:
+    {"mounts": [[path, path inside its filesystem, filesystem type, "ro" or "rw"], ...], "links":
+    {path: target} for the system directories that are symlinks, "aliases": {path: real file}}."""
+    def text(field):
+        return re.sub(r"\\([0-7]{3})", lambda match: chr(int(match.group(1), 8)), field)
+
+    rows = []
+    try:
+        with open("/proc/self/mountinfo", encoding="utf-8", errors="surrogateescape") as handle:
+            for line in handle:
+                left, _, right = line.partition(" - ")
+                fields, tail = left.split(), right.split()
+                rows.append([text(fields[4]), text(fields[3]), tail[0], "ro" if "ro" in fields[5].split(",") else "rw"])
+    except (OSError, IndexError):
+        return {"error": "the mount table cannot be read"}
+    return {"mounts": rows, "links": dict(sorted(links.items())), "aliases": {t: s for t, s in aliases}}
 
 
 # ---------------------------------------------------------------- probe
@@ -1046,6 +1338,33 @@ def isolation_probe():
     return probe
 
 
+def _strict_mount_probe():
+    """One strict run of this interpreter: the mount table pid 1 read back. The workspace and any path
+    under /tmp or a home directory are masked, because the evidence is public."""
+    work = os.path.realpath(tempfile.mkdtemp(prefix="gaie-governor-mounts-"))
+    try:
+        ran = sandbox_run([os.path.realpath(sys.executable), "-I", "-S", "-c", "pass"], cwd=work, timeout=20,
+                          allowed_paths=[work], require_fs_isolation=True)
+    except GovernorDenied as exc:
+        return {"error": exc.reason}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    private = ("/tmp", "/var/tmp", *_home_roots())
+
+    def mask(path):
+        if _is_inside(path, work):
+            return "<workspace>"
+        if path == "/tmp":  # the sandbox's own memory-backed /tmp
+            return path
+        return "<private>" if any(_is_inside(path, root) for root in private) else path
+
+    table = ran.get("mounts") or {}
+    rows = [[mask(at), "<workspace>" if mask(at) == "<workspace>" else mask(source), kind, mode]
+            for at, source, kind, mode in table.get("mounts", [])]
+    return {"returncode": ran["returncode"], "mounts": rows, "links": table.get("links", {}),
+            "aliases": {mask(t): mask(s) for t, s in table.get("aliases", {}).items()}}
+
+
 def isolation_report():
     """Public-safe evidence for the base namespace tier probe."""
     probe = isolation_probe()
@@ -1075,6 +1394,9 @@ def isolation_report():
              "command": ("unshare --user --map-root-user --mount --propagation private --pid --fork --kill-child "
                          "--net -- python3 -I -B -S -c <governor._sandbox_init> <spec>; then python3 -I -S -c <probe>"),
              "result": checks},
+            {"name": "strict run mount table, read back by pid 1 from /proc/self/mountinfo",
+             "command": "governor.sandbox_run([<this interpreter>, '-I', '-S', '-c', 'pass'], require_fs_isolation=True)['mounts']",
+             "result": _strict_mount_probe() if full else {"not_measured": "the full namespace sandbox is not available"}},
         ],
         "enforced": {
             "network_off_by_default": full or probe["userns_netns"] or probe["root_netns"],
@@ -1086,6 +1408,7 @@ def isolation_report():
             "cpu_memory_file_nofile_limits": True,
             "own_process_group_killed_after_run": True,
             "process_count_limit": False,
+            "strict_mounts_only_bin_stdlib_and_linked_libraries": full,
         },
         "not_enforced": [
             "number of processes: a sandbox mapped to uid 0 is exempt from RLIMIT_NPROC (bounded by timeout only)",
@@ -1096,6 +1419,12 @@ def isolation_report():
             "other kernel interfaces (keyctl, bpf, perf_event_open, userfaultfd) are not filtered",
             "legacy calls install no seccomp filter: a child can create a nested user namespace and hold a "
             "full capability set inside it (the mount walls are locked, measured in pr30-isolation F6)",
+            "strict runs show the whole bin directory of a program installed outside the system directories and "
+            "the whole standard library directory of a Python interpreter (site-packages included); the rest of "
+            "its install prefix (share/, etc/, include/) stays hidden",
+            "legacy and loopback calls mount the whole install prefix (the parent of bin/) of cmd[0] and of the "
+            "hub's interpreter read-only; a cmd[0] prefix under a home directory or in a directory a non-root "
+            "user can change is not mounted there (the program exits 127)",
         ],
     }
 
