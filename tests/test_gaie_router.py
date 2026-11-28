@@ -96,6 +96,53 @@ class RouterTests(unittest.TestCase):
             with self.assertRaises(router.RouteError):
                 self.route(bad)
 
+    def test_statements_questions_and_distant_negations_never_become_commands(self):
+        for text in ("لا اريد ان تنشر سديد", "لن تنشر سديد", "لم ننشر سديد بعد", "يمنع ان تنشر سديد",
+                     "do not ever again deploy sadeed", "you shouldn't deploy sadeed", "cannot deploy sadeed",
+                     "don`t deploy sadeed", "it is forbidden to deploy sadeed", "deploy sadeed is forbidden",
+                     "avoid release of sadeed", "deploy sadeed? no", "not only audit but deploy sadeed",
+                     "deploy sadeed without audit", "ماذا حدث في سديد", "تحسن اداء سديد كثيرا", "حسن يعمل على سديد",
+                     "فرق سديد ممتاز", "ورقة عمل سديد", "عجلة سديد", "what is the speed of sadeed",
+                     "release notes for sadeed", "did we deploy sadeed yesterday?", "the ship page of sadeed is broken",
+                     "هل ننشر سديد؟", "بل مشاريعي طور"):
+            plan = self.route(text)
+            self.assertEqual(plan["status"], "needs-clarification", text)
+            self.assertFalse(plan["write_allowed"], text)
+
+    def test_negated_or_embedded_project_names_are_not_targets(self):
+        for text in ("upgrade sadeed but not wow bus", "طور سديد وليس واو باص", "deploy sadeed, not wow bus",
+                     "build sadeeed", "ابن سديدة", "create sadeeed dashboard", "upgrade my-sadeed-fork", "طور الراي السديد"):
+            self.assertEqual(self.route(text)["status"], "needs-clarification", text)
+        self.assertEqual([t["id"] for t in self.route("طور سديد او باص")["targets"]], ["biz-pulse-ar"])
+
+    def test_combined_command_is_comprehensive(self):
+        plan = self.route("طور سديد وسرعه واصلح اخطاءه")
+        self.assertEqual((plan["intent"], plan["scope"]), ("upgrade", "comprehensive"))
+
+    def test_remote_must_be_github_or_the_local_proxy(self):
+        slug = "faisaljohaimy-ship-it/biz-pulse-ar"
+        for url in (f"https://github.com/{slug}.git", f"git@github.com:{slug}.git", f"http://local_proxy@127.0.0.1:9/git/{slug}"):
+            self.assertEqual(router.remote_slug(url), slug, url)
+        for url in (f"https://gitlab.com/{slug}.git", f"https://evil.example/mirror/{slug}", f"/srv/other/{slug}",
+                    f"https://github.com.evil.example/{slug}", "https://github.com/a/.."):
+            self.assertIsNone(router.remote_slug(url), url)
+
+    def test_workspace_guard_needs_every_target_and_survives_empty_or_inherited_git_settings(self):
+        checkout = self.home.parent / "sadeed"
+        checkout.mkdir()
+        subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+        subprocess.run(["git", "-C", str(checkout), "remote", "add", "origin",
+                        "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar.git"], check=True)
+        self.assertTrue(self.route("طور سديد", workspace_path=checkout)["write_allowed"])
+        self.assertFalse(self.route("upgrade sadeed and upgrade wow bus", workspace_path=checkout)["write_allowed"])
+        self.assertFalse(self.route("طور جميع مشاريعي", workspace_path=checkout)["write_allowed"])
+        empty = self.route("طور سديد", workspace_path="")
+        self.assertFalse(empty["write_allowed"])
+        self.assertFalse(empty["targets"][0]["workspace_matches"])
+        os.environ["GIT_DIR"] = str(checkout / ".git")
+        self.addCleanup(os.environ.pop, "GIT_DIR", None)
+        self.assertFalse(self.route("طور سديد", workspace_path=ROOT)["write_allowed"])
+
     def test_upgrade_subsumes_speed_and_repair(self):
         plan = self.route("طور سديد وسرعه واصلح اخطاءه")
         self.assertEqual((plan["status"], plan["intent"]), ("routed", "upgrade"))
@@ -148,11 +195,20 @@ class RouterTests(unittest.TestCase):
         cases = ([{"id": "other", "repository": "https://github.com/example-owner/other", "aliases": ["سديد"]}],
                  [{"id": "copy", "repository": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar"}],
                  [{"id": "biz-pulse-ar", "repository": "https://github.com/example-owner/x"}],
-                 [{"id": "bad", "repository": "git@github.com:example-owner/x.git"}])
+                 [{"id": "bad", "repository": "git@github.com:example-owner/x.git"}],
+                 [{"id": "o", "repository": "https://github.com/example-owner/o", "aliases": ["بسديد"]}],
+                 [{"id": "o", "repository": "https://github.com/example-owner/o", "aliases": ["sadeed pro"]}],
+                 [{"id": "o", "repository": "https://github.com/example-owner/o", "aliases": ["طور"]}],
+                 [{"id": "o", "repository": "https://github.com/example-owner/..", "aliases": ["oo"]}],
+                 [{"id": "o", "repository": "https://github.com/example-owner/o", "visibility": 7}],
+                 ["not-an-object"])
         for projects in cases:
             self.write_overlay(projects)
-            with self.assertRaises(router.RouteError):
+            with self.assertRaises(router.RouteError, msg=projects):
                 self.route("طور سديد")
+        (self.home / "projects.json").write_text('{"schema_version": true, "projects": []}')
+        with self.assertRaises(router.RouteError):
+            self.route("طور سديد")
 
     def test_private_state_must_be_outside_git(self):
         with self.assertRaises(router.RouteError):

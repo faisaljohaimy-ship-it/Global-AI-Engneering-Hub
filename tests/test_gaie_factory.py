@@ -79,6 +79,27 @@ class MemoryTests(Base):
             memory.add("repair", "x", "y", evidence=[{"kind": "log", "sha256": "raw output"}])
         self.assertNotIn("project", memory.promote(fix))
 
+    def test_removal_reordering_and_more_credential_shapes(self):
+        memory = self.memory()
+        for index in range(3):
+            memory.add("lesson", f"entry {index}", f"body {index}")
+        lines = memory.path.read_text().splitlines()
+        for damaged in ([lines[0], lines[2]], [lines[1], lines[0], lines[2]], lines[1:], ["[1]"], ['"x"']):
+            memory.path.write_text("\n".join(damaged) + "\n")
+            with self.assertRaises(gaie_memory.MemoryError_):
+                memory.entries()
+        memory.path.write_text("\n".join(lines) + "\n")
+        self.assertEqual(len(memory.entries()), 3)
+        key = "pass" + "word"
+        for sample in ('{"%s": "hunter2hunter2xyz"}' % key, "the %s is hunter2hunter2" % key, "%s\uff1ahunter2hunter2" % key,
+                       "aws_secret_access_key = wJalrEXAMPLEKEYvalue", "SUPABASE_SERVICE_ROLE_KEY=abcdefghijklmnop",
+                       "postgres://admin:" + "pa/ssword99" + "@db.example/x", "Authorization: Basic " + "QWxhZGRpbjpvcGVu",
+                       "glpat-" + "a" * 20, "gh" + "p_" + "a" * 10 + "\n" + "a" * 26, "text\u202egnp.exe"):
+            with self.assertRaises(gaie_memory.MemoryError_, msg=sample):
+                memory.add("lesson", "note", f"value {sample}")
+        self.assertEqual(len(memory.entries()), 3)
+        self.assertEqual(memory.root.parent.stat().st_mode & 0o777, 0o700)
+
     def test_tampering_and_symlinks_are_detected(self):
         memory = self.memory()
         memory.add("lesson", "one", "two")
@@ -122,6 +143,20 @@ class InventoryTests(Base):
             self.assertEqual(set(row), {"component", "current_state", "problem", "required_upgrade", "owner",
                                         "acceptance_criterion", "test", "evidence", "status"})
             self.assertIsNone(row["evidence"])
+
+    def test_hostile_checkout_content_neither_hangs_nor_crashes(self):
+        project = self.tmp / "hostile"
+        project.mkdir()
+        os.mkfifo(project / "package.json")
+        (project / "sub").mkdir()
+        (project / "sub/package.json").write_text("[1]")
+        (project / "requirements.txt").write_bytes(b"flask==3.0\n\xff\xfe broken\n")
+        (project / "pyproject.toml").write_text('next = 1\nai = "x"\n')
+        (project / "Dockerfile").write_text("FROM scratch")
+        result = gaie_inventory.inventory(project)
+        self.assertEqual(result["stack"], ["Flask"])
+        self.assertFalse(result["signals"]["has_ci"])
+        json.dumps(result)
 
     def test_requires_a_directory(self):
         with self.assertRaises(gaie_inventory.InventoryError):
@@ -183,6 +218,47 @@ class BootstrapTests(Base):
         self.assertFalse(skill.exists())
         self.assertFalse((claude / "skills/gaie-master-router").exists())
         self.assertEqual((claude / "skills/keep/SKILL.md").read_text(), "keep")
+
+    def test_poisoned_manifest_cannot_reach_outside_or_claim_other_files(self):
+        claude = self.tmp / "v/.claude"
+        claude.mkdir(parents=True)
+        outside = self.tmp / "outside/pkg/__init__.py"
+        outside.parent.mkdir(parents=True)
+        outside.write_bytes(b"")
+        empty = hashlib.sha256(b"").hexdigest()
+        for key in ("../../outside/pkg/__init__.py", str(outside), "skills/my-own/SKILL.md", "settings.json"):
+            (claude / "gaie-install.json").write_text(json.dumps({"schema_version": 1, "files": {key: empty}}))
+            for action in (lambda: gaie_bootstrap.uninstall(claude, apply=True), lambda: gaie_bootstrap.install(claude, False, apply=True)):
+                with self.assertRaises(ValueError, msg=key):
+                    action()
+        self.assertTrue(outside.is_file())
+        (claude / "gaie-install.json").write_text("[]")
+        with self.assertRaises(ValueError):
+            gaie_bootstrap.install(claude, False, apply=True)
+
+    def test_symlinked_temporary_files_are_not_written_through(self):
+        victim = self.tmp / "victim.txt"
+        victim.write_text("precious")
+        for name in ("skills/gaie-build/SKILL.md.gaie-tmp", "gaie-install.json.gaie-tmp"):
+            claude = self.tmp / name.replace("/", "_") / ".claude"
+            (claude / name).parent.mkdir(parents=True)
+            (claude / name).symlink_to(victim)
+            with self.assertRaises(ValueError):
+                gaie_bootstrap.install(claude, False, apply=True)
+            self.assertEqual(victim.read_text(), "precious")
+
+    def test_identical_preexisting_file_and_directories_survive_uninstall(self):
+        claude = self.tmp / "w/.claude"
+        mine = claude / "skills/gaie-audit/SKILL.md"
+        mine.parent.mkdir(parents=True)
+        (claude / "agents").mkdir()
+        mine.write_bytes((ROOT / "skills/gaie-audit/SKILL.md").read_bytes())
+        result = gaie_bootstrap.install(claude, False, apply=True)
+        self.assertTrue(result["skills/gaie-audit/SKILL.md"].startswith("unchanged: identical"))
+        gaie_bootstrap.uninstall(claude, apply=True)
+        self.assertTrue(mine.is_file())
+        self.assertTrue((claude / "skills").is_dir() and (claude / "agents").is_dir())
+        self.assertFalse((claude / "skills/gaie-build").exists())
 
     def test_symlinks_are_refused(self):
         real = self.tmp / "real"

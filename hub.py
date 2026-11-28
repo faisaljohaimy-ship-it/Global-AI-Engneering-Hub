@@ -336,7 +336,11 @@ def main():
             args.remove,
         )
     elif args.cmd == "route":
-        result = gaie_router.route(args.text, workspace_path=args.workspace)
+        try:
+            result = gaie_router.route(args.text, workspace_path=args.workspace)
+        except (ValueError, OSError, KeyError, TypeError, AttributeError) as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(1)
         if result["status"] != "routed":
             print(json.dumps(result, indent=2, ensure_ascii=False))
             sys.exit(2)

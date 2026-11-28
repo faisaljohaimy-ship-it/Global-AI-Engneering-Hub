@@ -5,12 +5,15 @@
 from a fresh clone, so commit a project install or use the hub pack there).
 `--scope project --target DIR` targets DIR/.claude. Only files recorded in the
 install manifest are ever updated or removed; any other existing file, a locally
-edited file, or a symlink is preserved and reported. Copying files does not prove
+edited file, or a symlink is preserved and reported. The manifest sits in the
+target directory and is trusted as that directory's owner's record: it is limited
+to the paths GAIE installs, but whoever can edit it can mark those paths as ours. Copying files does not prove
 a host discovered or invoked a skill. SPDX-License-Identifier: MIT.
 """
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -50,6 +53,9 @@ def base(scope, target):
 
 
 def _safe(directory, relative):
+    parts = pathlib.PurePosixPath(relative).parts
+    if not isinstance(relative, str) or not parts or relative.startswith("/") or "\\" in relative or ".." in parts:
+        raise ValueError("unsafe install path")
     path = directory
     if directory.is_symlink():
         raise ValueError("symlinked .claude directory refused")
@@ -67,9 +73,24 @@ def _manifest(directory):
     if not path.is_file():
         return {"schema_version": 1, "files": {}}
     data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema_version") != 1 or not isinstance(data.get("files"), dict):
+    if not isinstance(data, dict) or data.get("schema_version") != 1 or not isinstance(data.get("files"), dict):
         raise ValueError("invalid install manifest")
+    allowed = set(plan(False))
+    for relative, digest in data["files"].items():
+        if relative not in allowed or not isinstance(digest, str):
+            raise ValueError("install manifest lists a path GAIE never installs; refusing to act on it")
     return data
+
+
+def _replace(path, data):
+    """Write through a fresh exclusive temporary file; never through a symlink."""
+    temporary = path.with_name(path.name + ".gaie-tmp")
+    if temporary.is_symlink() or temporary.exists():
+        raise ValueError(f"stale or symlinked temporary file: {temporary.name}")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o644)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(data)
+    temporary.replace(path)
 
 
 def _revision():
@@ -80,9 +101,7 @@ def _revision():
 def _write(directory, manifest):
     manifest["hub_revision"] = None if directory.parent == ROOT else _revision()
     directory.mkdir(parents=True, exist_ok=True)
-    temporary = directory / (MANIFEST + ".tmp")
-    temporary.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    temporary.replace(directory / MANIFEST)
+    _replace(_safe(directory, MANIFEST), (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"))
 
 
 def install(directory, hub_checkout, apply):
@@ -94,8 +113,7 @@ def install(directory, hub_checkout, apply):
         if path.exists():
             current = sha(path.read_bytes())
             if current == sha(data):
-                result[relative] = "unchanged"
-                manifest["files"][relative] = current
+                result[relative] = "unchanged" if recorded == current else "unchanged: identical file was already present and stays yours"
                 continue
             if recorded is None:
                 result[relative] = "preserved: existing file was not installed by GAIE"
@@ -106,9 +124,7 @@ def install(directory, hub_checkout, apply):
         result[relative] = ("updated" if path.exists() else "created") if apply else ("would update" if path.exists() else "would create")
         if apply:
             path.parent.mkdir(parents=True, exist_ok=True)
-            temporary = path.with_name(path.name + ".gaie-tmp")
-            temporary.write_bytes(data)
-            temporary.replace(path)
+            _replace(path, data)
             manifest["files"][relative] = sha(data)
     if apply:
         _write(directory, manifest)
@@ -144,7 +160,7 @@ def uninstall(directory, apply):
             if apply:
                 path.unlink()
                 for parent in path.parents:
-                    if parent == directory or any(parent.iterdir()):
+                    if len(parent.relative_to(directory).parts) < 2 or any(parent.iterdir()):
                         break
                     parent.rmdir()
         if apply:
@@ -175,7 +191,7 @@ def main(argv=None):
     except (ValueError, OSError) as error:
         print(json.dumps({"status": "error", "error": str(error)}))
         return 1
-    ok = all(state in ("current", "unchanged", "created", "updated", "would create", "would update",
+    ok = all(state.startswith("unchanged") or state in ("current", "created", "updated", "would create", "would update",
                        "removed", "would remove", "already absent") for state in files.values())
     print(json.dumps({"command": args.command, "directory": str(directory), "applied": args.apply or args.command == "verify",
                       "ok": ok, "files": files,

@@ -1,77 +1,516 @@
 {
   "schema_version": 1,
-  "policy_version": "1.0.0",
+  "policy_version": "1.1.0",
   "implementation": "engineering_os/gaie_router.py",
   "authority": "Deterministic lexical routing of owner commands. A route is a plan, not proof that any step ran, that a repository is reachable or that a skill was invoked by a host.",
   "max_agents": 20,
   "verbs": {
-    "build": ["ابن", "ابني", "انشئ", "انشي", "اصنع", "اسس", "build", "create", "scaffold", "bootstrap"],
-    "upgrade": ["طور", "طوري", "حدث", "حسن", "رق", "upgrade", "develop", "improve", "enhance", "modernize", "modernise"],
-    "accelerate": ["سرع", "عجل", "accelerate", "speed", "optimize", "optimise", "faster"],
-    "audit": ["افحص", "دقق", "راجع", "قيم", "audit", "inspect", "review", "scan", "assess"],
-    "repair": ["اصلح", "عالج", "صحح", "fix", "repair", "heal", "debug"],
-    "release": ["انشر", "اطلق", "deploy", "release", "publish", "ship"]
+    "build": [
+      "ابن",
+      "ابني",
+      "انشئ",
+      "انشي",
+      "اصنع",
+      "اسس",
+      "build",
+      "create",
+      "scaffold",
+      "bootstrap"
+    ],
+    "upgrade": [
+      "طور",
+      "طوري",
+      "upgrade",
+      "develop",
+      "improve",
+      "enhance",
+      "modernize",
+      "modernise"
+    ],
+    "accelerate": [
+      "سرع",
+      "accelerate",
+      "speed",
+      "optimize",
+      "optimise"
+    ],
+    "audit": [
+      "افحص",
+      "دقق",
+      "راجع",
+      "قيم",
+      "audit",
+      "inspect",
+      "review",
+      "scan",
+      "assess"
+    ],
+    "repair": [
+      "اصلح",
+      "عالج",
+      "صحح",
+      "fix",
+      "repair",
+      "heal",
+      "debug"
+    ],
+    "release": [
+      "انشر",
+      "اطلق",
+      "deploy",
+      "release",
+      "publish",
+      "ship"
+    ]
   },
-  "negations": ["لا", "بدون", "دون", "عدم", "ممنوع", "not", "dont", "don't", "never", "without", "no"],
-  "all_projects": ["جميع مشاريعي", "كل مشاريعي", "جميع المشاريع", "كل المشاريع", "all my projects", "all projects", "every project"],
-  "new_system": ["جديد", "جديده", "new"],
+  "negations": [
+    "لا",
+    "لن",
+    "لم",
+    "ما",
+    "ليس",
+    "لست",
+    "بدون",
+    "دون",
+    "عدم",
+    "ممنوع",
+    "يمنع",
+    "اياك",
+    "مش",
+    "غير",
+    "عدا",
+    "الا",
+    "not",
+    "dont",
+    "doesnt",
+    "didnt",
+    "wont",
+    "cant",
+    "cannot",
+    "shouldnt",
+    "mustnt",
+    "wouldnt",
+    "couldnt",
+    "isnt",
+    "arent",
+    "never",
+    "without",
+    "no",
+    "forbidden",
+    "avoid",
+    "stop",
+    "except",
+    "nor",
+    "neither"
+  ],
+  "all_projects": [
+    "جميع مشاريعي",
+    "كل مشاريعي",
+    "جميع المشاريع",
+    "كل المشاريع",
+    "all my projects",
+    "all projects",
+    "every project"
+  ],
+  "new_system": [
+    "جديد",
+    "جديده",
+    "new"
+  ],
   "focus": {
-    "media": ["فيديو", "فيديوهات", "فيلم", "افلام", "سينما", "سينمائي", "مونتاج", "موسيقى", "صوت", "اصوات", "تعليق صوتي", "video", "videos", "film", "films", "cinematic", "trailer", "voiceover", "audio", "music"],
-    "motion": ["حركه", "حركات", "انيميشن", "ريموشن", "motion", "animation", "animations", "remotion"],
-    "performance": ["اداء", "سرعه", "استهلاك", "performance", "latency", "speed"],
-    "security": ["امن", "امان", "صلاحيات", "security", "permissions", "rls"],
-    "database": ["قاعده بيانات", "قواعد البيانات", "database", "databases", "schema", "migrations"],
-    "interface": ["واجهه", "واجهات", "تصميم", "ايقونات", "بطاقات", "ui", "ux", "design", "frontend", "dashboard"],
-    "ai": ["ذكاء اصطناعي", "الذكاء الاصطناعي", "وكلاء", "استدلال", "ai", "agents", "rag", "llm"],
-    "defects": ["اخطاء", "خطا", "اعطال", "عطل", "bugs", "bug", "errors", "defects"]
+    "media": [
+      "فيديو",
+      "فيديوهات",
+      "فيلم",
+      "افلام",
+      "سينما",
+      "سينمائي",
+      "مونتاج",
+      "موسيقى",
+      "صوت",
+      "اصوات",
+      "تعليق صوتي",
+      "video",
+      "videos",
+      "film",
+      "films",
+      "cinematic",
+      "trailer",
+      "voiceover",
+      "audio",
+      "music"
+    ],
+    "motion": [
+      "حركه",
+      "حركات",
+      "انيميشن",
+      "ريموشن",
+      "motion",
+      "animation",
+      "animations",
+      "remotion"
+    ],
+    "performance": [
+      "اداء",
+      "سرعه",
+      "استهلاك",
+      "performance",
+      "latency",
+      "speed"
+    ],
+    "security": [
+      "امن",
+      "امان",
+      "صلاحيات",
+      "security",
+      "permissions",
+      "rls"
+    ],
+    "database": [
+      "قاعده بيانات",
+      "قواعد البيانات",
+      "قواعد بيانات",
+      "قاعده البيانات",
+      "database",
+      "databases",
+      "schema",
+      "migrations"
+    ],
+    "interface": [
+      "واجهه",
+      "واجهات",
+      "تصميم",
+      "ايقونات",
+      "بطاقات",
+      "ui",
+      "ux",
+      "design",
+      "frontend",
+      "dashboard"
+    ],
+    "ai": [
+      "ذكاء اصطناعي",
+      "الذكاء الاصطناعي",
+      "وكلاء",
+      "استدلال",
+      "ai",
+      "agents",
+      "rag",
+      "llm"
+    ],
+    "defects": [
+      "اخطاء",
+      "خطا",
+      "اعطال",
+      "عطل",
+      "bugs",
+      "bug",
+      "errors",
+      "defects"
+    ]
   },
   "engines": {
-    "build": {"engine": "MASTER_BUILD", "skill": "gaie-build", "prompt": "prompts/MASTER_BUILD.md", "write": true},
-    "upgrade": {"engine": "MASTER_UPGRADE", "skill": "gaie-upgrade", "prompt": "prompts/MASTER_UPGRADE.md", "write": true},
-    "accelerate": {"engine": "MASTER_UPGRADE", "skill": "gaie-upgrade", "prompt": "prompts/MASTER_UPGRADE.md", "write": true, "scope": "performance"},
-    "repair": {"engine": "MASTER_UPGRADE", "skill": "gaie-upgrade", "prompt": "prompts/MASTER_UPGRADE.md", "write": true, "scope": "self-healing"},
-    "cinematic": {"engine": "CINEMATIC", "skill": "gaie-cinematic", "prompt": "prompts/MASTER_UPGRADE.md", "write": true, "scope": "media"},
-    "audit": {"engine": "AUDIT", "skill": "gaie-audit", "prompt": null, "write": false},
-    "release": {"engine": "RELEASE", "skill": "gaie-release", "prompt": null, "write": true}
+    "build": {
+      "engine": "MASTER_BUILD",
+      "skill": "gaie-build",
+      "prompt": "prompts/MASTER_BUILD.md",
+      "write": true
+    },
+    "upgrade": {
+      "engine": "MASTER_UPGRADE",
+      "skill": "gaie-upgrade",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true
+    },
+    "accelerate": {
+      "engine": "MASTER_UPGRADE",
+      "skill": "gaie-upgrade",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true,
+      "scope": "performance"
+    },
+    "repair": {
+      "engine": "MASTER_UPGRADE",
+      "skill": "gaie-upgrade",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true,
+      "scope": "self-healing"
+    },
+    "cinematic": {
+      "engine": "CINEMATIC",
+      "skill": "gaie-cinematic",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true,
+      "scope": "media"
+    },
+    "audit": {
+      "engine": "AUDIT",
+      "skill": "gaie-audit",
+      "prompt": null,
+      "write": false
+    },
+    "release": {
+      "engine": "RELEASE",
+      "skill": "gaie-release",
+      "prompt": null,
+      "write": true
+    }
   },
-  "subsumes": {"upgrade": ["accelerate", "repair"], "build": ["upgrade", "accelerate"]},
+  "subsumes": {
+    "upgrade": [
+      "accelerate",
+      "repair"
+    ],
+    "build": [
+      "upgrade",
+      "accelerate"
+    ]
+  },
   "supporting_skills": {
-    "build": ["system-builder", "saas-platform", "ai-integration", "security-review", "project-onboarding", "priority-capability-selection"],
-    "upgrade": ["hub-capabilities", "security-review", "universal-motion", "digital-motion", "chromium-engineering", "headroom-context-engineering"],
-    "accelerate": ["chromium-engineering", "headroom-context-engineering"],
-    "repair": ["security-review", "chromium-engineering"],
-    "cinematic": ["cinematic-production", "universal-motion", "digital-motion"],
-    "audit": ["security-review", "hub-capabilities", "chromium-engineering"],
-    "release": ["release-engineering", "engineering-sdk", "security-review"]
+    "build": [
+      "system-builder",
+      "saas-platform",
+      "ai-integration",
+      "security-review",
+      "project-onboarding",
+      "priority-capability-selection"
+    ],
+    "upgrade": [
+      "hub-capabilities",
+      "security-review",
+      "universal-motion",
+      "digital-motion",
+      "chromium-engineering",
+      "headroom-context-engineering"
+    ],
+    "accelerate": [
+      "chromium-engineering",
+      "headroom-context-engineering"
+    ],
+    "repair": [
+      "security-review",
+      "chromium-engineering"
+    ],
+    "cinematic": [
+      "cinematic-production",
+      "universal-motion",
+      "digital-motion"
+    ],
+    "audit": [
+      "security-review",
+      "hub-capabilities",
+      "chromium-engineering"
+    ],
+    "release": [
+      "release-engineering",
+      "engineering-sdk",
+      "security-review"
+    ]
   },
   "hub_commands": {
-    "build": ["capabilities", "recommend", "integrations", "onboard", "register", "verify"],
-    "upgrade": ["capabilities", "health", "motions", "integrations", "recommend", "verify", "inventory"],
-    "accelerate": ["health", "inventory", "recommend"],
-    "repair": ["health", "inventory", "verify"],
-    "cinematic": ["motions", "recommend", "inventory"],
-    "audit": ["audit", "health", "verify", "inventory", "capabilities"],
-    "release": ["verify", "health"]
+    "build": [
+      "capabilities",
+      "recommend",
+      "integrations",
+      "onboard",
+      "register",
+      "verify"
+    ],
+    "upgrade": [
+      "capabilities",
+      "health",
+      "motions",
+      "integrations",
+      "recommend",
+      "verify",
+      "inventory"
+    ],
+    "accelerate": [
+      "health",
+      "inventory",
+      "recommend"
+    ],
+    "repair": [
+      "health",
+      "inventory",
+      "verify"
+    ],
+    "cinematic": [
+      "motions",
+      "recommend",
+      "inventory"
+    ],
+    "audit": [
+      "audit",
+      "health",
+      "verify",
+      "inventory",
+      "capabilities"
+    ],
+    "release": [
+      "verify",
+      "health"
+    ]
   },
   "workstreams": {
-    "build": ["architecture", "backend", "frontend", "database", "ai-intelligence", "security", "quality-assurance", "design", "devops", "documentation"],
-    "upgrade": ["architecture", "backend", "frontend", "database", "ai-intelligence", "security", "quality-assurance", "performance", "design", "motion", "cinematic", "integration", "documentation"],
-    "accelerate": ["performance", "frontend", "backend", "database"],
-    "repair": ["software-engineering", "quality-assurance", "security"],
-    "cinematic": ["cinematic", "motion", "voice-audio", "quality-assurance"],
-    "audit": ["architecture", "security", "quality-assurance", "performance"],
-    "release": ["release-management", "security"]
+    "build": [
+      "architecture",
+      "backend",
+      "frontend",
+      "database",
+      "ai-intelligence",
+      "security",
+      "quality-assurance",
+      "design",
+      "devops",
+      "documentation"
+    ],
+    "upgrade": [
+      "architecture",
+      "backend",
+      "frontend",
+      "database",
+      "ai-intelligence",
+      "security",
+      "quality-assurance",
+      "performance",
+      "design",
+      "motion",
+      "cinematic",
+      "integration",
+      "documentation"
+    ],
+    "accelerate": [
+      "performance",
+      "frontend",
+      "backend",
+      "database"
+    ],
+    "repair": [
+      "software-engineering",
+      "quality-assurance",
+      "security"
+    ],
+    "cinematic": [
+      "cinematic",
+      "motion",
+      "voice-audio",
+      "quality-assurance"
+    ],
+    "audit": [
+      "architecture",
+      "security",
+      "quality-assurance",
+      "performance"
+    ],
+    "release": [
+      "release-management",
+      "security"
+    ]
   },
   "focus_workstreams": {
-    "media": ["cinematic", "voice-audio"], "motion": ["motion"], "performance": ["performance"],
-    "security": ["security"], "database": ["database"], "interface": ["frontend", "design"],
-    "ai": ["ai-intelligence"], "defects": ["software-engineering", "quality-assurance"]
+    "media": [
+      "cinematic",
+      "voice-audio"
+    ],
+    "motion": [
+      "motion"
+    ],
+    "performance": [
+      "performance"
+    ],
+    "security": [
+      "security"
+    ],
+    "database": [
+      "database"
+    ],
+    "interface": [
+      "frontend",
+      "design"
+    ],
+    "ai": [
+      "ai-intelligence"
+    ],
+    "defects": [
+      "software-engineering",
+      "quality-assurance"
+    ]
   },
   "gates": {
-    "all": ["Verify the target repository is reachable in this environment before any write.", "Work on an isolated branch; never push to the default branch.", "No paid service, API key or subscription without separate owner approval.", "Keep project-private details out of the public hub."],
-    "audit": ["Read-only: no file edits, commits, migrations, deployments or provider mutations."],
-    "release": ["Explicit owner production authorization in the current conversation.", "Exact repository, team, deployment target and tested commit verified (engineering SDK target).", "All mandatory checks green on the exact head; no CI bypass.", "Preview smoke-tested, rollback captured before promotion."],
-    "build": ["Confirm no repository already exists for the project before creating one.", "New repositories are private by default; creation needs GitHub permission in this environment."],
-    "upgrade": ["Start from the current state; no deletion before proving non-use and preserving recovery.", "Preserve data, permissions, identity and both languages."]
-  }
+    "all": [
+      "Verify the target repository is reachable in this environment before any write.",
+      "Work on an isolated branch; never push to the default branch.",
+      "No paid service, API key or subscription without separate owner approval.",
+      "Keep project-private details out of the public hub."
+    ],
+    "audit": [
+      "Read-only: no file edits, commits, migrations, deployments or provider mutations."
+    ],
+    "release": [
+      "Explicit owner production authorization in the current conversation.",
+      "Exact repository, team, deployment target and tested commit verified (engineering SDK target).",
+      "All mandatory checks green on the exact head; no CI bypass.",
+      "Preview smoke-tested, rollback captured before promotion."
+    ],
+    "build": [
+      "Confirm no repository already exists for the project before creating one.",
+      "New repositories are private by default; creation needs GitHub permission in this environment."
+    ],
+    "upgrade": [
+      "Start from the current state; no deletion before proving non-use and preserving recovery.",
+      "Preserve data, permissions, identity and both languages."
+    ]
+  },
+  "fillers": [
+    "please",
+    "kindly",
+    "now",
+    "just",
+    "also",
+    "do",
+    "من",
+    "فضلك",
+    "رجاء",
+    "لطفا",
+    "لو",
+    "سمحت",
+    "الان",
+    "يا",
+    "هيا"
+  ],
+  "coordinators": [
+    "and",
+    "then",
+    "ثم",
+    "و",
+    "كذلك",
+    "ايضا"
+  ],
+  "clause_breaks": [
+    "but",
+    "however",
+    "instead",
+    "بل",
+    "لكن",
+    "انما"
+  ],
+  "noun_followers": [
+    "notes",
+    "note",
+    "page",
+    "pages",
+    "script",
+    "scripts",
+    "pipeline",
+    "history",
+    "log",
+    "logs",
+    "branch",
+    "of",
+    "date",
+    "process",
+    "plan",
+    "button"
+  ]
 }

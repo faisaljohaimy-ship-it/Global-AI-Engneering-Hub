@@ -44,13 +44,21 @@ and `motions` at run time.
 
 ## Targeting rules
 
+- A verb is a command only as an imperative at the start of a clause or after
+  "and"/«و»/«ثم». Questions, statements and nouns ("release notes for Sadeed",
+  «هل ننشر سديد؟», «ماذا حدث في سديد») return `needs-clarification`.
+- Any verb after a negation in its clause is `prohibited`. A release sentence that
+  contains any negation, or several projects named with a negation, is not routed.
 - A project resolves only by an exact registered name or alias. Close spellings are
   reported as suggestions and never selected.
 - No match, two operations, a build verb on an existing project, or a clash between
   registries returns `needs-clarification` (exit code 2) with `write_allowed: false`.
 - «لا تنشر», "do not deploy" and similar put that operation in `prohibited`.
-- `--workspace DIR` compares the checkout's `origin` with the target repository and
-  sets `write_allowed: false` when they differ.
+- `--workspace DIR` compares the checkout's `origin` (github.com or the local Git
+  proxy only) with the target repository; `write_allowed` is true only when every
+  target matches.
+- Registries are refused when an alias contains a command word or matches inside
+  another project's alias.
 - `repository_verified` is always false in a plan: reachability is checked by the
   agent in its environment.
 
@@ -118,9 +126,9 @@ Status words: *implemented* (code exists), *tested* (automated tests pass),
 | gaie.cinematic | `skills/gaie-cinematic` | 1.0.0 | MIT | motion library, renderer | license and paid-credit gates | tested for integrity and routing; host-verified invocation | No film produced by it yet; Remotion, Blender, WebGPU remain unverified engines |
 | gaie.release | `skills/gaie-release` | 1.0.0 | MIT | SDK target/release | explicit authorization, no CI bypass | tested for integrity and routing | No deployment performed; simulated only by routing tests |
 | gaie.registry | `projects/aliases.json`, private overlay | 1.0.0 | MIT | — | private names outside Git, conflict refusal | tested | Repository reachability is not checked offline |
-| gaie.memory | `engineering_os/gaie_memory.py` | 1.0.0 | MIT | Python stdlib | 0600 files, secret refusal, integrity hash, isolation | tested | Lexical retrieval; no embeddings; single-machine store |
+| gaie.memory | `engineering_os/gaie_memory.py` | 1.0.0 | MIT | Python stdlib | 0600 files, secret refusal, integrity hash, isolation | tested | Lexical retrieval; no embeddings; single-machine store; secret filter is best-effort; hash chain does not stop a deliberate full rewrite |
 | gaie.inventory | `engineering_os/gaie_inventory.py` | 1.0.0 | MIT | Python stdlib | read-only, no symlinks, no content output | tested | Path heuristics; counts are not quality |
-| gaie.bootstrap | `scripts/gaie_bootstrap.py` | 1.0.0 | MIT | Python stdlib | never overwrites foreign files, symlinks refused | tested; project scope applied to this hub | User scope not persistent in cloud sessions |
+| gaie.bootstrap | `scripts/gaie_bootstrap.py` | 1.0.0 | MIT | Python stdlib | never overwrites foreign files, symlinks refused | tested; project scope applied to this hub | User scope not persistent in cloud sessions; the install manifest is trusted as the directory owner's record |
 | gaie.plugin | `.claude-plugin/` | 1.0.0 | MIT | Claude Code | paths inside repository | `claude plugin validate .` passed | Marketplace install not exercised |
 | gaie.verifier | `agents/gaie-verifier.md` | 1.0.0 | MIT | Claude Code | read-only tool list | listed by a clean session | Not yet used on a real review |
 

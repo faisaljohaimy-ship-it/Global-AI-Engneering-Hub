@@ -6,8 +6,8 @@ this change. Environment: Claude Code 2.1.332 cloud container, Python 3.13, Linu
 ## Automated tests
 
 `python3 -m unittest discover -s tests` — see the pull request checks for the run on
-the exact head. Added: `tests/test_gaie_router.py` (17 tests) and
-`tests/test_gaie_factory.py` (15 tests) covering the eight owner acceptance phrases,
+the exact head. Added: `tests/test_gaie_router.py` (22 tests) and
+`tests/test_gaie_factory.py` (20 tests) covering the eight owner acceptance phrases,
 English equivalents, Arabic normalization, negation, unknown and near-miss projects,
 conflicting registries, the workspace-origin guard, memory isolation, credential
 refusal, tamper detection, inventory classification, bootstrap dry-run, idempotence,
@@ -38,6 +38,25 @@ permissions, leaving the hub unmodified.
 
 `claude plugin validate .` passed (one advisory about a README install line, since
 added).
+
+## Independent review
+
+A separate read-only reviewer agent probed the first version and reproduced
+defects: negations more than two words away or outside a short list routed to
+release; statements and questions were taken as commands; a negated project stayed
+a target; build skipped the near-miss rule; overlay aliases could collide through
+prefixes; the workspace guard accepted non-GitHub hosts and partial matches; a
+poisoned install manifest could delete files outside `.claude`; installs wrote
+through symlinked temporary files; an identical pre-existing file could later be
+uninstalled; memory integrity missed removal and reordering; the credential filter
+and inventory had gaps. Each was fixed and has a regression test in the two files
+above. The clean-session runs below were made before these fixes; skill files did
+not change, the router did.
+
+Known residual limits: the router is a rule set, so unusual phrasing is refused
+rather than understood; the credential filter is best-effort; the memory hash
+chain does not stop a deliberate rewrite of the whole file; whoever can edit the
+install manifest can mark GAIE's own paths as installed.
 
 ## What this does not show
 

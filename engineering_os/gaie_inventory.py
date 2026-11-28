@@ -65,13 +65,23 @@ class InventoryError(ValueError):
     pass
 
 
+def _read(path):
+    """Bounded text of a regular, non-symlink file; empty on any problem."""
+    try:
+        if path.is_symlink() or not path.is_file():
+            return ""
+        with path.open("rb") as stream:
+            return stream.read(MAX_MANIFEST).decode("utf-8", "replace")
+    except OSError:
+        return ""
+
+
 def _manifest(path):
     try:
-        if path.is_symlink() or path.stat().st_size > MAX_MANIFEST:
-            return None
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+        data = json.loads(_read(path))
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def inventory(target, large_bytes=5 * 1024 * 1024):
@@ -87,13 +97,13 @@ def inventory(target, large_bytes=5 * 1024 * 1024):
         names[:] = sorted(name for name in names if name not in SKIP and not (pathlib.Path(directory) / name).is_symlink())
         for name in sorted(files):
             path = pathlib.Path(directory) / name
-            if path.is_symlink():
+            if path.is_symlink() or not path.is_file():
                 continue
             total += 1
             if total > MAX_FILES:
                 truncated = True
                 break
-            relative = path.relative_to(root).as_posix()
+            relative = path.relative_to(root).as_posix().encode("utf-8", "replace").decode("utf-8")
             suffix = path.suffix.casefold()
             kind = next((key for key, values in EXT.items() if suffix in values), "other")
             if TEST.search(relative):
@@ -119,23 +129,21 @@ def inventory(target, large_bytes=5 * 1024 * 1024):
                 env_files.append(relative)
         if truncated:
             break
+    has_ci = any((root / name).is_dir() for name in (".github/workflows", ".gitlab", ".circleci")) or (root / ".gitlab-ci.yml").is_file()
     dependencies, scripts = set(), set()
     for relative in manifests:
         if relative.endswith("package.json"):
-            data = _manifest(root / relative) or {}
+            data = _manifest(root / relative)
             for key in ("dependencies", "devDependencies", "peerDependencies"):
                 if isinstance(data.get(key), dict):
                     dependencies.update(data[key])
             if isinstance(data.get("scripts"), dict):
                 scripts.update(data["scripts"])
-        elif relative.endswith(("requirements.txt", "pyproject.toml")):
-            try:
-                text = (root / relative).read_text(encoding="utf-8")[:MAX_MANIFEST]
-            except OSError:
-                text = ""
-            dependencies.update(name.casefold() for name in re.findall(r"^[\s\"']*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:[=<>~!\[]|$)", text, re.M))
+        elif relative.endswith("requirements.txt"):
+            dependencies.update(name.casefold() for name in re.findall(
+                r"^[ \t]*([A-Za-z0-9][A-Za-z0-9._-]*)[ \t]*(?:[=<>~!\[;]|$)", _read(root / relative), re.M))
     signals = {
-        "has_tests": kinds["test"] > 0, "has_ci": counts["deployment"] > 0, "has_lockfile": bool(locks),
+        "has_tests": kinds["test"] > 0, "has_ci": has_ci, "has_lockfile": bool(locks),
         "has_agent_instructions": any((root / name).is_file() for name in ("CLAUDE.md", "AGENTS.md")),
         "hub_linked": (root / ".engineering/capabilities.json").is_file(),
         "env_files_present": sorted(env_files), "scripts": sorted(scripts & {"build", "test", "lint", "typecheck", "e2e", "dev"}),

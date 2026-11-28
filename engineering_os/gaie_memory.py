@@ -2,7 +2,10 @@
 
 Entries live under $GAIE_HOME/memory/<project>/entries.jsonl, outside every Git
 repository, one directory per project. A query names exactly one project and
-never reads another. Credential-shaped text is refused. Retrieval is lexical
+never reads another. Credential-shaped text is refused on a best-effort basis: it
+is a filter, not a guarantee, so do not paste secrets. Entries are hash-chained,
+which detects corruption, removal and reordering but not a deliberate rewrite of
+the whole file by someone with access to it. Retrieval is lexical
 (normalized Arabic/English token overlap), not embedding-based; `links` give a
 one-hop knowledge graph. Standard library only. SPDX-License-Identifier: MIT.
 """
@@ -14,6 +17,7 @@ import os
 import pathlib
 import re
 import sys
+import unicodedata
 
 try:
     from . import gaie_router as router
@@ -25,14 +29,20 @@ KINDS = ("decision", "pattern", "solution", "failure", "root-cause", "repair", "
 RELATIONS = ("supersedes", "caused-by", "fixes", "depends-on", "relates-to")
 PROJECT = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 DIGEST = re.compile(r"[a-f0-9]{64}")
+FIELDS = ("project", "kind", "title", "body", "tags", "evidence", "links", "previous", "created")
 MAX_BODY, MAX_ENTRIES, MAX_BYTES = 4000, 5000, 8 * 1024 * 1024
 SECRET = re.compile(
-    r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|\bgh[pousr]_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{40,}"
+    r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|\bgh[pousr]_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}|\bglpat-[A-Za-z0-9_-]{16,}"
+    r"|\bnpm_[A-Za-z0-9]{20,}|\bwhsec_[A-Za-z0-9]{16,}|\bsbp_[A-Za-z0-9]{20,}|\bya29\.[A-Za-z0-9_-]{16,}"
     r"|\bsk-(?:proj-|ant-|svcacct-|admin-)?[A-Za-z0-9_-]{24,}|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\bAIza[A-Za-z0-9_-]{35}\b"
     r"|\bsb_secret_[A-Za-z0-9_-]{20,}|\bxox[baprs]-[A-Za-z0-9-]{10,}|\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{20,}"
     r"|\bsk_[a-f0-9]{48}\b|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}"
-    r"|\bBearer\s+[A-Za-z0-9_./+=-]{16,}|://[^\s/:@]+:[^\s/@]+@"
-    r"|(?:password|passwd|secret|api[_-]?key|token)\s*[:=]\s*\S{8,}", re.I)
+    r"|\b(?:Bearer|Basic)\s+[A-Za-z0-9_./+=-]{12,}|://[^\s/@]+:[^\s@]+@|hooks\.slack\.com/services/"
+    r"|(?:password|passwd|pwd|secret|api[\s_-]?key|token|private[\s_-]?key|access[\s_-]?key|role[\s_-]?key|credential)\w*"
+    r"[\"']?\s*(?:[:=]|\bis\b)\s*[\"']?\S{4,}", re.I)
+
+
+SPLIT = re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|sk-(?:proj-|ant-)[A-Za-z0-9_-]{24,}|xox[baprs]-[A-Za-z0-9-]{20,}")
 
 
 class MemoryError_(ValueError):
@@ -42,9 +52,10 @@ class MemoryError_(ValueError):
 def _text(value, limit, name):
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
         raise MemoryError_(f"{name} must be 1-{limit} characters")
-    if SECRET.search(value):
+    value = unicodedata.normalize("NFKC", value)
+    if SECRET.search(value) or SPLIT.search(re.sub(r"\s+", "", value)):  # SPLIT: a token broken across lines
         raise MemoryError_(f"{name} looks like it contains a credential; refused")
-    if any(ord(char) < 32 and char not in "\n\t" for char in value):
+    if any((ord(char) < 32 and char not in "\n\t") or unicodedata.category(char) in ("Cf", "Zl", "Zp") for char in value):
         raise MemoryError_(f"{name} contains control characters")
     return value.strip()
 
@@ -72,12 +83,17 @@ class Memory:
             return []
         if self.path.stat().st_size > MAX_BYTES:
             raise MemoryError_("memory store exceeds its size bound")
-        rows = []
+        rows, previous = [], None
         for line in self.path.read_text(encoding="utf-8").splitlines():
-            row = json.loads(line)
-            body = {key: row[key] for key in row if key not in ("id", "created")}
-            if row.get("project") != self.project or row.get("id") != _digest(body):
+            try:
+                row = json.loads(line)
+                body = {key: row[key] for key in FIELDS}
+            except (ValueError, KeyError, TypeError):
+                raise MemoryError_("memory entry is malformed") from None
+            if set(row) != set(FIELDS) | {"id"} or row["project"] != self.project or row["id"] != _digest(body) \
+                    or row["previous"] != previous:
                 raise MemoryError_("memory entry failed its integrity check")
+            previous = row["id"]
             rows.append(row)
         return rows
 
@@ -101,13 +117,17 @@ class Memory:
             edges.append({"relation": item["relation"], "target": item["target"]})
         content = {"project": self.project, "kind": kind, "title": _text(title, 160, "title"),
                    "body": _text(body, MAX_BODY, "body"), "tags": tags, "evidence": receipts, "links": edges}
-        identity = _digest(content)
-        if identity in known:
-            return {"status": "duplicate", "id": identity}
+        duplicate = next((row["id"] for row in existing if all(row[key] == content[key] for key in content)), None)
+        if duplicate:
+            return {"status": "duplicate", "id": duplicate}
         if len(existing) >= MAX_ENTRIES:
             raise MemoryError_("memory store is full; archive before adding")
-        stamp = (now or datetime.datetime.now(datetime.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        row = {"id": identity, "created": stamp, **content}
+        content["previous"] = existing[-1]["id"] if existing else None
+        content["created"] = (now or datetime.datetime.now(datetime.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        identity = _digest(content)
+        row = {"id": identity, **content}
+        for directory in (self.root.parent.parent, self.root.parent):
+            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         self._guard()
         descriptor = os.open(self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
@@ -188,7 +208,7 @@ def main(argv=None):
             result = memory.related(args.id)
         else:
             result = memory.promote(args.id)
-    except (MemoryError_, router.RouteError, OSError, ValueError, KeyError) as error:
+    except (MemoryError_, router.RouteError, OSError, ValueError, KeyError, TypeError, IndexError) as error:
         print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
         return 1
     print(json.dumps(result, indent=2, ensure_ascii=False))
