@@ -71,7 +71,7 @@ Each cell names the control and says whether it is enforced in code (**code**) o
 | L03 Orchestration | lease, version and revision checks; private task state | n/a |
 | L04 Control plane | everything in the control-plane row of §2 | state directory on a single-user disk |
 | L05/L10 Integration, ecosystem | SDK checksums, symlink-free paths, regular files only; clone URLs limited to `https://github.com/…` | verify upstream with `hub.py verify --strict` |
-| L06/L16 Engineering, factory | `O_NOFOLLOW` reads; exclusive writes | review generated code |
+| L06/L16 Engineering, factory | `O_NOFOLLOW` reads; exclusive writes; the generated application is created 0700 with 0600 files | review generated code |
 | L07/L15 Knowledge, requirements | symlinked knowledge files refused; bounded JSON | curate what enters memory |
 | L08/L18 Motion, cinematic | media outside the repository | SEC-08 |
 | **L09 Security & quality** | this audit; `scripts/security_scan.py`; governor sandbox; `tests/test_security_enterprise.py` | run `python3 -m engineering_os.security_audit` before merge; exit code 1 means an open critical or high finding |
@@ -112,10 +112,14 @@ Static hits that were reviewed and accepted (rule, enclosing function, reason in
 - `git-dynamic-subcommand` in `hublink._git` and `scripts/security_scan.git`: these run only in the hub's own checkout, with
   read-only subcommands.
 
-Static hit that is open and not yet reviewed: `private-mode` in `build_engine._write_files` (medium). The build engine,
-merged after this review, creates the generated application directory with mode 0755 when it does not exist yet. The default
-workspace above it is created 0700, and a directory the operator created 0700 and verified with `route --workspace` keeps
-its mode. Owner: build engine.
+Static hit closed by a code change: `private-mode` in `build_engine._write_files` (medium) created the generated
+application directory with mode 0755. It now creates that directory and every directory below it 0700 and every file
+0600 (exclusive, `O_NOFOLLOW`), with one exception: `manage.py` is 0700, because the generated repository records it as
+executable (Git mode 100755) and that bit is part of the committed tree. Measured: the Git modes and every blob of the
+source commit are unchanged apart from `.gaie/link.json`, which binds the engine's own source digest
+(`tests/test_build_engine.py` `GeneratedFileModeTests`, run with umask 0; Scenario A passes). An empty directory the
+operator created keeps its mode. Files the later build steps add (Git metadata, `.gaie/factory/`) sit inside the
+0700 directory.
 
 Read-only cross-check with `swarm/phase3/SECURITY.md` and its reviews:
 - Links written through: kit faults 1/2. Same class here is SEC-03 (audit log).

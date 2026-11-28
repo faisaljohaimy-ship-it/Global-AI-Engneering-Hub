@@ -1422,16 +1422,20 @@ def _git(cwd, *args, moment=None, env=None, check=True):
 
 
 def _write_files(target, files):
-    target.mkdir(mode=0o755, exist_ok=True)
+    target.mkdir(mode=0o700, exist_ok=True)
     for relative, data in sorted(files.items()):
         parts = pathlib.PurePosixPath(relative).parts
         _need(parts and not relative.startswith("/") and ".." not in parts and parts[0] != ".git",
               f"unsafe generated path {relative}", BuildError)
         path = target.joinpath(*parts)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "xb") as stream:
+        directory = target
+        for part in parts[:-1]:
+            directory = directory / part
+            directory.mkdir(mode=0o700, exist_ok=True)
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        with os.fdopen(descriptor, "wb") as stream:
             stream.write(data)
-        os.chmod(path, 0o755 if relative == "manage.py" else 0o644)
+        os.chmod(path, 0o700 if relative == "manage.py" else 0o600)
 
 
 # ---------------------------------------------------------------------------

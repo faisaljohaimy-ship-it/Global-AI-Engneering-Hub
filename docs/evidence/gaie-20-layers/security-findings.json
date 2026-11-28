@@ -212,16 +212,6 @@
       "title": "a Git helper takes its subcommand from the caller and is not hardened"
     },
     {
-      "function": "_write_files",
-      "id": "private-mode:engineering_os/build_engine.py:1425",
-      "kind": "static",
-      "location": "engineering_os/build_engine.py:1425",
-      "rule": "private-mode",
-      "severity": "medium",
-      "status": "open",
-      "title": "engine state created with mode 0o755 (group/other bits set)"
-    },
-    {
       "function": "_sandbox_init",
       "id": "private-mode:engineering_os/governor.py:819",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
@@ -260,14 +250,14 @@
       "high": 4,
       "info": 3,
       "low": 7,
-      "medium": 8
+      "medium": 7
     },
     "by_status": {
       "accepted": 6,
       "fixed": 7,
       "held": 4,
       "mitigated": 1,
-      "open": 4
+      "open": 3
     },
     "open_critical_or_high": []
   },

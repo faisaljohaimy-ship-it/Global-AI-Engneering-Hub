@@ -13,6 +13,7 @@ import json
 import os
 import pathlib
 import socket
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -505,6 +506,59 @@ class GeneratedApplicationTests(Workspace):
         (home / "projects.json").write_text("{not json")
         with self.assertRaises(engine.BuildError):
             engine.find_existing(scenario_a_spec(), workspace=workspace, environ=self.environ)
+
+
+class GeneratedFileModeTests(Workspace):
+    """The generated application is private on disk: directories 0700, files 0600, manage.py 0700 (L09 private-mode)."""
+
+    def setUp(self):
+        super().setUp()
+        previous = os.umask(0)  # the widest umask: every mode below comes from the engine, none from the caller
+        try:
+            self.report = self.build()
+        finally:
+            os.umask(previous)
+        self.app = pathlib.Path(self.report["out_dir"])
+
+    def scaffold(self):
+        """{path: git mode} of the files _write_files wrote (the source commit), read from Git itself."""
+        listing = git(self.app, "ls-tree", "-r", self.report["source_commit"]).stdout.splitlines()
+        return {line.split("\t", 1)[1]: line.split()[0] for line in listing}
+
+    def test_the_application_directory_and_its_scaffold_are_private(self):
+        self.assertEqual(stat.S_IMODE(self.app.stat().st_mode), 0o700)
+        files = self.scaffold()
+        self.assertIn("manage.py", files)
+        directories = {parent for relative in files for parent in pathlib.PurePosixPath(relative).parents
+                       if str(parent) != "."}
+        for relative in sorted(directories):
+            self.assertEqual(stat.S_IMODE((self.app / relative).stat().st_mode), 0o700, relative)
+        for relative in files:
+            expected = 0o700 if relative == "manage.py" else 0o600
+            self.assertEqual(stat.S_IMODE((self.app / relative).lstat().st_mode), expected, relative)
+
+    def test_only_manage_py_keeps_the_execute_bit_the_repository_records(self):
+        files = self.scaffold()
+        self.assertEqual({path for path, mode in files.items() if mode == "100755"}, {"manage.py"})
+        self.assertEqual({mode for path, mode in files.items() if path != "manage.py"}, {"100644"})
+        self.assertTrue(os.access(self.app / "manage.py", os.X_OK))
+
+    def test_the_callers_umask_does_not_change_the_source_commit(self):
+        other = self.tmp / "second-workspace"
+        other.mkdir()
+        again = engine.build(scenario_a_spec(), out_dir=other / "project-management", hub_revision=self.revision,
+                             workspace=other, environ=self.environ, now=NOW, verify=False)
+        self.assertEqual(again["source_commit"], self.report["source_commit"])
+
+    def test_a_generated_path_that_is_a_symlink_is_not_followed(self):
+        target = self.workspace / "linked-app"
+        target.mkdir(mode=0o700)
+        outside = self.tmp / "outside.txt"
+        outside.write_text("owner data\n")
+        (target / "README.md").symlink_to(outside)
+        with self.assertRaises(OSError):
+            engine._write_files(target, {"README.md": b"generated\n"})
+        self.assertEqual(outside.read_text(), "owner data\n")
 
 
 class NoNetworkTests(Workspace):
