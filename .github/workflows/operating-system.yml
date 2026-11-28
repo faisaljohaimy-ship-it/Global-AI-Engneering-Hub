@@ -33,7 +33,7 @@ jobs:
       - name: Verify the 400 recipes, universal SDK and Chromium input boundaries
         run: |
           set -euo pipefail
-          node --test tests/test_motion_expansion.mjs tests/test_universal_motion_sdk.mjs tests/test_chromium_stack_options.mjs
+          node --test tests/test_motion_expansion.mjs tests/test_universal_motion_sdk.mjs tests/test_chromium_stack_options.mjs tests/test_ported_motions.mjs
       - name: Verify the native engine motions, their registry and orchestrator without a browser
         run: |
           set -euo pipefail

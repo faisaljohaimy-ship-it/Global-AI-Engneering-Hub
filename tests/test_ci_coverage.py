@@ -32,6 +32,12 @@ EXEMPT_NODE_TESTS = {
         "The locked CI Playwright 1.65.1 installs Chromium 159.0.8154.6 on a runner with other fonts, so "
         "the hashes are not expected to match there. It passes on the recording host. Wire it in once the "
         "evidence is recorded with the locked Playwright on the runner."),
+    "tests/test_ported_motions_browser.mjs": (
+        "Host-bound browser proof of the 60 ported motions: with --write it records frame signatures and "
+        "docs/evidence/ported-motions-chromium.json on the development host (Playwright 1.63.0, Chromium "
+        "158.0.8127.36; the reviewed pin 1.65.1 was not installed there, as the receipt records). "
+        "tests/test_ported_motions.py checks in every CI run that the receipt passed and is bound to the "
+        "module bytes. Wire it in once the receipt is recorded with the locked Playwright on the runner."),
 }
 
 NODE_TEST_GLOBS = ("tests/*.mjs", "packages/*/test/*.mjs", "motion-library/*/*.test.mjs")

@@ -492,7 +492,8 @@
       "tests/test_motion_lab.py",
       "tests/test_motion_sdk_pack.py",
       "tests/test_chromium_stack.py",
-      "tests/test_native_motions_digital.mjs"
+      "tests/test_native_motions_digital.mjs",
+      "tests/test_ported_motions.py"
     ],
     "scenarios": [],
     "evidence": {

@@ -170,13 +170,13 @@ absent here and is bound, or moved to `unbound` with a reason, in the next regis
 | `tests/test_quality_audit.mjs` | unbound | Imports the `lighthouse` package that `operating-system.yml` installs; on a host without it the import fails, so a layer would FAIL for a missing tool. |
 | `tests/test_quality_audit_browser.mjs` | unbound | Needs Lighthouse and Chrome (`QUALITY_AUDIT_CHROME`); run by `operating-system.yml`. |
 | `tests/test_motion_performance.mjs` | unbound | Asserts a wall-clock budget (under 1 s); run by `verify.yml`. On a shared loaded host it could fail for timing, not for a defect. |
+| `tests/test_ported_motions_browser.mjs` | unbound | Browser proof of the ported motions: needs Playwright with Chromium; it writes `docs/evidence/ported-motions-chromium.json` (with `--write`), whose binding `tests/test_ported_motions.py` (L08) checks. |
 | `tests/test_release_engine.py` | announced | Scenario G, lane scenario-g; bind to L11 (see Not yet bound). |
 | `tests/test_gaie_install_scenario_i.py` | announced | Scenario I, lane install; bind to L16 (see Not yet bound). |
 | `tests/test_assurance.py` | announced | L20 assurance module, lane assurance; bind to L20 (see Not yet bound). |
 | `tests/test_isolation_enforcement.py` | unbound | SEC-07 and SEC-12 enforcement (lane sec-isolation). It measures `read_caller_home` against the caller's own HOME and compares the live matrix with `isolation.json`; a layer run gives every test an empty private HOME, so 6 cases read `not-available` there (measured). CI runs it in discover and in the isolation job. |
 | `tests/test_motion_policy.py` | announced | Purposeful motion policy, lane motion-policy; its request asks for L08 with `engineering_os.motion_policy:validate` and `:report`. |
-| `tests/test_ported_motions.py` | announced | Ported motions, lane motion-port (it may use `.mjs` instead); candidate L08. |
-| `tests/test_ported_motions.mjs` | announced | Ported motions, lane motion-port (it may use `.py` instead); candidate L08. |
+| `tests/test_ported_motions.mjs` | unbound | Ported-motion module checks in node; `tests/test_ported_motions.py` (L08) runs it itself and skips the check only where node is missing, so binding it again would run it twice. |
 | `tests/test_engine_registry_w2.py` | announced | Wave-2 engine registration, lane reg-engines; candidate L04. |
 | `tests/test_agent_team.py` | announced | Twenty-agent team policy, lane agents-20; candidate L03. |
 | `tests/test_master_docs.py` | announced | MASTER documents manifest, lane master-docs; candidate L01. |
@@ -386,7 +386,7 @@ Responsibilities:
 - **Tools:** `python3`, `node`
 - **Skills:** `skills/universal-motion/SKILL.md`, `skills/digital-motion/SKILL.md`, `skills/chromium-engineering/SKILL.md`
 - **Agents:** `motion-sdk-animation-engineer`, `gpu-3d-digital-twin-engineer`, `cinematic-production-engineer`
-- **Tests:** `tests/test_os_control.py`, `tests/test_hub.py`, `tests/test_motion_catalog.py`, `tests/test_motion.py`, `tests/test_motion_runtime.mjs`, `tests/test_universal_motion_sdk.mjs`, `tests/test_motion_expansion.mjs`, `tests/test_chromium_stack_options.mjs`, `tests/test_motion_lab.py`, `tests/test_motion_sdk_pack.py`, `tests/test_chromium_stack.py`, `tests/test_native_motions_digital.mjs`
+- **Tests:** `tests/test_os_control.py`, `tests/test_hub.py`, `tests/test_motion_catalog.py`, `tests/test_motion.py`, `tests/test_motion_runtime.mjs`, `tests/test_universal_motion_sdk.mjs`, `tests/test_motion_expansion.mjs`, `tests/test_chromium_stack_options.mjs`, `tests/test_motion_lab.py`, `tests/test_motion_sdk_pack.py`, `tests/test_chromium_stack.py`, `tests/test_native_motions_digital.mjs`, `tests/test_ported_motions.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Preserve verified CSS/WAAPI/WebGL; new engines need their own runtime proof
 - **Evidence status:** VERIFIED — 12/12 test files, 96 test cases passed; 42 sources bound (`source_sha256` 3094723f878c2a54…).
