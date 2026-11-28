@@ -98,10 +98,27 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
    the read-only `pragma_page_size('main')` function inside a statement that also uses such a
    table, which touches no file). Memory and time are bounded: one string, blob or row at most 1 MB
    (`SQLITE_LIMIT_LENGTH`), one statement at most 1 MB (`SQLITE_LIMIT_SQL_LENGTH`), the main
-   and temp databases 4096 pages each (temp kept in memory), and each script 2000 progress
-   steps of 10000 instructions and 5 seconds. A refused statement or a script past a bound
-   stops that script and is reported as `unsafe-schema-sql` (severity high), by the detectors
-   and by the query audit.
+   and temp databases 4096 pages each (temp kept in memory), and each script 20 million
+   instructions, 5 seconds and 64 MiB of resident growth of the engine process, measured
+   (`/proc/self/statm`) by the progress handler every 100 instructions. That measured bound is
+   what stops `DISTINCT`, a recursive `UNION`, `ORDER BY` or `GROUP BY` over large strings:
+   SQLite keeps those tables and its sorter in memory, outside the page limit. SQLite checks
+   its progress handler only on jumps, so every statement also runs under an address-space
+   limit (`RLIMIT_AS` lowered to the process's size plus 128 MiB, process-wide, one statement
+   at a time under a lock, restored after): straight-line code such as a function with 999
+   one-megabyte arguments, a 2000-column row or a nested view expanded while it is prepared
+   fails with `memory limit` instead of allocating gigabytes. A statement runs to its first
+   result row and its rows are never read: a schema needs only the statements' effects (an
+   `INSERT ... RETURNING` makes all its changes in that first step), and reading the rows of a
+   `SELECT` in a schema file is what held 2.4 GB. A refused statement or a script past a bound
+   stops that script and is reported as `unsafe-schema-sql` (severity high, `refused` names
+   the bound: `size limit`, `work limit`, `time limit` or `memory limit`), by the detectors
+   and by the query audit. The caller's own statements on that connection (`EXPLAIN` of the
+   target's SQL literals, the probe index of the query audit) get the same bounds, each from
+   its own start, and a `memory limit` there is an `sqlite3.OperationalError`
+   (`detectors.SqlMemoryLimit`). Where `/proc/self/statm` is missing the address-space limit
+   is not applied and the resident bound uses the peak resident size (a limitation, recorded
+   here).
 4. **PLAN** — one step per area from a bounded generator catalogue (§3), filtered by the
    command's scope (by primary area), ordered with `reasoning.decompose` (areas in the order
    `code, architecture, database, performance, security, ui, assets, tests, docs`, the notes
