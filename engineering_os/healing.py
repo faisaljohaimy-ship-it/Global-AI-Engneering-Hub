@@ -407,9 +407,12 @@ def _snapshot(root):
         for name in dirnames + filenames:
             full = pathlib.Path(dirpath, name)
             if full.is_symlink():
-                resolved = full.resolve()
-                if resolved != root and root not in resolved.parents:
-                    raise HealingError("Target contains a symlink that leaves it; an isolated copy cannot be guaranteed")
+                try:
+                    absolute, resolved = os.path.isabs(os.readlink(full)), full.resolve()
+                except (OSError, RuntimeError):
+                    raise HealingError("Target contains an unresolvable symlink; an isolated copy cannot be guaranteed") from None
+                if absolute or resolved != root and root not in resolved.parents:
+                    raise HealingError("Target contains a symlink that leaves it (or is absolute); an isolated copy cannot be guaranteed")
         dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d))]
         for name in sorted(filenames):
             if name.endswith((".pyc", ".pyo")):
@@ -665,8 +668,10 @@ def mutation_candidates(source, qualname, firstline):
     ``not`` removal, int +/-1, returned boolean inversion) plus ``+``/``-`` swap. Each
     edit is accepted only if the edited source parses to exactly the mutated AST.
     """
-    from swarm.phase3 import mutate
-
+    try:
+        from swarm.phase3 import mutate
+    except ImportError:
+        raise HealingError("mutation catalogue swarm/phase3/mutate.py is not importable") from None
     tree = ast.parse(source)
     function = _find_function(tree, qualname, firstline)
     if function is None:
@@ -1091,16 +1096,19 @@ class _Heal:
                 item.update(status="resolved-earlier", reason="targets already pass after an earlier repair")
                 continue
             tried = 0
-            for candidate in self.candidates(item):
-                if len(self.trials) >= MAX_TRIALS:
-                    break
-                tried += 1
-                if self.trial(iteration, item, candidate):
-                    item.update(status="repaired", reason=None)
-                    progressed = True
-                    break
-                if self.blocked:
-                    break
+            try:
+                for candidate in self.candidates(item):
+                    if len(self.trials) >= MAX_TRIALS:
+                        break
+                    tried += 1
+                    if self.trial(iteration, item, candidate):
+                        item.update(status="repaired", reason=None)
+                        progressed = True
+                        break
+                    if self.blocked:
+                        break
+            except HealingError as error:
+                item.update(status="no-safe-repair", reason=f"candidate generation refused: {error}")
             if item["status"] == "planned":
                 summary = {}
                 for row in self.trials:
@@ -1179,11 +1187,13 @@ def heal(target, *, workdir, tests, now=None, policy=None, ffprobe="auto"):
         raise HealingError("Target directory required") from error
     if not root.is_dir():
         raise HealingError("Target directory required")
-    workdir = pathlib.Path(workdir)
-    workdir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    workdir = workdir.resolve()
+    try:
+        workdir = pathlib.Path(workdir).resolve()
+    except (OSError, TypeError, RuntimeError) as error:
+        raise HealingError("Workdir path required") from error
     if workdir == root or root in workdir.parents:
         raise HealingError("Workdir inside the target would repair it in place; refused")
+    workdir.mkdir(parents=True, exist_ok=True, mode=0o700)
     spec = _test_spec(tests, root)
     try:
         manifest = detectors.load_manifest(root)

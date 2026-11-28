@@ -428,7 +428,8 @@ def detect_broken_routes(root, files=None, manifest=None):
             if (row["method"], row["path"]) not in spec_routes:
                 out.append(finding("broken-routes", "undeclared-route", module, row["line"], f"{row['method']} {row['path']}", {"route": row["path"], "method": row["method"]}, "low"))
     for link in links:
-        if link["path"] not in paths and not (root / link["path"].lstrip("/")).is_file():
+        static = ".." not in link["path"].split("/") and (root / link["path"].lstrip("/")).is_file()
+        if link["path"] not in paths and not static:
             out.append(finding("broken-routes", "broken-internal-link", link["file"], link["line"], link["path"], {"route": link["path"]}, "medium"))
     return _report("broken-routes", "ran", out, method="static-ast+html", extra={"routes": len(entries), "links_checked": len(links)})
 
@@ -1134,15 +1135,18 @@ def http_call(port, method, target, *, body=None, timeout=5):
 
 
 def _stop(process):
+    """Stop the child and everything left in its process group (servers a test may have spawned)."""
     if process.poll() is None:
         with contextlib.suppress(OSError):
             os.killpg(process.pid, signal.SIGTERM)
         try:
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            with contextlib.suppress(OSError):
-                os.killpg(process.pid, signal.SIGKILL)
-            process.wait(timeout=5)
+            pass
+    with contextlib.suppress(OSError):
+        os.killpg(process.pid, signal.SIGKILL)
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        process.wait(timeout=5)
 
 
 class Sandbox:
@@ -1400,7 +1404,7 @@ def detect_performance(root, manifest=None, *, sandbox=None):
 def run_all(root, manifest=None, *, tests_dir=None, runtime=False, sandbox=None, ffprobe="auto", only=None, security_baseline=None):
     """Run every detector; runtime ones only when ``runtime=True`` (execute target code)."""
     root = pathlib.Path(root).resolve()
-    manifest = load_manifest(root) if manifest is None else validate_manifest(manifest, root)
+    manifest = load_manifest(root) if manifest is None else validate_manifest(manifest, root) if manifest else {}
     files = list_files(root)
     wanted = set(DETECTORS if only is None else only)
     _need(wanted <= set(DETECTORS), "Unknown detector")
