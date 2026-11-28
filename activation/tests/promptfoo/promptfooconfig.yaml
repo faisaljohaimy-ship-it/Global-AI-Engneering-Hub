@@ -1,0 +1,14 @@
+description: Offline check with the echo provider
+prompts:
+  - "Translate to French: {{text}}"
+providers:
+  - echo
+tests:
+  - vars: {text: "good morning"}
+    assert:
+      - type: contains
+        value: "good morning"
+  - vars: {text: "thank you"}
+    assert:
+      - type: contains
+        value: "merci"
