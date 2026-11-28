@@ -728,6 +728,22 @@ print(json.dumps({"host_pid": seen, "me": os.getpid()}))
         self.assertEqual((missing["returncode"], missing["limit"]), (127, None))
         self.assertEqual(self.py("raise SystemExit(7)")["returncode"], 7)
 
+    def test_programs_outside_system_directories_can_start(self):
+        tool = self.workspace / "tool.sh"
+        tool.write_text("#!/bin/sh\necho tool-ran\n")
+        tool.chmod(0o755)
+        ran = governor.sandbox_run(["./tool.sh"], cwd=self.workspace, timeout=10, allowed_paths=[self.workspace])
+        self.assertEqual(ran["stdout"], "tool-ran\n", ran["stderr"])
+        with mock.patch.dict(os.environ, {"PATH": "/governor-nowhere:/usr/bin:/bin"}):
+            custom = governor.sandbox_run(["sh", "-c", 'echo "$PATH"'], cwd=self.workspace, timeout=10,
+                                          allowed_paths=[self.workspace], env_allow=("PATH",))
+        self.assertEqual(custom["stdout"], "/governor-nowhere:/usr/bin:/bin\n", custom["stderr"])
+        node = shutil.which("node")
+        if node and not any(os.path.realpath(node).startswith(d + "/") for d in governor.SYSTEM_DIRS):
+            js = governor.sandbox_run(["node", "-e", "console.log(6*7)"], cwd=self.workspace, timeout=20,
+                                      allowed_paths=[self.workspace])
+            self.assertEqual(js["stdout"], "42\n", js["stderr"])
+
     def test_known_limitation_process_count_is_not_capped(self):
         """Honest record: a uid-0-mapped sandbox is exempt from RLIMIT_NPROC, so the number of
         processes is bounded only by the timeout and the pid namespace teardown (see the doc)."""

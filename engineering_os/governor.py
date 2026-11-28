@@ -508,8 +508,8 @@ def _classify(code, limit, cpu_used, cpu_seconds):
 
 def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits):
     """Run cmd inside user+mount+pid(+net) namespaces under a minimal read-only root."""
-    unshare = shutil.which("unshare", path=env["PATH"])
-    readable = sorted(set(readable) | set(_exec_prefix(cmd[0], env["PATH"])))
+    unshare = shutil.which("unshare", path=_cage().ENV["PATH"])
+    readable = sorted(set(readable) | set(_exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable)))
     status_r, status_w = os.pipe()
     spec = {"cmd": list(cmd), "cwd": cwd, "allowed": allowed, "readable": readable,
             "env_names": sorted(env), "status_fd": status_w}
@@ -536,14 +536,14 @@ def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits):
             "network_isolated": not network, "fs_isolated": True}
 
 
-def _exec_prefix(program, path):
-    """The install prefix (parent of bin/) of the program cmd[0] names, when it is outside the
-    system directories, so that a tool installed under e.g. /opt/<tool>/bin can start."""
-    found = shutil.which(program, path=path) if "/" not in program else program
+def _exec_prefix(program, path, cwd, visible):
+    """The install prefix (parent of bin/) of the program cmd[0] names, when it is not already
+    visible in the sandbox, so that a tool installed under e.g. /opt/<tool>/bin can start."""
+    found = shutil.which(program, path=path) if "/" not in program else os.path.join(cwd, program)
     if not found:
         return []
     real = os.path.realpath(found)
-    if any(_is_inside(real, system) for system in SYSTEM_DIRS):
+    if any(_is_inside(real, root) for root in SYSTEM_DIRS + tuple(visible)):
         return []
     prefix = os.path.dirname(os.path.dirname(real))
     try:
@@ -560,7 +560,7 @@ def _run_plain(cmd, *, cwd, timeout, network, env, limits, probe):
         if probe["root_netns"]:
             in_child = True
         elif probe["userns_netns"]:
-            argv = [shutil.which("unshare", path=env["PATH"]), "--user", "--map-root-user", "--net", "--"] + argv
+            argv = [shutil.which("unshare", path=_cage().ENV["PATH"]), "--user", "--map-root-user", "--net", "--"] + argv
         else:
             raise GovernorDenied("network-isolation-unavailable", "no network namespace can be made on this host")
     proc, out, err, limit = _launch(argv, cwd=cwd, env=env, timeout=timeout, limits=limits, net_in_child=in_child)

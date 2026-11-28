@@ -219,6 +219,8 @@ in the environment and on disk, and the integrity of the audit trail.
 - **Path checks are point-in-time.** `check` resolves paths when called. An engine that later
   opens a path must still do so inside the sandbox (or re-check), or a swapped symlink can win the race.
 - **`check` trusts `action_spec`** to come from the engine registry.
+- **`cmd` is visible on the host.** Arguments appear in `/proc/<pid>/cmdline` of the launcher;
+  pass credentials (when unavoidable) by `env_allow`, never in `cmd`.
 - **The secret scanner is a pattern filter, not proof.** Unknown credential formats, or
   credentials split or encoded, pass.
 - **The plain tier has no filesystem isolation** and says so (`fs_isolated: False`).
