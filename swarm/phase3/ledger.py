@@ -37,7 +37,7 @@ import guard  # noqa: E402
 
 HAND_BACK = ("SubagentHandback", "StructuredOutput")
 SESSION_TOOL = re.compile(r"mcp__claude-code-remote__|^(SendMessage|ListAgents|Agent|Task|Workflow)$")
-HOST_DENIAL = re.compile(r"permission to use|permission denied by|has been denied|not allowed to use|hook (blocked|denied)|was blocked", re.I)
+HOST_DENIAL = re.compile(r"permission to use|permission denied by|has been denied|not allowed to use|hook (blocked|denied)|was blocked|no such tool|is not available|unknown tool", re.I)
 GATE_MARKS = ("swk-guard", "swk-lane-guard")
 RAN = ("foreign shell command", "session tool", "other tool")
 
@@ -98,13 +98,13 @@ def build(paths: list[Path], gate_lines: list[dict] | None = None) -> dict:
         for row in calls(path):
             by_class[row["class"]] = by_class.get(row["class"], 0) + 1
             by_tool[row["tool"]] = by_tool.get(row["tool"], 0) + 1
-            if row["class"] != "hand-back":
+            if row["class"] not in ("hand-back", "refused by the host"):  # the host answers these itself, before any gate is asked
                 by_type[kind] = by_type.get(kind, 0) + 1
             if row["class"] in RAN:
                 key = f"{row['class']}: {row['tool']}"
                 ran[key] = ran.get(key, 0) + 1
     result = {"agents": len(paths), "tool_calls": sum(by_class.values()), "by_class": dict(sorted(by_class.items())), "by_tool": dict(sorted(by_tool.items())),
-              "calls_by_agent_type_without_hand_backs": dict(sorted(by_type.items())), "calls_outside_the_contract_that_ran": dict(sorted(ran.items())),
+              "calls_a_gate_must_have_seen_by_agent_type": dict(sorted(by_type.items())), "calls_outside_the_contract_that_ran": dict(sorted(ran.items())),
               "clean": not ran}
     if gate_lines is not None:
         seen: dict[str, int] = {}

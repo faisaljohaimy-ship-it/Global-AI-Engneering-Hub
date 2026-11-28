@@ -108,7 +108,7 @@ class CommandEdges(base.Stage):
         self.assertEqual(self.swk("read", self.ident, "inv/nothing.py").returncode, 2)
 
     def test_read_cuts_at_the_cap_and_says_how_much_is_left(self):
-        body = "x" * 70000
+        body = "x" * (kit.RAW_CAP + 10000)
         (self.folder / "inv" / "big.py").write_text(body + "\n")
         shown = self.swk("read", self.ident, "inv/big.py").stdout
         self.assertEqual(shown.split("\n[")[0], ("1: " + body)[: kit.LEAN_CAP])
@@ -116,8 +116,9 @@ class CommandEdges(base.Stage):
         item = tasks.make(self.out, "large", 2, 1, mode="raw")[0]
         (self.out / item["id"] / "inv" / "big.py").write_text(body + "\n")
         shown = self.swk("read", item["id"], "inv/big.py").stdout
-        self.assertEqual(shown.split("\n[")[0], ("1: " + body)[:60000])
-        self.assertIn(f"[{3 + len(body) - 60000} more characters not shown", shown)
+        self.assertEqual(shown.split("\n[")[0], ("1: " + body)[: kit.RAW_CAP])
+        self.assertIn(f"[{3 + len(body) - kit.RAW_CAP} more characters not shown", shown)
+        self.assertGreater(kit.RAW_CAP, 150000, "a plain stage must show a whole data file of a large task: the largest is about 72,000 characters")
 
     def test_a_failing_run_is_summed_up_within_twice_the_lean_cap(self):
         many = "\n".join(f"    def test_a{n:04d}(self):\n        self.fail('no')" for n in range(400))

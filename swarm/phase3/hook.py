@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
-"""One gate for the whole session, which tells a worker from the orchestrator by the agent type the host reports.
+"""One gate for the whole session: it tells a worker from the orchestrator by what the host reports, and refuses by default.
 
-    swk-hook                                  the host calls this before a Bash, Write or Edit call, with the call as JSON on standard input
-    python3 swarm/phase3/hook.py report       what the gate has seen so far, as counts
-    python3 swarm/phase3/hook.py report --save    the same, written to swarm/phase3/evidence/gate.json
+    swk-hook                                  the host calls this before every tool call, with the call as JSON on standard input
+    python3 swarm/phase3/hook.py selftest     does the gate decide as it must, and does the installed gate do the same?
+    python3 swarm/phase3/hook.py report       what the gate has seen so far, as counts (--save writes evidence/gate.json)
 
 The second phase found that this host does not run a gate written into an agent's own
-definition: a worker told to run a forbidden command ran it. This gate is set for the whole
-session in .claude/settings.json instead, and decides by who is calling:
+definition. It does run a gate set for the whole session in .claude/settings.json, and it
+tells that gate the type and the id of the agent that is calling. So this gate decides by
+who is calling, and what it does not know it refuses:
 
+- the orchestrator (the host reports no agent): let through. It is the party that starts
+  the agents and it is not confined by this gate;
+- the host's own hand-back of an agent's answer: let through for every agent;
 - a worker of the experiment (agent types swarm-light*, swarm-queue*, swarm-large,
-  swarm-probe): a shell call must pass the worker gate (guard.allowed); any other tool is refused;
+  swarm-probe*): a shell call must pass the worker gate (guard.allowed), one swk command
+  of a fixed shape; every other tool is refused, whatever the worker's definition lists;
 - a development agent (swarm-dev): the lane net (lane_guard.allowed);
-- anyone else, including the orchestrator and a call for which the host reports no agent
-  type: let through.
+- any other agent, of any type this gate does not know: every call refused;
+- a call this gate cannot read, or a fault in the gate itself: refused.
 
-So if the host does not say which agent is calling, this gate holds nobody back, and the
-record it keeps shows that. It records counts only: the tool, the agent type, the verdict,
-and the names (never the values) of the fields the host sent. The record is private, under
-SWARM_HOME/p3.
+It records every call it judged: the time, the tool's name, the agent's type, a short
+hash of the agent's id, the verdict, and the names (never the values) of the fields the
+host sent. No command text and no content. The record is private, under SWARM_HOME/p3.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -37,48 +44,109 @@ import lane_guard  # noqa: E402
 LOG = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm")) / "p3" / "hook.jsonl"
 WORKER = re.compile(r"swarm-(light|queue|large|probe)")
 TYPE_FIELDS = ("agent_type", "agentType", "subagent_type")
+ID_FIELDS = ("agent_id", "agentId")
+HAND_BACK = ("SubagentHandback", "StructuredOutput")
+REFUSAL = f"{guard.MARK}: refused."
+
+
+def caller(call: dict) -> tuple[str | None, str | None]:
+    """The type and the id of the calling agent, as the host reports them. Both None for the orchestrator."""
+    kind = next((call[name] for name in TYPE_FIELDS if isinstance(call.get(name), str) and call[name]), None)
+    ident = next((call[name] for name in ID_FIELDS if isinstance(call.get(name), str) and call[name]), None)
+    return kind, ident
 
 
 def decide(call: dict) -> tuple[str, str]:
-    """`pass` for a caller this gate does not judge, `allow` or `refuse` for one it does, and why."""
-    kind = next((call[name] for name in TYPE_FIELDS if isinstance(call.get(name), str)), None)
+    """`pass` for the orchestrator, `allow` or `refuse` for an agent, and what a refused agent is told."""
+    kind, ident = caller(call)
+    tool = call.get("tool_name")
+    if kind is None and ident is None:
+        return "pass", ""
+    if tool in HAND_BACK:
+        return "allow", ""
     if kind and WORKER.match(kind):
-        if call.get("tool_name") != "Bash":
-            return "refuse", f"{guard.MARK}: refused. A worker has a shell and nothing else."
-        command = (call.get("tool_input") or {}).get("command")
-        ok = isinstance(command, str) and guard.allowed(command)
-        return ("allow", "") if ok else ("refuse", f"{guard.MARK}: refused. Only the swk commands named in your instructions and your task run here, one per call.")
+        if tool != "Bash":
+            return "refuse", f"{REFUSAL} A worker has a shell and nothing else."
+        command = (call.get("tool_input") or {}).get("command") if isinstance(call.get("tool_input"), dict) else None
+        if isinstance(command, str) and guard.allowed(command):
+            return "allow", ""
+        return "refuse", f"{REFUSAL} Only the swk commands named in your instructions and your task run here, one per call."
     if kind == "swarm-dev":
         ok, why = lane_guard.allowed(call)
         return ("allow", "") if ok else ("refuse", f"{lane_guard.MARK}: refused: {why}.")
-    return "pass", ""
+    return "refuse", f"{REFUSAL} In a session of this experiment only its own agent types may use tools."
 
 
 def record(call: dict, verdict: str) -> None:
     try:
+        kind, ident = caller(call)
+        line = {"t": round(time.time(), 2), "tool": str(call.get("tool_name")), "agent": kind, "verdict": verdict,
+                "who": hashlib.sha256(ident.encode()).hexdigest()[:10] if ident else None, "fields": sorted(str(key) for key in call)}
         LOG.parent.mkdir(parents=True, exist_ok=True)
-        kind = next((call[name] for name in TYPE_FIELDS if isinstance(call.get(name), str)), None)
-        line = {"t": round(time.time(), 1), "tool": call.get("tool_name"), "agent": kind, "verdict": verdict, "fields": sorted(str(key) for key in call)}
-        with open(LOG, "a", encoding="utf-8") as handle:
-            handle.write(json.dumps(line) + "\n")
-    except OSError:
+        descriptor = os.open(LOG, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        try:
+            os.write(descriptor, (json.dumps(line) + "\n").encode())  # one write: a line is whole or absent
+        finally:
+            os.close(descriptor)
+    except (OSError, TypeError, ValueError, AttributeError):
         pass
 
 
+CASES = (  # who calls, the call, and what the gate must say
+    ("the orchestrator's shell", {"tool_name": "Bash", "tool_input": {"command": "git status"}}, "pass"),
+    ("a worker's own command", {"agent_type": "swarm-queue-1", "agent_id": "a1", "tool_name": "Bash", "tool_input": {"command": "swk next"}}, "allow"),
+    ("a worker reading a file", {"agent_type": "swarm-queue-1", "agent_id": "a1", "tool_name": "Bash", "tool_input": {"command": "cat /etc/hostname"}}, "refuse"),
+    ("a worker chaining a second command", {"agent_type": "swarm-light", "agent_id": "a2", "tool_name": "Bash", "tool_input": {"command": "swk status; id"}}, "refuse"),
+    ("a worker using a file tool", {"agent_type": "swarm-large", "agent_id": "a3", "tool_name": "Read", "tool_input": {"file_path": "/etc/hostname"}}, "refuse"),
+    ("a worker using a session tool", {"agent_type": "swarm-probe-open", "agent_id": "a4", "tool_name": "mcp__claude-code-remote__send_message", "tool_input": {}}, "refuse"),
+    ("a worker's answer being handed back", {"agent_type": "swarm-queue-1", "agent_id": "a1", "tool_name": "SubagentHandback", "tool_input": {}}, "allow"),
+    ("an agent of an unknown type", {"agent_type": "general-purpose", "agent_id": "a5", "tool_name": "Bash", "tool_input": {"command": "swk next"}}, "refuse"),
+    ("an agent with an id and no type", {"agent_id": "a6", "tool_name": "Bash", "tool_input": {"command": "swk next"}}, "refuse"),
+    ("a development agent pushing", {"agent_type": "swarm-dev", "agent_id": "a7", "tool_name": "Bash", "tool_input": {"command": "git push"}}, "refuse"),
+)
+
+
+def selftest(installed: bool = True) -> list[str]:
+    """What is wrong with the gate, as a list. Empty when it decides as it must, here and as installed."""
+    problems = [f"{who}: decided {decide(call)[0]}, must be {must}" for who, call, must in CASES if decide(call)[0] != must]
+    if installed:
+        program = shutil.which("swk-hook")
+        if program is None:
+            return [*problems, "the gate is not installed: swk-hook is not on the path"]
+        quiet = {**os.environ, "SWK_HOOK_DRY": "1"}  # the self-test leaves no line in the record
+        for who, call, must in CASES:
+            code = subprocess.run([program], input=json.dumps(call), capture_output=True, text=True, env=quiet).returncode
+            if code != (2 if must == "refuse" else 0):
+                problems.append(f"{who}: the installed gate exited {code}")
+        for text in ("", "not json", "[1]"):
+            if subprocess.run([program], input=text, capture_output=True, text=True, env=quiet).returncode != 2:
+                problems.append("the installed gate let a call through that it could not read")
+    return problems
+
+
 def report() -> dict:
-    lines = [json.loads(line) for line in LOG.read_text().splitlines()] if LOG.exists() else []
+    lines = []
+    for text in LOG.read_text().splitlines() if LOG.exists() else []:
+        try:
+            lines.append(json.loads(text))
+        except ValueError:
+            continue
     counts: dict[str, int] = {}
     for line in lines:
-        key = f"{line['agent'] or 'no agent type reported'} / {line['tool']} / {line['verdict']}"
+        key = f"{line.get('agent') or 'the orchestrator'} / {line.get('tool')} / {line.get('verdict')}"
         counts[key] = counts.get(key, 0) + 1
-    typed = [line for line in lines if line["agent"]]
-    return {"about": "What the session-wide gate saw. Counts and field names only.", "calls_seen": len(lines), "calls_with_an_agent_type": len(typed),
+    typed = [line for line in lines if line.get("agent")]
+    return {"about": "What the session-wide gate saw. Counts and field names only.", "calls_seen": len(lines), "calls_from_agents": len(typed),
             "host_reports_the_agent_type": bool(typed), "agent_types_seen": sorted({line["agent"] for line in typed}),
-            "refused": sum(line["verdict"] == "refuse" for line in lines), "by_caller_tool_and_verdict": dict(sorted(counts.items())),
-            "fields_the_host_sends": sorted({field for line in lines for field in line["fields"]})}
+            "agents_seen": len({line.get("who") for line in typed if line.get("who")}), "refused": sum(line.get("verdict") == "refuse" for line in lines),
+            "by_caller_tool_and_verdict": dict(sorted(counts.items())), "fields_the_host_sends": sorted({field for line in lines for field in line.get("fields", [])})}
 
 
 def main() -> int:
+    if sys.argv[1:2] == ["selftest"]:
+        problems = selftest("--here" not in sys.argv)
+        print(json.dumps({"holds": not problems, "problems": problems}, indent=1))
+        return 1 if problems else 0
     if sys.argv[1:2] == ["report"]:
         result = report()
         if "--save" in sys.argv:
@@ -91,10 +159,12 @@ def main() -> int:
         call = json.loads(sys.stdin.read())
         if not isinstance(call, dict):
             raise ValueError("not a call")
-    except (ValueError, OSError):
-        return 0  # not a call this gate can read: the host decides, as it would without this gate
-    verdict, why = decide(call)
-    record(call, verdict)
+        verdict, why = decide(call)
+    except Exception:  # noqa: BLE001 - whatever goes wrong inside the gate, the call does not run
+        print(f"{REFUSAL} The gate could not read this call.", file=sys.stderr)
+        return 2
+    if os.environ.get("SWK_HOOK_DRY") != "1":
+        record(call, verdict)
     if verdict == "refuse":
         print(why, file=sys.stderr)
         return 2

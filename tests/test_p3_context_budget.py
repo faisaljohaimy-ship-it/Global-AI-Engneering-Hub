@@ -62,6 +62,13 @@ class Budget(unittest.TestCase):
     def test_real_repository(self):
         self.assertEqual(cb.check(ROOT, {}), [])
 
+    def test_a_worker_definition_with_no_tools_line_is_a_problem(self):
+        (self.root / ".claude" / "agents").mkdir(parents=True, exist_ok=True)
+        (self.root / ".claude" / "agents" / "swarm-loose.md").write_text("---\nname: swarm-loose\ndescription: x\n---\nDo the task.\n")
+        self.assertEqual([p for p in cb.check(self.root, {}) if "swarm-loose" in p], ["swarm-loose: no tools line, so it would hold every tool"])
+        self.assertEqual(cb.LIMITS["every_tool"], ["swarm-probe-open"], "one probe only, and it is refused by the session gate")
+        self.assertEqual(cb.LIMITS["tools_by_name"]["swarm-probe-wide"], ["Bash", "Read", "Write"])
+
 
 if __name__ == "__main__":
     unittest.main()

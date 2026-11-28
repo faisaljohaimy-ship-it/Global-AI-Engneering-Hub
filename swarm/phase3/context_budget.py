@@ -16,7 +16,13 @@ from pathlib import Path
 
 LIMITS = {"definition_chars": 1800, "instructions_chars": 8000,
           "tools": ["Bash"], "tools_by_name": {
-              "swarm-dev": ["Bash", "Read", "Write", "Edit", "Grep", "Glob"]}}
+              "swarm-dev": ["Bash", "Read", "Write", "Edit", "Grep", "Glob"],
+              # A probe of the security gate stage. It holds file tools so that the
+              # session gate can be seen to refuse them. It is never given a task.
+              "swarm-probe-wide": ["Bash", "Read", "Write"]},
+          # A definition with no tools line holds every tool of the session. Only the
+          # probe that must be refused when it reaches for a session tool may be like that.
+          "every_tool": ["swarm-probe-open"]}
 GATES = ("swk-guard", "swk-lane-guard")
 NOTE = "tokens are an estimate (characters / 4), not a tokenizer's count"
 
@@ -102,6 +108,8 @@ def check(root, limits=None):
             problems.append(f"{a['name']}: definition {a['chars']} chars exceeds "
                             f"{lim['definition_chars']}")
         if a["name"].startswith("swarm-"):
+            if not a["tools"] and a["name"] not in lim.get("every_tool", []):
+                problems.append(f"{a['name']}: no tools line, so it would hold every tool")
             allowed = lim.get("tools_by_name", {}).get(a["name"], lim["tools"])
             extra = [t for t in a["tools"] if t not in allowed]
             if extra:

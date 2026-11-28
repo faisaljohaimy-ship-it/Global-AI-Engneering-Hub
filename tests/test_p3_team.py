@@ -117,59 +117,6 @@ class NetTests(unittest.TestCase):
         self.assertEqual(TEAM["agent_type"], "swarm-dev")
 
 
-class SessionGateTests(unittest.TestCase):
-    def setUp(self):
-        import hook  # noqa: PLC0415
-
-        self.hook = hook
-        self.folder = tempfile.TemporaryDirectory()
-        self.addCleanup(self.folder.cleanup)
-        self.lanes = pathlib.Path(self.folder.name) / "lanes"
-        self.lanes.mkdir()
-        os.environ["SWARM_LANES"] = str(self.lanes)
-        self.addCleanup(os.environ.pop, "SWARM_LANES", None)
-
-    def test_it_judges_workers_and_development_agents_and_lets_everyone_else_through(self):
-        decide = self.hook.decide
-        shell = lambda kind, command: {"agent_type": kind, "tool_name": "Bash", "tool_input": {"command": command}}  # noqa: E731
-        self.assertEqual(decide(shell("swarm-light", "swk show S-0001"))[0], "allow")
-        self.assertEqual(decide(shell("swarm-queue", "swk next"))[0], "allow")
-        for kind in ("swarm-light", "swarm-light-2", "swarm-queue", "swarm-large", "swarm-probe"):
-            self.assertEqual(decide(shell(kind, "cat /etc/hostname"))[0], "refuse", kind)
-            self.assertEqual(decide({"agent_type": kind, "tool_name": "Write", "tool_input": {"file_path": "/tmp/x"}})[0], "refuse", kind)
-        self.assertIn("swk-guard", decide(shell("swarm-probe", "id"))[1])
-        self.assertEqual(decide(shell("swarm-dev", "git push"))[0], "refuse")
-        self.assertEqual(decide(shell("swarm-dev", "ls"))[0], "allow")
-        self.assertEqual(decide({"agentType": "swarm-dev", "tool_name": "Write", "tool_input": {"file_path": "/etc/x"}})[0], "refuse")
-        for caller in ({}, {"agent_type": "general-purpose"}, {"agent_type": None}, {"agent_id": "a1"}):
-            self.assertEqual(decide({**caller, "tool_name": "Bash", "tool_input": {"command": "rm -rf build && git push"}})[0], "pass", caller)
-
-    def test_as_a_program_it_refuses_a_worker_records_counts_only_and_never_blocks_what_it_cannot_read(self):
-        env = {"PATH": os.environ["PATH"], "SWARM_HOME": self.folder.name, "SWARM_LANES": str(self.lanes)}
-
-        def run(*arguments, text=""):
-            return subprocess.run([sys.executable, "-I", str(P3 / "hook.py"), *arguments], input=text, capture_output=True, text=True, env=env)
-
-        marker = "a-value-the-record-must-not-hold"
-        self.assertEqual(run(text=json.dumps({"agent_type": "swarm-probe", "tool_name": "Bash", "tool_input": {"command": f"cat /etc/hostname {marker}"}, "session_id": marker})).returncode, 2)
-        self.assertEqual(run(text=json.dumps({"agent_type": "swarm-probe", "tool_name": "Bash", "tool_input": {"command": "swk status"}})).returncode, 0)
-        self.assertEqual(run(text=json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}})).returncode, 0)
-        for text in ("", "nonsense", "[1]"):
-            self.assertEqual(run(text=text).returncode, 0, text)
-        seen = json.loads(run("report").stdout)
-        self.assertEqual((seen["calls_seen"], seen["calls_with_an_agent_type"], seen["refused"], seen["host_reports_the_agent_type"]), (3, 2, 1, True))
-        self.assertIn("session_id", seen["fields_the_host_sends"])
-        self.assertNotIn(marker, (pathlib.Path(self.folder.name) / "p3" / "hook.jsonl").read_text())
-
-    def test_the_settings_hook_does_nothing_until_the_gate_is_installed(self):
-        settings = json.loads((ROOT / ".claude" / "settings.json").read_text())
-        entry = settings["hooks"]["PreToolUse"][0]
-        self.assertEqual(entry["matcher"], "Bash|Write|Edit")
-        command = entry["hooks"][0]["command"]
-        done = subprocess.run(["sh", "-c", command], input="{}", capture_output=True, text=True, env={"PATH": "/usr/bin:/bin"})
-        self.assertEqual((done.returncode, done.stdout, done.stderr), (0, "", ""))
-
-
 class JoinTests(unittest.TestCase):
     def test_lanes_are_joined_one_by_one_and_a_lane_outside_its_paths_is_rejected_whole(self):
         with tempfile.TemporaryDirectory() as folder:

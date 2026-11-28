@@ -42,7 +42,7 @@ import workload  # noqa: E402
 HOME = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm")) / "p2"
 ID = re.compile(r"[SMLX]-\d{4}")
 ATTEMPTS = 3
-RAW_CAP, LEAN_CAP = 60000, 4000
+RAW_CAP, LEAN_CAP = 400000, 4000  # a plain stage shows whole files: its cap must be above the largest file of a project, or part of an answer is hidden
 PROJECT_FILE = re.compile(r"(inv|tests|data|logs)(/[A-Za-z0-9_.-]+)?")
 FACTS = ("fixed_function", "direct_callers", "failed_event_ids", "build_error_code")
 
