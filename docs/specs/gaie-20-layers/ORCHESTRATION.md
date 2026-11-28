@@ -186,3 +186,14 @@ wave (conflict-shrink: 7 conflicts in a wave of 8). No 20-agent concurrent run h
 * `governance/engines.json` + `engineering_os/adapters.py`: register an `orchestrator` engine (L03,
   entrypoint `engineering_os.orchestrator:engine`, health `:health`, actions `plan`, `schedule`,
   `review-assignment`, `worktree-plan`, `scenario-h`, all side effect `none`).
+
+## 11. Agent-team policy
+
+The standing team of every build and upgrade comes from `governance/policies/agent-team.json`.
+That team is the twenty registry roles, each either staffed or omitted with a reason. The same
+file holds the three numbers this engine uses: `MAX_AGENTS` (session limit 20, measured),
+`AGENTS_PER_CPU` (2, policy) and `START_AGENTS` (4). Each number is bound to the evidence file it
+comes from. The values and the twenty-role plan digest did not change when the numbers moved there.
+The loader is `engineering_os/agent_team.py` (`show`, `check`, `role`, `evidence`). The rules, how
+to edit them, and the parts that are declared but not enforced are in
+[AGENT_TEAM.md](AGENT_TEAM.md).
