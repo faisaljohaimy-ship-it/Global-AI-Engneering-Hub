@@ -1,10 +1,16 @@
 """GAIE master router: owner commands in Arabic or English to a verifiable plan.
 
 Deterministic and offline. It classifies the task, resolves the project against
-the registries, and selects the engine, skills, workstreams and gates. It never
-guesses a repository: an unknown, ambiguous or conflicting target stops with
-`needs-clarification`. A route is a plan; it proves nothing about execution.
-Standard library only so the file can be vendored. SPDX-License-Identifier: MIT.
+the registries (`project_registry`), and selects the engine, the control-plane
+engine id, agent roles, capabilities, a least-privilege grant template, the
+execution scope, tests and evidence. It never guesses a repository, URL or
+deployment target: an unknown, ambiguous, unregistered or conflicting target stops
+with `needs-clarification`. Hard rules are enforced here, not by text: audit is
+read-only, performance and repair stay on an isolated branch, a new system gets a
+workspace grant (creating its repository is a separate approved step), and a
+release always needs approval. A route is a plan: it executes nothing and proves
+nothing about execution. Standard library only so the file can be vendored.
+SPDX-License-Identifier: MIT.
 """
 import argparse
 import difflib
@@ -16,9 +22,32 @@ import subprocess
 import sys
 import unicodedata
 
+try:
+    from . import contracts as _contracts
+except ImportError:  # vendored or run as a script: the same values, checked by tests
+    _contracts = None
+
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 MAX_TEXT = 2000
+SIDE_EFFECTS = _contracts.SIDE_EFFECTS if _contracts else (
+    "none", "state-write", "workspace-write", "repo-write", "network", "external-write", "production")
+GATED = _contracts.GATED if _contracts else frozenset({"external-write", "production"})
+PERMISSIONS = _contracts.PERMISSIONS if _contracts else frozenset({
+    "read:repo", "read:registry", "read:state", "write:state", "write:workspace", "write:repo-branch", "exec:sandbox",
+    "net:fetch", "ext:github", "ext:deploy", "prod:deploy", "secrets:none"})
+# Hard rules live in code so that editing the policy file cannot relax them.
+HARD_CEILING = {"audit": "none", "accelerate": "repo-write", "repair": "repo-write", "upgrade": "repo-write",
+                "cinematic": "repo-write", "build": "workspace-write"}
+HARD_EXECUTION = {"audit": ("read-only",), "accelerate": ("workspace", "repo-branch"), "repair": ("workspace", "repo-branch"),
+                  "upgrade": ("workspace", "repo-branch"), "cinematic": ("workspace", "repo-branch"), "build": ("workspace",),
+                  "release": ("release-gated",)}
+PERMISSION_FLOOR = {"write:state": "state-write", "write:workspace": "workspace-write", "exec:sandbox": "workspace-write",
+                    "write:repo-branch": "repo-write", "net:fetch": "network", "ext:github": "external-write",
+                    "ext:deploy": "external-write", "prod:deploy": "production"}
+_ID = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+_CAPABILITY = re.compile(r"^gaie\.[a-z][a-z0-9-]*$")
+_POSSESSIVE = re.compile(r"(?<=[A-Za-z0-9])['\u2019]s\b")
 _NAME = r"(?!\.+(?:\.git)?/?$)([A-Za-z0-9_.-]+)"
 _REPO = r"(?!\.+(?:\.git)?/?$)([A-Za-z0-9_.-]+?)(?:\.git)?/?"
 REPOSITORY = re.compile(r"https://github\.com/" + _NAME + "/" + _REPO)
@@ -32,6 +61,7 @@ _CLAUSE = re.compile(r"[,\u060c.;\u061b!?\u061f:()\n]+")
 _WORD = re.compile(r"[^\W_]+(?:-[^\W_]+)*")
 _PHRASE_PREFIX = re.compile("^(?:و|ف)?(?:ب|ل|ك)?(?:ال)?")
 _ALIAS_PREFIX = re.compile("^(?:و|ف)?(?:ب|ل)?")
+_PREFIX_GROUPS = {_PHRASE_PREFIX: (("و", "ف"), ("ب", "ل", "ك"), ("ال",)), _ALIAS_PREFIX: (("و", "ف"), ("ب", "ل"))}
 _ARABIC = re.compile("[\u0621-\u064a]")
 
 
@@ -42,7 +72,7 @@ class RouteError(ValueError):
 def _fold(text):
     if not isinstance(text, str):
         raise RouteError("command must be text")
-    text = unicodedata.normalize("NFKC", text)
+    text = _POSSESSIVE.sub("", unicodedata.normalize("NFKC", text))  # "Sadeed's videos" names Sadeed
     return _APOSTROPHES.sub("", _DIACRITICS.sub("", text).translate(_FOLD).casefold())
 
 
@@ -97,8 +127,27 @@ def _slug_of(repository):
     return f"{match.group(1)}/{match.group(2)}".casefold()
 
 
+def _registry_module():
+    """engineering_os.project_registry, or the copy vendored beside this file; None when absent."""
+    try:
+        from . import project_registry as module
+    except ImportError:
+        if not (HERE / "project_registry.py").is_file():
+            return None
+        import project_registry as module  # run as a script: this file's directory leads sys.path
+    return module if pathlib.Path(module.__file__).resolve().parent == HERE else None
+
+
 def projects(environ=None):
-    """Public registry rows plus the private overlay, with normalized aliases."""
+    """Every project row for routing: public registry, public-safe catalog and the private registry."""
+    module = _registry_module()
+    if module is None:  # a vendored copy installed without project_registry.py
+        return _legacy_projects(environ)
+    return module.routing_rows(environ)
+
+
+def _legacy_projects(environ=None):
+    """Public registry rows plus the private overlay, with normalized aliases (pre-registry loader)."""
     rows = {}
     public = _first(HERE / "projects.json", ROOT / "projects/registry.json")
     aliases = _load(_first(HERE / "aliases.json", ROOT / "projects/aliases.json")).get("aliases", {})
@@ -156,11 +205,26 @@ def _strip(token, pattern=_PHRASE_PREFIX):
     return rest if len(rest) >= 2 else token
 
 
+def _forms(token, pattern=_PHRASE_PREFIX):
+    """The token and every reading of it with attached Arabic prefixes removed.
+
+    «وبلتكس» is «و» + «بلتكس», not «وب» + «لتكس»: each prefix group is optional,
+    so a name that itself starts with «ب» or «ل» still matches after «و».
+    """
+    if not _ARABIC.search(token):
+        return {token}
+    forms = {token, _strip(token, pattern)}
+    for group in _PREFIX_GROUPS[pattern]:
+        forms |= {form[len(prefix):] for form in forms for prefix in group
+                  if form.startswith(prefix) and len(form) - len(prefix) >= 2}
+    return forms
+
+
 def _find(tokens, phrase, pattern=_PHRASE_PREFIX):
     """Start indexes of a normalized phrase. Only the spoken token may carry a prefix."""
     size = len(phrase)
     return [index for index in range(len(tokens) - size + 1)
-            if all(token == word or _strip(token, pattern) == word
+            if all(token == word or word in _forms(token, pattern)
                    for token, word in zip(tokens[index:index + size], phrase))]
 
 
@@ -283,21 +347,181 @@ def _skills(names):
 
 
 def _clarify(reason, **extra):
-    return {"schema_version": 1, "status": "needs-clarification", "reason": reason, "write_allowed": False, **extra}
+    return {"schema_version": 1, "route_version": 2, "status": "needs-clarification", "decision": "needs-clarification",
+            "reason": reason, "write_allowed": False, "executable_by_route": False, "grant_template": None, **extra}
 
 
 def _public(row):
-    return {key: row[key] for key in ("id", "repository", "visibility", "source")}
+    return {key: row.get(key) for key in ("id", "repository", "visibility", "source", "path")}
+
+
+def _guard(condition, message):
+    if not condition:
+        raise RouteError(f"policy violates a hard rule: {message}")
+
+
+def _rank(name):
+    _guard(name in SIDE_EFFECTS, f"unknown side-effect class {name!r}")
+    return SIDE_EFFECTS.index(name)
+
+
+def check_policy(rules):
+    """Validate the control-plane section against the hard rules; return its intents."""
+    plane = rules.get("control_plane")
+    _guard(isinstance(plane, dict) and isinstance(plane.get("intents"), dict), "control_plane.intents is missing")
+    intents = plane["intents"]
+    _guard(set(intents) == set(rules["engines"]), "every routed intent needs exactly one control-plane entry")
+    roles = plane.get("role_ids", {})
+    known = set(roles.get("named_by_owner_directive", [])) | set(roles.get("provisional", []))
+    _guard(known and all(isinstance(role, str) and _ID.match(role) for role in known), "role ids must be kebab-case")
+    _guard(isinstance(plane.get("grant_ttl_hours"), int) and 0 < plane["grant_ttl_hours"] <= 24, "grant_ttl_hours 1-24")
+    _guard(not rules["engines"]["audit"]["write"], "audit must not write")
+    for intent, spec in intents.items():
+        where = f"control_plane.{intent}"
+        _guard(isinstance(spec, dict) and isinstance(spec.get("engine_id"), str) and _ID.match(spec["engine_id"]),
+               f"{where}.engine_id")
+        actions = spec.get("actions")
+        _guard(isinstance(actions, list) and actions and len(set(actions)) == len(actions)
+               and all(isinstance(a, str) and _ID.match(a) for a in actions), f"{where}.actions")
+        ceiling = spec.get("max_side_effect")
+        _rank(ceiling)
+        _guard(spec.get("execution") in HARD_EXECUTION[intent], f"{where}.execution must be one of {HARD_EXECUTION[intent]}")
+        steps = spec.get("gated_steps")
+        _guard(isinstance(steps, list), f"{where}.gated_steps")
+        for step in steps:
+            _guard(isinstance(step, dict) and set(step) == {"action", "side_effect", "permissions", "summary"}
+                   and step["side_effect"] in GATED and _ID.match(step["action"]), f"{where}: gated steps are external-write or production")
+            for perm in step["permissions"]:
+                _guard(perm in PERMISSIONS and _rank(PERMISSION_FLOOR.get(perm, "none")) <= _rank(step["side_effect"]),
+                       f"{where}.{step['action']}: permission {perm!r}")
+        if intent == "release":
+            _guard(ceiling in GATED and spec.get("approval_required") is True and steps,
+                   "release always needs approval and an external-write or production side effect")
+            _guard(all(step["action"] in actions for step in steps), "release gated steps belong to the release grant")
+            _guard(any(step["side_effect"] == "production" for step in steps), "release promotion is a production step")
+        else:
+            _guard(_rank(ceiling) <= _rank(HARD_CEILING[intent]), f"{where}: ceiling {ceiling} exceeds {HARD_CEILING[intent]}")
+            _guard(not spec.get("approval_required"), f"{where}: only release is approval-gated as a whole")
+            _guard(all(step["action"] not in actions for step in steps), f"{where}: a gated step never enters the base grant")
+        if intent == "build":
+            _guard(any(step["action"] == "create-repository" and step["side_effect"] == "external-write" for step in steps),
+                   "build marks new-repository creation as an approved external-write step")
+        else:
+            _guard(intent == "release" or not steps, f"{where}: unexpected gated step")
+        permissions = spec.get("permissions")
+        _guard(isinstance(permissions, list) and "secrets:none" in permissions, f"{where}.permissions must include secrets:none")
+        for perm in permissions:
+            _guard(perm in PERMISSIONS, f"{where}: unknown permission {perm!r}")
+            _guard(_rank(PERMISSION_FLOOR.get(perm, "none")) <= _rank(ceiling), f"{where}: {perm} exceeds the {ceiling} ceiling")
+        team = spec.get("roles")
+        _guard(isinstance(team, dict) and set(team) == {"lead", "support", "verifier"}, f"{where}.roles: lead, support, verifier")
+        members = [team["lead"], *team["support"], team["verifier"]]
+        _guard(all(role in known for role in members), f"{where}: role ids must be listed in control_plane.role_ids")
+        _guard(len(set(members)) == len(members), f"{where}: the verifier never reviews its own work")
+        for field in ("capabilities", "tests", "evidence"):
+            values = spec.get(field)
+            _guard(isinstance(values, list) and values and all(isinstance(v, str) and v.strip() for v in values), f"{where}.{field}")
+        _guard(all(_CAPABILITY.match(c) for c in spec["capabilities"]), f"{where}.capabilities are gaie.* ids")
+    return intents
+
+
+def _scope_path(rules, project_id, path):
+    root = rules["control_plane"]["workspace_root"]
+    return f"{root}/{project_id or 'new-project'}" + (f"/{path}" if path else "")
+
+
+def grant_template(spec, rules, project_id=None, path=None):
+    """Least-privilege grant skeleton in the contract's shape; the control plane fills id and expiry."""
+    return {"grant_id": None, "role": spec["roles"]["lead"], "engines": {spec["engine_id"]: list(spec["actions"])},
+            "paths": [_scope_path(rules, project_id, path)], "max_side_effect": spec["max_side_effect"],
+            "expires_at": None, "approvals": []}
+
+
+def grant_from_template(template, *, grant_id, expires_at):
+    """Fill the placeholders of a template. Approvals are never added here."""
+    if not isinstance(template, dict) or template.get("grant_id") is not None or template.get("expires_at") is not None \
+            or template.get("approvals") != []:
+        raise RouteError("not an unfilled grant template")
+    grant = {**template, "grant_id": grant_id, "expires_at": expires_at,
+             "engines": {k: list(v) for k, v in template["engines"].items()}, "paths": list(template["paths"])}
+    if _contracts:
+        try:
+            _contracts.validate_grant(grant)
+        except _contracts.ContractError as error:
+            raise RouteError(f"grant does not satisfy the contract: {error}") from None
+    return grant
+
+
+def _execution(spec, rules, intent, project_id=None, path=None):
+    kind = spec["execution"]
+    scope = {"kind": kind, "paths": [_scope_path(rules, project_id, path)], "max_side_effect": spec["max_side_effect"],
+             "default_branch_writes": False, "network": False, "production": spec["max_side_effect"] == "production"}
+    if kind == "read-only":
+        scope["writes"] = "none: no file edit, commit, migration, deployment or provider mutation"
+    if kind == "repo-branch":
+        scope["branch"] = f"claude/gaie-{intent}-{project_id}"
+    if kind == "release-gated":
+        scope["writes"] = "only the approved gated actions, through a grant carrying the owner's approval tokens"
+    if intent == "build":
+        scope["new_repository"] = "separate gated step: external-write, owner approval, private by default"
+    return scope
+
+
+def _approvals(spec):
+    return [{"engine": spec["engine_id"], "action": step["action"], "side_effect": step["side_effect"],
+             "permissions": list(step["permissions"]), "summary": step["summary"], "needs_approval": True,
+             "in_base_grant": step["action"] in spec["actions"]} for step in spec["gated_steps"]]
+
+
+def _team(spec):
+    return {"lead": spec["roles"]["lead"], "support": list(spec["roles"]["support"]), "verifier": spec["roles"]["verifier"]}
+
+
+def _focus(tokens, rules, matched):
+    """Focus words outside the spans of the named projects ("Security Lab" is not a security focus)."""
+    masked = list(tokens)
+    for row in matched:
+        for key in row["_keys"]:
+            for start in _find(tokens, list(key), _ALIAS_PREFIX):
+                masked[start:start + len(key)] = [""] * len(key)
+    return sorted(name for name, phrases in _lexicon(rules["focus"]).items() if any(_find(masked, phrase) for phrase in phrases))
+
+
+def _registry_check(row):
+    return row.get("repository_check") or {
+        "status": "registered-private" if row.get("source") == "private-overlay" else "registered-public",
+        "repository_known": bool(row.get("repository")), "source": row.get("source"),
+        "evidence": "legacy registry loader", "observed": None,
+        "reachability": "not checked by the registry; the executing agent verifies access in its environment"}
+
+
+def _enforce(plan):
+    """Re-check the hard rules on the finished plan (defence in depth)."""
+    _guard(plan["executable_by_route"] is False, "a route never executes")
+    templates = [t["grant_template"] for t in plan["targets"]] + ([plan["grant_template"]] if plan["grant_template"] else [])
+    for template in templates:
+        if plan["intent"] == "audit":
+            _guard(template["max_side_effect"] == "none", "audit maps to a read-only grant")
+        if plan["intent"] != "release":
+            _guard(template["max_side_effect"] not in GATED, "only a release grant reaches a gated class")
+    if plan["intent"] == "audit":
+        _guard(not plan["write_allowed"], "audit is read-only")
+    if plan["intent"] == "release":
+        _guard(plan["decision"] == "needs-approval" and not plan["write_allowed"] and plan["side_effect"] in GATED,
+               "a release always needs approval")
+    return plan
 
 
 def route(text, *, environ=None, workspace_path=None):
     if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT:
         raise RouteError("command must be 1-2000 characters")
     rules = policy()
+    plane = check_policy(rules)
     tokens = normalize(text)
-    verbs, prohibited, focus, everything, negated = classify(text, rules)
+    verbs, prohibited, _, everything, negated = classify(text, rules)
     registry = projects(environ)
     matched, suggestions = resolve(tokens, registry)
+    focus = _focus(tokens, rules, matched)
     if not verbs:
         return _clarify("No command recognized. Start with what to do (build, upgrade, speed up, audit, fix, release); "
                         "questions, statements and negated operations are not executed.", prohibited=prohibited, focus=focus)
@@ -314,23 +538,40 @@ def route(text, *, environ=None, workspace_path=None):
                         projects=[_public(row) for row in matched], prohibited=prohibited)
     intent = "cinematic" if verb == "upgrade" and focus and set(focus) <= {"media", "motion"} and "media" in focus else verb
     engine = rules["engines"][intent]
+    spec = plane[intent]
+    known = {"intent": intent, "engine": engine["engine"], "engine_id": spec["engine_id"], "roles": _team(spec),
+             "capabilities": list(spec["capabilities"]), "side_effect": spec["max_side_effect"], "execution_scope": None,
+             "tests": list(spec["tests"]), "evidence": list(spec["evidence"])}
+    skipped = []
     if intent == "build":
         if matched or everything:
             return _clarify("Build creates a new system, but the command names an existing project. Say upgrade, or name the new system.",
-                            projects=[_public(row) for row in matched])
+                            projects=[_public(row) for row in matched], **known)
         if suggestions:
             return _clarify("Build creates a new system, but a word resembles a registered project. Say upgrade with the exact "
-                            "project name, or confirm this is a new system.", suggestions=suggestions)
+                            "project name, or confirm this is a new system.", suggestions=suggestions, **known)
         targets, scope = [], "new-project"
     elif everything:
         if matched:
-            return _clarify("The command names both one project and all projects.", projects=[_public(r) for r in matched])
-        targets, scope = sorted(registry.values(), key=lambda row: row["id"]), "all-registered-projects"
+            return _clarify("The command names both one project and all projects.", projects=[_public(r) for r in matched], **known)
+        ordered = sorted(registry.values(), key=lambda row: row["id"])
+        targets, scope = [row for row in ordered if row.get("repository")], "all-registered-projects"
+        skipped = [{"id": row["id"], "repository_check": _registry_check(row)} for row in ordered if not row.get("repository")]
     elif not matched:
-        return _clarify("No registered project matches this command. Name the project or register it (private overlay for private work). Nothing is guessed.",
-                        suggestions=suggestions, known_projects=sorted(registry))
+        return _clarify("No registered project matches this command. Name the project or register it (private registry for private work). Nothing is guessed.",
+                        suggestions=suggestions, known_projects=sorted(registry), project=None, **known)
     else:
         targets, scope = sorted(matched, key=lambda row: row["id"]), "named-projects" if len(matched) > 1 else "single-project"
+        missing = [row for row in targets if not row.get("repository")]
+        if missing:
+            row = missing[0]
+            return _clarify(
+                f"The project {row['id']} is known by name, but no repository is registered for it, and a repository is never "
+                "guessed. Register the exact repository (and folder) in the private registry, then repeat the command.",
+                project=row["id"] if len(targets) == 1 else None, names=row.get("names"),
+                repository_check=_registry_check(row), unregistered=[r["id"] for r in missing],
+                next_step=f"python3 -m engineering_os.project_registry register {row['id']} "
+                          "--repository https://github.com/OWNER/REPO [--path FOLDER] --apply", **known)
     if len(verbs) > 1:
         focus = []  # a combined command (upgrade and speed up and fix) is a comprehensive run
     full = intent == "build" or (intent == "upgrade" and not focus)
@@ -344,23 +585,49 @@ def route(text, *, environ=None, workspace_path=None):
     for row in targets:
         entry = _public(row)
         entry.update(repository_verified=False, branch_policy="isolated claude/ or codex/ branch per project",
-                     memory_scope=row["id"])
+                     memory_scope=row["id"], repository_check=_registry_check(row),
+                     grant_template=grant_template(spec, rules, row["id"], row.get("path")),
+                     execution_scope=_execution(spec, rules, intent, row["id"], row.get("path")),
+                     evidence_location=f"{rules['control_plane']['evidence_root']}/{row['id']}")
         if checked:
-            entry["workspace_matches"] = here == row["slug"]
+            entry["workspace_matches"] = here == row.get("slug")
         plan_targets.append(entry)
-    write = bool(engine["write"])
+    write = bool(engine["write"]) and intent != "release"
+    blockers = []
     if checked and targets and not all(t["workspace_matches"] for t in plan_targets):
         write = False
+        blockers.append("This checkout is not the (only) target repository; open each target's own checkout.")
+    if intent == "release":
+        blockers += [f"{row['id']}: no deployment target is registered in the private registry; it is never guessed."
+                     for row in targets if not row.get("deployment_target_registered")]
     gates = [*rules["gates"]["all"], *rules["gates"].get(verb, [])]
     if intent == "cinematic":
         gates += rules["gates"]["upgrade"]
-    return {
-        "schema_version": 1, "status": "routed", "command": text.strip(), "language": "ar" if _ARABIC.search(text) else "en",
-        "intent": intent, "verb": verb, "engine": engine["engine"], "skill": engine["skill"], "prompt": engine["prompt"],
+    single = plan_targets[0] if len(plan_targets) == 1 else None
+    template = single["grant_template"] if single else grant_template(spec, rules) if intent == "build" else None
+    decision = "needs-approval" if intent == "release" else "blocked" if blockers else "ready-for-grant"
+    plan = {
+        "schema_version": 1, "route_version": 2, "status": "routed", "command": text.strip(),
+        "language": "ar" if _ARABIC.search(text) else "en",
+        "intent": intent, "verb": verb, "engine": engine["engine"], "engine_id": spec["engine_id"],
+        "skill": engine["skill"], "prompt": engine["prompt"],
         "scope": engine.get("scope") or ("comprehensive" if full else "focused" if focus else "standard"),
         "focus": focus, "prohibited": prohibited, "target_scope": scope, "targets": plan_targets,
+        "project": single["id"] if single else None,
+        "repository_check": single["repository_check"] if single else
+        {"status": "not-applicable", "detail": "a new system has no repository until the approved create-repository step"}
+        if intent == "build" else None,
+        "skipped": skipped,
+        "decision": decision, "executable_by_route": False, "blockers": blockers,
+        "side_effect": spec["max_side_effect"], "roles": _team(spec), "capabilities": list(spec["capabilities"]),
+        "permissions": list(spec["permissions"]), "grant_template": template,
+        "grant_ttl_hours": rules["control_plane"]["grant_ttl_hours"], "approvals_required": _approvals(spec),
+        "execution_scope": single["execution_scope"] if single else _execution(spec, rules, intent) if intent == "build" else None,
+        "tests": list(spec["tests"]), "evidence": list(spec["evidence"]),
+        "evidence_location": single["evidence_location"] if single else
+        f"{rules['control_plane']['evidence_root']}/new-project" if intent == "build" else None,
         "write_allowed": write, "read_only": not engine["write"],
-        "workspace_note": None if not checked or write or not engine["write"] else
+        "workspace_note": None if not checked or write or not engine["write"] or intent == "release" else
         "This checkout is not the (only) target repository: do not edit it for this task; open each target's own checkout.",
         "complexity": "large" if full or scope == "all-registered-projects" else "small" if intent == "release" else "medium",
         "agents": {"workstreams": streams, "implementers": implementers, "independent_verifiers": 1,
@@ -374,6 +641,7 @@ def route(text, *, environ=None, workspace_path=None):
         "state": {"memory": "gaie_memory (project-scoped, private)", "checkpoints": "engineering_os.orchestration checkpoint"},
         "evidence_boundary": "Plan only. Repository access, skill invocation, tests and deployment each need their own evidence.",
     }
+    return _enforce(plan)
 
 
 def main(argv=None):
