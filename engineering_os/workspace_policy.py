@@ -1,5 +1,8 @@
 """Read-only preflight for MASTER write scopes on the local host."""
 
+import fcntl
+import hashlib
+import json
 import os
 import pathlib
 import re
@@ -356,6 +359,62 @@ def _peer_scope(settings):
         raise WorkspacePolicyError("Workspace or Git identity could not be verified.") from error
 
 
+LAUNCH_SCHEMA = "gaie-workspace-launches/v1"
+LAUNCH_LIMIT = 256 * 1024
+
+
+def _assignment_digest(agent, settings):
+    """SHA-256 of one agent's canonical assignment (the workspace path after validation)."""
+    canonical = {key: os.fspath(value) if isinstance(value, os.PathLike) else value for key, value in settings.items()}
+    text = json.dumps({"agent": agent, "assignment": canonical}, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _launches(state, *, record=None):
+    """The operator's private launch records {agent: {device, inode, assignment_sha256}}; with `record`
+    (agent, entry), store that entry under an exclusive lock first. The file is created 0600 in an
+    existing caller-owned directory that other users cannot write; a missing file holds no records."""
+    try:
+        state = pathlib.Path(os.fspath(state))
+        parent = _plain_path(state.parent)
+        try:
+            _owned(parent)
+        except WorkspacePolicyError:
+            raise WorkspacePolicyError("The launch record must lie in an operator-owned directory closed to "
+                                       "other users.") from None
+        flags = os.O_NOFOLLOW | os.O_CLOEXEC | (os.O_RDWR | os.O_CREAT if record else os.O_RDONLY)
+        try:
+            fd = os.open(parent / state.name, flags, 0o600)
+        except FileNotFoundError:
+            return {}
+        with os.fdopen(fd, "r+b" if record else "rb") as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX if record else fcntl.LOCK_SH)
+            info = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_nlink != 1
+                    or stat.S_IMODE(info.st_mode) & 0o077):
+                raise WorkspacePolicyError("The launch record must be a private regular file of the operator.")
+            data = handle.read(LAUNCH_LIMIT + 1)
+            if len(data) > LAUNCH_LIMIT:
+                raise WorkspacePolicyError("The launch record exceeds its size limit.")
+            document = json.loads(data) if data else {"schema": LAUNCH_SCHEMA, "launches": {}}
+            if (not isinstance(document, dict) or document.get("schema") != LAUNCH_SCHEMA
+                    or not isinstance(document.get("launches"), dict)):
+                raise WorkspacePolicyError("The launch record is not a workspace launch record.")
+            if record:
+                agent, entry = record
+                document["launches"][agent] = entry
+                handle.seek(0)
+                handle.truncate()
+                handle.write(json.dumps(document, sort_keys=True, indent=1).encode("utf-8") + b"\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            return document["launches"]
+    except WorkspacePolicyError:
+        raise
+    except (OSError, UnicodeError, ValueError) as error:
+        raise WorkspacePolicyError("The private launch record could not be read or written.") from error
+
+
 class WorkspaceSupervisor:
     """Give an authenticated local dispatcher one isolated write root per assigned agent.
 
@@ -369,13 +428,21 @@ class WorkspaceSupervisor:
     fresh, or with relaunch=True as a workspace that already holds its own work. The
     other assignments are checked only for canonical, private and independent roots,
     so one agent's writes never lock out another.
+
+    `state` is the operator's private launch record file. Each fresh run records the
+    agent's workspace identity (device, inode) and assignment digest there, and a
+    relaunch is accepted only for that recorded identity and digest, so --relaunch
+    cannot turn a never-launched private directory into a writable scope.
     """
 
-    def __init__(self, assignments, *, selected=None, relaunch=False):
+    def __init__(self, assignments, *, selected=None, relaunch=False, state=None):
         if not isinstance(assignments, Mapping) or not 1 <= len(assignments) <= 20:
             raise WorkspacePolicyError("Supply one to twenty explicit agent workspace assignments.")
         if type(relaunch) is not bool or (relaunch and selected is None):
             raise WorkspacePolicyError("A relaunch names exactly one selected agent.")
+        if relaunch and state is None:
+            raise WorkspacePolicyError("A relaunch needs the private record of an earlier fresh launch.")
+        self._state, self._fresh = state, not relaunch
         if selected is not None and (not isinstance(selected, str) or selected not in assignments):
             raise WorkspacePolicyError("The agent has no assigned write workspace.")
         self._assignments = {}
@@ -401,6 +468,13 @@ class WorkspaceSupervisor:
             if selected is None or agent == selected:
                 settings["path"] = scope.checkout
                 self._assignments[agent] = (scope, identity, settings)
+        if relaunch:
+            _, identity, settings = self._assignments[selected]
+            expected = {"device": identity[0], "inode": identity[1],
+                        "assignment_sha256": _assignment_digest(selected, settings)}
+            if _launches(state).get(selected) != expected:
+                raise WorkspacePolicyError("A relaunch needs a recorded fresh launch of this exact workspace and "
+                                           "assignment; launch it fresh first.")
 
     def run(self, agent, cmd, *, timeout):
         from . import governor
@@ -415,6 +489,9 @@ class WorkspaceSupervisor:
             current = validate_workspace(**{**settings, "require_clean": False})
         if current != assignment or _writable_tree(current) != identity:
             raise WorkspacePolicyError("The assigned workspace changed identity.")
+        if self._fresh and self._state is not None:  # what a later relaunch of this agent is bound to
+            _launches(self._state, record=(agent, {"device": identity[0], "inode": identity[1],
+                                                   "assignment_sha256": _assignment_digest(agent, settings)}))
         result = governor.sandbox_run(
             cmd, cwd=current.root, timeout=timeout, network=False, env_allow=(),
             allowed_paths=(current.root,), require_fs_isolation=True,

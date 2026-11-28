@@ -44,19 +44,33 @@ A trusted operator separately approves and dispatches a scoped write.
   fsmonitor, untracked cache, lazy fetch or any transport except a push's own
   https or local destination, and refuses a repository whose config names a
   program, filter, include, URL rewrite, promisor, credential helper or HTTP
-  setting (`tests/test_isolation_fixes_planted_git.py`).
+  setting (`tests/test_isolation_fixes_planted_git.py`). That check fails
+  closed: each Git directory is located by its own `rev-parse` call and taken
+  whole (a path may hold a newline), any unexpected answer is refused, and so
+  is a repository with submodules (a gitlink or `.gitmodules` in the index, a
+  `.gitmodules` file, a `modules/` directory), whose own configs `status` and
+  `add` would read (recheck item 3, `tests/test_isolation_fixes_build_git.py`).
 - Strict mode hides `/etc` and everything outside the system directories, so
   the governor resolves the requested program on the host and executes its
   real file (argv[0] unchanged); an `/etc/alternatives` link therefore cannot
-  dangle. The install prefix of that program and of the sandbox's own
-  interpreter are mounted read-only in both tiers; the sandbox's pid 1 imports
-  C modules such as `resource` from it after `pivot_root`, which failed on
-  GitHub runners whose Python lives in `/opt/hostedtoolcache`. A prefix is
-  never `/`, a whole top-level directory such as `/opt`, a system directory, or
-  a directory holding `/tmp` or the home directory, and it must not overlap the
-  writable workspace. A strict program that cannot be resolved is refused
-  (`program-not-visible`) instead of exiting 127
-  (`tests/test_isolation_fixes_governor.py`).
+  dangle. For that program and for the sandbox's own interpreter (pid 1
+  imports C modules such as `resource` after `pivot_root`, which failed on
+  GitHub runners whose Python lives in `/opt/hostedtoolcache`) a strict run
+  mounts read-only only their bin directory, a Python interpreter's standard
+  library directory and the shared libraries their ELF interpreter, DT_RPATH
+  and DT_RUNPATH name, never `share/`, `etc/` or the whole install prefix
+  (recheck item 1: a strict child had printed a secret planted in
+  `<prefix>/share/keyrings/`). A program under a home directory or in a
+  directory a non-root user can change is refused unless it is the hub's own
+  interpreter. No mount is `/`, a whole top-level directory such as `/opt`, a
+  system directory, or a directory holding `/tmp` or a home directory, and none
+  may overlap the writable workspace. The result's `mounts` is the table pid 1
+  read back from `/proc/self/mountinfo`. A strict program that cannot be
+  resolved is refused (`program-not-visible`) instead of exiting 127
+  (`tests/test_isolation_fixes_governor.py`, `tests/test_isolation_fixes_mounts.py`).
+  Legacy and loopback calls still mount the whole prefix of `cmd[0]` and of
+  the hub's interpreter, except a `cmd[0]` prefix under a home directory or in
+  a directory a non-root user can change.
 - The strict seccomp filter also refuses `unshare` and `clone` with
   `CLONE_NEWUSER`, and answers `clone3` with `ENOSYS` so the C library falls
   back to `clone`. Measured before: a strict child created a nested user
@@ -87,10 +101,17 @@ python3 hub.py workspace-run --assignments /private/assignments.json \
 Each call validates the selected agent in full: identity, Git metadata, links
 and, on a first launch, an empty build directory or a clean worktree. Add
 `--relaunch` once that agent's workspace holds its own work; every check except
-emptiness or cleanliness still applies. The other assignments are checked only
-for canonical, private roots that do not overlap the selected one, so one
-agent's writes never lock out its own relaunch or another agent
-(`tests/test_isolation_fixes_relaunch.py`).
+emptiness or cleanliness still applies. A relaunch is accepted only for the
+workspace identity (device, inode) and assignment digest that an earlier fresh
+launch of the same agent recorded in the operator's private launch record,
+`<assignments>.launches` next to the assignment file (0600, single link, in an
+operator-owned directory closed to other users); a missing, unreadable or
+mismatched record refuses it (recheck item 2: `--relaunch` on a first launch
+had turned a non-empty private directory, a stand-in for `~/.ssh`, into a
+writable scope). The other assignments are checked only for canonical, private
+roots that do not overlap the selected one, so one agent's writes never lock
+out its own relaunch or another agent (`tests/test_isolation_fixes_relaunch.py`,
+`tests/test_isolation_fixes_relaunch_binding.py`).
 
 This starts a single local work unit. It never creates a remote repository or
 publishes a project. The control-plane `master-build` and `master-upgrade`
