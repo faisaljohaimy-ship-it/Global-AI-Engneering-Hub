@@ -2,6 +2,9 @@
 // in front of the user, choose motions and the settings to create them with. It is a
 // pure function over the registry, so an agent, a build script and a page all get the
 // same answer for the same input, and every choice comes with its reasons.
+// Owner policy (governance/policies/motion-purpose.json): a motion is offered as purposeful
+// only when its registry row states what it means; one that does not is labelled
+// legacy-unclassified and is left out of an operational answer unless includeLegacy is set.
 //
 //   const { motions } = JSON.parse(readFileSync('packages/motion-engines/registry.json'));
 //   const picks = recommend({ projectType: 'dashboard', goal: 'operational', language: 'ar', device }, { motions });
@@ -28,6 +31,18 @@ const AUDIENCES = {
   public: { tags: ['hero', 'reveal', 'brand', 'cinematic'] },
 };
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+const NO_MEANING = 'no stated digital meaning (legacy-unclassified): not offered as a purposeful motion';
+// The shape validMeaning() in tools/build_registry.mjs requires: exactly en and ar, 12 to 240
+// characters each, Arabic script in ar. That file is not imported here because it reads the disk.
+const sentence = (value) => typeof value === 'string' && value.trim().length >= 12 && value.length <= 240;
+
+/** The policy class of a registry row: 'purposeful' when it states a valid meaning, otherwise 'legacy-unclassified'. */
+export function purposeOf(entry) {
+  const meaning = entry?.meaning;
+  const valid = Boolean(meaning) && typeof meaning === 'object' && Object.keys(meaning).sort().join() === 'ar,en'
+    && sentence(meaning.en) && sentence(meaning.ar) && /[\u0600-\u06ff]/.test(meaning.ar);
+  return valid ? 'purposeful' : 'legacy-unclassified';
+}
 
 function deviceOf(context) {
   const device = context.device ?? {};
@@ -78,10 +93,15 @@ export function plan(entry, context = {}) {
 }
 
 /**
- * Ranked motions for a context. Each result has { id, score, reasons, options, notes }.
- * Nothing unverified is offered unless `includeUnverified` is set.
+ * Ranked motions for a context. Each result has { id, policyClass, meaning, score, reasons, options, notes }.
+ * Nothing unverified is offered unless `includeUnverified` is set. Every result says what the motion
+ * means, or says that no meaning is stated. For an operational goal only purposeful motions are
+ * offered unless `includeLegacy` is set, and a legacy motion then ranks below the purposeful ones.
+ * The registry builder writes `meaning` on every row (null for a pinned legacy motion); a row with
+ * no `meaning` key at all comes from a record that predates the field and is answered as before,
+ * labelled legacy-unclassified.
  */
-export function recommend(context = {}, { motions, limit = 8, includeUnverified = false } = {}) {
+export function recommend(context = {}, { motions, limit = 8, includeUnverified = false, includeLegacy = false } = {}) {
   if (!Array.isArray(motions)) throw new TypeError('recommend needs the registry: { motions }');
   const device = deviceOf(context);
   const project = PROJECTS[context.projectType] ?? null;
@@ -98,7 +118,10 @@ export function recommend(context = {}, { motions, limit = 8, includeUnverified 
     if (context.engine && entry.engine !== context.engine) continue;
     const cost = COST[entry.requirements.cost];
     if (cost > maxCost) continue;
-    const reasons = [];
+    const policyClass = purposeOf(entry);
+    const purposeful = policyClass === 'purposeful';
+    if (operational && !purposeful && !includeLegacy && Object.hasOwn(entry, 'meaning')) continue;
+    const reasons = [purposeful ? `means: ${entry.meaning[arabic ? 'ar' : 'en']}` : NO_MEANING];
     let score = 0;
     const tags = new Set(entry.tags.map((tag) => tag.toLowerCase()));
     const hits = [...wanted].filter((tag) => tags.has(tag) || entry.id.includes(tag) || entry.name.en.toLowerCase().includes(tag));
@@ -127,6 +150,8 @@ export function recommend(context = {}, { motions, limit = 8, includeUnverified 
       // Operational screens want short, cheap, purposeful motion.
       score += (2 - cost) * 1.5 + (entry.kind === 'oneshot' ? 1 : 0) + (entry.controls.duration.default <= 3000 ? 1 : -1);
       if (cost === 0) reasons.push('light enough for a working screen');
+      // Asked for with includeLegacy, or a row that predates the field: still behind every comparable purposeful motion.
+      if (!purposeful) score -= 6;
     }
     if (cinematic) {
       score += cost * 1.2 + (entry.engine === 'composition' ? 2 : 0) + (entry.controls.camera && Object.keys(entry.controls.camera).length ? 1 : 0);
@@ -164,7 +189,7 @@ export function recommend(context = {}, { motions, limit = 8, includeUnverified 
     }
     if (device.reducedMotion) reasons.push('shown as one still frame under reduced motion');
     const made = plan(entry, context);
-    results.push({ id: entry.id, name: entry.name, module: entry.category.key, engine: entry.engine, score: Number(score.toFixed(2)), reasons, ...made });
+    results.push({ id: entry.id, name: entry.name, module: entry.category.key, engine: entry.engine, policyClass, meaning: purposeful ? entry.meaning : null, score: Number(score.toFixed(2)), reasons, ...made });
   }
   return results.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, limit);
 }

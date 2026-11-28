@@ -2,6 +2,8 @@
 // Builds registry.mjs (id -> lazy import) and registry.json (the
 // metadata record of every motion) from the motion modules themselves, so that the
 // record cannot drift from the code. Operational status comes only from evidence.
+// A motion that states no digital meaning is refused unless its id is one of the legacy ids
+// pinned in governance/policies/motion-purpose.json, and a withdrawn id is refused outright.
 //
 //   node packages/motion-engines/tools/build_registry.mjs           rewrite both files
 //   node packages/motion-engines/tools/build_registry.mjs --check   exit 1 if either is out of date
@@ -18,6 +20,27 @@ const version = JSON.parse(readFileSync(join(sdk, 'package.json'), 'utf8')).vers
 /** The motions that were asked for by name: tools/brief.json. */
 export const brief = JSON.parse(readFileSync(join(sdk, 'tools', 'brief.json'), 'utf8')).motions;
 const asked = new Map(brief.map((row) => [row.id, row]));
+
+/** The owner's purposeful-motion policy: the one place the legacy and withdrawn ids are listed. */
+export const PURPOSE_POLICY = 'governance/policies/motion-purpose.json';
+/** The motions that existed before the rule. The legacy list may only shrink, so it is never longer than this. */
+const LEGACY_CEILING = 34;
+
+/** What the registry needs from the policy: { legacy, withdrawn, minChars, maxChars }. Nothing is built without it. */
+export function purposePolicy(root = resolve(sdk, '..', '..')) {
+  const path = join(root, PURPOSE_POLICY);
+  if (!existsSync(path)) throw new Error(`${PURPOSE_POLICY} is missing: motions are not registered without the purposeful-motion policy`);
+  const policy = JSON.parse(readFileSync(path, 'utf8'));
+  const native = policy.registries?.['native-engine'];
+  const ids = (list) => Array.isArray(list) && list.every((id) => typeof id === 'string' && id) && new Set(list).size === list.length;
+  if (!native || !ids(native.legacy_ids) || !ids(native.withdrawn_ids)) throw new Error(`${PURPOSE_POLICY}: registries.native-engine needs legacy_ids and withdrawn_ids`);
+  if (native.legacy_ids.length > LEGACY_CEILING) throw new Error(`${PURPOSE_POLICY}: legacy_ids may only shrink from the ${LEGACY_CEILING} motions that existed before the rule`);
+  const { min_chars: low, max_chars: high } = policy.meaning ?? {};
+  if (!Number.isInteger(low) || !Number.isInteger(high)) throw new Error(`${PURPOSE_POLICY}: meaning needs min_chars and max_chars`);
+  // The policy may tighten the limits of a meaning; it cannot loosen them past 12 and 240 characters.
+  return Object.freeze({ legacy: new Set(native.legacy_ids), withdrawn: new Set(native.withdrawn_ids), minChars: Math.max(12, low), maxChars: Math.min(240, high) });
+}
+const purpose = purposePolicy();
 
 /** One hash over the files every motion depends on: evidence is void when any of them changes. */
 export function coreHash() {
@@ -38,10 +61,11 @@ const CPU = { low: 'Light: suitable for phones at full quality.', medium: 'Moder
 /**
  * The digital meaning of a motion: what it stands for in a digital service, in one sentence
  * per language (for example "Records from many systems converge into one platform").
- * Motions added after the owner's 2026-11-28 direction must carry one.
+ * Every motion must carry one (owner direction of 2026-11-28); scan() makes the only exception,
+ * for the legacy ids pinned in the policy. The limits come from the policy's `meaning` block.
  */
 export function validMeaning(meaning) {
-  const sentence = (value) => typeof value === 'string' && value.trim().length >= 12 && value.length <= 240;
+  const sentence = (value) => typeof value === 'string' && value.trim().length >= purpose.minChars && value.length <= purpose.maxChars;
   return Boolean(meaning) && typeof meaning === 'object' && Object.keys(meaning).sort().join() === 'ar,en'
     && sentence(meaning.en) && sentence(meaning.ar) && /[\u0600-\u06ff]/.test(meaning.ar);
 }
@@ -56,13 +80,16 @@ export async function scan({ module: only, id: wanted } = {}) {
       const path = join(dir, file);
       const expected = `${module}-${file.slice(0, -4)}`;
       if (wanted && wanted !== expected) continue;
+      if (purpose.withdrawn.has(expected)) throw new Error(`${expected}: withdrawn in ${PURPOSE_POLICY} because its meaning was only decorative; a withdrawn motion is not registered again`);
       const definition = (await import(pathToFileURL(path).href)).default;
       if (!definition || definition.id !== expected) throw new Error(`${module}/${file} must default-export the motion with id ${expected}`);
       if (definition.module !== module) throw new Error(`${expected}: module must be '${module}'`);
       const request = asked.get(expected);
       if (request && (definition.number !== request.number || definition.name.en !== request.name)) throw new Error(`${expected}: number and name.en must match tools/brief.json (${request.number}, ${request.name})`);
       if (!request && definition.number <= brief.length) throw new Error(`${expected}: numbers up to ${brief.length} belong to tools/brief.json`);
-      if (definition.meaning !== undefined && !validMeaning(definition.meaning)) throw new Error(`${expected}: meaning needs one English and one Arabic sentence (en, ar) saying what the motion means digitally`);
+      if (definition.meaning === undefined) {
+        if (!purpose.legacy.has(expected)) throw new Error(`${expected}: a motion must state its digital meaning (meaning.en and meaning.ar); only the legacy ids pinned in ${PURPOSE_POLICY} may lack one`);
+      } else if (!validMeaning(definition.meaning)) throw new Error(`${expected}: meaning needs one English and one Arabic sentence (en, ar) saying what the motion means digitally`);
       found.push({ id: expected, module, file, path, digest: sha256(readFileSync(path, 'utf8')), definition });
     }
   }
