@@ -37,6 +37,14 @@ except ImportError:  # an older vendored router can plan, but cannot authorize w
     else:
         _workspace_policy = None
 
+try:
+    from . import agent_team as _agent_team
+except ImportError:  # vendored: the loader ships beside this file; an older install routes without a team block
+    if not __package__ and pathlib.Path(__file__).resolve().with_name("agent_team.py").is_file():
+        import agent_team as _agent_team
+    else:
+        _agent_team = None
+
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 MAX_TEXT = 2000
@@ -608,9 +616,50 @@ def _verified_write_scope(intent, path, targets):
         return None, str(error)
 
 
+def _team_block(intent):
+    """The standing team of an intent from the central agent-team policy (governance/policies/agent-team.json).
+
+    No host-specific number goes into the plan: the live wave size is resolved on the host that runs it."""
+    if _agent_team is None:
+        return {"team_policy": {"status": "not-installed", "file": "agent-team.json"}}
+    try:
+        team = _agent_team.team_for(intent)
+    except _agent_team.PolicyNotInstalled:
+        return {"team_policy": {"status": "not-installed", "file": "agent-team.json"}}
+    except _agent_team.NoStandingTeam as error:
+        return {"team_policy": {"status": "no-roster", "reason": str(error)}}
+    except _agent_team.AgentTeamError as error:
+        raise RouteError(f"agent-team policy refused: {error}") from None
+    resolve = (f"python3 -m engineering_os.agent_team show --intent {intent}" if __package__
+               else f"python3 agent_team.py show --intent {intent} (beside gaie_router.py)")
+    return {"team": team["roles"], "omitted": team["omitted"], "mandatory": team["mandatory"],
+            "team_policy": {"status": "loaded", "version": team["policy_version"], "sha256": team["policy_sha256"]},
+            "concurrency": {"session_limit": team["concurrency"]["session_limit"], "rule": team["concurrency"]["rule"],
+                            "resolve": resolve}}
+
+
+def _registry_roles():
+    """Role ids of the registry the agent-team loader reads; empty (so every team is refused) when it cannot."""
+    if _agent_team is None:
+        return set()
+    try:
+        return {role["id"] for role in _agent_team.load_registry()["roles"]}
+    except _agent_team.AgentTeamError:
+        return set()
+
+
 def _enforce(plan):
     """Re-check the hard rules on the finished plan (defence in depth)."""
     _guard(plan["executable_by_route"] is False, "a route never executes")
+    agents = plan.get("agents") or {}
+    if "team" in agents:
+        team, maximum = agents["team"], agents.get("maximum")
+        _guard(isinstance(team, list) and all(isinstance(role, str) for role in team)
+               and isinstance(maximum, int) and 0 < len(team) <= maximum and len(set(team)) == len(team),
+               "a team never exceeds the session maximum and never repeats a role")
+        _guard(set(team) <= _registry_roles(), "a team has only registry roles")
+        _guard((agents.get("concurrency") or {}).get("session_limit") == maximum,
+               "the team policy and the route maximum agree")
     _guard(plan["write_allowed"] is False, "a route never authorizes writes")
     templates = [t["grant_template"] for t in plan["targets"] if t["grant_template"] is not None]
     if plan["grant_template"] is not None:
@@ -747,7 +796,8 @@ def route(text, *, environ=None, workspace_path=None):
         "complexity": "large" if full or scope == "all-registered-projects" else "small" if intent == "release" else "medium",
         "agents": {"workstreams": streams, "implementers": implementers, "independent_verifiers": 1,
                    "recommended_total": implementers + 1, "maximum": rules["max_agents"], "per_target": scope == "all-registered-projects",
-                   "rule": "Use fewer when workstreams are not independent or a smaller team is faster; the verifier never reviews its own work."},
+                   "rule": "Use fewer when workstreams are not independent or a smaller team is faster; the verifier never reviews its own work.",
+                   **_team_block(intent)},
         "skills": _skills([engine["skill"], *rules["supporting_skills"][intent]]),
         "hub_commands": rules["hub_commands"][intent],
         "budget": {"additional_cost": 0, "paid_services": "separate owner approval required",

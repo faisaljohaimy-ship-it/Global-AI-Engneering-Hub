@@ -14,15 +14,21 @@ argument-hint: "[what to build]"
    the first that exists: `prompts/MASTER_BUILD.md` (hub checkout),
    `.engineering/gaie/MASTER_BUILD.md` (registered project), `MASTER_BUILD.md` beside
    this file (user-level bootstrap).
-3. Repository creation is a separate, owner-approved `external-write` action.
+3. Staff the build with the standing team of `governance/policies/agent-team.json`
+   (`agents.team` in the plan; `python3 -m engineering_os.agent_team show --intent build`
+   in a hub checkout, `agent_team.py show --intent build` beside the installed router).
+   Give each work item to one role through the `gaie-specialist` agent and record roles
+   without work as omitted with a reason (`agent_team check PLAN.json --intent build`).
+   Run waves no larger than `effective`. A reviewer never reviews its own work.
+4. Repository creation is a separate, owner-approved `external-write` action.
    Confirm no repository exists for the system and obtain a grant covering that
    exact action, owner and repository. GitHub access alone leaves this step
    blocked. Keep work local in the authorized workspace until the gate passes.
-4. Link the new project with `hub.py onboard`, `register` and `verify --strict` at a
+5. Link the new project with `hub.py onboard`, `register` and `verify --strict` at a
    reviewed hub revision. Updating private project state requires a separate
    permission for that state.
-5. Select supporting skills from the plan (`system-builder`, `saas-platform`,
+6. Select supporting skills from the plan (`system-builder`, `saas-platform`,
    `ai-integration`, `security-review`, `project-onboarding`) and load only those the
    current phase needs.
-6. Deliver the evidence listed in the prompt's Delivery section. Production release
+7. Deliver the evidence listed in the prompt's Delivery section. Production release
    goes through `gaie-release`.

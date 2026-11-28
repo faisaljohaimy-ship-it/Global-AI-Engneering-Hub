@@ -649,5 +649,90 @@ class ControlPlaneRouteTests(unittest.TestCase):
                                              (intent, name, action))
 
 
+class AgentTeamBlockTests(unittest.TestCase):
+    """The route's agents block carries the standing team of governance/policies/agent-team.json."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.tmp = pathlib.Path(temporary.name)
+        self.env = {"GAIE_HOME": str(self.tmp / "gaie")}
+
+    def test_build_and_upgrade_routes_carry_the_full_team(self):
+        from engineering_os import agent_team
+        policy = agent_team.load_policy()
+        for command in ("build a new system", "ابنِ نظامًا جديدًا"):
+            with self.subTest(command=command):
+                agents = router.route(command, environ=self.env)["agents"]
+                self.assertEqual(agents["team"], policy["rosters"]["build"])
+                self.assertEqual(agents["omitted"], [])
+                self.assertEqual(agents["team_policy"], {"status": "loaded", "version": policy["policy_version"],
+                                                         "sha256": agent_team.digest(policy)})
+                self.assertEqual(agents["concurrency"]["session_limit"], agents["maximum"])
+                self.assertNotIn("effective", agents["concurrency"])  # no host-specific number in a plan
+                self.assertEqual(agents["concurrency"]["resolve"], "python3 -m engineering_os.agent_team show --intent build")
+        self.assertEqual(router._team_block("upgrade")["team"], policy["rosters"]["upgrade"])
+        self.assertFalse((self.tmp / "gaie").exists())
+
+    def test_intents_without_a_roster_have_no_team(self):
+        for intent in ("audit", "release", "accelerate", "repair", "cinematic"):
+            with self.subTest(intent=intent):
+                block = router._team_block(intent)
+                self.assertNotIn("team", block)
+                self.assertEqual(block["team_policy"]["status"], "no-roster")
+
+    def test_enforce_refuses_an_oversized_or_unknown_team(self):
+        plan = router.route("build a new system", environ=self.env)
+        for team in (plan["agents"]["team"] + ["extra-engineer"], ["nobody"], [], plan["agents"]["team"][:1] * 2,
+                     "build-engineer", [{"id": "x"}]):
+            broken = copy.deepcopy(plan)
+            broken["agents"]["team"] = team
+            with self.subTest(team=team[-1:]), self.assertRaises(router.RouteError):
+                router._enforce(broken)
+        for limit in (25, None):
+            broken = copy.deepcopy(plan)
+            broken["agents"]["concurrency"]["session_limit"] = limit
+            with self.subTest(limit=limit), self.assertRaises(router.RouteError):
+                router._enforce(broken)
+        with mock.patch.object(router, "_agent_team", None), self.assertRaises(router.RouteError):
+            router._enforce(copy.deepcopy(plan))  # no loader, no registry: a team cannot be checked, so it is refused
+
+    def test_router_without_the_loader_or_its_policy_still_routes(self):
+        with mock.patch.object(router, "_agent_team", None):
+            agents = router.route("build a new system", environ=self.env)["agents"]
+        self.assertEqual(agents["team_policy"], {"status": "not-installed", "file": "agent-team.json"})
+        self.assertNotIn("team", agents)
+
+    def test_vendored_router_degrades_or_loads_the_team_beside_itself(self):
+        base = {"engineering_os/gaie_router.py": "gaie_router.py", "engineering_os/project_registry.py": "project_registry.py",
+                "engineering_os/gaie_memory.py": "gaie_memory.py", "engineering_os/workspace_policy.py": "workspace_policy.py",
+                "governance/policies/gaie-routes.json": "gaie-routes.json", "projects/registry.json": "projects.json",
+                "projects/aliases.json": "aliases.json"}
+        team = {"engineering_os/agent_team.py": "agent_team.py", "governance/policies/agent-team.json": "agent-team.json",
+                "governance/agent-roles.json": "agent-roles.json"}
+        from engineering_os import agent_team
+        policy = agent_team.load_policy()
+        cases = (("legacy", {}, "not-installed"),
+                 ("loader-only", {"engineering_os/agent_team.py": "agent_team.py"}, "not-installed"),
+                 ("full", team, "loaded"))
+        for name, extra, status in cases:
+            with self.subTest(layout=name):
+                engine = self.tmp / name
+                engine.mkdir()
+                for source, target in {**base, **extra}.items():
+                    (engine / target).write_bytes((ROOT / source).read_bytes())
+                run = subprocess.run([sys.executable, str(engine / "gaie_router.py"), "route", "build a new system"],
+                                     capture_output=True, text=True, cwd=self.tmp, timeout=60,
+                                     env={**os.environ, **self.env})
+                self.assertEqual(run.returncode, 0, run.stderr)
+                agents = json.loads(run.stdout)["agents"]
+                self.assertEqual(agents["team_policy"]["status"], status)
+                if status == "loaded":
+                    self.assertEqual(agents["team"], policy["rosters"]["build"])
+                    self.assertTrue(agents["concurrency"]["resolve"].startswith("python3 agent_team.py show --intent build"))
+                else:
+                    self.assertNotIn("team", agents)
+
+
 if __name__ == "__main__":
     unittest.main()

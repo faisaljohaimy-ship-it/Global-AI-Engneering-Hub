@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy_version": "1.2.0",
+  "policy_version": "1.3.0",
   "implementation": "engineering_os/gaie_router.py",
   "authority": "Deterministic lexical routing of owner commands. A route is a plan, not proof that any step ran, that a repository is reachable or that a skill was invoked by a host.",
   "max_agents": 20,

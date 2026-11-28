@@ -14,11 +14,19 @@ argument-hint: "[project] [scope]"
 3. Read the master prompt and follow its steps in order. Use the first that exists:
    `prompts/MASTER_UPGRADE.md` (hub checkout), `.engineering/gaie/MASTER_UPGRADE.md`
    (registered project), `MASTER_UPGRADE.md` beside this file (user-level bootstrap).
-4. Start with the inventory (`hub.py inventory <checkout>` or
+4. Staff an upgrade route (`intent: upgrade`) with the standing team of
+   `governance/policies/agent-team.json` (`agents.team` in the plan;
+   `python3 -m engineering_os.agent_team show --intent upgrade` in a hub checkout,
+   `agent_team.py show --intent upgrade` beside the installed router). Give each work
+   item to one role through the `gaie-specialist` agent and record roles without work
+   as omitted with a reason (`agent_team check PLAN.json --intent upgrade`). Run waves
+   no larger than `effective`. A reviewer never reviews its own work. A performance or
+   repair pass has no standing team: staff it from the plan's workstreams.
+5. Start with the inventory (`hub.py inventory <checkout>` or
    `gaie_inventory.py <checkout>` beside the router) and complete its coverage matrix;
    record a measured baseline before changing anything.
-5. Load supporting skills only as needed (`security-review`, `universal-motion`,
+6. Load supporting skills only as needed (`security-review`, `universal-motion`,
    `digital-motion`, `chromium-engineering`, `headroom-context-engineering`,
    `hub-capabilities`). Media work goes through `gaie-cinematic`.
-6. Finish with independent verification, a documented pull request and the delivery
+7. Finish with independent verification, a documented pull request and the delivery
    evidence from the prompt. Production release goes through `gaie-release`.

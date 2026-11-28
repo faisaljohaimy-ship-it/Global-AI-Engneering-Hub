@@ -376,6 +376,8 @@ def main():
     verify_parser = commands.add_parser("verify")
     verify_parser.add_argument("target")
     verify_parser.add_argument("--strict", action="store_true")
+    team_parser = commands.add_parser("team", help="Central agent-team policy: standing team, concurrency, staffing")
+    team_parser.add_argument("argv", nargs=argparse.REMAINDER)
     route_parser = commands.add_parser("route")
     route_parser.add_argument("text")
     route_parser.add_argument("--workspace")
@@ -451,6 +453,10 @@ def main():
             args.apply,
             args.remove,
         )
+    elif args.cmd == "team":
+        from engineering_os import agent_team
+
+        sys.exit(agent_team.main(args.argv or ["show"]))
     elif args.cmd == "route":
         try:
             result = gaie_router.route(args.text, workspace_path=args.workspace)

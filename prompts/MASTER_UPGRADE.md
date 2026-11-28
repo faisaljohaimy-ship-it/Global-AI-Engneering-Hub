@@ -50,8 +50,11 @@ media weight, open defects and security findings. Store the baseline as a
 Group matrix rows into independent workstreams with explicit path ownership and
 one isolated worktree per writing agent (`engineering_os.orchestration`).
 Enforce a host grant restricted to that agent's paths and tools. Keep the
-workstream in planning if isolation cannot be verified. Use the router's
-workstreams as the upper bound. Record significant choices as Architecture
+workstream in planning if isolation cannot be verified. Staff an upgrade with the
+standing team of `governance/policies/agent-team.json` (`agents.team` in the route):
+every role works its items or is recorded as omitted with a reason, never more than 20
+roles, and no wave larger than `effective`. A performance, repair or media pass has no
+standing team: use the router's workstreams as the upper bound. Record significant choices as Architecture
 Decision Records with options, constraints and trade-offs.
 
 ## Step 4 — Upgrade
