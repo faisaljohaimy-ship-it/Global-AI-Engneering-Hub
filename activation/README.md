@@ -11,8 +11,8 @@ record of how far it got. `tools.json` is the record; the run that backs it is i
 | Promptfoo | 0.125.1 | offline evaluation ran: one assertion passed, one failed as written |
 | Playwright MCP | `@playwright/mcp` 0.0.85 | six checks passed through a stdio probe |
 | Chrome DevTools MCP | 1.13.0 | six checks passed through a stdio probe |
-| Inspect AI | 0.3.289 | installed; its test is blocked by the network policy |
-| Context7 | not installed | its hosts are refused by the network policy |
+| Inspect AI | 0.3.289 | three cases passed against its mock model, after the owner allowed the tokenizer host |
+| Context7 | `@upstash/context7-mcp` 4.7.0 | installed; the server starts, but the service asks for an API key (quota message) |
 
 Run it again:
 

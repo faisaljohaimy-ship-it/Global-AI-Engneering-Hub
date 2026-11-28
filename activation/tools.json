@@ -73,18 +73,23 @@
     "DISCOVERED",
     "REVIEWED",
     "INSTALLED",
-    "BLOCKED"
+    "OPERATIONAL",
+    "TESTED",
+    "HOST VERIFIED"
    ],
-   "blocked_by": "Its mock-model run downloads a tokenizer file from openaipublic.blob.core.windows.net, which the session's network policy refuses. The test is written and has not passed anywhere yet.",
    "review": {
     "commercial": "Licence permits commercial use. No paid service, account or key was used.",
     "reviewer": "Claude Code session, for review by the hub's coordinator",
     "security": "80 packages, all hash-pinned; PyPI lists no advisory for the pinned release."
    },
    "not_proven": [
-    "any evaluation run",
-    "use from Codex"
-   ]
+    "an evaluation against a real model",
+    "use from Codex",
+    "a run with no network (it downloads a tokenizer file once)"
+   ],
+   "pack_evidence": {
+    "agent-evaluation": "partial: one offline evaluation scoring a right and a wrong answer, a time limit and a failing solver. No comparison across hosts."
+   }
   },
   {
    "id": "promptfoo/promptfoo",
@@ -186,25 +191,31 @@
    "id": "upstash/context7",
    "package": "@upstash/context7-mcp",
    "ecosystem": "npm",
-   "version": null,
-   "published": null,
+   "version": "4.7.0",
+   "published": "2026-11-12",
    "license": "MIT",
-   "lock": null,
+   "lock": "activation/locks/context7/package-lock.json",
    "upstream_git_revision": null,
-   "test": null,
+   "test": "activation/tests/context7_probe.py",
    "labels": [
     "DISCOVERED",
+    "REVIEWED",
+    "INSTALLED",
+    "OPERATIONAL",
     "BLOCKED"
    ],
-   "blocked_by": "mcp.context7.com and context7.com are refused by the session's network policy, so it was neither installed nor run.",
+   "blocked_by": "Its service refuses requests without an API key once the shared anonymous allowance is used: both requests were answered with a quota message. It needs a free key from the owner.",
    "review": {
-    "commercial": "Not reviewed beyond the licence field of the npm registry.",
-    "security": "Not reviewed. It sends queries to an outside service: send library names and topics only.",
-    "reviewer": "Claude Code session"
+    "commercial": "MIT. The service has a free tier; no paid plan was used.",
+    "security": "104 packages installed with install scripts disabled; npm audit reported 1 moderate advisory and none high or critical. It sends a library name and a question to context7.com: send no code and no project text.",
+    "reviewer": "Claude Code session, for review by the hub's coordinator"
    },
    "not_proven": [
-    "everything"
-   ]
+    "any documentation returned",
+    "use from Codex",
+    "attachment to an agent session"
+   ],
+   "artifact_integrity": "sha512-t3Jqm0hGQtkZvx5mwrBZMEiedqhmltVwhOiFKgnzDBcOXUZNqtVSQShaBLmUNVjsIRoV202THb/BEYlJF5Dajg=="
   }
  ]
 }

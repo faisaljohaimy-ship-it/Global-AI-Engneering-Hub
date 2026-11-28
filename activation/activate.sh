@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install the reviewed priority tools outside the repository and run their functional tests.
 #
-#   activation/activate.sh [pydantic-ai] [inspect-ai] [promptfoo] [playwright-mcp] [chrome-devtools-mcp] [all]
+#   activation/activate.sh [pydantic-ai] [inspect-ai] [promptfoo] [playwright-mcp] [chrome-devtools-mcp] [context7] [all]
 #
 # Python tools come from hash-checked locks, npm tools from package-lock.json with install
 # scripts disabled. No provider key is read, no paid service is called, no browser is
@@ -57,6 +57,10 @@ run() {
           --no-cache --no-write --no-progress-bar -o "$OUT/promptfoo.json" > "$OUT/promptfoo.log" 2>&1)
       # One assertion in the config fails on purpose, so the expected exit status is 100.
       [ "$?" -eq 100 ] && python3 "$HERE/tests/promptfoo/check.py" "$OUT/promptfoo.json"
+      ;;
+    context7)
+      npm_tool context7 \
+        && python3 "$HERE/tests/context7_probe.py" "$TOOLS" > "$OUT/context7.json"
       ;;
     playwright-mcp | chrome-devtools-mcp)
       npm_tool "$1" \

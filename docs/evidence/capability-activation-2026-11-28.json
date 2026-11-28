@@ -60,10 +60,33 @@
   },
   "UKGovernmentBEIS/inspect_ai": {
    "package": "inspect-ai==0.3.289",
-   "status": "blocked",
-   "installed": true,
-   "reason": "The mock-model evaluation asks tiktoken for the o200k_base encoding, which is downloaded from openaipublic.blob.core.windows.net. The session's proxy refuses that host (CONNECT 403), so every sample ended in an error before scoring.",
-   "needs": "Allow that host in the environment's network settings, or run where the tiktoken cache is already filled."
+   "status": "passed",
+   "model": "mockllm/model",
+   "cases": {
+    "right_and_wrong_answers_are_scored": {
+     "status": "success",
+     "grades": [
+      "C",
+      "I"
+     ],
+     "accuracy": 0.5,
+     "seconds": 1.81,
+     "passed": true
+    },
+    "slow_sample_is_stopped_by_its_time_limit": {
+     "status": "success",
+     "limit": "time",
+     "seconds": 1.05,
+     "passed": true
+    },
+    "failing_solver_is_reported_as_an_error": {
+     "status": "error",
+     "error": "RuntimeError('solver failed on purpose')",
+     "seconds": 0.11,
+     "passed": true
+    }
+   },
+   "note": "First blocked: its mock run downloads a tokenizer file from a host the network policy refused. The owner allowed that host on 2026-11-28 and the test then passed. It ran with network access for that download."
   },
   "promptfoo/promptfoo": {
    "package": "promptfoo@0.125.1",
@@ -207,11 +230,18 @@
    }
   },
   "upstash/context7": {
-   "package": "@upstash/context7-mcp (not installed)",
+   "package": "@upstash/context7-mcp@4.7.0",
    "status": "blocked",
-   "installed": false,
-   "reason": "mcp.context7.com and context7.com are refused by the session's proxy (CONNECT 403).",
-   "needs": "Allow those hosts in the environment's network settings."
+   "installed": true,
+   "server": "Context7 4.7.0 started over stdio and listed resolve-library-id and query-docs",
+   "reason": "Both requests were answered: Monthly quota exceeded. Create a free API key. The hosts themselves are reachable since the owner allowed them.",
+   "needs": "A free Context7 API key from the owner, saved through the environment's credential settings.",
+   "npm_audit": {
+    "moderate": 1,
+    "high": 0,
+    "critical": 0
+   },
+   "packages": 104
   }
  },
  "not_proven": [
