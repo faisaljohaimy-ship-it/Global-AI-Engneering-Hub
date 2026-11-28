@@ -549,12 +549,24 @@ class ProbeInconclusive(AuditError):
 
 
 PARENT_ONLY = "GAIE_PROBE_PARENT_ONLY"
-ESCAPE_TEST = """import os, unittest
+ESCAPE_TEST = """import os, subprocess, sys, unittest
+
+# A child process connects with the raw _socket module, so no in-process guard of the runner is in its way.
+CHILD = "import _socket, sys\\ns = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)\\ns.settimeout(3)\\n" \\
+        "s.connect((sys.argv[1], int(sys.argv[2])))\\nprint('CONNECTED')"
 
 
 class Probe(unittest.TestCase):
     def test_probe(self):
         seen = ["probe-ran"]
+        for host, port in {targets!r}:
+            try:
+                done = subprocess.run([sys.executable, "-c", CHILD, host, str(port)], capture_output=True, text=True,
+                                      timeout=20)
+                if "CONNECTED" in done.stdout:
+                    seen.append("connected:" + host)
+            except (OSError, subprocess.SubprocessError):
+                pass
         if os.environ.get({env!r}):
             seen.append("parent-environment")
         try:
@@ -573,43 +585,97 @@ class Probe(unittest.TestCase):
 """
 
 
+def _host_address():
+    """This host's own non-loopback IPv4 address (the source address a route to TEST-NET-1 would use; a UDP
+    connect sends nothing), or None."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        try:
+            probe.connect(("192.0.2.1", 9))
+        except OSError:
+            return None
+        address = probe.getsockname()[0]
+    return None if address.startswith("127.") or address == "0.0.0.0" else address
+
+
 @contextlib.contextmanager
-def _escape_fixture(base):
+def _host_listeners(network):
+    """Non-blocking TCP listeners on the host's loopback and on its own address (none when network is False):
+    yields ([[host, port], ...], reached() -> True when any of them accepted a connection)."""
+    import socket
+    listeners = []
+    try:
+        for host in (("127.0.0.1", _host_address()) if network else ()):
+            if host is None:
+                continue
+            listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            listeners.append(listener)
+            listener.bind((host, 0))
+            listener.listen(8)
+            listener.setblocking(False)
+
+        def reached():
+            hit = False
+            for listener in listeners:
+                while True:
+                    try:
+                        connection, _ = listener.accept()
+                    except (BlockingIOError, InterruptedError):
+                        break
+                    connection.close()
+                    hit = True
+            return hit
+        yield [list(listener.getsockname()[:2]) for listener in listeners], reached
+    finally:
+        for listener in listeners:
+            listener.close()
+
+
+@contextlib.contextmanager
+def _escape_fixture(base, *, network=False):
     """A repository whose only test reports what it reached outside its workspace, with the caller's environment
-    holding a variable the test must not see: yields (repository, check(output) -> True when anything escaped)."""
+    holding a variable the test must not see: yields (repository, check(output) -> True when anything escaped).
+    With network=True the test also connects, from a child process, to TCP listeners on the host's loopback and
+    on the host's own address; an accepted connection counts as an escape (recheck-security item 2)."""
     outside, repository = base / "outside", base / "repository"
     outside.mkdir(mode=0o700)
     (repository / "tests").mkdir(parents=True, mode=0o700)
     marker, escape = outside / "marker.txt", outside / "escaped.txt"
     marker.write_text("outside-marker\n", encoding="utf-8")
-    (repository / "tests" / "test_probe.py").write_text(
-        ESCAPE_TEST.format(env=PARENT_ONLY, marker=str(marker), escape=str(escape)), encoding="utf-8")
+    with _host_listeners(network) as (targets, reached):
+        (repository / "tests" / "test_probe.py").write_text(
+            ESCAPE_TEST.format(env=PARENT_ONLY, marker=str(marker), escape=str(escape), targets=targets),
+            encoding="utf-8")
 
-    def escaped(output):
-        output = output or ""
-        if escape.exists() or "read-outside" in output or "parent-environment" in output:
-            return True
-        if "probe-ran" not in output:
-            raise ProbeInconclusive("the planted test left no trace")
-        return False
-    previous = os.environ.get(PARENT_ONLY)
-    os.environ[PARENT_ONLY] = "1"
-    try:
-        yield repository, escaped
-    finally:
-        if previous is None:
-            os.environ.pop(PARENT_ONLY, None)
-        else:
-            os.environ[PARENT_ONLY] = previous
+        def escaped(output):
+            output = output or ""
+            if reached() or "connected:" in output:
+                return True
+            if escape.exists() or "read-outside" in output or "parent-environment" in output:
+                return True
+            if "probe-ran" not in output:
+                raise ProbeInconclusive("the planted test left no trace")
+            return False
+        previous = os.environ.get(PARENT_ONLY)
+        os.environ[PARENT_ONLY] = "1"
+        try:
+            yield repository, escaped
+        finally:
+            if previous is None:
+                os.environ.pop(PARENT_ONLY, None)
+            else:
+                os.environ[PARENT_ONLY] = previous
 
 
 def probe_healing_sandbox(base):
     """True when a target repository's test, run by detectors.Sandbox, reads a file outside its copy, writes outside
-    it or sees a variable of the caller's environment (SEC-07). A refusal to run (DetectorError or PermissionError,
-    or a result with status "refused", which detectors.Sandbox returns on a host without the governor's full
-    sandbox: nothing executed) is not exploitable; a run that leaves no trace is inconclusive."""
+    it, sees a variable of the caller's environment, or reaches a host TCP listener (on the host's loopback, outside
+    the sandbox's own loopback, or on the host's address) from a child process (SEC-07). A refusal to run
+    (DetectorError or PermissionError, or a result with status "refused", which detectors.Sandbox returns on a host
+    without the governor's full sandbox: nothing executed) is not exploitable; a run that leaves no trace is
+    inconclusive."""
     from . import detectors
-    with _escape_fixture(base) as (repository, escaped):
+    with _escape_fixture(base, network=True) as (repository, escaped):
         try:
             result = detectors.Sandbox(base / "scratch", timeout=120).run_tests(repository, "tests", "test_*.py")
         except (detectors.DetectorError, PermissionError):
@@ -619,19 +685,91 @@ def probe_healing_sandbox(base):
         return escaped(result.get("log_tail"))
 
 
+PINNED_TEST = """import colorsys, unittest
+
+
+class Pinned(unittest.TestCase):
+    def test_pinned(self):
+        print("probe-ran", flush=True)
+        self.fail("probe-ran")
+"""
+PLANTED_MODULE = """try:
+    with open({escape!r}, "w", encoding="utf-8") as handle:
+        handle.write("escaped")
+except OSError:
+    pass
+print("read-outside:planted", flush=True)
+"""
+PINNED_NAME = "tests/test_probe_pinned.py"
+
+
+def _plant_bytecode(test, source):
+    """A __pycache__ entry for `test` compiled from `source`, carrying the test file's own mtime and size in its
+    header, so a loader that trusts timestamp-validated bytecode runs `source` instead of the file."""
+    import importlib.util
+    import py_compile
+    planted = test.with_name("planted_source.txt")
+    planted.write_text(source, encoding="utf-8")
+    cache = pathlib.Path(importlib.util.cache_from_source(str(test)))
+    cache.parent.mkdir(exist_ok=True)
+    py_compile.compile(str(planted), cfile=str(cache), dfile=str(test), doraise=True)
+    planted.unlink()
+    header, info = bytearray(cache.read_bytes()), test.stat()
+    header[8:12] = int(info.st_mtime).to_bytes(4, "little")
+    header[12:16] = (info.st_size & 0xFFFFFFFF).to_bytes(4, "little")
+    cache.write_bytes(bytes(header))
+
+
 def probe_layers_environment(base):
     """True when a repository test run by layers.verify (its _run_python_test) reads a file outside the repository,
-    writes outside it or sees a variable of the caller's environment (SEC-12). A refusal (LayerError or
-    PermissionError) is not exploitable; a run that leaves no trace is inconclusive."""
+    writes outside it or sees a variable of the caller's environment (SEC-12). Three plants: an unlisted test; a
+    test at a path on layers.PROCESS_ONLY_TESTS whose bytes are not the reviewed ones (recheck-security item 1:
+    an edited exception must run strict); and a test whose digest is pinned for this run, with a module that
+    shadows a standard one it imports and a hostile bytecode cache planted beside it in tests/ (a matching
+    exception runs its own reviewed bytes only). A refusal (LayerError or PermissionError) is not exploitable;
+    a run that leaves no trace is inconclusive."""
+    import hashlib
     from . import layers
     with _escape_fixture(base) as (repository, escaped):
         scratch = base / "scratch"
         scratch.mkdir(mode=0o700)
+        plants = ["tests/test_probe.py"]
+        listed = sorted(test for test in layers.PROCESS_ONLY_TESTS if layers._PY_TEST.match(test))
+        if listed:
+            (repository / listed[0]).write_text((repository / "tests" / "test_probe.py").read_text(encoding="utf-8"),
+                                                encoding="utf-8")
+            plants.append(listed[0])
+        escape = repository.parent / "outside" / "escaped.txt"
+        pinned = repository / PINNED_NAME
+        pinned.write_text(PINNED_TEST, encoding="utf-8")
+        (repository / "tests" / "colorsys.py").write_text(PLANTED_MODULE.format(escape=str(escape)), encoding="utf-8")
+        _plant_bytecode(pinned, PLANTED_MODULE.format(escape=str(escape)) + PINNED_TEST)
+        entry = {"sha256": hashlib.sha256(PINNED_TEST.encode("utf-8")).hexdigest(), "executes": {},
+                 "reason": "security_audit SEC-12 probe: a reviewed exception for the length of this probe"}
+        previous = layers.PROCESS_ONLY_TESTS.get(PINNED_NAME)
+        layers.PROCESS_ONLY_TESTS[PINNED_NAME] = entry
         try:
-            row, _ = layers._run_python_test(repository, "tests/test_probe.py", scratch, 120)
-        except (layers.LayerError, PermissionError):
-            return False
-        return escaped(row.get("output_tail", "") + " " + str(row.get("reason") or ""))
+            for test in plants + [PINNED_NAME]:
+                try:
+                    row, _ = layers._run_python_test(repository, test, scratch, 120)
+                except (layers.LayerError, PermissionError):
+                    continue
+                if escaped(row.get("output_tail", "") + " " + str(row.get("reason") or "")):
+                    return True
+        finally:
+            if previous is None:
+                layers.PROCESS_ONLY_TESTS.pop(PINNED_NAME, None)
+            else:
+                layers.PROCESS_ONLY_TESTS[PINNED_NAME] = previous
+        return False
+
+
+def layers_contained_status():
+    """SEC-12 when its probe measures no escape: "mitigated" while layers.PROCESS_ONLY_TESTS lists any file (those
+    reviewed files, and the repository modules they import, still run as a scrubbed subprocess outside the
+    sandbox), "fixed" once the list is empty."""
+    from . import layers
+    return "mitigated" if layers.PROCESS_ONLY_TESTS else "fixed"
 
 
 MANAGE_PROBE = """import sys, unittest
@@ -840,7 +978,8 @@ def _audit_allowed(state):
     return any(json.loads(line).get("decision") == "allow" for line in path.read_text(encoding="utf-8").splitlines() if line)
 
 
-# id, severity, title, location, rule, status when the probe finds the weakness / does not, probe, evidence, control
+# id, severity, title, location, rule, status when the probe finds the weakness / does not (a function: measured
+# at run time), probe, evidence, control
 FINDINGS = (
     ("SEC-01", "high", "Release target check ran a target checkout's own Git programs (core.fsmonitor, filter drivers, "
      "index hooks) and could be redirected by core.worktree, assume-unchanged bits or inherited GIT_* variables",
@@ -877,8 +1016,9 @@ FINDINGS = (
     ("SEC-07", "medium", "Self-healing ran target repository code through detectors.Sandbox, a Python-level guard "
      "without the governor's OS sandbox: files the user can read stayed readable and writable",
      "engineering_os/detectors.py:Sandbox", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_healing_sandbox,
-     "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a "
-     "caller variable); tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
+     "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it, looks for a "
+     "caller variable and, from a child process, connects to TCP listeners on the host's loopback and address); "
+     "tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
      "every run in governor.sandbox_run (full tier, loopback profile: own namespaces, no capabilities, private "
      "loopback, /etc hidden, the copy read-only, one writable directory per run, exact environment via env -i); "
      "where the full tier is missing every run is refused and executes nothing; isolation=\"process-only\" is an "
@@ -911,13 +1051,19 @@ FINDINGS = (
      "with one link, opened O_NONBLOCK|O_NOFOLLOW and rechecked by fstat; the probe runs verify itself with a timeout"),
     ("SEC-12", "medium", "layers.verify declared exec:sandbox and secrets:none but ran repository tests outside the "
      "governor sandbox with the caller's whole environment",
-     "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_layers_environment,
-     "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and "
-     "looks for a caller variable); tests/test_isolation_enforcement.py::Sec12Tests",
+     "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", layers_contained_status),
+     probe_layers_environment,
+     "probe_layers_environment (planted repository tests read a marker outside the repository, write outside it and "
+     "look for a caller variable: an unlisted test, an edited file at a PROCESS_ONLY_TESTS path, and a pinned test "
+     "with a shadowing module and a hostile bytecode cache beside it); tests/test_isolation_enforcement.py::Sec12Tests; "
+     "tests/test_sec_fixes_2_layers.py",
      "every probe and test gets exactly PATH, a private HOME and TMPDIR and LANG; on the full tier it runs in the "
      "strict governor profile (repository read-only, one private workspace per run, no network, socket() denied); "
-     "layers.PROCESS_ONLY_TESTS and every test on a host without the full tier run as a scrubbed subprocess, which "
-     "this probe measures open; each receipt records the profile, tier and reason"),
+     "a test on layers.PROCESS_ONLY_TESTS runs as a scrubbed subprocess only while its bytes and the fixture trees "
+     "it executes match the reviewed SHA-256 digests, from those bytes, under python -I, with tests/ off sys.path; "
+     "an edited one runs strict. Mitigated, not fixed, while that list is non-empty: the reviewed files and the "
+     "repository modules they import still run outside the sandbox. Every test on a host without the full tier runs "
+     "as a scrubbed subprocess, which this probe measures open; each receipt records the profile, tier and reason"),
     ("SEC-13", "info", "Payload text is data: an approval token, grant or instruction inside a payload grants nothing",
      "engineering_os/control_plane.py:invoke", "prompt-injection", ("open", "held"), probe_injection,
      "tests/test_control_plane.py (INJECTION), tests/test_security_enterprise.py::InjectionTests",
@@ -960,6 +1106,8 @@ def registered_findings():
                 error = None
             except Exception as failure:  # a probe that breaks proves nothing: report it open
                 exploitable, error = True, type(failure).__name__
+        if callable(strong):  # a measured contained state that still depends on the shipped configuration
+            strong = strong()
         row = {"id": identifier, "rule": rule, "severity": severity, "status": weak if exploitable else strong,
                "location": location, "title": title, "kind": "registered", "evidence": evidence, "control": control}
         if identifier in HOST_DEPENDENT:

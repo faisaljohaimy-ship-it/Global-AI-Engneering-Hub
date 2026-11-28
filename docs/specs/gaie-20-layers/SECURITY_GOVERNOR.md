@@ -24,7 +24,7 @@ approval_token_sha256(token) -> str        # the digest a grant's approval store
 payload_sha256(payload) -> str
 sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
             cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
-            require_fs_isolation=False, read_only=False, loopback=False)
+            require_fs_isolation=False, read_only=False, loopback=False, disk_mb=None)
     -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated", "mounts"}
        # mounts: the mount table pid 1 read back on the full tier; None on the plain tier
 isolation_probe() -> dict                  # measured once per process; decides the sandbox tier
@@ -158,7 +158,23 @@ so parent secrets never reach the command. Test: `SandboxTests.test_parent_secre
 captured stdout/stderr, which go to unlinked temporary files), RLIMIT_NOFILE and no core files.
 The process runs in its own session/process group, which `cage._kill` kills whole on timeout and
 after every run. The module is loaded by path under a private name. It is read, never modified or copied.
-`limit` is `"timeout"`, `"cpu"`, `"file"` or `None`.
+`limit` is `"timeout"`, `"cpu"`, `"file"`, `"disk"` or `None`.
+
+Output and disk caps (recheck-security item 3). Only the last `OUTPUT_TAIL_BYTES` (1 MiB) of each
+captured stream is read back and decoded (invalid UTF-8 becomes U+FFFD); a longer stream starts with
+the line `[governor: the first N bytes of this stream were dropped]`. Measured with the reviewer's
+case (2 x 32 MiB of non-UTF-8 output through `detectors.Sandbox`): parent maximum RSS 23 -> 32 MB,
+was 23 -> 285 MB. The writable `allowed_paths` may grow by `disk_mb` at most (default
+`DISK_FACTOR * file_mb` = 8 x `file_mb`; `detectors.Sandbox` passes `file_mb=32`, so 256 MiB): their
+allocated size (`st_blocks`, each inode once, links not followed) is polled while the run lasts, at
+least 50 ms apart and with at most a tenth of the time spent walking, and the whole process group is
+killed past the cap (`limit` `"disk"`). A run that ends between two polls above the cap is recorded
+the same way; a run can overshoot by what it writes between two polls (measured: 12 x 31 MiB through
+`detectors.Sandbox` stopped at 263 MiB, status `crashed`; was 373 MiB kept). Writable paths of more
+than `DISK_WALK_ENTRIES` (250 000) entries cannot be measured and are refused (`invalid-limit`) before
+anything starts. Callers see `"disk"` in `limit`; `detectors.Sandbox` and `layers._run` treat only
+`"timeout"`/`"cpu"` specially, so a killed run reaches them as a crash without a result. Tests:
+`tests/test_sec_fixes_2_governor.py`.
 
 ### Tiers
 `isolation_probe()` runs once per process. When `unshare` can make user, mount and pid
@@ -212,7 +228,7 @@ Tests: `SandboxArgumentTests.test_fallback_tier_reports_no_filesystem_isolation_
 | `quality-assurance.run-tests` (`adapters.py`) | strict, hub read-only, one private temp workspace | refused |
 | `WorkspaceSupervisor.run` (`workspace_policy.py`) | strict, the assigned worktree as the one workspace | refused |
 | `detectors.Sandbox` (self-healing, upgrade, runtime detectors; SEC-07) | loopback: target read-only, one fresh writable directory per run, exact environment via `env -i`, HTTP probes sent from inside the sandbox | each run returns `status: "refused"` and executes nothing; `isolation="process-only"` is an explicit opt-in that writes an allow record to the governor audit log in the sandbox scratch directory and is recorded in every result |
-| `layers._run` (`layers.verify`; SEC-12) | strict (repository and linked-worktree git metadata read-only, `/etc/ld.so.cache` and `/etc/alternatives` only), exact environment (PATH, private HOME and TMPDIR, LANG) | the same scrubbed environment (TMPDIR is then the host's temp directory) as a plain subprocess; every test row and the receipt's `execution` record the profile, tier and reason. Files on `layers.PROCESS_ONLY_TESTS` (measured: the cage's chown, and tests whose subject builds its own governor sandbox, which cannot be nested) run that way on every host |
+| `layers._run` (`layers.verify`; SEC-12) | strict (repository and linked-worktree git metadata read-only, `/etc/ld.so.cache` and `/etc/alternatives` only), exact environment (PATH, private HOME and TMPDIR, LANG); no whole install prefix is a read path (recheck-isolation-2 item 4): the governor mounts the hub interpreter itself, a tool the tests start by name (`layers.TOOLS`, node) adds only its bin directory, and a virtual environment its own tree, each only from outside every home directory and where no non-root user can change it or a directory above it | the same scrubbed environment (TMPDIR is then the host's temp directory) as a plain subprocess; every test row and the receipt's `execution` record the profile, tier and reason. Files on `layers.PROCESS_ONLY_TESTS` (measured: the cage's chown, and tests whose subject builds its own governor sandbox, which cannot be nested) run that way on every host, but only while the file's bytes and every fixture tree it executes match the SHA-256 digests recorded at its review (keyed by path and digest; recheck-security item 1). A matching file runs from the bytes that were hashed, under `python -I`, with `tests/` off `sys.path` (a planted module or `__pycache__` entry beside it is not executed); an edited one runs strict, and its row's `isolation.exception` names what changed; a fixture swapped during the run makes the row an error. `layers.exception_digests()` prints the digests a reviewed change needs. The reviewed files and the repository modules they import still run outside the sandbox, so SEC-12 reads mitigated while the list is non-empty |
 
 Tests: `tests/test_isolation_enforcement.py` (`Sec07Tests`, `Sec12Tests`, `PropertyMatrixTests`).
 

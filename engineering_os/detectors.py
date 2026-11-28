@@ -1368,21 +1368,83 @@ def _output_limit():
     resource.setrlimit(resource.RLIMIT_FSIZE, (limit, limit))
 
 
+# Process-only mode: the driver runs under this reaper (recheck-security item 4). It makes itself a child
+# subreaper (PR_SET_CHILD_SUBREAPER), so every descendant the run orphans, whatever its environment,
+# session, process group or working directory, is re-parented to it; when the driver ends (or the run is
+# stopped) it kills and reaps its children until none is left, then ends as the driver did (same exit code,
+# or the same signal). Without the prctl it runs nothing (exit 125). The OS mode ends its pid namespace.
+REAPER = r"""
+import ctypes, os, signal, subprocess, sys, time
+if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
+    sys.stderr.write("reaper: PR_SET_CHILD_SUBREAPER refused; nothing run\n")
+    sys.exit(125)
+driver = subprocess.Popen(sys.argv[1:])
+def stop(signum, frame):
+    try:
+        driver.kill()
+    except OSError:
+        pass
+signal.signal(signal.SIGTERM, stop)
+code = driver.wait()
+me = str(os.getpid())
+for _ in range(200):
+    children = []
+    for entry in os.listdir("/proc"):
+        try:
+            with open("/proc/" + entry + "/stat", "rb") as handle:
+                if entry.isdigit() and handle.read().rsplit(b")", 1)[1].split()[1] == me.encode():
+                    children.append(int(entry))
+        except (OSError, IndexError):
+            continue
+    if not children:
+        break
+    for pid in children:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
+    while True:
+        try:
+            if os.waitpid(-1, os.WNOHANG)[0] == 0:
+                break
+        except ChildProcessError:
+            break
+    time.sleep(0.01)
+if code < 0:  # end by the same signal (SIGKILL and SIGSTOP have no handler to reset)
+    try:
+        signal.signal(-code, signal.SIG_DFL)
+    except (OSError, ValueError):
+        pass
+    os.kill(os.getpid(), -code)
+    sys.exit(128 - code)
+sys.exit(code)
+"""
+
+
 def _sweep(token):
-    """Kill every process that still carries this run's marker, including descendants that
-    started their own session (process-only mode; the OS mode ends its pid namespace)."""
+    """Kill every process that still carries this run's marker, and every process that shares a session
+    or process group with one of them, until none is left (process-only mode). Descendants that shed the
+    marker as well (an empty environment, a session of their own) are the reaper's: see REAPER."""
     needle = f"\0{RUN_MARKER}={token}\0".encode()
     for _ in range(10):
-        found = []
+        marked, groups = set(), {}
         for entry in os.listdir("/proc"):
             if not entry.isdigit() or int(entry) == os.getpid():
                 continue
             try:
+                with open(f"/proc/{entry}/stat", "rb") as handle:
+                    fields = handle.read().rsplit(b")", 1)[1].split()
+                groups[int(entry)] = (int(fields[2]), int(fields[3]))  # process group, session
                 with open(f"/proc/{entry}/environ", "rb") as handle:
                     if needle in b"\0" + handle.read():
-                        found.append(int(entry))
-            except OSError:
+                        marked.add(int(entry))
+            except (OSError, IndexError, ValueError):
                 continue
+        ours = {key for pid in marked if pid in groups for key in (("pgrp", groups[pid][0]), ("sid", groups[pid][1]))}
+        own = (("pgrp", os.getpgrp()), ("sid", os.getsid(0)))
+        ours.difference_update(own)  # never this process's own group or session
+        found = marked | {pid for pid, (pgrp, sid) in groups.items() if ("pgrp", pgrp) in ours or ("sid", sid) in ours}
+        found.discard(os.getpid())
         if not found:
             return
         for pid in found:
@@ -1485,7 +1547,8 @@ class Sandbox:
         if self.isolation == "process-only":
             log, token = base / "driver.log", secrets.token_hex(16)
             with log.open("wb") as stream:
-                process = subprocess.Popen(self.command(request), cwd=str(root), env={**env, RUN_MARKER: token},
+                process = subprocess.Popen([_interpreter(), "-I", "-S", "-c", REAPER, *self.command(request)],
+                                           cwd=str(root), env={**env, RUN_MARKER: token},
                                            stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
                                            start_new_session=True, preexec_fn=_output_limit)
                 try:

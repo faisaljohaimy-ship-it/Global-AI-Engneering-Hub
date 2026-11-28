@@ -806,6 +806,35 @@ class BehaviouralProbeTests(unittest.TestCase):
             with self.assertRaises(security_audit.ProbeInconclusive):
                 self.probe(security_audit.probe_healing_sandbox)
 
+    def test_sec07_probe_counts_a_host_listener_reached_from_the_sandbox(self):
+        """recheck-security item 2: the probe's child connects to TCP listeners on the host's loopback and address;
+        an accepted connection reads open even when the test's own output looks contained."""
+        import socket
+        from engineering_os import detectors
+
+        def network_only(sandbox, root, start, pattern, **kwargs):
+            """Files and environment held; the host network reached (the host side sees the connection)."""
+            text = (pathlib.Path(root) / "tests" / "test_probe.py").read_text(encoding="utf-8")
+            targets = re.findall(r"\['([0-9.]+)', ([0-9]+)\]", text)
+            self.assertIn("127.0.0.1", [host for host, _ in targets])
+            for host, port in targets:
+                socket.create_connection((host, int(port)), timeout=3).close()
+            return {"status": "ok", "log_tail": "FAIL: test_probe\nAssertionError: probe-ran\n"}
+        with mock.patch.object(detectors.Sandbox, "run_tests", network_only):
+            self.assertTrue(self.probe(security_audit.probe_healing_sandbox))
+        if governor.isolation_probe()["tier"] != "full":  # measured refusal: nothing runs, nothing is reached
+            self.assertFalse(self.probe(security_audit.probe_healing_sandbox))
+            return
+        self.assertFalse(self.probe(security_audit.probe_healing_sandbox))
+        real = governor.sandbox_run
+
+        def host_network(cmd, **kwargs):
+            """The reviewer's stub: the host network namespace, and the network_isolated check dropped."""
+            kwargs.update(network=True, loopback=False)
+            return {**real(cmd, **kwargs), "network_isolated": True}
+        with mock.patch.object(governor, "sandbox_run", host_network):
+            self.assertTrue(self.probe(security_audit.probe_healing_sandbox))
+
     def test_sec12_probe_runs_a_layer_test_and_measures_what_it_reached(self):
         from engineering_os import layers
 
@@ -821,6 +850,42 @@ class BehaviouralProbeTests(unittest.TestCase):
         for runner, expected in ((keyword_only, True), (contained, False), (refused, False)):
             with self.subTest(runner=runner.__name__), mock.patch.object(layers, "_run_python_test", runner):
                 self.assertIs(self.probe(security_audit.probe_layers_environment), expected)
+
+    def test_sec12_probe_catches_an_exception_list_that_trusts_more_than_reviewed_bytes(self):
+        """recheck-security item 1: the probe plants an edited file at a listed path and a pinned file with a
+        shadowing module and bytecode beside it, so each way back to the path-keyed exception reads open."""
+        from engineering_os import layers
+        if governor.isolation_probe()["tier"] == "full":  # elsewhere every test is a scrubbed subprocess: open
+            self.assertFalse(self.probe(security_audit.probe_layers_environment))
+        real = layers._exception
+
+        def path_only(root, test):  # the digest is computed and ignored: any listed path matches
+            record = real(root, test)
+            return record and {**record, "matched": record["reason"] is not None, "changed": []}
+        stand_ins = {"ordinary runner for a pinned file (tests/ first, bytecode trusted)":
+                     {"_PINNED_UNITTEST": layers._UNITTEST},
+                     "path-keyed exception run without the runner's own digest check":
+                     {"_exception": path_only, "_PINNED_UNITTEST": layers._UNITTEST}}
+        for label, changes in stand_ins.items():
+            with self.subTest(label), mock.patch.multiple(layers, **changes):
+                self.assertTrue(self.probe(security_audit.probe_layers_environment))
+        self.assertNotIn(security_audit.PINNED_NAME, layers.PROCESS_ONLY_TESTS)  # the probe's pin is temporary
+
+    def test_sec12_reads_mitigated_while_the_exception_list_is_non_empty(self):
+        from engineering_os import layers
+        row = next(row for row in security_audit.FINDINGS if row[0] == "SEC-12")
+        self.assertIs(row[5][1], security_audit.layers_contained_status)
+        for exploitable, entries, expected in ((False, None, "mitigated"), (False, {}, "fixed"), (True, None, "open"),
+                                               (True, {}, "open")):
+            stand_in = row[:6] + ((lambda base, verdict=exploitable: verdict),) + row[7:]
+            with self.subTest(exploitable=exploitable, entries=entries), \
+                    mock.patch.object(security_audit, "FINDINGS", (stand_in,)), \
+                    mock.patch.dict(layers.PROCESS_ONLY_TESTS, entries if entries is not None else {},
+                                    clear=entries is not None):
+                finding, = security_audit.registered_findings()
+                self.assertEqual(finding["status"], expected)
+        self.assertTrue(layers.PROCESS_ONLY_TESTS)
+        self.assertEqual(security_audit.layers_contained_status(), "mitigated")
 
     def test_sec16_probe_runs_the_generated_suite_and_measures_what_it_reached(self):
         from engineering_os import build_engine
@@ -894,22 +959,26 @@ class SandboxReached(Exception):
 
 # Actions that declare exec:sandbox but do not run their code through governor.sandbox_run yet, with the reason.
 EXEC_SANDBOX_EXCEPTIONS = {
-    ("layers", "verify"): "host-dependent (SEC-12 fixed on the full tier): layers._run reaches governor.sandbox_run "
-                          "only where the full tier exists; elsewhere, and for layers.PROCESS_ONLY_TESTS, it runs a "
-                          "scrubbed subprocess, so no payload shows it reaching the sandbox on every host",
+    ("layers", "verify"): "host-dependent (SEC-12 mitigated): layers._run reaches governor.sandbox_run only where the "
+                          "full tier exists; elsewhere it runs a scrubbed subprocess, and so does every file on "
+                          "layers.PROCESS_ONLY_TESTS while its bytes and executed fixtures match their reviewed SHA-256 "
+                          "(an edited one runs strict), so no payload shows it reaching the sandbox on every host",
     ("context-intelligence", "optimize"): "tools/headroom_context.py runs the local SDK in a plain subprocess with a "
                                          "private environment, not in the governor sandbox",
     ("master-build", "build"): "SEC-16 open: build_engine.run_suites runs the generated tests without the OS sandbox",
-    ("master-upgrade", "upgrade"): "host-dependent (SEC-07 class): upgrade_engine runs the target's tests through "
-                                   "detectors.Sandbox, which reaches governor.sandbox_run on the full tier and refuses "
-                                   "elsewhere unless process-only is chosen explicitly",
+    ("master-upgrade", "upgrade"): "host-dependent (SEC-07 fixed on the full tier): upgrade_engine runs the target's "
+                                   "tests through detectors.Sandbox, which reaches governor.sandbox_run on the full tier "
+                                   "and refuses elsewhere unless process-only is chosen explicitly (a scrubbed subprocess "
+                                   "under a child subreaper that ends every helper the run leaves)",
     ("self-healing", "heal"): "host-dependent (SEC-07 fixed on the full tier): heal runs the target through "
                               "detectors.Sandbox, which reaches governor.sandbox_run on the full tier and refuses "
-                              "elsewhere unless process-only is chosen explicitly",
+                              "elsewhere unless process-only is chosen explicitly (a scrubbed subprocess under a child "
+                              "subreaper that ends every helper the run leaves)",
     ("security-audit", "audit"): "runs each probe's planted program through the path it measures: detectors.Sandbox "
-                                 "and layers._run reach governor.sandbox_run on the full tier, build_engine.run_suites "
-                                 "and the video pipeline do not (SEC-16, SEC-17 open); a probe catches every exception, "
-                                 "so a payload cannot show the sandbox being reached",
+                                 "and layers._run reach governor.sandbox_run on the full tier (the SEC-12 probe also runs "
+                                 "one pinned exception as a scrubbed subprocess), build_engine.run_suites and the video "
+                                 "pipeline do not (SEC-16, SEC-17 open); a probe catches every exception, so a payload "
+                                 "cannot show the sandbox being reached",
     ("master-cinematic", "probe"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
     ("master-cinematic", "render"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
     ("master-cinematic", "qa"): "SEC-17 open: the video pipeline starts ffprobe and ffmpeg without the OS sandbox",
@@ -1029,6 +1098,21 @@ class LiveAuditTests(unittest.TestCase):
         self.assertEqual(rows["SEC-06"]["status"], "mitigated")
         self.assertEqual(self.report["summary"]["open_critical_or_high"], [])
         self.assertFalse(any("probe_error" in row for row in self.report["findings"]))
+
+    def test_exec_sandbox_exception_reasons_state_the_measured_status(self):
+        """recheck-security item 6: a reason that names a finding's status ("SEC-16 open", "SEC-12 mitigated")
+        states what this audit measures (host-dependent findings on a full-tier host only)."""
+        rows = self.by_id()
+        claims = 0
+        for key, reason in EXEC_SANDBOX_EXCEPTIONS.items():
+            for ids, status in re.findall(r"((?:SEC-\d+, )*SEC-\d+) (open|fixed|mitigated|held|accepted)\b", reason):
+                for identifier in re.findall(r"SEC-\d+", ids):
+                    if rows[identifier].get("host_dependent") and self.report["sandbox_tier"] != "full":
+                        continue
+                    claims += 1
+                    self.assertEqual(rows[identifier]["status"], status, (key, identifier, reason))
+        if self.report["sandbox_tier"] == "full":
+            self.assertGreaterEqual(claims, 10)
 
     def test_the_report_is_deterministic(self):
         self.assertEqual(security_audit.canonical(security_audit.run(ROOT)), security_audit.canonical(self.report))

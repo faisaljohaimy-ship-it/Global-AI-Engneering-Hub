@@ -10,7 +10,7 @@ machine-readable `reason`; nothing is allowed because a text says so.
     verify_audit(state_dir) -> int                                    (records; GovernorDenied "audit-tampered")
     sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
                 cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
-                require_fs_isolation=False, read_only=False, loopback=False)
+                require_fs_isolation=False, read_only=False, loopback=False, disk_mb=None)
         -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated", "mounts"}
            (mounts: the table pid 1 read back on the full tier, None on the plain tier)
     isolation_probe() -> dict                                          (measured once per process)
@@ -491,9 +491,55 @@ def _number(value, what, low, high):
     return value
 
 
+# Output and disk caps of one run (recheck-security item 3). Each output stream is read back from its
+# temporary file as its last OUTPUT_TAIL_BYTES only, decoded lossily, with a first line that says how much
+# was dropped. The writable paths (allowed_paths) may grow by at most disk_mb (default DISK_FACTOR * file_mb)
+# during the run: their allocated size is polled while the run lasts and the whole process group is
+# killed past the cap (limit "disk"); a run that ends between two polls above the cap is recorded the same
+# way. Polls are at least DISK_POLL_SECONDS apart and at most 10% of the time is spent walking; a run
+# can overshoot by what it writes between two polls. A writable tree of more than DISK_WALK_ENTRIES
+# entries cannot be measured and is refused before anything starts.
+OUTPUT_TAIL_BYTES = 1 << 20
+DISK_FACTOR = 8
+DISK_POLL_SECONDS = 0.05
+DISK_WALK_ENTRIES = 250000
+
+
+def _disk_usage(paths):
+    """Bytes allocated (st_blocks) below `paths`, each inode counted once, links not followed; None when the
+    walk passes DISK_WALK_ENTRIES entries (too large to measure)."""
+    seen, total, count, pending = set(), 0, 0, list(paths)
+    while pending:
+        try:
+            with os.scandir(pending.pop()) as entries:
+                for entry in entries:
+                    count += 1
+                    if count > DISK_WALK_ENTRIES:
+                        return None
+                    try:
+                        info = entry.stat(follow_symlinks=False)
+                    except OSError:
+                        continue
+                    if stat.S_ISDIR(info.st_mode):
+                        pending.append(entry.path)
+                    if (info.st_dev, info.st_ino) not in seen:
+                        seen.add((info.st_dev, info.st_ino))
+                        total += info.st_blocks * 512
+        except OSError:
+            continue
+    return total
+
+
 def _launch(argv, *, cwd, env, timeout, limits, net_in_child, pass_fds=()):
-    """Start argv in a process group of its own with cage's limits; returns (proc, out, err, limit)."""
+    """Start argv in a process group of its own with cage's limits; returns (proc, out, err, limit).
+    limits["watch"] (the writable paths) may grow by limits["disk_mb"] at most (limit "disk")."""
+    import time
     cage = _cage()
+    watch, cap = tuple(limits.get("watch") or ()), limits.get("disk_mb")
+    baseline = _disk_usage(watch) if watch and cap else 0
+    if baseline is None:
+        raise GovernorDenied("invalid-limit", f"the writable paths hold more than {DISK_WALK_ENTRIES} entries; "
+                                              "their growth cannot be capped")
     out, err = tempfile.TemporaryFile(), tempfile.TemporaryFile()
     preexec = cage._child(limits["memory_mb"], limits["cpu_seconds"], limits["file_mb"], limits["nofile"],
                           32, False, net_in_child, cage.UNPRIVILEGED)
@@ -505,22 +551,46 @@ def _launch(argv, *, cwd, env, timeout, limits, net_in_child, pass_fds=()):
         out.close()
         err.close()
         raise
+
+    def over_cap():
+        used = _disk_usage(watch)
+        return used is None or used - baseline > cap * 1024 * 1024
     try:
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        limit = "timeout"
-        cage._kill(proc.pid)
-        proc.wait()
+        deadline, interval = time.monotonic() + timeout, DISK_POLL_SECONDS
+        while True:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                limit = "timeout"
+                break
+            try:
+                proc.wait(timeout=min(left, interval) if watch and cap else left)
+                break
+            except subprocess.TimeoutExpired:
+                if watch and cap:
+                    started = time.monotonic()
+                    if over_cap():
+                        limit = "disk"
+                        break
+                    interval = max(DISK_POLL_SECONDS, 10 * (time.monotonic() - started))
+        if limit:
+            cage._kill(proc.pid)
+            proc.wait()
+        elif watch and cap and over_cap():
+            limit = "disk"  # ended between two polls above the cap: recorded, never silent
     finally:
         cage._kill(proc.pid)  # nothing it started may outlive the run
     return proc, out, err, limit
 
 
 def _text(handle):
-    handle.seek(0)
-    data = handle.read()
+    """The last OUTPUT_TAIL_BYTES of a captured stream, decoded lossily; the rest is never read."""
+    size = os.fstat(handle.fileno()).st_size
+    handle.seek(max(0, size - OUTPUT_TAIL_BYTES))
+    data = handle.read(OUTPUT_TAIL_BYTES)
     handle.close()
-    return data.decode("utf-8", errors="replace")
+    dropped = f"[governor: the first {size - OUTPUT_TAIL_BYTES} bytes of this stream were dropped]\n" \
+        if size > OUTPUT_TAIL_BYTES else ""
+    return dropped + data.decode("utf-8", errors="replace")
 
 
 def _drain(fd):
@@ -970,7 +1040,7 @@ def _inspect_scope(paths, *, writable):
 
 def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
                 cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
-                require_fs_isolation=False, read_only=False, loopback=False):
+                require_fs_isolation=False, read_only=False, loopback=False, disk_mb=None):
     """Run argv `cmd` (no shell) isolated; GovernorDenied when a precondition fails.
 
     Environment: empty except PATH, HOME (= cwd), LANG and the names in env_allow.
@@ -998,7 +1068,11 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
     one sandbox. The host's loopback and every other host address stay unreachable. It is meant
     for untrusted code, so /etc is hidden as in the strict profiles (name the interpreter file
     itself: a link through /etc/alternatives dangles). It is refused where the full sandbox cannot
-    be built; the default is unchanged (no interface is up, /etc stays readable)."""
+    be built; the default is unchanged (no interface is up, /etc stays readable).
+
+    Only the last OUTPUT_TAIL_BYTES of stdout and of stderr are read back. allowed_paths may grow
+    by disk_mb at most (default DISK_FACTOR * file_mb): past it the run is killed and its limit is
+    "disk"."""
     if isinstance(cmd, (str, bytes)) or not isinstance(cmd, (list, tuple)) or not cmd or not all(
             isinstance(a, str) and "\0" not in a for a in cmd) or not cmd[0]:
         raise GovernorDenied("invalid-command", "argv list of text, no shell string")
@@ -1008,7 +1082,10 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
               "memory_mb": int(_number(memory_mb, "memory_mb", 64, 65536)),
               "file_mb": int(_number(file_mb, "file_mb", 1, 65536)),
               "nofile": int(_number(nofile, "nofile", 16, 65536))}
+    limits["disk_mb"] = int(_number(disk_mb if disk_mb is not None else DISK_FACTOR * limits["file_mb"], "disk_mb", 1,
+                                    1 << 20))
     allowed = _paths(allowed_paths, "allowed path")
+    limits["watch"] = tuple(allowed)
     readable = _paths(read_paths, "read path")
     if not isinstance(require_fs_isolation, bool) or not isinstance(read_only, bool):
         raise GovernorDenied("invalid-sandbox-mode", "isolation mode flags must be boolean")

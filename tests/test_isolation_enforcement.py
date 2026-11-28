@@ -385,16 +385,39 @@ class Sec12Tests(Case):
         self.assertEqual(self.receipt("L02")["tests"][0]["isolation"]["profile"], "strict")
 
     def test_process_only_exceptions_keep_the_scrubbed_environment_and_say_why(self):
+        # recheck-security item 1: an exception is keyed by its path and the SHA-256 of the reviewed bytes
         root = self.build("GAIE_FAKE_SECRET")
-        with mock.patch.dict(layers.PROCESS_ONLY_TESTS, {"tests/test_env_probe.py": "fixture exception"}):
+        pin = {"sha256": layers._hash_file(root, "tests/test_env_probe.py"), "executes": {}, "reason": "fixture exception"}
+        with mock.patch.dict(layers.PROCESS_ONLY_TESTS, {"tests/test_env_probe.py": pin}):
             report = self.verify(root, ["L01"], "GAIE_FAKE_SECRET")
         self.assertEqual(report["layers"][0]["status"], "VERIFIED")
         receipt = self.receipt("L01")
         row = receipt["tests"][0]
         self.assertEqual((row["isolation"]["profile"], row["isolation"]["sandboxed"], row["isolation"]["reason"]),
                          ("process-only", False, "fixture exception"))
+        self.assertEqual((row["isolation"]["exception"]["matched"], row["isolation"]["tier"]),
+                         (True, governor.isolation_probe()["tier"]))
         self.assertIn("fixture exception", receipt["execution"]["process_only"])
         self.assertFalse(receipt["execution"]["sandboxed"])
+
+    def test_an_exception_file_edited_after_review_runs_strict(self):
+        """recheck-security item 1: the same exception, keyed by path only, ran an edited file unsandboxed."""
+        root = self.build("GAIE_FAKE_SECRET")
+        pin = {"sha256": layers._hash_file(root, "tests/test_fs_probe.py"), "executes": {}, "reason": "fixture exception"}
+        probe = root / "tests/test_fs_probe.py"
+        probe.write_text(probe.read_text(encoding="utf-8") + "\n# edited after the review\n", encoding="utf-8")
+        with mock.patch.dict(layers.PROCESS_ONLY_TESTS, {"tests/test_fs_probe.py": pin}):
+            report = self.verify(root, ["L02"], "GAIE_FAKE_SECRET")
+        row = self.receipt("L02")["tests"][0]
+        self.assertEqual((row["isolation"]["exception"]["matched"], row["isolation"]["exception"]["changed"]),
+                         (False, ["tests/test_fs_probe.py"]))
+        if not FULL:
+            self.assertFalse(REQUIRED, "GAIE_REQUIRE_FULL_SANDBOX=1 but the full tier is missing")
+            self.assertEqual(row["isolation"]["profile"], "process-only")  # measured fallback, recorded
+            return
+        self.assertEqual(report["layers"][0]["status"], "VERIFIED")  # the walls held: secret unreadable, repo read-only
+        self.assertEqual((row["isolation"]["profile"], row["isolation"]["sandboxed"]), ("strict", True))
+        self.assertIn("differs from its review", row["isolation"]["reason"])
 
     def test_a_plain_host_falls_back_and_records_it(self):
         root = self.build("GAIE_FAKE_SECRET")
@@ -407,9 +430,12 @@ class Sec12Tests(Case):
         self.assertIn("tier plain", receipt["tests"][0]["isolation"]["reason"])
 
     def test_measured_exception_list_names_existing_files_with_reasons(self):
-        for test, reason in layers.PROCESS_ONLY_TESTS.items():
+        for test, entry in layers.PROCESS_ONLY_TESTS.items():
             self.assertTrue((ROOT / test).is_file(), test)
-            self.assertGreater(len(reason), 40, test)
+            self.assertGreater(len(entry["reason"]), 40, test)
+            self.assertRegex(entry["sha256"], r"^[0-9a-f]{64}$", test)
+            self.assertTrue(layers._exception(ROOT, test)["matched"], f"{test}: review it, then re-pin "
+                            f"{layers.exception_digests(ROOT)[test]}")
         self.assertLessEqual(set(layers.LOOPBACK_TESTS), {str(p.relative_to(ROOT)) for p in (ROOT / "tests").glob("test_*")})
 
 

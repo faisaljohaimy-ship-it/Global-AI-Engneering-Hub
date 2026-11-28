@@ -70,7 +70,7 @@
     },
     {
       "control": "every run in governor.sandbox_run (full tier, loopback profile: own namespaces, no capabilities, private loopback, /etc hidden, the copy read-only, one writable directory per run, exact environment via env -i); where the full tier is missing every run is refused and executes nothing; isolation=\"process-only\" is an explicit opt-in recorded in every result and in the governor audit log",
-      "evidence": "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a caller variable); tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
+      "evidence": "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it, looks for a caller variable and, from a child process, connects to TCP listeners on the host's loopback and address); tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
       "host_dependent": true,
       "id": "SEC-07",
       "kind": "registered",
@@ -125,15 +125,15 @@
       "title": "SDK verify accepted a manifest-named FIFO or device and would block on it"
     },
     {
-      "control": "every probe and test gets exactly PATH, a private HOME and TMPDIR and LANG; on the full tier it runs in the strict governor profile (repository read-only, one private workspace per run, no network, socket() denied); layers.PROCESS_ONLY_TESTS and every test on a host without the full tier run as a scrubbed subprocess, which this probe measures open; each receipt records the profile, tier and reason",
-      "evidence": "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and looks for a caller variable); tests/test_isolation_enforcement.py::Sec12Tests",
+      "control": "every probe and test gets exactly PATH, a private HOME and TMPDIR and LANG; on the full tier it runs in the strict governor profile (repository read-only, one private workspace per run, no network, socket() denied); a test on layers.PROCESS_ONLY_TESTS runs as a scrubbed subprocess only while its bytes and the fixture trees it executes match the reviewed SHA-256 digests, from those bytes, under python -I, with tests/ off sys.path; an edited one runs strict. Mitigated, not fixed, while that list is non-empty: the reviewed files and the repository modules they import still run outside the sandbox. Every test on a host without the full tier runs as a scrubbed subprocess, which this probe measures open; each receipt records the profile, tier and reason",
+      "evidence": "probe_layers_environment (planted repository tests read a marker outside the repository, write outside it and look for a caller variable: an unlisted test, an edited file at a PROCESS_ONLY_TESTS path, and a pinned test with a shadowing module and a hostile bytecode cache beside it); tests/test_isolation_enforcement.py::Sec12Tests; tests/test_sec_fixes_2_layers.py",
       "host_dependent": true,
       "id": "SEC-12",
       "kind": "registered",
       "location": "engineering_os/layers.py:_run",
       "rule": "untrusted-code-outside-sandbox",
       "severity": "medium",
-      "status": "fixed",
+      "status": "mitigated",
       "title": "layers.verify declared exec:sandbox and secrets:none but ran repository tests outside the governor sandbox with the caller's whole environment"
     },
     {
@@ -239,10 +239,10 @@
     },
     {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:1192",
+      "id": "private-mode:engineering_os/governor.py:1269",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:1192",
+      "location": "engineering_os/governor.py:1269",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -250,10 +250,10 @@
     },
     {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:1210",
+      "id": "private-mode:engineering_os/governor.py:1287",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:1210",
+      "location": "engineering_os/governor.py:1287",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -292,9 +292,9 @@
     },
     "by_status": {
       "accepted": 7,
-      "fixed": 10,
+      "fixed": 9,
       "held": 4,
-      "mitigated": 1,
+      "mitigated": 2,
       "open": 2
     },
     "open_critical_or_high": []

@@ -13,8 +13,9 @@ staleness; they do not authenticate who ran the tests. Every test and interface 
 exact minimal environment (PATH, a private HOME, TMPDIR, LANG; nothing else of the caller's)
 and runs in the governor's OS sandbox where this host can build it (the repository read-only,
 one private writable directory per run, no network; see `_run`). A test on the recorded
-exception list, or every test on a host without the sandbox, runs as an ordinary subprocess
-with that environment; each receipt records the profile and tier actually used. Everything
+exception list (keyed by path and the SHA-256 of the reviewed bytes; an edited file runs strict),
+or every test on a host without the sandbox, runs as an ordinary subprocess with that
+environment; each receipt records the profile and tier actually used. Everything
 here is deterministic code: no model is called, nothing is simulated, and nothing remote is
 touched. SPDX-License-Identifier: MIT
 """
@@ -27,6 +28,7 @@ import platform
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -146,15 +148,10 @@ for ref in json.loads(sys.argv[3]):
         rows.append({"ref": ref, "ok": False, "file": None, "error": (type(exc).__name__ + ": " + str(exc))[:300]})
 _write({"interfaces": rows})
 '''
-_UNITTEST = _COLLECT + r'''
-import unittest
-# Import the test module the way `python3 -m unittest discover -s tests` does: top level,
-# from the tests directory, with the repository root importable as well.
-NAME = sys.argv[3]
-sys.path.insert(0, os.path.join(ROOT, "tests"))
+_RUN_SUITE = r'''
 sys.argv = ["unittest"]
 try:
-    suite = unittest.defaultTestLoader.loadTestsFromName(NAME)
+    suite = _suite()
     result = unittest.TextTestRunner(stream=sys.stderr, verbosity=1).run(suite)
     doc = {"ran": result.testsRun, "failures": len(result.failures), "errors": len(result.errors),
            "skipped": len(result.skipped), "expected_failures": len(result.expectedFailures),
@@ -165,6 +162,34 @@ except BaseException as exc:
            "unexpected_successes": 0, "successful": False, "error": (type(exc).__name__ + ": " + str(exc))[:500]}
 _write(doc)
 '''
+_UNITTEST = _COLLECT + r'''
+import unittest
+# Import the test module the way `python3 -m unittest discover -s tests` does: top level,
+# from the tests directory, with the repository root importable as well.
+NAME = sys.argv[3]
+sys.path.insert(0, os.path.join(ROOT, "tests"))
+def _suite():
+    return unittest.defaultTestLoader.loadTestsFromName(NAME)
+''' + _RUN_SUITE
+# A reviewed process-only exception (PROCESS_ONLY_TESTS), started as `python -I -c`: no current
+# directory, user site or PYTHON* variable on the path, standard modules imported before any
+# repository path, the tests directory never on sys.path, and exactly the bytes whose SHA-256 was
+# reviewed, compiled here (a __pycache__ entry is never used for the test module).
+_PINNED_UNITTEST = "import hashlib, types, unittest\n" + _COLLECT + r'''
+NAME, PIN = sys.argv[3], sys.argv[4]
+def _suite():
+    path = os.path.join(ROOT, "tests", NAME + ".py")
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    with os.fdopen(descriptor, "rb") as stream:
+        source = stream.read()
+    if hashlib.sha256(source).hexdigest() != PIN:
+        raise ImportError("the test file is not the reviewed one (sha256 differs); not run")
+    module = types.ModuleType(NAME)
+    module.__file__ = path
+    sys.modules[NAME] = module
+    exec(compile(source, path, "exec", dont_inherit=True), module.__dict__)
+    return unittest.defaultTestLoader.loadTestsFromModule(module)
+''' + _RUN_SUITE
 
 
 class LayerError(ValueError):
@@ -458,38 +483,85 @@ def _now():
 # Sandbox profiles of `_run` (governor.sandbox_run on its full tier):
 #   strict    require_fs_isolation: repository read-only, /etc hidden, socket() denied (seccomp)
 #   loopback  non-strict with a private loopback and /etc hidden, for tests that run a local server
-# A test on PROCESS_ONLY_TESTS runs as a plain subprocess with the same scrubbed environment.
+# A test on PROCESS_ONLY_TESTS runs as a plain subprocess with the same scrubbed environment, but only
+# while its bytes (and the fixture trees it executes) still match the digests reviewed below.
 SANDBOX_MEMORY_MB = 16384  # RLIMIT_AS; V8 reserves far more address space than it uses
 SANDBOX_FILE_MB = 256
 SANDBOX_NOFILE = 1024
 ETC_VISIBLE = ("/etc/ld.so.cache", "/etc/alternatives")
-TOOLS = ("node",)  # tools the hub's tests start by name; their install prefix is mounted read-only
+TOOLS = ("node",)  # tools the hub's tests start by name; their bin directory is mounted read-only
 LOOPBACK_TESTS = frozenset({"tests/test_build_fixes_app.py",  # starts generated apps on 127.0.0.1
                             "tests/test_heal_fixes_2_findings.py"})  # its runtime detectors pick a free loopback port
 # Measured 2026-11-28 (every layer-bound test file and the wave-2 candidates, strict and loopback):
 # all others pass inside the strict profile. These cannot be measured there, so they run in the
 # scrubbed process-only mode and each receipt names the reason.
+#
+# Each exception is keyed by its path AND the SHA-256 of the reviewed file bytes ("sha256"), plus the
+# tree digest (`_tree_digest`) of every repository fixture tree the test executes outside a sandbox
+# ("executes"; test_self_healing_loop and test_upgrade_engine rerun a fixture's suite in a plain
+# subprocess). A file or fixture whose bytes differ from the review, or an entry without a valid digest,
+# runs in the strict profile like any other test, and its receipt row says why. A matching file runs
+# under `python -I` from the very bytes that were hashed (compiled by the runner, never read from a
+# __pycache__ entry) with the tests directory off sys.path, so a module or bytecode planted next to it
+# in tests/ is not executed. Still outside any sandbox: the repository modules the reviewed code
+# imports, and a fixture swapped between the check and the run (detected after the run and reported as
+# an error, not prevented). Hence SEC-12 reads "mitigated", not "fixed", while this list is non-empty.
+# A legitimate edit of a listed file needs a review and a new digest here (`exception_digests`;
+# tests/test_sec_fixes_2_layers.py names the stale entries); until then the file runs strict.
 _NESTED = ("builds its own governor sandbox for the code it tests; namespaces cannot be nested inside the layer "
            "sandbox (inner tier measured plain), so inside it would only take its refusal branches")
+_HEALING_FIXTURE = {"tests/fixtures/healing/webapp": "2188065d6fbfe193850e2963186f7ac581beecfcfda560be1a11381376676f91"}
+_UPGRADE_FIXTURE = {"tests/fixtures/upgrade/taskapp": "b2d4137b308aefad07ea4daedace1913215f303ee0b1aa48662cf488af4538af"}
 PROCESS_ONLY_TESTS = {
-    "tests/test_p3_cage.py": ("the swarm cage chowns its workspace to uid 65534; the layer sandbox's user namespace maps "
-                              "only the caller, so chown gives EINVAL (frozen file)"),
-    "tests/test_governor.py": "tests the governor sandbox itself and " + _NESTED,
-    "tests/test_workspace_policy.py": "tests the strict workspace supervisor, which " + _NESTED,
-    "tests/test_isolation_enforcement.py": "measures the isolation walls, which " + _NESTED,
-    "tests/test_healing.py": "runs detectors.Sandbox, which " + _NESTED,
-    "tests/test_self_healing_loop.py": "runs heal() through detectors.Sandbox, which " + _NESTED,
-    "tests/test_upgrade_engine.py": "runs upgrade() through detectors.Sandbox, which " + _NESTED,
-    "tests/test_w2_fixes_healing.py": "runs heal() through detectors.Sandbox, which " + _NESTED,
-    "tests/test_w2_fixes_patch.py": "runs heal() through detectors.Sandbox, which " + _NESTED,
-    "tests/test_isolation_fixes_governor.py": "tests the governor sandbox itself (pr30-isolation F4, F6, F7) and " + _NESTED,
-    "tests/test_isolation_fixes_planted_git.py": "runs strict workspace children that plant Git metadata, which " + _NESTED,
-    "tests/test_isolation_fixes_relaunch.py": "relaunches the strict workspace supervisor, which " + _NESTED,
-    "tests/test_isolation_fixes_mounts.py": "reads the strict sandbox's own mount table (recheck-isolation item 1), which " + _NESTED,
-    "tests/test_isolation_fixes_relaunch_binding.py": "binds --relaunch to a recorded strict launch, which " + _NESTED,
-    "tests/test_gaie_memory_journal.py": ("chowns its memory directories to uid 65534 to prove a foreign owner is refused; the "
-                                          "layer sandbox's user namespace maps only the caller, so chown gives EINVAL"),
+    "tests/test_p3_cage.py": {
+        "sha256": "35d815d185a07601c19b21dedc642ad99e2a4e45540558a971806c80491a3df3", "executes": {},
+        "reason": ("the swarm cage chowns its workspace to uid 65534; the layer sandbox's user namespace maps only the "
+                   "caller, so chown gives EINVAL (frozen file)")},
+    "tests/test_governor.py": {
+        "sha256": "a9ecb86313c19d8a73e30360311794c4ad91caa4787b5c1eace7107193c7a297", "executes": {},
+        "reason": "tests the governor sandbox itself and " + _NESTED},
+    "tests/test_workspace_policy.py": {
+        "sha256": "dc13ac40601b45cfa85ad78444915738ea5b06c64ba87291cfcc95946cabfdf8", "executes": {},
+        "reason": "tests the strict workspace supervisor, which " + _NESTED},
+    "tests/test_isolation_enforcement.py": {
+        "sha256": "af6e81e816d029794ea308902b29109c33bb365f2d90414590f24edd3de02363", "executes": {},
+        "reason": "measures the isolation walls, which " + _NESTED},
+    "tests/test_healing.py": {
+        "sha256": "c9db68edb535053202065cb05db121adef0e85f1df77326cc7ee784b652a3fea", "executes": _HEALING_FIXTURE,
+        "reason": "runs detectors.Sandbox, which " + _NESTED},
+    "tests/test_self_healing_loop.py": {
+        "sha256": "32e838bb95d8233ed67eb24ba30548023d4d4f8929b18c5de92bda4dc797979b", "executes": _HEALING_FIXTURE,
+        "reason": "runs heal() through detectors.Sandbox, which " + _NESTED},
+    "tests/test_upgrade_engine.py": {
+        "sha256": "97143ee5503475360eccba8169e41e1caa73f1831bd87a37395c36cc975ed1e6", "executes": _UPGRADE_FIXTURE,
+        "reason": "runs upgrade() through detectors.Sandbox, which " + _NESTED},
+    "tests/test_w2_fixes_healing.py": {
+        "sha256": "5f602ee8413cccec99cf1e3d4894756889f2cdf35cc14e3e5b9b436f3bcd923c", "executes": {},
+        "reason": "runs heal() through detectors.Sandbox, which " + _NESTED},
+    "tests/test_w2_fixes_patch.py": {
+        "sha256": "fa6bc19fb5b8f830087d0088c604e2552b2b2fd7db25c5b6000ebf7089089ba2", "executes": {},
+        "reason": "runs heal() through detectors.Sandbox, which " + _NESTED},
+    "tests/test_isolation_fixes_governor.py": {
+        "sha256": "25694fea54903b7e591f0c600d87d5863ca5dcdd1b4b855150612f11e8c6e4e5", "executes": {},
+        "reason": "tests the governor sandbox itself (pr30-isolation F4, F6, F7) and " + _NESTED},
+    "tests/test_isolation_fixes_planted_git.py": {
+        "sha256": "0393f5db1a9acc5252d68472eb2e0fee4ecd69037aaf75953556cb28a9e5ef57", "executes": {},
+        "reason": "runs strict workspace children that plant Git metadata, which " + _NESTED},
+    "tests/test_isolation_fixes_relaunch.py": {
+        "sha256": "467105df68027a4d518911a8f7ba7799d1a10958cac109750095ffa47989539f", "executes": {},
+        "reason": "relaunches the strict workspace supervisor, which " + _NESTED},
+    "tests/test_isolation_fixes_mounts.py": {
+        "sha256": "eee8c3e127a67022ebb55fc081b51f7fd9281bad18f9b03d5062552d0fe9da21", "executes": {},
+        "reason": "reads the strict sandbox's own mount table (recheck-isolation item 1), which " + _NESTED},
+    "tests/test_isolation_fixes_relaunch_binding.py": {
+        "sha256": "9ed4a1a16cf9a3989cb738f14c23901b2b9a84cd42baa8d04bab9c224f9476dc", "executes": {},
+        "reason": "binds --relaunch to a recorded strict launch, which " + _NESTED},
+    "tests/test_gaie_memory_journal.py": {
+        "sha256": "ed9d671fa9a2973a12e1cfe50b404a547ce69579994b6dba8b72eb6e2e582f5d", "executes": {},
+        "reason": ("chowns its memory directories to uid 65534 to prove a foreign owner is refused; the layer "
+                   "sandbox's user namespace maps only the caller, so chown gives EINVAL")},
 }
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _python():
@@ -498,9 +570,38 @@ def _python():
     return sys.executable if sys.prefix != sys.base_prefix else os.path.realpath(sys.executable)
 
 
+def _trusted_dir(real):
+    """True when the real directory `real` may be shown read-only to a sandboxed test: outside every home
+    directory, and neither it nor a directory above it can be changed by a non-root user. The governor's
+    own rule for program mounts (governor._trusted_source) where this checkout has it; else the same rule
+    in short (the caller's home, /root and /home; owner root and no group/other write bit up to /)."""
+    check = getattr(governor, "_trusted_source", None)
+    if check is not None:
+        try:
+            check(real)
+            return True
+        except governor.GovernorDenied:
+            return False
+    homes = {os.path.realpath(os.path.expanduser("~")), "/root", "/home"}
+    if any(real == home or real.startswith(home + os.sep) for home in homes if home != "/"):
+        return False
+    current = real
+    while True:
+        try:
+            info = os.lstat(current)
+        except OSError:
+            return False
+        if info.st_uid != 0 or info.st_mode & 0o022:
+            return False
+        if current == os.sep:
+            return True
+        current = os.path.dirname(current)
+
+
 def _outside_system(paths):
-    """Real install prefixes outside the system directories (they must be mounted read-only),
-    never the caller's home directory itself or a directory that contains it."""
+    """Real directories outside the system directories that must be mounted read-only (a tool's bin
+    directory, a virtual environment's tree), never the caller's home directory itself or a directory
+    that contains it, and only where `_trusted_dir` accepts them (recheck-isolation-2 item 4)."""
     home = os.path.realpath(os.path.expanduser("~"))
     found = set()
     for path in paths:
@@ -509,7 +610,7 @@ def _outside_system(paths):
             continue
         if real in ("/", "/tmp", "/var/tmp") or home == real or home.startswith(real + os.sep):
             continue
-        if os.path.isdir(real):
+        if os.path.isdir(real) and _trusted_dir(real):
             found.add(real)
     return sorted(found)
 
@@ -549,11 +650,76 @@ def _scrubbed_env(work):
             "LANG": "C.UTF-8"}
 
 
-def _profile(test):
-    """(profile, reason) for one test file: an explicit exception, a loopback test, or strict."""
-    if test in PROCESS_ONLY_TESTS:
-        return "process-only", PROCESS_ONLY_TESTS[test]
-    return ("loopback" if test in LOOPBACK_TESTS else "strict"), None
+def _tree_digest(root, relative):
+    """SHA-256 over every file below root/relative (repository-relative path and bytes, sorted), or None when the
+    directory is missing, is reached through a link or holds anything but directories and regular files. Untracked
+    files count (a planted __pycache__ entry changes the digest)."""
+    if not _rel_ok(relative):
+        return None
+    base = pathlib.Path(root)
+    for part in relative.split("/"):
+        base = base / part
+        if base.is_symlink():
+            return None
+    if not base.is_dir():
+        return None
+    rows = []
+    for directory, folders, files in os.walk(base, followlinks=False):
+        folders.sort()
+        for name in sorted(folders + files):
+            path = pathlib.Path(directory) / name
+            info = path.lstat()
+            if stat.S_ISDIR(info.st_mode):
+                continue
+            if not stat.S_ISREG(info.st_mode):
+                return None
+            rows.append(f"{path.relative_to(root).as_posix()}\0{sha256(path.read_bytes())}")
+    return sha256("\n".join(rows).encode("utf-8"))
+
+
+def exception_digests(root=ROOT):
+    """The digests PROCESS_ONLY_TESTS would need to match the files in `root` now: {test: {"sha256", "executes"}}.
+    Review the change first; copying these values is what re-approves a file to run outside the sandbox."""
+    root = pathlib.Path(root).resolve()
+    return {test: {"sha256": _hash_file(root, test),
+                   "executes": {tree: _tree_digest(root, tree) for tree in sorted((entry.get("executes") or {})
+                                                                                  if isinstance(entry, dict) else {})}}
+            for test, entry in sorted(PROCESS_ONLY_TESTS.items())}
+
+
+def _exception(root, test):
+    """The exception record of one listed test, measured now: reviewed and current digests and whether all match.
+    None for a test that is not listed. A malformed entry never matches."""
+    entry = PROCESS_ONLY_TESTS.get(test)
+    if entry is None:
+        return None
+    entry = entry if isinstance(entry, dict) else {}
+    reviewed, reason, trees = entry.get("sha256"), entry.get("reason"), entry.get("executes")
+    current = _hash_file(root, test)
+    record = {"reviewed_sha256": reviewed if isinstance(reviewed, str) else None, "sha256": current, "changed": [],
+              "reason": reason if isinstance(reason, str) and reason.strip() else None}
+    if not (isinstance(reviewed, str) and _SHA256.match(reviewed) and current == reviewed):
+        record["changed"].append(test)
+    if not isinstance(trees, dict):
+        record["changed"].append("executes")
+        trees = {}
+    for tree, digest in sorted(trees.items()):
+        if not (isinstance(digest, str) and _SHA256.match(digest) and _tree_digest(root, tree) == digest):
+            record["changed"].append(tree)
+    record["matched"] = not record["changed"] and record["reason"] is not None
+    return record
+
+
+def _profile(root, test):
+    """(profile, reason, exception) for one test file: a reviewed exception whose bytes still match, a loopback test,
+    or strict. A listed test whose file or executed fixture changed since its review runs strict."""
+    exception = _exception(root, test)
+    if exception is None:
+        return ("loopback" if test in LOOPBACK_TESTS else "strict"), None, None
+    if exception["matched"]:
+        return "process-only", exception["reason"], exception
+    return "strict", ("on the process-only exception list, but " + ", ".join(exception["changed"]) + " differs from "
+                      "its review: runs strict until reviewed again"), exception
 
 
 def _run(argv, *, root, timeout, workspace, profile="strict", reason=None, read=()):
@@ -597,8 +763,13 @@ def _run(argv, *, root, timeout, workspace, profile="strict", reason=None, read=
     # `python3 -m unittest discover` (the sandbox's own cwd must be the writable workspace)
     command = [shutil.which("env", path="/usr/bin:/bin") or "/usr/bin/env", "-i", "-C", str(root),
                *(f"{name}={value}" for name, value in sorted(env.items())), *argv]
-    tools = [os.path.dirname(os.path.dirname(os.path.realpath(found))) for found in map(shutil.which, TOOLS) if found]
-    readable = sorted({str(root), *_outside_system([sys.prefix, sys.base_prefix, *read, *tools]), *_git_metadata(root)})
+    # No whole install prefix (recheck-isolation-2 item 4): the governor mounts the hub's interpreter itself
+    # (in strict runs only its bin directory, standard library and linked libraries); a tool the tests start
+    # by name contributes its bin directory only, and a virtual environment (the launcher _python names) its
+    # own tree; each only from a place no non-root user can change and outside every home directory.
+    tools = [os.path.dirname(os.path.realpath(found)) for found in map(shutil.which, TOOLS) if found]
+    venv = [sys.prefix] if sys.prefix != sys.base_prefix else []
+    readable = sorted({str(root), *_outside_system([*venv, *read, *tools]), *_git_metadata(root)})
     if profile == "strict":  # the linker's index and the alternatives links (no secret), for tools such as ffmpeg
         readable += [path for path in ETC_VISIBLE if os.path.exists(path)]
 
@@ -674,10 +845,20 @@ def _run_python_test(root, test, scratch, timeout):
     work = _workspace(scratch, "test")
     out = work / f"test-{sha256(test)[:16]}.json"
     name = test[len("tests/"):-len(".py")]
-    profile, why = _profile(test)
-    code, output, elapsed, timed_out, isolation = _run(
-        [_python(), "-c", _UNITTEST, str(root), str(out), name], root=root, timeout=timeout, workspace=work,
-        profile=profile, reason=why)
+    profile, why, exception = _profile(root, test)
+    pinned = profile == "process-only" and exception is not None
+    argv = ([_python(), "-I", "-c", _PINNED_UNITTEST, str(root), str(out), name, exception["reviewed_sha256"]] if pinned
+            else [_python(), "-c", _UNITTEST, str(root), str(out), name])
+    code, output, elapsed, timed_out, isolation = _run(argv, root=root, timeout=timeout, workspace=work, profile=profile,
+                                                       reason=why)
+    if exception is not None:
+        isolation["exception"] = {key: exception[key] for key in ("reviewed_sha256", "sha256", "matched", "changed")}
+        after = _exception(root, test) if pinned else None
+        if after is not None and not after["matched"]:  # swapped while it ran outside the sandbox: never a pass
+            isolation["exception"]["changed_during_run"] = after["changed"]
+            return _result(test, "python-unittest", "error", duration_ms=elapsed, returncode=code, output=output,
+                           isolation=isolation, reason="process-only exception input changed during the run: "
+                           + ", ".join(after["changed"])), []
     if timed_out:
         return _result(test, "python-unittest", "error", reason=f"timeout after {timeout}s", duration_ms=elapsed,
                        returncode=code, output=output, isolation=isolation), []
@@ -709,10 +890,12 @@ def _run_node_test(root, test, scratch, timeout, node):
     if not node:
         return _result(test, "node-test", "skipped", reason="node is not available on this host"), files
     real = os.path.realpath(node)
-    profile, why = _profile(test)
+    profile, why, exception = _profile(root, test)
+    if exception is not None:  # exceptions are Python files run from their reviewed bytes; a listed .mjs runs strict
+        profile, why = "strict", "process-only exceptions apply to Python test files only"
     code, output, elapsed, timed_out, isolation = _run(
         [real, "--test", "--test-reporter=tap", str(pathlib.Path(root) / test)], root=root, timeout=timeout,
-        workspace=_workspace(scratch, "node"), profile=profile, reason=why, read=[os.path.dirname(os.path.dirname(real))])
+        workspace=_workspace(scratch, "node"), profile=profile, reason=why, read=[os.path.dirname(real)])
     tests, passed, failed = _tap(output, "tests"), _tap(output, "pass"), _tap(output, "fail")
     skipped, cancelled = _tap(output, "skipped") + _tap(output, "todo"), _tap(output, "cancelled")
     counted = dict(ran=tests, passed=passed, failed=failed + cancelled, skipped=skipped, duration_ms=elapsed,
