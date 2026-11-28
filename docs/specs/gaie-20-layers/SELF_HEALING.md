@@ -48,8 +48,8 @@ contains a matched secret value. Each detector report carries `status`
 | dependencies | pip requirements (incl. `-r`, markers, hashes) vs exact pins vs lock (`{"packages":…}` JSON, Pipfile.lock, hashed text lock); PEP 440 subset | `pin-lock-mismatch`, `range-violation`, `conflicting-pins`, `unlocked-requirement`, `unpinned-requirement`, `unparsed-requirement` |
 | memory | `tracemalloc` in a child process: 4 rounds of N calls; leak only if total growth ≥ threshold and every round grew (**measured**) | `memory-growth`, `memory-check-failed` |
 | performance | median per-call `perf_counter` time vs stored baseline × tolerance (**measured, noisy**) | `performance-regression`, `performance-check-failed` |
-| security | `eval`/`exec`, `shell=True`/`os.system` (reuses `scripts/security_scan.py`), unsafe loaders, credential look-alikes (reused scanner), disabled TLS (`verify=False`, `CERT_NONE`, `_create_unverified_context`, `check_hostname=False`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `rejectUnauthorized: false`, `curl -k`); fingerprints compared to a baseline (`known`/`new`) | `dynamic-code-execution`, `shell-execution`, `unsafe-deserialization`, `insecure-temp-file`, `hard-coded-secret`, `tls-verification-disabled` |
-| database | declared schema into a throwaway in-memory SQLite DB (`detectors.schema_memory`, one statement at a time: an authorizer denies ATTACH/VACUUM, DETACH, `load_extension`, `fts3_tokenizer` and PRAGMA outside introspection, `foreign_keys` and `user_version`; fts3/fts4/fts5/rtree/geopoly may issue their own read-only `PRAGMA 'main'.page_size`/`data_version` only while one of their tables is in use; attached-database limit 0; 1 MB per value and per statement, 4096 pages for the main and the in-memory temp database, 2000 progress steps and 5 s per script), `EXPLAIN` every SQL literal (never executed), `PRAGMA quick_check` on DB files opened `mode=ro&immutable=1` | `schema-error`, `unsafe-schema-sql` (a refused statement or a size or time bound), `query-error`, `database-integrity` |
+| security | `eval`/`exec`, `shell=True`/`os.system` (reuses `scripts/security_scan.py`), unsafe loaders, credential look-alikes (reused scanner), disabled TLS (`verify=False`, `CERT_NONE`, `_create_unverified_context`, `check_hostname=False`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `rejectUnauthorized: false`, `curl -k`); fingerprints compared to a baseline (`known`/`new`); the baseline is a multiset, one listed fingerprint per instance, so a second line identical to a known one is `new` | `dynamic-code-execution`, `shell-execution`, `unsafe-deserialization`, `insecure-temp-file`, `hard-coded-secret`, `tls-verification-disabled` |
+| database | declared schema into a throwaway in-memory SQLite DB (`detectors.schema_memory`, one statement at a time: an authorizer denies ATTACH/VACUUM, DETACH, `load_extension`, `fts3_tokenizer` and PRAGMA outside introspection, `foreign_keys` and `user_version`; fts3/fts4/fts5/rtree/geopoly may issue their own read-only `PRAGMA 'main'.page_size`/`data_version` only while one of their tables is in use; attached-database limit 0; 1 MB per value and per statement, 4096 pages for the main and the in-memory temp database, 2000 progress steps and 5 s per script), `EXPLAIN` every SQL literal (never executed), `PRAGMA quick_check` on DB files opened `mode=ro&immutable=1`; a `query-error` is identified by file + whitespace-normalised statement + error class (symbol `sql:<16 hex>`), never by its line | `schema-error`, `unsafe-schema-sql` (a refused statement or a size or time bound), `query-error`, `database-integrity` |
 | media | magic-byte signatures always; decoding with `ffprobe` when installed, otherwise `status: partial` with the reason (never a silent pass) | `media-signature-mismatch`, `broken-media` |
 
 `Sandbox` runs target code with `python -s -B -c <fixed driver> <json>` (never a shell)
@@ -104,9 +104,19 @@ DISCOVER → ANALYZE → DESIGN → IMPLEMENT → TEST → CRITIQUE → REPAIR �
 5. **TEST** — the affected (target) tests first; only if they pass, the full suite.
 6. **CRITIQUE** — accept only if targets pass in the full suite, no test that passed
    in the current accepted state fails (own set logic cross-checked by `analyze`),
-   the edit parses, stays within `max_patch_lines`, adds no new security finding, and
-   for structural repairs the finding's `key` is gone (plus a live API probe for a
-   restored route).
+   the edit parses, stays within `max_patch_lines`, adds no new security finding (the
+   edited files are scanned against the start's fingerprint multiset), and for
+   structural repairs the finding's `key` is gone (plus a live API probe for a
+   restored route). A candidate that passes all of that is then **re-checked by every
+   detector**, runtime ones included (`detectors.run_all` on the copy), and compared
+   with the detection of the current accepted state by `healing.introduced`. It is
+   rejected and rolled back with `new-finding` when a key has more instances than
+   before (absent before, or one more identical instance) and its worst instance is
+   medium or higher, and with `detector-not-rechecked` when a detector that ran for
+   the accepted state no longer ran (an app that stops starting skips its
+   integrations). The trial records this as `critique.recheck`
+   (`{new_findings, not_rechecked}`); an accepted candidate's detection becomes the
+   new reference. Findings below medium never reject a candidate; VALIDATE lists them.
 7. **REPAIR** — keep the accepted candidate, or restore the pre-candidate bytes and
    verify them byte-for-byte before the next candidate.
 8. **VALIDATE** — re-run the full suite and all detectors on the final copy. Passes
@@ -114,7 +124,17 @@ DISCOVER → ANALYZE → DESIGN → IMPLEMENT → TEST → CRITIQUE → REPAIR �
    passes; no baseline-passing test fails; the target's snapshot is unchanged; the
    copy's untouched files are intact; `patch.diff` applied to the originals gives the
    repaired files and `reverse.diff` restores them (`apply_patch`); `verify_repair`
-   accepts the artifact and rollback checks.
+   accepts the artifact and rollback checks; and three detector checks against the
+   **start** (a fail-closed backstop for CRITIQUE): `no_new_findings` (no key with more
+   medium-or-higher instances than at the start), `detectors_rechecked` (every
+   detector that ran at the start ran again) and `targeted_findings_resolved` (the key
+   of every finding a kept repair targeted is gone). `validation` reports
+   `new_findings`, `detectors_not_rechecked`, `targeted_findings_unresolved` and
+   `introduced_findings`: every finding introduced since the start at any severity,
+   each with `blocking` (medium or higher). `verify_repair` refuses repaired files
+   that contain a control character other than `\n`, `\r` and `\t`, so a repair of a
+   file with a form feed (for example a PEP 8 page break) ends `validation-failed`
+   on `artifact_verified` although its patch round-trips (see §5).
 
 Mutation catalogue: reuses `swarm/phase3/mutate.py` (comparison flip, `and`/`or`,
 `not` removal, int ±1 both ways, returned boolean inversion) plus `+`/`-` swap, one
@@ -128,7 +148,14 @@ Outputs in the run directory: `patch.diff` (or `rejected.diff`), `reverse.diff`,
 at, previous_sha256, receipt_sha256}`; the chain is deterministic for a fixed `now`.
 Report `status`: `repaired`, `partially-repaired`, `no-safe-repair`,
 `validation-failed`, `blocked`, `no-defects-found`; `defects` is a ledger mapping every
-initial defect to its root causes and `repaired | resolved-indirectly | unrepaired`.
+initial defect to its root causes and `repaired | resolved-indirectly | unrepaired`. A
+finding whose detector could not observe the final copy (it did not run, or the app no
+longer starts, which blinds `broken-apis` and `integrations`) stays `unrepaired`, never
+resolved. The ledger also has one `introduced` row per finding instance that is in the
+final detection but not at the start, at any severity; a row below medium says it is
+listed for review and not blocking. `partially-repaired` means validation passed while
+an `unrepaired` row or a medium-or-higher `introduced` row remains (the latter cannot
+pass VALIDATE, so in practice an `unrepaired` one).
 
 ## 4. Guarantees (each enforced in code and covered by a test)
 
@@ -180,9 +207,20 @@ initial defect to its root causes and `repaired | resolved-indirectly | unrepair
   full tier nothing runs unless the process-only mode is chosen; that mode is no boundary:
   the Python guard is bypassable by native code, `ctypes` or `_socket`, and files and
   processes of the host are reachable (recorded as not-enforced in the evidence).
-- The heal report does not yet carry the sandbox summary (`Sandbox.summary()`); its
-  `guarantees.os_sandbox_claimed` stays `false` until healing.py records it (requested from
-  that file's owner). The per-run `isolation` records are in each `Sandbox` result and in the
-  runtime detector reports; the heal report does not copy them yet.
+- The heal report carries `sandbox` (`Sandbox.summary()`: the mode, the number of runs per
+  tier and `os_sandbox`). `guarantees.os_sandbox_claimed` is `true` only when every run used
+  the `governor-full` tier; `guarantees.network_guard` and `limits` follow the same summary
+  (`os-network-namespace-private-loopback+python-socket-guard`, `python-socket-loopback-only`
+  for the process-only opt-in, `target-code-not-run` when the sandbox refused). The per-run
+  `isolation` records stay in each `Sandbox` result and the runtime detector reports. The
+  upgrade engine's own report does not carry the summary yet (requested from its owner).
 - Only Python `unittest` suites are run; flaky tests are detected by two baseline
   runs only.
+- The artifact check (`verify_repair`, reused by VALIDATE) refuses text with control
+  characters other than `\n`, `\r` and `\t`. A target file containing a form feed,
+  vertical tab or another C0 control character can be patched and its patch verified
+  (`patch_and_reverse_apply`), but the run ends `validation-failed` on
+  `artifact_verified` and the patch is offered only as `rejected.diff`.
+- Severity thresholds: a finding below medium (for example a new `duplicate-component`)
+  never rejects a candidate; it is only listed (`introduced_findings`, ledger
+  `introduced` rows).

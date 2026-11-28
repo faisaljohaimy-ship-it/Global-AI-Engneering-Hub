@@ -526,17 +526,33 @@ def task_grant(role, task, actions, grant_id, expires_at):
 
 # ---------------------------------------------------------------- review
 
+def _review_document(roles, root):
+    """The role document review_assignment reads. A caller's document is taken as given (plan() passes the
+    one it already validated, and a subset may lack panel candidates), but its shape is checked here so a
+    malformed one raises OrchestratorError, never a bare KeyError or TypeError."""
+    if not (isinstance(roles, dict) and "roles" in roles):
+        return _roles_document(roles, root)[0]
+    rows = roles["roles"]
+    _need(isinstance(rows, list) and all(isinstance(row, dict) and isinstance(row.get("id"), str)
+                                         and isinstance(row.get("reviewer"), bool) for row in rows),
+          "review: malformed role document: every role needs a string id and a boolean reviewer flag")
+    _need(len({row["id"] for row in rows}) == len(rows), "review: malformed role document: duplicate role id")
+    return roles
+
+
 def review_assignment(task, *, roles=None, root=ROOT):
     """The independent reviewer and the testing/security/release approval panel for a task.
 
     The implementer's role is never the reviewer or on the panel; a reviewer the task asks for that is
     its own implementer is refused (ReviewIndependenceError)."""
-    document = roles if isinstance(roles, dict) and "roles" in roles else _roles_document(roles, root)[0]
+    document = _review_document(roles, root)
     by_id = _by_id(document)
-    _need(isinstance(task, dict) and task.get("role") in by_id, "review: task needs a known role")
+    _need(isinstance(task, dict) and isinstance(task.get("role"), str) and task["role"] in by_id,
+          "review: task needs a known role")
     implementer = task["role"]
     requested = task.get("reviewer")
     if requested is not None:
+        _need(isinstance(requested, str), f"{task.get('id')}: the reviewer must be a role id")
         _need(requested != implementer, f"{task.get('id')}: the reviewer {requested} is the implementer",
               ReviewIndependenceError)
         _need(requested in by_id, f"{task.get('id')}: unknown reviewer {requested}")
@@ -689,21 +705,41 @@ def plan(goal_or_spec, *, roles=None, max_agents=MAX_AGENTS, per_role=1, frozen=
     return dict(body, plan_sha256=sha256(body))
 
 
-def verify_plan(value, *, roles=None, root=ROOT):
-    """Refuse a plan changed after planning (digest) or one whose invariants no longer hold."""
+def _required_frozen(frozen):
+    return _paths(list(frozen), "frozen") if frozen else []
+
+
+def verify_plan(value, *, roles=None, frozen=(), root=ROOT):
+    """Refuse a plan changed after planning (digest) or one whose invariants no longer hold.
+
+    `frozen` names the frozen areas the verifier requires. The digest is a plain SHA-256 anyone can
+    recompute, so a re-sealed plan could drop its own `frozen` list; a plan that does not cover every
+    required area is refused, and its tasks are checked against both lists."""
     _need(isinstance(value, dict) and value.get("schema") == PLAN_SCHEMA and isinstance(value.get("plan_sha256"), str),
           f"plan: a {PLAN_SCHEMA} document")
     body = {key: item for key, item in value.items() if key != "plan_sha256"}
     _need(sha256(body) == value["plan_sha256"], "plan: changed after planning (digest mismatch)")
+    required = _required_frozen(frozen)
+    planned = value["frozen"]
+    _need(isinstance(planned, list) and (not planned or _paths(planned, "plan frozen") == planned),
+          "plan: frozen areas are not a canonical path list")
+    dropped = [area for area in required if not any(covers(own, area) for own in planned)]
+    if dropped:
+        raise OwnershipConflict([{"kind": "frozen-dropped", "tasks": [], "paths": [area],
+                                  "detail": f"the verifier's frozen area {area} is not frozen in the plan (dropped after planning?)"}
+                                 for area in dropped])
+    frozen = sorted(set(planned) | set(required))
     tasks = value["tasks"]
-    _need(not detect_conflicts(tasks, frozen=value["frozen"]), "plan: path ownership overlaps")
+    overlapping = detect_conflicts(tasks, frozen=frozen)
+    if overlapping:  # task-to-task and frozen-area conflicts (an OrchestratorError, with the details)
+        raise OwnershipConflict(overlapping)
     document = _roles_document(roles if isinstance(roles, dict) else None, root)[0]
     _need(sha256(document) == value["sources"]["roles_sha256"],
           "plan: made with a different role registry (pass the same roles document)")
     by_id = _by_id(document)
     # The digest is a plain SHA-256 anyone can recompute, so ownership is rechecked against the role
     # registry exactly as plan() checks it: a re-sealed plan may not write another role's path.
-    conflicts = detect_conflicts(tasks, document=document, frozen=value["frozen"])
+    conflicts = detect_conflicts(tasks, document=document, frozen=frozen)
     if conflicts:
         raise OwnershipConflict(conflicts)
     for task in tasks:
@@ -778,12 +814,21 @@ class Lifecycle:
     checkpoints and lifecycle notes live in engineering memory (state_dir/memory/<project>), so a fresh
     process resumes from the last checkpoint. Both directories are private and outside Git."""
 
-    def __init__(self, task, state_dir, *, clock=None, roles=None, root=ROOT):
+    def __init__(self, task, state_dir, *, clock=None, roles=None, frozen=(), root=ROOT):
         document = _roles_document(roles, root)[0]
         by_id = _by_id(document)
-        required = {"id", "title", "role", "agent", "branch", "store_paths", "store_role", "project", "priority",
+        required = {"id", "title", "role", "paths", "agent", "branch", "store_paths", "store_role", "project", "priority",
                     "grant", "review"}
         _need(isinstance(task, dict) and required <= set(task) and task["role"] in by_id, "lifecycle: a plan task")
+        # A task can reach here without verify_plan (the documented lifecycle() API), so its scope is
+        # rechecked exactly as plan() checks it: canonical paths, the store scope derived from them, no
+        # path another role owns in the role registry and none inside a frozen area the caller names.
+        _need(isinstance(task["paths"], list) and _paths(task["paths"], f"{task['id']}: paths") == task["paths"],
+              f"{task['id']}: paths are not the planned canonical list")
+        _need(task["store_paths"] == _store_scope(task["paths"]), f"{task['id']}: task store scope differs from its paths")
+        conflicts = detect_conflicts([task], document=document, frozen=_required_frozen(frozen))
+        if conflicts:
+            raise OwnershipConflict(conflicts)
         _need(task["review"] == review_assignment(task, roles=document), f"{task['id']}: review assignment changed",
               ReviewIndependenceError)
         grant_within_default(task["grant"], by_id[task["role"]])
@@ -979,9 +1024,9 @@ class Lifecycle:
         return {"state": self._note("resumed", receipts), "progress": self.progress()}
 
 
-def lifecycle(task, *, state_dir, clock=None, roles=None, root=ROOT):
+def lifecycle(task, *, state_dir, clock=None, roles=None, frozen=(), root=ROOT):
     """The lifecycle of one plan task, bound to a private state directory (see Lifecycle)."""
-    return Lifecycle(task, state_dir, clock=clock, roles=roles, root=root)
+    return Lifecycle(task, state_dir, clock=clock, roles=roles, frozen=frozen, root=root)
 
 
 # ---------------------------------------------------------------- worktrees

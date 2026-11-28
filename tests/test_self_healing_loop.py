@@ -74,7 +74,12 @@ class ScenarioF(unittest.TestCase):
         self.assertNotEqual(tree_digest(copy_root)["pricing.py"], self.before["pricing.py"])
         self.assertEqual(self.result["guarantees"]["production_mutations"], 0)
         self.assertFalse(self.result["guarantees"]["deployment_allowed"])
-        self.assertFalse(self.result["guarantees"]["os_sandbox_claimed"])
+        # The claim follows the tier every run actually used (Sandbox.summary()): the full OS sandbox on a
+        # host that has it, never on the audited process-only opt-in this module takes elsewhere.
+        full = governor.isolation_probe()["tier"] == "full"
+        self.assertEqual(self.result["guarantees"]["os_sandbox_claimed"], full)
+        self.assertEqual(self.result["sandbox"]["os_sandbox"], full)
+        self.assertEqual(set(self.result["sandbox"]["tiers"]), {"governor-full"} if full else {"process-only"})
 
     def test_injected_defects_are_detected(self):
         kinds = {row["kind"] for row in self.result["findings"]}

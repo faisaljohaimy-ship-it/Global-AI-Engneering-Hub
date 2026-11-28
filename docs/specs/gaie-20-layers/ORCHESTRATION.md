@@ -31,9 +31,9 @@ Nothing in `swarm/**` is modified; both swarm files are only loaded and called.
 
 ```python
 plan(goal_or_spec, *, roles=None, max_agents=20, per_role=1, frozen=(), now=None) -> plan
-verify_plan(plan, *, roles=None) -> plan                       # digest + invariants, or raise
+verify_plan(plan, *, roles=None, frozen=()) -> plan            # digest + invariants, or raise
 schedule(plan, history, *, done=(), cpus=None, agents_per_cpu=2, tokens_left=None) -> decision
-lifecycle(task, *, state_dir, clock=None) -> Lifecycle
+lifecycle(task, *, state_dir, clock=None, frozen=()) -> Lifecycle
 review_assignment(task) -> {"implementer", "reviewer", "panel", "independent": True}
 worktree_plan(plan, *, repo, base_dir, base_ref="HEAD") -> argv lists per agent
 scenario_h(metrics, *, commits=None, cpus=4) -> measured Scenario H figures
@@ -96,7 +96,13 @@ dependencies, agent, branch `claude/<goal>-<agent>`, wave, grant, grant notes, r
 waves, critical path, waves, agents, path ownership map, self-checks, the reasoning receipts, the
 SHA-256 of the role and engine registries, and `plan_sha256` over everything else. `verify_plan`
 refuses a plan whose digest, ownership, review assignment, grants or wave invariants no longer hold,
-or that was made with a different role registry.
+or that was made with a different role registry. `plan_sha256` is a plain SHA-256 that anyone can
+recompute, so ownership is rechecked against `agent-roles.json`, not trusted from the plan. For the
+same reason a re-sealed plan can empty its own `frozen` list: the verifier passes the frozen areas it
+requires (`verify_plan(plan, frozen=[…])`); a plan that does not cover each of them is refused with
+an `OwnershipConflict` of kind `frozen-dropped`, and its tasks are checked against both lists. A plan
+whose `frozen` list is not canonical is refused. Without `frozen=` only the plan's own list applies
+(`schedule`, `worktree_plan` and the `engine` actions verify that way today).
 
 ## 5. Scheduling the next wave
 
@@ -138,6 +144,33 @@ sees the expired lease, calls `resume()`, leases again and reads `progress()` to
 step without redoing the finished ones (tested across two subprocesses). Illegal transitions raise
 `LifecycleError`; a review by the implementer or by a role off the panel raises
 `ReviewIndependenceError`; a task whose review panel or grant was altered is refused on construction.
+A task can reach `lifecycle()` without `verify_plan`, so construction also rechecks its scope as
+`plan()` does: `paths` must be the planned canonical list, `store_paths` must equal the store scope
+derived from them, no path may be owned by another role in `agent-roles.json` (`OwnershipConflict`,
+`foreign-owner`) and none may lie inside a frozen area the caller names (`frozen=`). A refused task
+creates nothing in the state directory.
+
+### Task stores written before the producer rule (owner decision)
+
+Since review fix M3 (`orchestration.producers`), nobody who claimed, renewed, handed over, submitted
+or failed a task may approve it, and `orchestration.verify_state` checks this every time a store is
+opened. A store written by earlier code that already holds such an approval (the producer approved
+its own work after a handover or a fail-and-recover) therefore **cannot be opened at all**:
+`TaskStore(state_dir)` raises `CoordinationError: A reviewer of this task also held or worked it`,
+and `lifecycle()` raises `LifecycleError: task store: …`. This blocks every task in that store, not
+only the affected one. It fails closed: nothing is read, rewritten or dropped automatically. The
+store is hash-chained, so removing the approval from `state.json` by hand is refused as well
+(`Task data differs from audit receipt`), and relaxing `verify_state` would reopen M3.
+
+There is no migration tool. What to do with such a store is the owner's choice:
+
+1. **Archive and restart** (needs no code): move the old state directory aside, keep it private and
+   outside Git as evidence, and start a new state directory. Enqueue the open tasks again from their
+   verified plan; the affected task goes through an independent review panel again.
+2. **A reviewed one-time migration**: new code in `engineering_os/orchestration.py` (another role's
+   file) that rebuilds the store without the producer's approval, puts the task back to `review` and
+   records the migration in the new audit chain. It rewrites an audit trail, so it needs the owner's
+   explicit approval before anyone writes it. Not implemented.
 
 ## 7. Worktrees
 

@@ -736,14 +736,20 @@ def _python_security(source):
 def detect_security(root, files=None, *, baseline=None):
     """eval/exec, shell execution, unsafe loaders, credential look-alikes and disabled TLS checks.
 
-    ``baseline`` is an optional collection of fingerprints; findings outside it are
-    marked ``"baseline": "new"`` (a regression), inside it ``"known"``. Matched
-    values are never reported, only the rule, line and a fingerprint.
+    ``baseline`` is an optional collection of fingerprints, read as a multiset: each
+    occurrence covers one instance, so a second line identical to a known one (same
+    fingerprint) is ``"baseline": "new"`` (a regression) while the first stays
+    ``"known"``. A baseline built from an earlier scan lists one fingerprint per finding.
+    Matched values are never reported, only the rule, line and a fingerprint.
     """
     root = pathlib.Path(root).resolve()
     files = list_files(root) if files is None else files
-    known = None if baseline is None else set(baseline)
-    out = []
+    known = None
+    if baseline is not None:
+        known = {}
+        for item in baseline:
+            known[item] = known.get(item, 0) + 1
+    seen, out = {}, []
     for rel in files:
         suffix = pathlib.PurePosixPath(rel).suffix.lower()
         if suffix not in TEXT_SUFFIXES and not pathlib.PurePosixPath(rel).name.startswith(".env"):
@@ -762,7 +768,8 @@ def detect_security(root, files=None, *, baseline=None):
         for kind, severity, line, rule in sorted(set(hits), key=lambda hit: (hit[2], hit[0], hit[3])):
             text = lines[min(max(line, 1), len(lines)) - 1]
             fingerprint = _fingerprint(kind, rel, rule, text)
-            state = "no-baseline" if known is None else "known" if fingerprint in known else "new"
+            seen[fingerprint] = seen.get(fingerprint, 0) + 1
+            state = "no-baseline" if known is None else "known" if seen[fingerprint] <= known.get(fingerprint, 0) else "new"
             out.append(finding("security", kind, rel, line, rule, {"rule": rule, "fingerprint": fingerprint, "baseline": state}, severity))
     return _report("security", "ran", out, method="static-ast+pattern (values never reported)")
 
@@ -884,6 +891,16 @@ def _sql_statements(script):
         yield buffer  # an incomplete last statement: SQLite reports it
 
 
+def sql_fingerprint(query, error):
+    """Line-independent identity of a failing SQL literal: whitespace-normalised statement + error class.
+
+    The query-error finding's symbol (and so its ``key``) is built from it together with the
+    file, so moving an unrelated broken literal never reads as a new defect, while a different
+    statement, or the same one failing with a different error class, does."""
+    statement = " ".join(query.split()).rstrip(";").rstrip()
+    return sha({"statement": statement, "error_class": type(error).__name__})[:16]
+
+
 def explain_query(root, schemas, query):
     """EXPLAIN one query against the declared schema in a fresh in-memory database; None or the error text."""
     memory, problems = schema_memory(root, schemas)
@@ -930,8 +947,9 @@ def detect_database(root, files=None, manifest=None, *, tests_dir=None, extra_qu
                 try:
                     memory.execute("EXPLAIN " + query, _bindings(query))
                 except (sqlite3.Error, ValueError) as error:
-                    out.append(finding("database", "query-error", rel, line, f"sql@{line}",
-                                       {"error": _redact(str(error), 200), "query_sha256": sha(query)}, "high"))
+                    out.append(finding("database", "query-error", rel, line, f"sql:{sql_fingerprint(query, error)}",
+                                       {"error": _redact(str(error), 200), "error_class": type(error).__name__,
+                                        "query_sha256": sha(query)}, "high"))
     finally:
         memory.close()
     for rel in databases:

@@ -131,10 +131,18 @@ downstream of a failure, −1.0 for not upstream of any failure, and −2.0 for 
 passing. Log rules are **literal substring matches** (no regular expressions, so there is
 no ReDoS risk), counted once per rule using the most reliable matching log, and reported
 by line number only. Log text is never echoed. Credential-shaped log lines are refused, so
-redact logs first. The conclusion is `leading` (supported, score ≥ 0.7, margin ≥ 0.2),
-`contested` (rivals within 0.2: lists the competing hypotheses and asks for discriminating
-evidence and direct observation of unobserved nodes) or `insufficient_evidence`.
-Hypotheses with strong evidence on both sides are marked `conflicting`.
+redact logs first. The conclusion is `leading` (supported, net evidence support ≥ 0.3,
+score ≥ 0.7, margin ≥ 0.2), `contested` (rivals within 0.2: lists the competing hypotheses
+and asks for discriminating evidence and direct observation of unobserved nodes) or
+`insufficient_evidence`. Hypotheses with strong evidence on both sides are marked
+`conflicting`. Each hypothesis reports `support`, `refutation`, `net_support` (support −
+refutation, log-odds units) and `structural_score` (prior and structure only) next to its
+`score`. The minimum net support (`MIN_SUPPORT` = 0.3, one fully reliable row of weight 0.1)
+exists because structure alone can reach 0.7 (an observed root at prior 0.5 scores 0.731):
+without it, one supporting row of negligible weight (1e-9) turned `insufficient_evidence`
+into `leading` with the score unchanged. A leading score is therefore always above its
+`structural_score` by the evidence it carries; the `weak_support` request names the three
+values that fell short.
 `causality_proven` is always `false`.
 
 **Counterfactuals** — `{"assumptions", "metrics", "rules": [{"id", "when", "effects", "flags"}],
