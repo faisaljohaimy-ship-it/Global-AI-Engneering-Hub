@@ -117,7 +117,7 @@ proofs of concept. Each finding is fixed by a lane that did not review it, then 
 | pr30-authz | approve-with-fixes | F1 medium (SDK `checkout_guard` bypass via submodule config runs a planted filter during `master-release.eligibility`), F2 low (read-only memory actions create a lock or migrate), F3 low (registered-project rule depends on wording) | review-fixes; F2 journal half: sec-findings |
 | pr30-merge-quality | approve-with-fixes | nothing lost or weakened by the merge; F1/F2 low (SEC-09 and SEC-11 probes do not exercise the real path), F3/F4 low (stale docs) | sec-findings, sec-isolation, reg-engines, review-fixes |
 | w2-memory-heal-orch | approve-with-fixes | **H1 high** (self-healing reports "repaired" while its patch adds a new defect), 5 medium (journal has no lock; secret filter misses keys next to Arabic letters; reviewer-is-producer check ignores history; unbounded test log; zero-evidence root cause reported as supported), 7 low | w2-fixes (H1, L2, M3, M5, L6, L3, L5), sec-findings (M1), review-fixes (M2, L7), sec-isolation (M4, L1, L4) |
-| pr30-isolation | running | | |
+| pr30-isolation | approve-with-fixes | strict sandbox held against every direct escape tried (sockets, files, env, /proc, fds, setuid, Git pointer); 4 medium: lazy-fetch config runs a program during the hardened Git check (SEC-09 status was wrong), a strict child can plant a Git config that runs later on the host, workspace-run blocks peers, the upgrade path runs hostile tests unsandboxed (same cause as SEC-07); 3 low | isolation-fixes (F1-F4, F6, F7, build part of F5), sec-isolation (upgrade part of F5), sec-findings (SEC-09 probe) |
 | w2-build-upgrade | running | | |
 
 All findings so far predate the security merge; none was introduced by it. H1 blocks the
