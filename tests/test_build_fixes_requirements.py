@@ -179,5 +179,43 @@ class TighteningIsBreakingTests(unittest.TestCase):
             self.assertEqual(self.changed(edit), [])
 
 
+
+class TrailingNewlineTests(unittest.TestCase):
+    """W2-RQ-03: identifiers and criteria with a trailing newline are invalid ($ would accept them)."""
+
+    def test_every_identifier_kind_refuses_a_trailing_newline(self):
+        def entity(spec):
+            spec["entities"][0]["name"] += "\n"
+            for feature in spec["features"]:
+                feature["entities"] = [name + "\n" for name in feature.get("entities", [])]
+            for relation in spec["relations"]:
+                relation["from"], relation["to"] = relation["from"] + "\n", relation["to"] + "\n"
+
+        cases = {
+            "slug": lambda s: s.update(slug=s["slug"] + "\n"),
+            "domain": lambda s: s.update(domain=s["domain"] + "\n"),
+            "entity": entity,
+            "field": lambda s: s["entities"][0]["fields"][0].update(name="title\n"),
+            "enum value": lambda s: s["entities"][0]["fields"][1].update(values=["todo\n", "in_progress", "done"],
+                                                                         default="todo\n"),
+            "role": lambda s: s["roles"][0].update(id=s["roles"][0]["id"] + "\n"),
+            "feature id": lambda s: s["features"][0].update(id=s["features"][0]["id"] + "\n"),
+            "criterion": lambda s: s["features"][0]["acceptance"].__setitem__(0, s["features"][0]["acceptance"][0] + "\n"),
+        }
+        self.assertTrue(rq.validate_spec(fixture())["ok"])
+        for label, edit in cases.items():
+            with self.subTest(label):
+                spec = fixture()
+                edit(spec)
+                with self.assertRaises(rq.SpecError):
+                    rq.validate_spec(spec)
+
+    def test_question_ids_and_digests_refuse_a_trailing_newline(self):
+        for pattern, good in ((rq._QUESTION, "integration:stripe"), (rq._HEX, "a" * 64), (rq._KEBAB, "task-manager")):
+            with self.subTest(good):
+                self.assertTrue(pattern.match(good))
+                self.assertIsNone(pattern.match(good + "\n"))
+
+
 if __name__ == "__main__":
     unittest.main()

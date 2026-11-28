@@ -43,14 +43,15 @@ SPEC_KEYS = {"schema", "mode", "source", "title", "slug", "product_type", "domai
              "relations", "features", "nfr", "ai", "integrations", "constraints", "open_questions"}
 SPEC_OPTIONAL = {"intent", "assumptions"}
 
-_ENTITY = re.compile(r"^[A-Z][A-Za-z0-9]{0,62}$")
-_SNAKE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
-_KEBAB = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
-_FEATURE_ID = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$")
-_ROLE = re.compile(r"^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$")
-_QUESTION = re.compile(r"^[a-z_]+(?::[A-Za-z0-9_-]+)?$")
-_HEX = re.compile(r"^[0-9a-f]{64}$")
-_ACCEPTANCE = re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?$")
+# \Z, not $: "$" also matches before a trailing newline ("Task\n" would validate).
+_ENTITY = re.compile(r"^[A-Z][A-Za-z0-9]{0,62}\Z")
+_SNAKE = re.compile(r"^[a-z][a-z0-9_]{0,62}\Z")
+_KEBAB = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
+_FEATURE_ID = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*\Z")
+_ROLE = re.compile(r"^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*\Z")
+_QUESTION = re.compile(r"^[a-z_]+(?::[A-Za-z0-9_-]+)?\Z")
+_HEX = re.compile(r"^[0-9a-f]{64}\Z")
+_ACCEPTANCE = re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?\Z")
 _SENTENCES = re.compile(r"[.;!?\n\r؛؟۔]+")
 _CLAUSES = re.compile(r"[,،:()\[\]{}]+")
 _ARABIC = re.compile("[ء-ي]")

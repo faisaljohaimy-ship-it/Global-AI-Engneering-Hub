@@ -92,7 +92,9 @@ owner text ──► gaie_router.route()           (which engine? build / upgrad
 
 ## 3. `gaie.spec/1` reference
 
-The shape of `/home/user/gaie-state/SPEC_FORMAT.md`, with these additions (all validated):
+The shape of `/home/user/gaie-state/SPEC_FORMAT.md`, with these additions (all validated; every
+identifier pattern — PascalCase, snake_case, kebab-case, feature, role and question ids, SHA-256
+digests, acceptance criteria — must match the whole string, so a trailing newline is refused):
 
 | Key | Rule |
 |---|---|
