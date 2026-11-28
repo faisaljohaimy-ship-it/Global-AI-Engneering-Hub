@@ -112,3 +112,24 @@ resume.
 - `self-healing`: Step 1, then Step 5 over the discovered defects, then Steps 6–7.
 - `focused`: only the router's `focus` areas plus quality assurance.
 - `media`: handled by `skills/gaie-cinematic` under these same operating rules.
+
+## Engine
+
+In the hub, `engineering_os.upgrade_engine.upgrade(target, command=..., workdir=...)` executes
+Steps 1–7 deterministically for a local checkout (spec:
+`docs/specs/gaie-20-layers/UPGRADE_ENGINE.md`; the engine is not part of the vendored pack).
+Use it before hand-editing whenever the target fits its catalogue, and read its report before
+reporting to the owner.
+
+- It routes the owner's Arabic or English command through `gaie_router`: an audit command
+  («افحص», `audit`) reads only and writes nothing; build, release, deploy, production, media
+  scope and network are refused, as are breaking requested changes (field or entity removal).
+- It works only in a copy under `workdir` (outside the target and outside every Git
+  repository): baseline tests, data checksums and asset hashes first; then audit
+  (`gaie_inventory`, `detectors`, spec checks), an ordered plan (`reasoning`), and one gated,
+  receipted step at a time. A step stays only if every baseline-passing test still passes,
+  its new tests failed before and pass after, every table keeps its rows, and nothing is
+  deleted without proof of non-use and a verified backup; otherwise it is rolled back.
+- Deliver its `upgraded/` copy, `upgrade.patch`, `rollback.patch` and `rollback/` through the
+  isolated branch of Step 7; never apply them to production. Report `unmet_requests`,
+  `rejected` steps and the `limits` field plainly; `requires_human_review` is always true.
