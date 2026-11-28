@@ -83,5 +83,59 @@ class Economics(unittest.TestCase):
         self.assertIn("| Stage |", done.stdout)
 
 
+class Factory(unittest.TestCase):
+    def rows(self, *stages):
+        return economics.per_task({"stages": list(stages)})
+
+    def test_arithmetic(self):
+        rows = self.rows(stage("a", "small", 2, 1000, tasks=2), stage("b", "small", 2, 600, tasks=2),
+                         stage("m", "medium", 9, 9000, tasks=10, sum_of_agent_seconds=90.0))
+        f = economics.factory(rows, {"small": 10, "medium": 5})
+        self.assertEqual(f["sizes"]["small"]["configuration"]["label"], "b")
+        self.assertEqual(f["sizes"]["small"]["figure"]["cost_units"], 3000)
+        self.assertEqual(f["sizes"]["medium"]["figure"]["cost_units"], 5000)
+        t = f["totals"]
+        # small: 1000 in per task x 10; medium: 2000 in over 1 verified-of-9 stage -> 222 per task x 5
+        self.assertEqual(t["input_tokens"], 10 * 1000 + 5 * round(2000 / 9))
+        self.assertEqual(t["cost_units"], 8000)
+        self.assertAlmostEqual(t["agent_minutes"], 10 * (20 / 60) + 5 * (10 / 60), places=1)
+        self.assertEqual(f["share_needing_second_attempt"], round(5 * 0.1 / 15, 4))
+
+    def test_no_qualifying_row(self):
+        rows = self.rows(stage("a", "small", 1, 100, tasks=2), stage("z", "medium", 0, 900, tasks=2))
+        f = economics.factory(rows, {"small": 3, "medium": 2, "large": 1})
+        for size in ("small", "medium", "large"):
+            self.assertIsNone(f["sizes"][size]["figure"])
+            self.assertIn("note", f["sizes"][size])
+        self.assertEqual(f["sizes_without_a_figure"], ["small", "medium", "large"])
+        self.assertIsNone(f["share_needing_second_attempt"])
+
+    def test_render(self):
+        text = economics.render_factory({"stages": [stage("a", "small", 2, 1000, tasks=2)]})
+        for word in ("one task", "one feature", "one system", "not a price or a subscription allowance", "not comparable", "40 small"):
+            self.assertIn(word, text)
+
+    def test_second_phase_document(self):
+        doc = json.loads((ROOT / "swarm" / "phase2" / "evidence" / "stages.json").read_text())
+        self.assertIn("one system", economics.render_factory(doc))
+        economics.render(doc)
+
+    def test_zero_verified_no_division(self):
+        doc = {"stages": [stage("z", "small", 0, 900, tasks=0, tasks_per_minute=0.0, sum_of_agent_seconds=0)]}
+        f = economics.factory(economics.per_task(doc), {"small": 5})
+        self.assertIsNone(f["sizes"]["small"]["figure"])
+        economics.render_factory(doc)
+
+    def test_gated_run_stages(self):
+        doc = json.loads((ROOT / "tests" / "fixtures" / "p3-stand-in-stages.json").read_text())
+        rows = economics.per_task(doc)
+        self.assertEqual([r["label"] for r in rows], ["q4"])
+        q = rows[0]
+        self.assertEqual((q["input_tokens_per_task"], q["output_tokens_per_task"]), (16530, 180))
+        self.assertEqual(q["orchestrator_input_per_task"], 0)
+        self.assertEqual(q["failure_rate"], 0.0)
+        economics.render_factory(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
