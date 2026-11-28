@@ -777,9 +777,13 @@ class BehaviouralProbeTests(unittest.TestCase):
         def refused(sandbox, root, start, pattern, **kwargs):
             raise detectors.DetectorError("full sandbox tier unavailable; refusing to run target code")
 
+        def refused_status(sandbox, root, start, pattern, **kwargs):
+            """What detectors.Sandbox returns on a host without the full tier: nothing executed."""
+            return {"status": "refused", "exit_code": None, "log_tail": "", "reason": "tier plain"}
+
         def silent(sandbox, root, start, pattern, **kwargs):
             return {"status": "crashed", "log_tail": ""}
-        for runner, expected in ((keyword_only, True), (contained, False), (refused, False)):
+        for runner, expected in ((keyword_only, True), (contained, False), (refused, False), (refused_status, False)):
             with self.subTest(runner=runner.__name__), mock.patch.object(detectors.Sandbox, "run_tests", runner):
                 self.assertIs(self.probe(security_audit.probe_healing_sandbox), expected)
         with mock.patch.object(detectors.Sandbox, "run_tests", silent):
@@ -874,11 +878,22 @@ class SandboxReached(Exception):
 
 # Actions that declare exec:sandbox but do not run their code through governor.sandbox_run yet, with the reason.
 EXEC_SANDBOX_EXCEPTIONS = {
-    ("layers", "verify"): "SEC-12 open: layers._run starts repository tests with Popen and the caller's environment",
+    ("layers", "verify"): "host-dependent (SEC-12 fixed on the full tier): layers._run reaches governor.sandbox_run "
+                          "only where the full tier exists; elsewhere, and for layers.PROCESS_ONLY_TESTS, it runs a "
+                          "scrubbed subprocess, so no payload shows it reaching the sandbox on every host",
     ("context-intelligence", "optimize"): "tools/headroom_context.py runs the local SDK in a plain subprocess with a "
                                          "private environment, not in the governor sandbox",
     ("master-build", "build"): "SEC-16 open: build_engine.run_suites runs the generated tests without the OS sandbox",
-    ("master-upgrade", "upgrade"): "SEC-07 class: upgrade_engine runs the target's tests through detectors.Sandbox",
+    ("master-upgrade", "upgrade"): "host-dependent (SEC-07 class): upgrade_engine runs the target's tests through "
+                                   "detectors.Sandbox, which reaches governor.sandbox_run on the full tier and refuses "
+                                   "elsewhere unless process-only is chosen explicitly",
+    ("self-healing", "heal"): "host-dependent (SEC-07 fixed on the full tier): heal runs the target through "
+                              "detectors.Sandbox, which reaches governor.sandbox_run on the full tier and refuses "
+                              "elsewhere unless process-only is chosen explicitly",
+    ("security-audit", "audit"): "runs each probe's planted program through the path it measures: detectors.Sandbox "
+                                 "and layers._run reach governor.sandbox_run on the full tier, build_engine.run_suites "
+                                 "and the video pipeline do not (SEC-16, SEC-17 open); a probe catches every exception, "
+                                 "so a payload cannot show the sandbox being reached",
     ("master-cinematic", "probe"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
     ("master-cinematic", "render"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
     ("master-cinematic", "qa"): "SEC-17 open: the video pipeline starts ffprobe and ffmpeg without the OS sandbox",
@@ -1035,9 +1050,10 @@ class LiveAuditTests(unittest.TestCase):
     def test_host_dependent_statuses_are_compared_only_on_a_host_of_the_same_tier(self):
         evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
         flipped = copy.deepcopy(self.report)
+        recorded = next(row["status"] for row in evidence["findings"] if row["id"] == "SEC-12")
         for row in flipped["findings"]:
-            if row["id"] == "SEC-12":
-                row["status"] = "fixed" if row["status"] == "open" else "open"
+            if row["id"] == "SEC-12":  # differs from the committed row whatever this host measures
+                row["status"] = "fixed" if recorded == "open" else "open"
         other_host = {**flipped, "sandbox_tier": "full" if evidence["sandbox_tier"] != "full" else "plain"}
         self.assertEqual(evidence_mismatches(evidence, other_host), [])
         self.assertTrue(evidence_mismatches(evidence, {**flipped, "sandbox_tier": evidence["sandbox_tier"]}))

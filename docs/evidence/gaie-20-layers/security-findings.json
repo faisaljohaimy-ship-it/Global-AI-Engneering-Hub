@@ -69,16 +69,16 @@
       "title": "The audit hash chain cannot see records removed from its end, or the whole log removed"
     },
     {
-      "control": "environment reduced to PATH/HOME/TMPDIR, loopback-only socket guard, timeouts, process-group kill; fix: run the driver through governor.sandbox_run (owner: self-healing)",
-      "evidence": "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a caller variable); docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
+      "control": "every run in governor.sandbox_run (full tier, loopback profile: own namespaces, no capabilities, private loopback, /etc hidden, the copy read-only, one writable directory per run, exact environment via env -i); where the full tier is missing every run is refused and executes nothing; isolation=\"process-only\" is an explicit opt-in recorded in every result and in the governor audit log",
+      "evidence": "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a caller variable); tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
       "host_dependent": true,
       "id": "SEC-07",
       "kind": "registered",
       "location": "engineering_os/detectors.py:Sandbox",
       "rule": "untrusted-code-outside-sandbox",
       "severity": "medium",
-      "status": "open",
-      "title": "Self-healing runs target repository code through detectors.Sandbox, a Python-level guard without the governor's OS sandbox: files the user can read stay readable and writable"
+      "status": "fixed",
+      "title": "Self-healing ran target repository code through detectors.Sandbox, a Python-level guard without the governor's OS sandbox: files the user can read stayed readable and writable"
     },
     {
       "control": "fix: resolve and check before mkdir, create with mode 0o700 (owner: cinematic)",
@@ -125,16 +125,16 @@
       "title": "SDK verify accepted a manifest-named FIFO or device and would block on it"
     },
     {
-      "control": "the tests are the hub's own; an agent that can write tests/ and holds layers.verify gets code execution with the owner's environment. fix: governor.sandbox_run like quality-assurance.run-tests (owner: layers)",
-      "evidence": "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and looks for a caller variable)",
+      "control": "every probe and test gets exactly PATH, a private HOME and TMPDIR and LANG; on the full tier it runs in the strict governor profile (repository read-only, one private workspace per run, no network, socket() denied); layers.PROCESS_ONLY_TESTS and every test on a host without the full tier run as a scrubbed subprocess, which this probe measures open; each receipt records the profile, tier and reason",
+      "evidence": "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and looks for a caller variable); tests/test_isolation_enforcement.py::Sec12Tests",
       "host_dependent": true,
       "id": "SEC-12",
       "kind": "registered",
       "location": "engineering_os/layers.py:_run",
       "rule": "untrusted-code-outside-sandbox",
       "severity": "medium",
-      "status": "open",
-      "title": "layers.verify declares exec:sandbox and secrets:none but runs repository tests outside the governor sandbox with the caller's whole environment"
+      "status": "fixed",
+      "title": "layers.verify declared exec:sandbox and secrets:none but ran repository tests outside the governor sandbox with the caller's whole environment"
     },
     {
       "control": "authority only from the grant and ctx['approval_token']; static rule authority-from-payload",
@@ -195,10 +195,10 @@
     },
     {
       "function": "security_governor",
-      "id": "authority-from-payload:engineering_os/adapters.py:782",
+      "id": "authority-from-payload:engineering_os/adapters.py:1004",
       "justification": "validate-grant and check evaluate a grant given as data (dry run): governor.check is pure (no audit write, no state, no subprocess), takes the action spec from the registry, never from the payload, and approval_token=None so a gated side effect is always refused; the result is marked dry_run and nothing consumes it as authority; the control plane authorizes from its own grant argument (SEC-13)",
       "kind": "static",
-      "location": "engineering_os/adapters.py:782",
+      "location": "engineering_os/adapters.py:1004",
       "rule": "authority-from-payload",
       "severity": "high",
       "status": "accepted",
@@ -206,10 +206,10 @@
     },
     {
       "function": "security_governor",
-      "id": "authority-from-payload:engineering_os/adapters.py:797",
+      "id": "authority-from-payload:engineering_os/adapters.py:989",
       "justification": "validate-grant and check evaluate a grant given as data (dry run): governor.check is pure (no audit write, no state, no subprocess), takes the action spec from the registry, never from the payload, and approval_token=None so a gated side effect is always refused; the result is marked dry_run and nothing consumes it as authority; the control plane authorizes from its own grant argument (SEC-13)",
       "kind": "static",
-      "location": "engineering_os/adapters.py:797",
+      "location": "engineering_os/adapters.py:989",
       "rule": "authority-from-payload",
       "severity": "high",
       "status": "accepted",
@@ -239,10 +239,10 @@
     },
     {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:819",
+      "id": "private-mode:engineering_os/governor.py:848",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:819",
+      "location": "engineering_os/governor.py:848",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -250,10 +250,21 @@
     },
     {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:837",
+      "id": "private-mode:engineering_os/governor.py:866",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:837",
+      "location": "engineering_os/governor.py:866",
+      "rule": "private-mode",
+      "severity": "medium",
+      "status": "accepted",
+      "title": "engine state created with mode 0o644 (group/other bits set)"
+    },
+    {
+      "function": "_write",
+      "id": "private-mode:engineering_os/master_docs.py:390",
+      "justification": "pin rewrites the tracked manifest governance/policies/master-prompts.json inside the repository checkout (public, committed to Git), never private state; the temporary file is created O_EXCL|O_NOFOLLOW next to it and replaced atomically",
+      "kind": "static",
+      "location": "engineering_os/master_docs.py:390",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -277,14 +288,14 @@
       "high": 4,
       "info": 3,
       "low": 9,
-      "medium": 7
+      "medium": 8
     },
     "by_status": {
-      "accepted": 6,
-      "fixed": 7,
+      "accepted": 7,
+      "fixed": 9,
       "held": 4,
       "mitigated": 1,
-      "open": 5
+      "open": 3
     },
     "open_critical_or_high": []
   },

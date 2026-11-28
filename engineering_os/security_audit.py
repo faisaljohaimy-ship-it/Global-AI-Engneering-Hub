@@ -265,6 +265,10 @@ ACCEPTED = {
         "state, no subprocess), takes the action spec from the registry, never from the payload, and approval_token=None "
         "so a gated side effect is always refused; the result is marked dry_run and nothing consumes it as authority; "
         "the control plane authorizes from its own grant argument (SEC-13)",
+    ("engineering_os/master_docs.py", "private-mode", "_write"):
+        "pin rewrites the tracked manifest governance/policies/master-prompts.json inside the repository checkout "
+        "(public, committed to Git), never private state; the temporary file is created O_EXCL|O_NOFOLLOW next to "
+        "it and replaced atomically",
     ("engineering_os/governor.py", "private-mode", "_sandbox_init"):
         "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with "
         "private propagation, read-only after pivot_root), not state files",
@@ -602,12 +606,15 @@ def _escape_fixture(base):
 def probe_healing_sandbox(base):
     """True when a target repository's test, run by detectors.Sandbox, reads a file outside its copy, writes outside
     it or sees a variable of the caller's environment (SEC-07). A refusal to run (DetectorError or PermissionError,
-    as on a host without the governor's sandbox) is not exploitable; a run that leaves no trace is inconclusive."""
+    or a result with status "refused", which detectors.Sandbox returns on a host without the governor's full
+    sandbox: nothing executed) is not exploitable; a run that leaves no trace is inconclusive."""
     from . import detectors
     with _escape_fixture(base) as (repository, escaped):
         try:
             result = detectors.Sandbox(base / "scratch", timeout=120).run_tests(repository, "tests", "test_*.py")
         except (detectors.DetectorError, PermissionError):
+            return False
+        if result.get("status") == "refused":
             return False
         return escaped(result.get("log_tail"))
 
@@ -857,13 +864,15 @@ FINDINGS = (
      "engineering_os/governor.py:verify_audit", "audit-tail-truncation", ("open", "mitigated"), probe_audit_tail,
      "tests/test_security_enterprise.py::AnchorTests",
      "security_audit.audit_anchor / verify_audit_anchor; the owner must keep the anchor outside the state directory"),
-    ("SEC-07", "medium", "Self-healing runs target repository code through detectors.Sandbox, a Python-level guard "
-     "without the governor's OS sandbox: files the user can read stay readable and writable",
+    ("SEC-07", "medium", "Self-healing ran target repository code through detectors.Sandbox, a Python-level guard "
+     "without the governor's OS sandbox: files the user can read stayed readable and writable",
      "engineering_os/detectors.py:Sandbox", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_healing_sandbox,
      "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a "
-     "caller variable); docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
-     "environment reduced to PATH/HOME/TMPDIR, loopback-only socket guard, timeouts, process-group kill; "
-     "fix: run the driver through governor.sandbox_run (owner: self-healing)"),
+     "caller variable); tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
+     "every run in governor.sandbox_run (full tier, loopback profile: own namespaces, no capabilities, private "
+     "loopback, /etc hidden, the copy read-only, one writable directory per run, exact environment via env -i); "
+     "where the full tier is missing every run is refused and executes nothing; isolation=\"process-only\" is an "
+     "explicit opt-in recorded in every result and in the governor audit log"),
     ("SEC-08", "low", "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository",
      "engineering_os/video_pipeline.py:_outside_repository", "private-state-permissions", ("open", "held"),
      probe_video_output_dir, "probe_video_output_dir",
@@ -889,13 +898,15 @@ FINDINGS = (
      "tests/test_security_enterprise.py::GitCheckoutTests.test_fifo_capability_file_is_refused_without_blocking",
      "verify reads manifest files through read_audit_file: directory descriptors with O_NOFOLLOW, a regular file "
      "with one link, opened O_NONBLOCK|O_NOFOLLOW and rechecked by fstat; the probe runs verify itself with a timeout"),
-    ("SEC-12", "medium", "layers.verify declares exec:sandbox and secrets:none but runs repository tests outside the "
+    ("SEC-12", "medium", "layers.verify declared exec:sandbox and secrets:none but ran repository tests outside the "
      "governor sandbox with the caller's whole environment",
      "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_layers_environment,
      "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and "
-     "looks for a caller variable)",
-     "the tests are the hub's own; an agent that can write tests/ and holds layers.verify gets code execution "
-     "with the owner's environment. fix: governor.sandbox_run like quality-assurance.run-tests (owner: layers)"),
+     "looks for a caller variable); tests/test_isolation_enforcement.py::Sec12Tests",
+     "every probe and test gets exactly PATH, a private HOME and TMPDIR and LANG; on the full tier it runs in the "
+     "strict governor profile (repository read-only, one private workspace per run, no network, socket() denied); "
+     "layers.PROCESS_ONLY_TESTS and every test on a host without the full tier run as a scrubbed subprocess, which "
+     "this probe measures open; each receipt records the profile, tier and reason"),
     ("SEC-13", "info", "Payload text is data: an approval token, grant or instruction inside a payload grants nothing",
      "engineering_os/control_plane.py:invoke", "prompt-injection", ("open", "held"), probe_injection,
      "tests/test_control_plane.py (INJECTION), tests/test_security_enterprise.py::InjectionTests",
