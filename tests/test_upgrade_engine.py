@@ -676,5 +676,19 @@ class Units(unittest.TestCase):
                 engine.engine("deploy", payload)
 
 
+# Added for SEC-07 (sec-isolation): the default detectors.Sandbox isolation refuses on a host without
+# the governor's full sandbox. Such a host (a GitHub runner without user namespaces) opts this module
+# into the audited process-only mode explicitly; GAIE_REQUIRE_FULL_SANDBOX=1 fails instead.
+def setUpModule():
+    from engineering_os import detectors, governor
+    if governor.isolation_probe()["tier"] == "full":
+        return
+    if os.environ.get("GAIE_REQUIRE_FULL_SANDBOX") == "1":
+        raise AssertionError("GAIE_REQUIRE_FULL_SANDBOX=1 but the governor's full sandbox tier is missing")
+    patcher = mock.patch.object(detectors, "DEFAULT_ISOLATION", "process-only")
+    patcher.start()
+    unittest.addModuleCleanup(patcher.stop)
+
+
 if __name__ == "__main__":
     unittest.main()
