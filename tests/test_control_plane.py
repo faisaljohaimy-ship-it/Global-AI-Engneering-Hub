@@ -25,6 +25,7 @@ import unittest
 from unittest import mock
 
 from engineering_os import adapters, contracts, control_plane as cp, factory, gaie_router
+from engineering_os.orchestration import _atomic_write, sha
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 REAL_GOVERNOR = (ROOT / "engineering_os/governor.py").is_file()
@@ -84,14 +85,19 @@ def _make_fake_governor():
         with (path / "governor-audit.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(event, sort_keys=True) + "\n")
 
-    def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=()):
+    def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
+                    require_fs_isolation=False):
+        module.sandbox_calls.append((cwd, allowed_paths, read_paths, require_fs_isolation))
         env = {key: os.environ[key] for key in env_allow if key in os.environ}
         done = subprocess.run(cmd, cwd=cwd, timeout=timeout, env=env, capture_output=True, text=True, check=False)
         return {"returncode": done.returncode, "stdout": done.stdout, "stderr": done.stderr,
-                "limit": "test-double: no OS limits", "network_isolated": False}
+                "limit": "test-double: no OS limits", "network_isolated": not network,
+                "fs_isolated": require_fs_isolation}
 
     module.GovernorDenied, module.check, module.audit, module.sandbox_run = GovernorDenied, check, audit, sandbox_run
     module.calls = []
+    module.sandbox_calls = []
+    module.SYSTEM_DIRS = cp.governor.SYSTEM_DIRS
     return module
 
 
@@ -237,7 +243,7 @@ class HealthTests(unittest.TestCase):
 
 
 class AllowedInvokeTests(_FakeCase):
-    def test_allowed_invoke_returns_valid_receipt_and_writes_ledger_and_checkpoint(self):
+    def test_allowed_invoke_records_only_accounting_even_with_a_task(self):
         payload = root_cause_payload()
         result = cp.invoke("reasoning", "root-causes", payload, grant=grant({"reasoning": ["root-causes"]}),
                            ctx={**self.ctx, "task_id": "w1-task", "project": "synthetic-project"})
@@ -256,11 +262,8 @@ class AllowedInvokeTests(_FakeCase):
         self.assertEqual(len(ledger), 1)
         self.assertEqual((ledger[0]["engine"], ledger[0]["action"], ledger[0]["status"]), ("reasoning", "root-causes", "ok"))
         self.assertEqual((ledger[0]["model_calls"], ledger[0]["request_sha256"]), (0, receipt["request_sha256"]))
-        records = adapters.memory_store(self.ctx).snapshot()["records"]
-        self.assertEqual(len(records), 1)
-        record = next(iter(records.values()))["record"]
-        self.assertEqual((record["kind"], record["project"]), ("checkpoint", "synthetic-project"))
-        self.assertIn(receipt["result_sha256"], record["summary"])
+        self.assertEqual(ledger[0]["task_id"], "w1-task")
+        self.assertFalse((self.state / "memory").exists())
         self.assertEqual([row["event"] for row in self.audit()], ["allow"])
         self.assertEqual(oct(os.stat(self.state / "economics" / "ledger.jsonl").st_mode & 0o777), "0o600")
 
@@ -321,15 +324,28 @@ class AllowedInvokeTests(_FakeCase):
         self.assertFalse((self.state / "memory").exists())          # a dry run never runs the checked action
 
     def test_test_runner_uses_the_governor_sandbox(self):
-        g = grant({"quality-assurance": ["run-tests", "contracts"]}, max_side_effect="workspace-write")
+        g = grant({"quality-assurance": ["run-tests", "contracts"]}, max_side_effect="workspace-write",
+                  paths=[str(ROOT)])
         out = cp.invoke("quality-assurance", "run-tests", {"modules": ["tests.test_contracts"]}, grant=g, ctx=self.ctx)
         self.assertTrue(out["result"]["passed"], out["result"])
         self.assertGreaterEqual(out["result"]["tests_ran"], 4)
         self.assertEqual(out["receipt"]["side_effect"], "workspace-write")
+        cwd, writable, readable, strict = self.gov.sandbox_calls[0]
+        self.assertEqual(writable, (cwd,))
+        self.assertNotIn(str(ROOT), writable)
+        self.assertIn(str(ROOT), readable)
+        self.assertTrue(strict)
+        self.assertFalse(pathlib.Path(cwd).exists())
         checked = cp.invoke("quality-assurance", "contracts", {}, grant=g, ctx=self.ctx)["result"]
         self.assertTrue(checked["engines"]["valid"] and checked["passed"])
         with self.assertRaises(cp.EngineFailure):
             cp.invoke("quality-assurance", "run-tests", {"modules": ["tests.test_contracts; rm -rf /"]}, grant=g, ctx=self.ctx)
+
+    def test_test_runner_refuses_no_filesystem_isolation(self):
+        g = grant({"quality-assurance": ["run-tests"]}, max_side_effect="workspace-write", paths=[str(ROOT)])
+        with mock.patch.object(self.gov, "sandbox_run", return_value={"network_isolated": True, "fs_isolated": False}):
+            with self.assertRaisesRegex(cp.EngineFailure, "did not establish filesystem and network isolation"):
+                cp.invoke("quality-assurance", "run-tests", {"modules": ["tests.test_contracts"]}, grant=g, ctx=self.ctx)
 
 
 class DeniedInvokeTests(_FakeCase):
@@ -458,6 +474,28 @@ class RejectionTests(_FakeCase):
         self.assertFalse((ROOT / "never-created").exists())
         self.assertFalse(self.state.exists())
 
+    def test_accounting_refuses_public_or_nonnormalized_state_path(self):
+        public = self.base / "public"
+        public.mkdir()
+        public.chmod(0o755)
+        g = grant({"master-audit": ["spec"]}, max_side_effect="none")
+        for path in (public, public / ".." / "other"):
+            with self.subTest(path=path), self.assertRaisesRegex(cp.ControlPlaneError, "private|normalized"):
+                cp.invoke("master-audit", "spec", {}, grant=g, ctx={"state_dir": str(path)})
+        self.assertEqual(list(public.iterdir()), [])
+        self.assertFalse((self.base / "other").exists())
+
+    def test_audit_registry_cannot_relabel_a_writing_action(self):
+        records = cp.load_registry()
+        spec = next(record for record in records if record["id"] == "master-audit")["actions"]["spec"]
+        registry = self.base / "engines-unsafe.json"
+        g = grant({"master-audit": ["spec"]}, max_side_effect="repo-write")
+        for side_effect, permissions in (("state-write", ["write:state"]), ("none", ["exec:sandbox"])):
+            with self.subTest(side_effect=side_effect), mock.patch.object(cp, "ENGINES_PATH", registry):
+                spec.update(side_effect=side_effect, permissions=permissions)
+                registry.write_text(json.dumps(records))
+                self.assert_rejected("master-audit", "spec", {}, g=g)
+
     def test_missing_or_faulty_governor_fails_closed(self):
         g = grant({"memory": ["put"]})
         with mock.patch.object(cp, "governor", None), self.assertRaises(cp.ControlPlaneError):
@@ -544,11 +582,44 @@ class RealGovernorTests(_StateCase):
         self.assertIsNotNone(cp.governor, "governor.py exists but the control plane did not import it")
 
     def test_allowed_invoke_with_real_governor(self):
-        out = cp.invoke("reasoning", "root-causes", root_cause_payload(), grant=grant({"reasoning": ["root-causes"]}),
-                        ctx={**self.ctx, "task_id": "real-governor"})
-        contracts.validate_receipt(out["receipt"])
+        g = grant({"master-audit": ["spec"]}, max_side_effect="none")
+        out = cp.invoke("master-audit", "spec", {}, grant=g, ctx={**self.ctx, "task_id": "real-governor"})
+        self.assertEqual(contracts.validate_receipt(out["receipt"])["side_effect"], "none")
         self.assertEqual(len(self.ledger()), 1)
-        self.assertEqual(len(adapters.memory_store(self.ctx).snapshot()["records"]), 1)
+        self.assertEqual(self.ledger()[0]["task_id"], "real-governor")
+        self.assertEqual(cp.governor.verify_audit(str(self.state)), 1)
+        self.assertEqual({file.relative_to(self.state).as_posix() for file in self.state.rglob("*") if file.is_file()},
+                         {"governor-audit.jsonl", "economics/ledger.jsonl"})
+
+    def test_memory_reads_do_not_migrate_schema_or_create_lock(self):
+        directory = self.state / "memory"
+        self.state.mkdir(mode=0o700)
+        directory.mkdir(mode=0o700)
+        record = memory_record()
+        identifier = sha({key: value for key, value in record.items() if key != "provenance"})
+        legacy = {"schema_version": 1, "revision": 1, "records": {
+            identifier: {"record": record, "provenances": [record["provenance"]], "verification": None}}}
+        legacy["sha256"] = sha(legacy)
+        _atomic_write(directory / "memory.json", legacy)
+        ctx = {**self.ctx, "task_id": "read-private-memory"}
+        g = grant({"memory": ["search", "graph"]}, max_side_effect="none")
+        before = {file.name: file.read_bytes() for file in directory.iterdir()}
+        search = cp.invoke("memory", "search", {"project": "synthetic-project", "query": "control plane"}, grant=g, ctx=ctx)
+        graph = cp.invoke("memory", "graph", {"project": "synthetic-project"}, grant=g, ctx=ctx)
+        self.assertEqual(search["result"]["rows"][0]["id"], identifier)
+        self.assertEqual(graph["result"]["nodes"][0]["id"], identifier)
+        self.assertEqual({file.name: file.read_bytes() for file in directory.iterdir()}, before)
+        with self.assertRaises(cp.governor.GovernorDenied):
+            cp.invoke("memory", "put", record, grant=g, ctx=ctx)
+        self.assertEqual({file.name: file.read_bytes() for file in directory.iterdir()}, before)
+        # Only opening the authorized writer creates the modern journal and lock.
+        write = grant({"memory": ["put"]}, max_side_effect="state-write")
+        cp.invoke("memory", "put", memory_record("Explicitly stored decision."), grant=write, ctx=ctx)
+        (directory / "memory.lock").unlink()
+        before = {file.name: file.read_bytes() for file in directory.iterdir()}
+        self.assertIn("memory.jsonl", before)
+        cp.invoke("memory", "graph", {"project": "synthetic-project"}, grant=g, ctx=ctx)
+        self.assertEqual({file.name: file.read_bytes() for file in directory.iterdir()}, before)
 
     def test_denials_with_real_governor_leave_no_side_effect(self):
         cases = [grant({"reasoning": ["plan"]}), grant({"memory": ["search"]}),
@@ -569,8 +640,14 @@ class RealGovernorTests(_StateCase):
 
     def test_real_sandbox_runs_the_test_runner(self):
         g = grant({"quality-assurance": ["run-tests"]}, max_side_effect="workspace-write", paths=[str(ROOT)])
+        if cp.governor.isolation_probe()["tier"] != "full":
+            with self.assertRaisesRegex(cp.EngineFailure, "filesystem-isolation-unavailable"):
+                cp.invoke("quality-assurance", "run-tests", {"modules": ["tests.test_contracts"]}, grant=g, ctx=self.ctx)
+            return
         out = cp.invoke("quality-assurance", "run-tests", {"modules": ["tests.test_contracts"]}, grant=g, ctx=self.ctx)
-        self.assertIn("passed", out["result"])
+        self.assertTrue(out["result"]["passed"], out["result"])
+        self.assertTrue(out["result"]["fs_isolated"])
+        self.assertTrue(out["result"]["network_isolated"])
         contracts.validate_receipt(out["receipt"])
 
 

@@ -7,9 +7,10 @@ argument-hint: "[project] [scope]"
 1. If no router plan is in context, run `gaie-master-router` first with the owner's
    words; continue only when it returns `engine: MASTER_UPGRADE` with a resolved
    target. Honour its `scope` (comprehensive, focused, performance, self-healing).
-2. Work in a checkout of the target repository on an isolated branch. If
-   `write_allowed` is false or the checkout's origin is another repository, do not
-   edit: obtain the right repository first.
+2. Work only in the verified target's isolated worktree. Before each workstream's
+   write, require `write_allowed: true`, a matching target and branch, and a
+   host grant limited to its assigned paths. Stop at planning when the
+   workspace or the grant is missing.
 3. Read the master prompt and follow its steps in order. Use the first that exists:
    `prompts/MASTER_UPGRADE.md` (hub checkout), `.engineering/gaie/MASTER_UPGRADE.md`
    (registered project), `MASTER_UPGRADE.md` beside this file (user-level bootstrap).

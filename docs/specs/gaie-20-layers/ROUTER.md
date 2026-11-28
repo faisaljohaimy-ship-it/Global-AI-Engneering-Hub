@@ -30,7 +30,7 @@ Each `routed` result (route version 2) keeps every version-1 field (`engine`,
 | `approvals_required` | gated steps (`external-write`, `production`), each needing an owner approval token |
 | `execution_scope` | `read-only`, `repo-branch` (branch `claude/gaie-<intent>-<project>`), `workspace` or `release-gated`; `default_branch_writes` is always `false` |
 | `tests`, `evidence`, `evidence_location` | what to run, and what to save under `$GAIE_HOME/evidence/<project>` |
-| `decision` | `ready-for-grant`, `blocked` (workspace mismatch), `needs-approval` (always for release) |
+| `decision` | `ready-for-grant`, `blocked` (missing, unverified or mismatched write workspace), `needs-approval` (always for release) |
 | `blockers` | for example a release without a registered deployment target |
 
 For several targets (for example «طور جميع مشاريعي»), each target carries its own
@@ -64,7 +64,7 @@ Grant templates name the control plane's engine actions (`governance/engines.jso
 | upgrade, accelerate | `master-upgrade`: spec, plan, evaluate · `quality-assurance`: run-tests · `memory`: put, checkpoint | none |
 | repair | `self-healing`: analyze, verify-repair · `quality-assurance`: run-tests · `memory`: put, checkpoint | none |
 | cinematic | `master-cinematic`: spec, audit · `motion-sdk`: catalog, components · `quality-assurance`: run-tests · `memory`: put, checkpoint | none |
-| audit | `master-audit`: spec, inventory, health, hub-audit · `memory`: search | none |
+| audit | `master-audit`: spec, inventory, health, hub-audit | none |
 | release | `master-release`: spec, provenance, eligibility, preview, promote | `preview` (external-write), `promote` (production), inside the approval-gated release grant |
 
 ## 3. Hard rules (code, not text)
@@ -164,7 +164,7 @@ An abridged audit route:
  "roles": {"lead": "independent-assurance-engineer", "support": ["enterprise-security-privacy-engineer"],
            "verifier": "chief-engineering-architect"},
  "grant_template": {"grant_id": null, "role": "independent-assurance-engineer",
-                    "engines": {"master-audit": ["spec", "inventory", "health", "hub-audit"], "memory": ["search"]},
+                    "engines": {"master-audit": ["spec", "inventory", "health", "hub-audit"]},
                     "paths": ["workspace/biz-pulse-ar"],
                     "max_side_effect": "none", "expires_at": null, "approvals": []},
  "execution_scope": {"kind": "read-only", "default_branch_writes": false, "network": false, "production": false},

@@ -8,9 +8,10 @@ self-healing, media). It always starts from the current state of the system.
 
 ## Operating rules
 
-1. Confirm the target first. The router names the project and repository; verify the
-   repository is reachable here and that the checkout's origin matches before any
-   write (`route --workspace`). Similar names never authorize editing another project.
+1. Confirm the exact target and validate its isolated worktree with
+   `route --workspace`. Require `write_allowed: true`, the matching repository and
+   branch, and a host grant restricted to that worktree before a write. For an
+   audit, use the read-only course from the router.
 2. Preserve what works. Do not replace a sound component without an engineering
    reason. Do not delete a function, file or asset before proving it is unused and
    keeping a way to restore it. Preserve data, permissions, identity and both
@@ -42,16 +43,16 @@ test, and evidence of completion. A row is done only when its evidence exists.
 Record before changing anything: test results, build status, bundle size, Core Web
 Vitals where applicable (LCP, INP, CLS), API and AI response latency, slow queries,
 media weight, open defects and security findings. Store the baseline as a
-`performance` or `test-result` entry in project memory.
+`performance` or `test-result` entry only under a scoped state grant.
 
 ## Step 3 — Plan and distribute
 
-Group matrix rows into independent workstreams with explicit path ownership and one
-branch or worktree each (`engineering_os.orchestration`). Use the router's
-workstreams as the upper bound; spawn fewer agents when work overlaps or a smaller
-team is faster, never more than 20. Give each agent only its rows, its paths and
-the capabilities it needs. Record significant choices as Architecture Decision
-Records with options, constraints and trade-offs.
+Group matrix rows into independent workstreams with explicit path ownership and
+one isolated worktree per writing agent (`engineering_os.orchestration`).
+Enforce a host grant restricted to that agent's paths and tools. Keep the
+workstream in planning if isolation cannot be verified. Use the router's
+workstreams as the upper bound. Record significant choices as Architecture
+Decision Records with options, constraints and trade-offs.
 
 ## Step 4 — Upgrade
 
@@ -89,21 +90,21 @@ authorization.
 
 ## Step 6 — Independent verification
 
-The implementer is never the only reviewer. An independent verifier re-runs tests,
-reviews the diff against the matrix, and checks the interface visually at several
-viewport sizes and in both directions. Cover core journeys, permissions, data, AI
+An independent read-only verifier reviews the diff and source-bound test
+receipts against the matrix. A fresh test or preview requires an authorized QA
+run confined to its own workspace. Cover core journeys, permissions, data, AI
 behaviour, integrations, media, languages, mobile, desktop, performance and
-recoverability. Failed tests are reported, not hidden.
+recoverability. Record failures and any unverified criteria.
 
 ## Step 7 — Deliver
 
-Open a documented pull request from the isolated branch; pass mandatory checks;
-prepare a preview. Production release follows `skills/gaie-release` and needs
-explicit owner authorization. Deliver the completed coverage matrix, the
+Prepare a documented pull request from the isolated branch and pass mandatory
+checks. Opening the remote pull request requires authorization for that action.
+Remote preview and production release require separate grants under
+`skills/gaie-release`. Deliver the completed coverage matrix, the
 before-and-after measurements, test results, security status, costs incurred
 (expected: none) and remaining limitations. Save decisions, proven fixes, root
-causes and checkpoints to project memory after every phase so a new session can
-resume.
+causes and checkpoints only under a grant for the intended project memory.
 
 ## Scoped runs
 

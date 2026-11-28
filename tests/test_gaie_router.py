@@ -25,6 +25,23 @@ class RouterTests(unittest.TestCase):
     def route(self, text, **options):
         return router.route(text, environ=self.env, **options)
 
+    def linked_checkout(self, *, origin=None):
+        checkout = self.home.parent / "canonical"
+        worktree = self.home.parent / "worktree"
+        checkout.mkdir(mode=0o700)
+
+        def git(*args):
+            return subprocess.run(["git", "-C", str(checkout), *args], check=True, capture_output=True)
+
+        git("init", "-q", "-b", "main")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-qm", "base")
+        git("remote", "add", "origin", origin or "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar.git")
+        git("update-ref", "refs/remotes/origin/main", "HEAD")
+        git("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+        git("worktree", "add", "-qb", "codex/gaie-upgrade-biz-pulse-ar", str(worktree))
+        worktree.chmod(0o700)
+        return checkout, worktree
+
     def assertRoute(self, text, intent, engine, skill, targets, scope=None):
         plan = self.route(text)
         self.assertEqual(plan["status"], "routed", text)
@@ -112,6 +129,36 @@ class RouterTests(unittest.TestCase):
             self.assertEqual(plan["status"], "needs-clarification", text)
             self.assertFalse(plan["write_allowed"], text)
 
+    def test_audit_scopes_questions_and_no_change_requests_never_grant_writes(self):
+        _, worktree = self.linked_checkout()
+        requests = (
+            "Read-only audit: upgrade Sadeed", "للتدقيق فقط: طوّر سديد",
+            "Review only: fix Sadeed", "للمراجعة فقط: أصلح سديد",
+            "Audit-only: upgrade Sadeed", "Dry run: upgrade Sadeed",
+            "Read only: deploy Sadeed", "للقراءة فقط: انشر سديد",
+            "Advice only: build a new unit converter", "للاستشارة فقط: ابن نظاما جديدا",
+            "Do not change anything; fix Sadeed", "لا تعدّل أي شيء؛ أصلح سديد",
+            "Do not change files or deploy; fix Sadeed", "لا تغيّر الملفات ولا تنشر؛ أصلح سديد",
+            "Upgrade Sadeed?", "طوّر سديد؟",
+            "Deploy Sadeed?", "انشر سديد؟",
+            "Can you tell me: upgrade Sadeed", "هل يمكنك شرح: طوّر سديد",
+            "For example: upgrade Sadeed", "مثال: طوّر سديد", '"Upgrade Sadeed"', "«طوّر سديد»",
+        )
+        for text in requests:
+            with self.subTest(text=text):
+                plan = self.route(text, workspace_path=worktree)
+                self.assertEqual(plan["status"], "needs-clarification")
+                self.assertFalse(plan["write_allowed"] or plan["executable_by_route"])
+                self.assertIsNone(plan["grant_template"])
+                self.assertNotIn("targets", plan)
+
+        for text in ("Upgrade Sadeed but do not deploy", "طور سديد ولا تنشره"):
+            with self.subTest(text=text):
+                plan = self.route(text, workspace_path=worktree)
+                self.assertTrue(plan["write_allowed"])
+                self.assertEqual(plan["prohibited"], ["release"])
+                self.assertNotIn("master-release", plan["grant_template"]["engines"])
+
     def test_negated_or_embedded_project_names_are_not_targets(self):
         for text in ("upgrade sadeed but not wow bus", "طور سديد وليس واو باص", "deploy sadeed, not wow bus",
                      "build sadeeed", "ابن سديدة", "create sadeeed dashboard", "upgrade my-sadeed-fork", "طور الراي السديد"):
@@ -131,14 +178,14 @@ class RouterTests(unittest.TestCase):
             self.assertIsNone(router.remote_slug(url), url)
 
     def test_workspace_guard_needs_every_target_and_survives_empty_or_inherited_git_settings(self):
-        checkout = self.home.parent / "sadeed"
-        checkout.mkdir()
-        subprocess.run(["git", "init", "-q", str(checkout)], check=True)
-        subprocess.run(["git", "-C", str(checkout), "remote", "add", "origin",
-                        "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar.git"], check=True)
-        self.assertTrue(self.route("طور سديد", workspace_path=checkout)["write_allowed"])
-        self.assertFalse(self.route("upgrade sadeed and upgrade wow bus", workspace_path=checkout)["write_allowed"])
-        self.assertFalse(self.route("طور جميع مشاريعي", workspace_path=checkout)["write_allowed"])
+        checkout, worktree = self.linked_checkout()
+        self.assertFalse(self.route("طور سديد", workspace_path=checkout)["write_allowed"])
+        self.assertTrue(self.route("طور سديد", workspace_path=worktree)["write_allowed"])
+        for text in ("upgrade sadeed and upgrade wow bus", "طور جميع مشاريعي"):
+            plan = self.route(text, workspace_path=worktree)
+            self.assertFalse(plan["write_allowed"], text)
+            self.assertIsNone(plan["grant_template"], text)
+            self.assertTrue(all(t["grant_template"] is None for t in plan["targets"]), text)
         empty = self.route("طور سديد", workspace_path="")
         self.assertFalse(empty["write_allowed"])
         self.assertFalse(empty["targets"][0]["workspace_matches"])
@@ -172,15 +219,48 @@ class RouterTests(unittest.TestCase):
         plan = self.route("طور سديد", workspace_path=ROOT)
         self.assertFalse(plan["targets"][0]["workspace_matches"])
         self.assertFalse(plan["write_allowed"])
-        self.assertIn("do not edit", plan["workspace_note"])
-        checkout = self.home.parent / "checkout"
-        checkout.mkdir()
-        subprocess.run(["git", "init", "-q", str(checkout)], check=True)
-        subprocess.run(["git", "-C", str(checkout), "remote", "add", "origin",
-                        "http://local_proxy@127.0.0.1:1/git/faisaljohaimy-ship-it/biz-pulse-ar"], check=True)
-        plan = self.route("طور سديد", workspace_path=checkout)
+        self.assertIn("do not edit", plan["workspace_note"].lower())
+        _, worktree = self.linked_checkout(
+            origin="http://local_proxy@127.0.0.1:1/git/faisaljohaimy-ship-it/biz-pulse-ar")
+        plan = self.route("طور سديد", workspace_path=worktree)
         self.assertTrue(plan["targets"][0]["workspace_matches"])
         self.assertTrue(plan["write_allowed"])
+        self.assertEqual(plan["grant_template"]["paths"], [str(worktree)])
+        self.assertEqual(plan["execution_scope"]["paths"], [str(worktree)])
+        self.assertEqual(plan["execution_scope"]["branch"], "codex/gaie-upgrade-biz-pulse-ar")
+
+    def test_new_build_needs_an_explicit_empty_private_non_git_workspace(self):
+        text = "Build a new unit converter"
+        build = self.home.parent / "build"
+        build.mkdir(mode=0o700)
+        public = self.home.parent / "public"
+        public.mkdir()
+        public.chmod(0o755)
+        linked = self.home.parent / "shortcut"
+        linked.symlink_to(build, target_is_directory=True)
+        checkout, worktree = self.linked_checkout()
+        for path in (None, ROOT, checkout, worktree, public, linked, build / "missing"):
+            with self.subTest(path=path):
+                plan = self.route(text, workspace_path=path)
+                self.assertEqual(plan["decision"], "blocked")
+                self.assertFalse(plan["write_allowed"])
+                self.assertIsNone(plan["grant_template"])
+        valid = self.route(text, workspace_path=build)
+        self.assertEqual(valid["decision"], "ready-for-grant")
+        self.assertTrue(valid["write_allowed"])
+        self.assertEqual(valid["grant_template"]["paths"], [str(build)])
+        self.assertEqual(valid["execution_scope"]["paths"], [str(build)])
+        self.assertFalse(any(build.iterdir()))
+        (build / "existing.txt").write_text("existing", encoding="utf-8")
+        self.assertFalse(self.route(text, workspace_path=build)["write_allowed"])
+
+    def test_an_unavailable_workspace_policy_cannot_authorize_writes(self):
+        _, worktree = self.linked_checkout()
+        with mock.patch.object(router, "_workspace_policy", None):
+            plan = self.route("Upgrade Sadeed", workspace_path=worktree)
+        self.assertEqual(plan["decision"], "blocked")
+        self.assertFalse(plan["write_allowed"])
+        self.assertIsNone(plan["grant_template"])
 
     def write_overlay(self, projects):
         self.home.mkdir(parents=True, exist_ok=True)
@@ -244,23 +324,23 @@ SADEED = "biz-pulse-ar"
 PORTFOLIO = "faisal-aljuhaimy-portfolio"
 # (command, intent, project, engine id, side-effect ceiling, decision); None project = new system.
 OWNER_COMMANDS = (
-    ("طور سديد بالكامل", "upgrade", SADEED, "master-upgrade", "repo-write", "ready-for-grant"),
-    ("fully upgrade Sadeed", "upgrade", SADEED, "master-upgrade", "repo-write", "ready-for-grant"),
-    ("upgrade Sadeed completely", "upgrade", SADEED, "master-upgrade", "repo-write", "ready-for-grant"),
-    ("طور فيصل الجهيمي بورتفوليو", "upgrade", PORTFOLIO, "master-upgrade", "repo-write", "ready-for-grant"),
-    ("upgrade the Faisal Aljuhaimy Portfolio", "upgrade", PORTFOLIO, "master-upgrade", "repo-write", "ready-for-grant"),
-    ("طور بلتكس", "upgrade", "biltix", "master-upgrade", "repo-write", "ready-for-grant"),
-    ("upgrade BILTIX", "upgrade", "biltix", "master-upgrade", "repo-write", "ready-for-grant"),
-    ("طور فيديوهات سديد", "cinematic", SADEED, "master-cinematic", "repo-write", "ready-for-grant"),
-    ("upgrade Sadeed's videos", "cinematic", SADEED, "master-cinematic", "repo-write", "ready-for-grant"),
-    ("سرّع سديد", "accelerate", SADEED, "master-upgrade", "repo-write", "ready-for-grant"),
-    ("speed up Sadeed", "accelerate", SADEED, "master-upgrade", "repo-write", "ready-for-grant"),
+    ("طور سديد بالكامل", "upgrade", SADEED, "master-upgrade", "repo-write", "blocked"),
+    ("fully upgrade Sadeed", "upgrade", SADEED, "master-upgrade", "repo-write", "blocked"),
+    ("upgrade Sadeed completely", "upgrade", SADEED, "master-upgrade", "repo-write", "blocked"),
+    ("طور فيصل الجهيمي بورتفوليو", "upgrade", PORTFOLIO, "master-upgrade", "repo-write", "blocked"),
+    ("upgrade the Faisal Aljuhaimy Portfolio", "upgrade", PORTFOLIO, "master-upgrade", "repo-write", "blocked"),
+    ("طور بلتكس", "upgrade", "biltix", "master-upgrade", "repo-write", "blocked"),
+    ("upgrade BILTIX", "upgrade", "biltix", "master-upgrade", "repo-write", "blocked"),
+    ("طور فيديوهات سديد", "cinematic", SADEED, "master-cinematic", "repo-write", "blocked"),
+    ("upgrade Sadeed's videos", "cinematic", SADEED, "master-cinematic", "repo-write", "blocked"),
+    ("سرّع سديد", "accelerate", SADEED, "master-upgrade", "repo-write", "blocked"),
+    ("speed up Sadeed", "accelerate", SADEED, "master-upgrade", "repo-write", "blocked"),
     ("افحص سديد", "audit", SADEED, "master-audit", "none", "ready-for-grant"),
     ("inspect Sadeed", "audit", SADEED, "master-audit", "none", "ready-for-grant"),
-    ("أصلح أخطاء سديد", "repair", SADEED, "self-healing", "repo-write", "ready-for-grant"),
-    ("fix Sadeed's bugs", "repair", SADEED, "self-healing", "repo-write", "ready-for-grant"),
-    ("ابنِ نظامًا جديدًا لإدارة المشاريع", "build", None, "master-build", "workspace-write", "ready-for-grant"),
-    ("build a new project management system", "build", None, "master-build", "workspace-write", "ready-for-grant"),
+    ("أصلح أخطاء سديد", "repair", SADEED, "self-healing", "repo-write", "blocked"),
+    ("fix Sadeed's bugs", "repair", SADEED, "self-healing", "repo-write", "blocked"),
+    ("ابنِ نظامًا جديدًا لإدارة المشاريع", "build", None, "master-build", "workspace-write", "blocked"),
+    ("build a new project management system", "build", None, "master-build", "workspace-write", "blocked"),
     ("انشر سديد", "release", SADEED, "master-release", "production", "needs-approval"),
     ("deploy Sadeed", "release", SADEED, "master-release", "production", "needs-approval"),
 )
@@ -299,15 +379,20 @@ class ControlPlaneRouteTests(unittest.TestCase):
             self.assertTrue(plan["roles"]["lead"] and plan["roles"]["verifier"], text)
             self.assertNotEqual(plan["roles"]["lead"], plan["roles"]["verifier"], text)
             self.assertTrue(plan["capabilities"] and plan["tests"] and plan["evidence"], text)
-            self.assertEqual(plan["grant_template"]["max_side_effect"], ceiling, text)
-            self.assertEqual(plan["grant_template"]["role"], plan["roles"]["lead"], text)
-            self.assertEqual(next(iter(plan["grant_template"]["engines"])), engine_id, text)
+            if decision == "blocked":
+                self.assertIsNone(plan["grant_template"], text)
+                self.assertFalse(plan["write_allowed"] or set(plan["permissions"]) & WRITING, text)
+            else:
+                self.assertEqual(plan["grant_template"]["max_side_effect"], ceiling, text)
+                self.assertEqual(plan["grant_template"]["role"], plan["roles"]["lead"], text)
+                self.assertEqual(next(iter(plan["grant_template"]["engines"])), engine_id, text)
+                grant = router.grant_from_template(plan["grant_template"], grant_id="g-test-route",
+                                                    expires_at="2099-01-01T00:00:00Z")
+                self.assertTrue(contracts.validate_grant(grant))
             self.assertEqual(plan["execution_scope"]["max_side_effect"], ceiling, text)
             self.assertFalse(plan["execution_scope"]["default_branch_writes"], text)
             expected = "not-applicable" if project is None else "registered-public" if project == SADEED else "registered-private"
             self.assertEqual(plan["repository_check"]["status"], expected, text)
-            grant = router.grant_from_template(plan["grant_template"], grant_id="g-test-route", expires_at="2099-01-01T00:00:00Z")
-            self.assertTrue(contracts.validate_grant(grant))
             for perm in plan["permissions"]:
                 self.assertIn(perm, contracts.PERMISSIONS, text)
 
@@ -338,13 +423,14 @@ class ControlPlaneRouteTests(unittest.TestCase):
         self.assertEqual(project_registry.resolve("طور سديد وبلتكس", environ=self.env)["candidates"], ["biltix", SADEED])
 
     def test_audit_never_maps_to_a_writing_grant(self):
-        for text in ("افحص سديد", "إفحص سديد", "دقق سديد", "راجع سديد", "audit Sadeed", "inspect Sadeed", "review sadeed",
-                     "scan sadeed", "لا تنشر سديد، افحصه فقط", "audit sadeed but do not deploy"):
+        for text in ("افحص سديد", "إفحص سديد", "دقق سديد", "راجع سديد", "تحقّق من سديد", "تفقد سديد",
+                     "audit Sadeed", "inspect Sadeed", "review sadeed", "scan sadeed", "check Sadeed", "verify Sadeed",
+                     "لا تنشر سديد، افحصه فقط", "audit sadeed but do not deploy"):
             plan = self.route(text)
             self.assertEqual((plan["intent"], plan["engine_id"]), ("audit", "master-audit"), text)
             self.assertEqual((plan["side_effect"], plan["grant_template"]["max_side_effect"]), ("none", "none"), text)
             self.assertEqual(plan["grant_template"]["engines"],
-                             {"master-audit": ["spec", "inventory", "health", "hub-audit"], "memory": ["search"]}, text)
+                             {"master-audit": ["spec", "inventory", "health", "hub-audit"]}, text)
             self.assertFalse(set(plan["permissions"]) & WRITING, text)
             self.assertEqual(plan["execution_scope"]["kind"], "read-only", text)
             self.assertFalse(plan["execution_scope"]["network"] or plan["execution_scope"]["production"], text)
@@ -361,7 +447,8 @@ class ControlPlaneRouteTests(unittest.TestCase):
             self.assertEqual((scope["kind"], scope["branch"]), ("repo-branch", f"claude/gaie-{intent}-{SADEED}"), text)
             self.assertLessEqual(contracts.side_effect_rank(plan["side_effect"]), contracts.side_effect_rank("repo-write"), text)
             self.assertFalse({"ext:github", "ext:deploy", "prod:deploy", "net:fetch"} & set(plan["permissions"]), text)
-            self.assertEqual(plan["grant_template"]["paths"], [f"workspace/{SADEED}"], text)
+            self.assertEqual(scope["paths"], [f"workspace/{SADEED}"], text)
+            self.assertIsNone(plan["grant_template"], text)
             self.assertEqual(plan["approvals_required"], [], text)
         self.assertEqual(self.route("أصلح أخطاء سديد")["roles"]["lead"], "testing-self-healing-engineer")
 
@@ -386,8 +473,8 @@ class ControlPlaneRouteTests(unittest.TestCase):
     def test_new_system_gets_a_workspace_grant_and_a_gated_repository_step(self):
         plan = self.route("ابنِ نظامًا جديدًا لإدارة المشاريع")
         self.assertEqual((plan["engine_id"], plan["side_effect"], plan["target_scope"]), ("master-build", "workspace-write", "new-project"))
-        self.assertEqual(plan["grant_template"]["paths"], ["workspace/new-project"])
-        self.assertFalse(any("create-repository" in acts for acts in plan["grant_template"]["engines"].values()))
+        self.assertEqual(plan["execution_scope"]["paths"], ["workspace/new-project"])
+        self.assertIsNone(plan["grant_template"])
         step = plan["approvals_required"][0]
         self.assertEqual((step["action"], step["side_effect"], step["needs_approval"], step["in_base_grant"]),
                          ("create-repository", "external-write", True, False))
@@ -424,8 +511,9 @@ class ControlPlaneRouteTests(unittest.TestCase):
         self.assertEqual([t["id"] for t in plan["targets"]], [SADEED, "n8n-docs", "wow-bus"])
         self.assertEqual(sorted(s["id"] for s in plan["skipped"]), ["biltix", PORTFOLIO, "kpi", "security-lab"])
         self.assertIsNone(plan["grant_template"])
-        self.assertEqual({t["grant_template"]["paths"][0] for t in plan["targets"]},
-                         {f"workspace/{t['id']}" for t in plan["targets"]})  # one grant per project, never shared
+        self.assertTrue(all(t["grant_template"] is None for t in plan["targets"]))
+        self.assertEqual({t["execution_scope"]["paths"][0] for t in plan["targets"]},
+                         {f"workspace/{t['id']}" for t in plan["targets"]})  # one isolated worktree at a time
 
     def test_private_record_of_one_project_never_appears_in_another_route(self):
         self.register_private()
@@ -434,7 +522,8 @@ class ControlPlaneRouteTests(unittest.TestCase):
             self.assertNotIn(private, text)
         plan = self.route("طور فيصل الجهيمي بورتفوليو")
         self.assertEqual(plan["targets"][0]["path"], "portfolio")
-        self.assertEqual(plan["grant_template"]["paths"], [f"workspace/{PORTFOLIO}/portfolio"])
+        self.assertEqual(plan["execution_scope"]["paths"], [f"workspace/{PORTFOLIO}/portfolio"])
+        self.assertIsNone(plan["grant_template"])
         self.assertNotIn("example-owner/biltix", json.dumps(plan))
 
     def test_tampered_policy_cannot_relax_a_hard_rule(self):
@@ -449,7 +538,10 @@ class ControlPlaneRouteTests(unittest.TestCase):
             lambda i: i["audit"].update(max_side_effect="repo-write"),
             lambda i: i["audit"].update(max_side_effect="state-write"),
             lambda i: i["audit"]["permissions"].append("write:repo-branch"),
+            lambda i: i["audit"]["permissions"].append("read:state"),
             lambda i: i["audit"].update(execution="repo-branch"),
+            lambda i: i["audit"]["engines"].update(memory=["put"]),
+            lambda i: i["audit"]["engines"]["master-audit"].append("write"),
             lambda i: i["accelerate"].update(max_side_effect="network"),
             lambda i: i["repair"].update(max_side_effect="external-write"),
             lambda i: i["upgrade"]["permissions"].append("ext:github"),
@@ -477,7 +569,7 @@ class ControlPlaneRouteTests(unittest.TestCase):
             router.route("افحص سديد", environ=self.env)
 
     def test_grant_templates_are_only_templates(self):
-        template = self.route("طور سديد")["grant_template"]
+        template = self.route("افحص سديد")["grant_template"]
         self.assertIsNone(template["grant_id"])
         self.assertIsNone(template["expires_at"])
         filled = router.grant_from_template(template, grant_id="g-test-1", expires_at="2099-01-01T00:00:00Z")

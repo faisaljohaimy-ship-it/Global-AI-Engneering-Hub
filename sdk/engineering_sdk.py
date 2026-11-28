@@ -7,8 +7,10 @@ MCP transport: newline-delimited JSON-RPC on stdio; all exposed tools are read-o
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import re
+import stat
 import subprocess
 import sys
 
@@ -28,7 +30,11 @@ def pairs(items):
 
 
 def read_json(path):
-    return json.loads(path.read_text(), object_pairs_hook=pairs,
+    return decode_json(path.read_text())
+
+
+def decode_json(data):
+    return json.loads(data, object_pairs_hook=pairs,
                       parse_constant=lambda _: (_ for _ in ()).throw(ValueError("invalid number")))
 
 
@@ -44,9 +50,43 @@ def safe_path(root, name):
     return current
 
 
+def read_audit_file(root, name):
+    """Read one bounded regular file through directory descriptors; never follow a link."""
+    path = pathlib.PurePosixPath(name)
+    if path.is_absolute() or not path.parts or ".." in path.parts or ".git" in path.parts:
+        raise ValueError("unsafe audit path")
+    if os.open not in os.supports_dir_fd or not hasattr(os, "O_NOFOLLOW"):
+        raise ValueError("safe audit file access unavailable")
+    root = pathlib.Path(root).absolute()
+    if ".." in root.parts:
+        raise ValueError("unsafe audit root")
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptor = os.open(root.anchor, directory_flags)
+    try:
+        for part in (*root.parts[1:], *path.parts[:-1]):
+            child = os.open(part, directory_flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        before = os.stat(path.name, dir_fd=descriptor, follow_symlinks=False)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise ValueError("audit accepts only regular files without aliases")
+        fd = os.open(path.name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=descriptor)
+        with os.fdopen(fd, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if not os.path.samestat(info, before) or info.st_nlink != 1:
+                raise ValueError("audit file changed during open")
+            limit = 32 * 1024 * 1024
+            data = handle.read(limit + 1)
+            if len(data) > limit:
+                raise ValueError("audit file exceeds the read limit")
+            return data
+    finally:
+        os.close(descriptor)
+
+
 def verify(root):
     """Verify the committed local file checksums; upstream authenticity is hub.py's job."""
-    manifest = read_json(safe_path(root, ".engineering/capabilities.json"))
+    manifest = decode_json(read_audit_file(root, ".engineering/capabilities.json").decode("utf-8"))
     if manifest.get("schema_version") != 1 or not SHA.fullmatch(str(manifest.get("hub_revision", ""))):
         raise ValueError("invalid capability manifest or pin")
     if manifest.get("production_runtime_dependency") is not False or type(manifest.get("budget_additional_sar")) is not int or manifest["budget_additional_sar"] != 0:
@@ -65,7 +105,7 @@ def verify(root):
             if name in seen and seen[name] != expected:
                 raise ValueError("conflicting capability files")
             seen[name] = expected
-            data = safe_path(root, name).read_bytes()
+            data = read_audit_file(root, name)
             if hashlib.sha256(data).hexdigest() != expected:
                 raise ValueError(f"capability checksum mismatch: {name}")
             count += 1

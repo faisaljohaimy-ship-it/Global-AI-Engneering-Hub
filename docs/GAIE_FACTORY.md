@@ -14,7 +14,7 @@ paid resource or background agent.
 | «افحص سديد» | AUDIT | `gaie-audit` | never |
 | «انشر سديد» | RELEASE | `gaie-release` | only with explicit authorization |
 | «طور جميع مشاريعي» | MASTER_UPGRADE per registered project | `gaie-upgrade` | one branch per project |
-| «ابنِ نظامًا جديدًا …» | MASTER_BUILD | `gaie-build` | new private repository when permitted |
+| «ابنِ نظامًا جديدًا …» | MASTER_BUILD | `gaie-build` | isolated local workspace with a host grant. Repository creation requires separate owner approval |
 
 Explicit commands: `/gaie-build`, `/gaie-upgrade`, `/gaie-audit`, `/gaie-cinematic`,
 `/gaie-release` (and `/gaie-master-router`). As a plugin they are namespaced
@@ -27,7 +27,7 @@ Explicit commands: `/gaie-build`, `/gaie-upgrade`, `/gaie-audit`, `/gaie-cinemat
 | Master router | `engineering_os/gaie_router.py`, `governance/policies/gaie-routes.json` | Normalizes Arabic and English, classifies the verb and focus, honours negation, resolves the project, selects engine, skills, workstreams, gates. `hub.py route "<text>" [--workspace DIR]` |
 | Build engine | `prompts/MASTER_BUILD.md`, `skills/gaie-build` | Phases A–G from requirements to verified release |
 | Upgrade engine | `prompts/MASTER_UPGRADE.md`, `skills/gaie-upgrade` | Discovery, baseline, coverage matrix, upgrade, self-healing, independent verification |
-| Audit | `skills/gaie-audit` | Read-only engineering and security review (`allowed-tools` restricted) |
+| Audit | `skills/gaie-audit` | Read-only engineering and security review in the restricted verifier or through a governed audit action |
 | Cinematic | `skills/gaie-cinematic` | Media inventory to rendered, verified films; engines chosen by evidence |
 | Release | `skills/gaie-release` | Identity, checks, preview, rollback, authorized promotion; uses SDK `target`/`release` |
 | Project registry | `projects/registry.json`, `projects/aliases.json`, private `$GAIE_HOME/projects.json` | Public names in Git; private projects only in the overlay |
@@ -54,9 +54,10 @@ and `motions` at run time.
 - No match, two operations, a build verb on an existing project, or a clash between
   registries returns `needs-clarification` (exit code 2) with `write_allowed: false`.
 - «لا تنشر», "do not deploy" and similar put that operation in `prohibited`.
-- `--workspace DIR` compares the checkout's `origin` (github.com or the local Git
-  proxy only) with the target repository; `write_allowed` is true only when every
-  target matches.
+- `--workspace DIR` checks the worktree and branch for an existing target or a
+  dedicated workspace for a new project. An operation with write intent remains
+  a plan until the workspace passes validation and the host grants the
+  operation and paths.
 - Registries are refused when an alias contains a command word or matches inside
   another project's alias.
 - `repository_verified` is always false in a plan: reachability is checked by the
@@ -123,9 +124,25 @@ After editing `skills/gaie-*` in the hub, re-run
 `python3 scripts/gaie_bootstrap.py install --scope project --target . --apply`;
 a test fails if the committed copies drift.
 
-The router command needs Bash approval. To avoid the prompt, the owner can add
-`Bash(python3 hub.py route:*)` to the permission allow-list; this repository does
-not set permissions on the owner's behalf.
+## Read-only review boundary
+
+In Claude Code, `gaie-audit` runs in a fork of the `gaie-verifier` subagent. The
+subagent's tool list contains only Read, Grep and Glob. The skill passes an
+approved local checkout and scope as explicit arguments. If the fork or its tool
+restriction is unavailable, use an already governed `master-audit` result or
+report the blocker. General-purpose Claude sessions and external hosts require
+their own verified boundary. Skill `allowed-tools` controls pre-approval and the
+subagent `tools` field controls the fork's tool availability.
+
+For Codex, use a host session with read-only enforcement and with write-capable
+connectors removed. The CLI supports `--sandbox read-only --ask-for-approval never`.
+When deploying either host configuration, verify that its active permissions,
+hooks and connectors preserve the boundary. In the absence of verified
+restrictions, review already-provided receipts in the conversation.
+
+Audit reports are returned in the conversation. A fresh test or build uses
+a separate QA action and its own grant and workspace. The router invocation
+and read-only review require no engineering memory or checkpoint writes.
 
 ## Capability coverage
 
@@ -137,7 +154,7 @@ Status words: *implemented* (code exists), *tested* (automated tests pass),
 | gaie.router | `engineering_os/gaie_router.py` | 1.0.0 | MIT | Python stdlib, git | fail-closed targeting, no network | tested (`tests/test_gaie_router.py`); host-verified | Lexical rules, not a language model; unlisted phrasing returns clarification |
 | gaie.build | `prompts/MASTER_BUILD.md`, `skills/gaie-build` | 1.0.0 | MIT | hub CLI | no secrets, private-by-default repos | tested for integrity and routing; host-verified invocation | No full system has been built through it yet; repository creation not exercised |
 | gaie.upgrade | `prompts/MASTER_UPGRADE.md`, `skills/gaie-upgrade` | 1.0.0 | MIT | hub CLI | workspace-origin guard | tested for integrity and routing; host-verified invocation | No product upgrade run yet (by owner instruction) |
-| gaie.audit | `skills/gaie-audit` | 1.0.0 | MIT | hub CLI | `allowed-tools` read-only | tested for integrity and routing; host-verified invocation | Bash can still write; the read-only rule is an instruction plus tool list, not a sandbox |
+| gaie.audit | `skills/gaie-audit` | 1.0.0 | MIT | restricted host or governed audit action | Claude verifier tool allowlist and read-only control-plane grant | tested for integrity and routing | Each host's active restriction needs separate acceptance evidence |
 | gaie.cinematic | `skills/gaie-cinematic` | 1.0.0 | MIT | motion library, renderer | license and paid-credit gates | tested for integrity and routing; host-verified invocation | No film produced by it yet; Remotion, Blender, WebGPU remain unverified engines |
 | gaie.release | `skills/gaie-release` | 1.0.0 | MIT | SDK target/release | explicit authorization, no CI bypass | tested for integrity and routing | No deployment performed; simulated only by routing tests |
 | gaie.registry | `projects/aliases.json`, private overlay | 1.0.0 | MIT | — | private names outside Git, conflict refusal | tested | Repository reachability is not checked offline |
@@ -145,7 +162,7 @@ Status words: *implemented* (code exists), *tested* (automated tests pass),
 | gaie.inventory | `engineering_os/gaie_inventory.py` | 1.0.0 | MIT | Python stdlib | read-only, no symlinks, no content output | tested | Path heuristics; counts are not quality |
 | gaie.bootstrap | `scripts/gaie_bootstrap.py` | 1.0.0 | MIT | Python stdlib | never overwrites foreign files, symlinks refused | tested; project scope applied to this hub | User scope not persistent in cloud sessions; the install manifest is trusted as the directory owner's record |
 | gaie.plugin | `.claude-plugin/` | 1.0.0 | MIT | Claude Code | paths inside repository | `claude plugin validate .` passed | Marketplace install not exercised |
-| gaie.verifier | `agents/gaie-verifier.md` | 1.0.0 | MIT | Claude Code | read-only tool list | listed by a clean session | Not yet used on a real review |
+| gaie.verifier | `agents/gaie-verifier.md` | 1.0.0 | MIT | Claude Code | Read, Grep and Glob only | tested for installation integrity | Fresh runtime tests run separately with an isolated QA grant |
 
 ## Before and after
 

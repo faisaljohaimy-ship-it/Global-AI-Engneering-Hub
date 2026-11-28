@@ -20,6 +20,9 @@ acceptance criterion has passing evidence.
 5. Do not ship decorative functions: no page, button or integration that claims a
    capability which does not run. Label inactive integrations as inactive.
 6. Report in the owner's language. Never invent results; state what was not verified.
+7. Validate a dedicated empty new-project workspace before the first write. Require
+   a write-enabled route for that workspace and a host grant limited to it. If
+   either check fails, deliver the plan and the exact blocker.
 
 ## Phase A — Requirements intelligence
 
@@ -33,16 +36,17 @@ and cannot be derived; otherwise choose a sensible default and record it.
 
 1. Check that no repository already exists for this system (router registry, GitHub
    listing). If one exists, stop and route to the upgrade engine.
-2. With GitHub permission in this environment, create an independent repository,
-   private by default, with a professional kebab-case name. Without permission, state
-   the exact blocker and prepare the project locally; do not create placeholders in
-   the owner's account.
+2. Treat repository creation as a separate `external-write` step. Require explicit
+   owner approval and a grant for the exact repository and owner in addition to
+   GitHub access. Use a private repository and a professional kebab-case name by
+   default. Until this gate passes, keep any authorized work in the isolated local
+   workspace.
 3. Link it to the hub: `hub.py onboard` (dry-run, then `--apply`), `hub.py register`
    with only the capabilities the system will use, then `hub.py verify --strict`.
-4. Record it in the private project overlay (`$GAIE_HOME/projects.json`); list it in
-   the public registry only if the repository is public and the owner agrees.
-5. Protect the default branch, require checks, and prepare development and preview
-   environments.
+4. Update the private project overlay (`$GAIE_HOME/projects.json`) with a separate
+   state grant. Public registration requires a public repository and owner consent.
+5. Plan branch protection, checks and preview setup. Apply repository settings or
+   create preview resources only under a separate grant for that remote action.
 
 ## Phase C — Architecture
 
@@ -84,20 +88,19 @@ Honour reduced motion, RTL and LTR, and accessibility. Films and voice follow
 
 Run, and keep evidence for: unit, integration, end-to-end, security, performance
 (LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1 where applicable, measured), accessibility,
-AI evaluations, cross-browser, mobile and visual regression. A green build alone is
-not completion. Prepare documentation, a release manifest and a preview. Production
-deployment follows `skills/gaie-release` and needs explicit owner authorization.
+AI evaluations, cross-browser, mobile and visual regression. Prepare
+documentation and a release manifest. A remote preview or production deployment
+requires a separate release grant under `skills/gaie-release`.
 
 ## Execution governance
 
-Follow the router plan: classify, select capabilities and workstreams, isolate
-workspaces (one branch or worktree per workstream, explicit path ownership via
-`engineering_os.orchestration`), implement, review, repair, test, checkpoint,
-prepare the release, deliver evidence. Spawn only as many agents as there are
-independent workstreams, never more than 20, fewer when that is faster. Give each
-agent the minimum context and permissions for its task; do not have every agent
-re-read the repository. The implementer never signs off its own work: an
-independent verifier checks every significant output.
+Use one isolated workspace per writing workstream, with explicit path ownership
+via `engineering_os.orchestration` and a host grant confining writes to those
+paths. Give every agent only its task's tools and scope. Keep shared and
+production paths outside each grant. If isolation cannot be enforced, keep the
+workstream at planning. Independent read-only verification consumes the diff
+and test receipts from an authorized QA run. A checkpoint requires a scoped
+state grant.
 
 Self-healing loop for every defect: discover → analyze root cause → design →
 implement on an isolated branch → test → critique → repair → validate, keeping a
@@ -109,5 +112,5 @@ Hand over: repository link, architecture and ADRs, the coverage matrix (componen
 state, acceptance criterion, test, evidence), test results including failures,
 measured performance, security posture, costs incurred (expected: none), remaining
 limitations, and the next recommended steps. Save decisions, proven patterns,
-failures and fixes to project memory; propose reusable knowledge for the hub only
-after review and with private details removed.
+failures and fixes to project memory only under a grant for that state. Remove
+private details from reusable knowledge before proposing it for hub review.

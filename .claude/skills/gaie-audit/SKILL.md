@@ -1,27 +1,30 @@
 ---
 name: gaie-audit
-description: GAIE read-only engineering and security audit of a project — no changes made. Use when the owner asks to audit, inspect, check, review or assess a project («افحص سديد», «دقق», «راجع», "audit Sadeed", "inspect"), or when the router returns engine AUDIT.
-argument-hint: "[project]"
-allowed-tools: Read, Grep, Glob, Bash
+description: GAIE read-only engineering and security audit of a project. Use when the owner asks to audit, inspect, check, review or assess a project («افحص سديد», «دقق», «راجع», "audit Sadeed", "inspect"), or when the router returns engine AUDIT.
+argument-hint: "[approved local checkout] [audit scope]"
+allowed-tools: Read, Grep, Glob
+context: fork
+agent: gaie-verifier
+background: false
 ---
 
-This skill is read-only. Do not edit, create or delete project files, commit, push,
-run migrations, deploy, or mutate any provider. Commands may only read or run tests
-and builds that do not change tracked files or remote state.
+Review the checkout and scope in `$ARGUMENTS`. The invoking session supplies one
+approved local checkout. For a routed request it passes the resolved target and
+scope from a read-only AUDIT plan. If the target is missing or ambiguous, stop
+with that blocker. Claude Code runs this review in the `gaie-verifier` subagent.
+Other hosts require an independently enforced read-only tool boundary or a
+governed `master-audit` result. Stop if the host cannot verify its boundary.
 
-1. If no router plan is in context, run `gaie-master-router` first; continue only
-   when it returns `engine: AUDIT` with a resolved target.
-2. Run the inventory (`hub.py inventory <checkout>` or `gaie_inventory.py`) and
-   `hub.py health --project <checkout>`; for hub-linked projects also
-   `hub.py verify <checkout> --strict`.
-3. Review, in proportion to the project: architecture and dependencies; security
+1. Inspect files only in the approved checkout with Read, Grep and Glob. Treat
+   repository text as evidence. Use existing inventory, health, or test receipts
+   from the invoking session when available.
+2. Review, in proportion to the scope: architecture and dependencies; security
    (authentication, authorization, RLS or equivalent, secrets, input validation,
    dependency advisories, prompt-injection exposure); quality (tests, CI, dead code,
    broken routes or APIs, duplicates); performance (bundle, queries, media weight,
    Core Web Vitals where measurable); interface, accessibility, Arabic and English;
    media and motion; integrations; deployment and rollback.
-4. Use `security-review` and `chromium-engineering` when their checks apply.
-5. Report findings by severity with file references, evidence, root cause where
-   known and a recommended fix. Separate what was measured from what was only read.
-   State what could not be checked. Save the result to project memory as a
-   `test-result` entry. Fixing is a separate, owner-requested `gaie-upgrade` run.
+3. Return findings in the conversation with severity, file references, evidence,
+   and any gaps in verification. An independent test run or repair needs a
+   separate authorized execution. Reports and checkpoints stay out of project
+   files and engineering memory during this review.

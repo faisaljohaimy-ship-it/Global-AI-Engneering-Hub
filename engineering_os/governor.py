@@ -9,7 +9,8 @@ machine-readable `reason`; nothing is allowed because a text says so.
     audit(state_dir, event, *, now=None) -> None                      (append-only, hash-chained JSONL)
     verify_audit(state_dir) -> int                                    (records; GovernorDenied "audit-tampered")
     sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
-                cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256)
+                cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
+                require_fs_isolation=False, read_only=False)
         -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated"}
     isolation_probe() -> dict                                          (measured once per process)
 
@@ -54,7 +55,7 @@ REASONS = (
     "invalid-path", "path-outside-grant", "secret-in-payload", "invalid-payload", "payload-too-large",
     "invalid-audit-event", "audit-in-repository", "audit-failed", "audit-tampered", "invalid-command",
     "invalid-env-name", "invalid-limit", "allowed-path-too-broad", "network-isolation-unavailable",
-    "sandbox-setup-failed",
+    "sandbox-setup-failed", "invalid-sandbox-mode", "filesystem-isolation-unavailable",
 )
 MAX_PAYLOAD_CHARS = 8 * 1024 * 1024
 MAX_PAYLOAD_DEPTH = 64
@@ -267,7 +268,8 @@ def payload_sha256(payload):
 
 def _inside_git_worktree(path):
     while True:
-        if os.path.lexists(os.path.join(path, ".git")):
+        marker = os.path.join(path, ".git")
+        if os.path.islink(marker) or os.path.isfile(marker) or os.path.lexists(os.path.join(marker, "HEAD")):
             return True
         parent = os.path.dirname(path)
         if parent == path:
@@ -275,13 +277,43 @@ def _inside_git_worktree(path):
         path = parent
 
 
-def _audit_path(state_dir, create):
-    directory = os.path.realpath(_text_path(state_dir))
+def _open_audit(state_dir, *, write):
+    reason = "audit-failed" if write else "audit-tampered"
+    directory = os.path.abspath(_text_path(state_dir))
+    if os.path.realpath(directory) != directory:
+        raise GovernorDenied(reason, "the audit directory may not pass through a symlink")
     if _inside_git_worktree(directory):
         raise GovernorDenied("audit-in-repository", "the audit log lives in a private state directory outside Git")
-    if create:
-        os.makedirs(directory, mode=0o700, exist_ok=True)
-    return os.path.join(directory, AUDIT_FILE)
+    flags = os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK
+    try:
+        if write:
+            os.makedirs(directory, mode=0o700, exist_ok=True)
+        directory_fd = os.open(directory, flags | os.O_DIRECTORY)
+        try:
+            current = os.fstat(directory_fd)
+            if current.st_uid != os.geteuid() or current.st_mode & 0o077:
+                raise GovernorDenied(reason, "the audit directory must be private and owned by the caller")
+            mode = os.O_RDWR | os.O_APPEND | os.O_CREAT if write else os.O_RDONLY
+            fd = os.open(AUDIT_FILE, flags | mode, 0o600, dir_fd=directory_fd)
+        finally:
+            os.close(directory_fd)
+    except FileNotFoundError as exc:
+        if not write:
+            return None
+        raise GovernorDenied(reason, os.strerror(exc.errno or 0)) from None
+    except GovernorDenied:
+        raise
+    except OSError as exc:
+        raise GovernorDenied(reason, os.strerror(exc.errno or 0)) from None
+    try:
+        current = os.fstat(fd)
+        if (not stat.S_ISREG(current.st_mode) or current.st_nlink != 1 or current.st_mode & 0o077
+                or current.st_uid != os.geteuid()):
+            raise GovernorDenied(reason, "the audit log must be a private, single-linked regular file")
+    except BaseException:
+        os.close(fd)
+        raise
+    return fd
 
 
 def _field(event, name, limit=200):
@@ -326,19 +358,13 @@ def audit(state_dir, event, *, now=None):
     else:
         given = event.get("payload_sha256")
         digest = given if isinstance(given, str) and len(given) == 64 and set(given) <= _HEX64 else None
-    path = _audit_path(state_dir, create=True)
     record = {"seq": 0, "at": _stamp(_instant(now)), "decision": decision,
               "reason": _field(event, "reason", 120), "grant_id": _field(event, "grant_id", 80),
               "engine": _field(event, "engine", 80), "action": _field(event, "action", 80),
               "side_effect": _field(event, "side_effect", 40), "payload_sha256": digest, "prev_sha256": None}
-    try:
-        fd = os.open(path, os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
-    except OSError as exc:
-        raise GovernorDenied("audit-failed", os.strerror(exc.errno or 0)) from None
+    fd = _open_audit(state_dir, write=True)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
-        if not stat.S_ISREG(os.fstat(fd).st_mode):
-            raise GovernorDenied("audit-failed", "the audit log is not a regular file")
         last = _last_record(fd)
         if last is not None:
             record["seq"], record["prev_sha256"] = last[0] + 1, last[1]
@@ -357,13 +383,12 @@ def audit(state_dir, event, *, now=None):
 
 def verify_audit(state_dir):
     """Number of records when the chain is intact; GovernorDenied("audit-tampered") otherwise."""
-    path = _audit_path(state_dir, create=False)
-    if not os.path.lexists(path):
+    fd = _open_audit(state_dir, write=False)
+    if fd is None:
         return 0
-    if os.path.islink(path):
-        raise GovernorDenied("audit-tampered", "the audit log is a symlink")
     prev, count = None, 0
-    with open(path, "rb") as handle:
+    with os.fdopen(fd, "rb") as handle:
+        fcntl.flock(handle, fcntl.LOCK_SH)
         for number, raw in enumerate(handle, 1):
             try:
                 record = json.loads(raw)
@@ -506,24 +531,28 @@ def _classify(code, limit, cpu_used, cpu_seconds):
     return None
 
 
-def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits):
+def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, strict=False):
     """Run cmd inside user+mount+pid(+net) namespaces under a minimal read-only root."""
     unshare = shutil.which("unshare", path=_cage().ENV["PATH"])
-    readable = sorted(set(readable) | set(_exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable)))
+    if not strict:
+        readable = sorted(set(readable) | set(_exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable)))
     status_r, status_w = os.pipe()
     spec = {"cmd": list(cmd), "cwd": cwd, "allowed": allowed, "readable": readable,
-            "env_names": sorted(env), "status_fd": status_w}
+            "env_names": sorted(env), "status_fd": status_w, "strict": strict}
     argv = [unshare, "--user", "--map-root-user", "--mount", "--propagation", "private",
             "--pid", "--fork", "--kill-child"] + ([] if network else ["--net"]) + [
             "--", sys.executable, "-I", "-S", "-c", _BOOT, ROOT, json.dumps(spec)]
     try:
         proc, out, err, limit = _launch(argv, cwd="/", env=env, timeout=timeout, limits=limits,
                                         net_in_child=False, pass_fds=(status_w,))
+    except BaseException:
+        os.close(status_r)
+        raise
     finally:
         os.close(status_w)
     lines = _drain(status_r)
     stdout, stderr = _text(out), _text(err)
-    if "ready" not in lines and limit is None:
+    if "ready" not in lines and (strict or limit is None):
         first = stderr.strip().splitlines()[-1:] or ["no diagnostic"]
         raise GovernorDenied("sandbox-setup-failed", _safe(first[0]))
     code, cpu_used = proc.returncode, None
@@ -570,15 +599,65 @@ def _run_plain(cmd, *, cwd, timeout, network, env, limits, probe):
             "network_isolated": not network, "fs_isolated": False}
 
 
+def _strict_paths(allowed, readable, read_only):
+    common_roots = {"/tmp", "/var/tmp", os.path.realpath(os.path.expanduser("~"))}
+    if common_roots.intersection(allowed + readable):
+        raise GovernorDenied("allowed-path-too-broad", "strict modes cannot expose a common scratch or home root")
+    if read_only:
+        if allowed or not readable:
+            raise GovernorDenied("invalid-sandbox-mode", "read-only mode requires read paths and no writable paths")
+        return
+    if len(allowed) != 1 or not os.path.isdir(allowed[0]):
+        raise GovernorDenied("invalid-sandbox-mode", "strict execution requires one writable workspace directory")
+    root = allowed[0]
+    mode = os.stat(root)
+    if mode.st_uid != os.geteuid() or mode.st_mode & 0o077:
+        raise GovernorDenied("invalid-sandbox-mode", "the writable workspace must be private and owned by the caller")
+    if any(_is_inside(root, path) or _is_inside(path, root) for path in readable):
+        raise GovernorDenied("invalid-sandbox-mode", "the writable workspace must not overlap read-only mounts")
+    marker = os.path.join(root, ".git")
+    if os.path.lexists(marker):
+        pointer = os.lstat(marker)
+        if not stat.S_ISREG(pointer.st_mode) or pointer.st_nlink != 1:
+            raise GovernorDenied("invalid-sandbox-mode", "Git metadata requires an isolated linked worktree")
+
+
+def _inspect_scope(paths, *, writable):
+    """Reject mounted IPC endpoints and writes to inodes with aliases outside the workspace."""
+    pending = list(paths)
+    inspected = 0
+    while pending:
+        path = pending.pop()
+        info = os.lstat(path)
+        inspected += 1
+        if stat.S_ISDIR(info.st_mode):
+            with os.scandir(path) as children:
+                for child in children:
+                    if inspected + len(pending) >= 100_000:
+                        raise OSError(errno.E2BIG, "strict workspace inspection limit")
+                    pending.append(child.path)
+        elif stat.S_ISREG(info.st_mode):
+            if writable and info.st_nlink != 1:
+                raise OSError(errno.EMLINK, "hard-linked workspace file")
+        elif not stat.S_ISLNK(info.st_mode):
+            raise OSError(errno.EPERM, "special file in workspace")
+
+
 def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
-                cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256):
+                cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
+                require_fs_isolation=False, read_only=False):
     """Run argv `cmd` (no shell) isolated; GovernorDenied when a precondition fails.
 
     Environment: empty except PATH, HOME (= cwd), LANG and the names in env_allow.
     cwd must lie inside allowed_paths (after realpath). With the full sandbox (see
     isolation_probe) the command sees a read-only minimal root (system directories, read_paths)
     where only allowed_paths are writable, has no capabilities, its own pid namespace, and no
-    network unless network=True. stdout/stderr are capped by file_mb."""
+    network unless network=True. stdout/stderr are capped by file_mb.
+
+    Use require_fs_isolation for governed execution. It refuses the plain tier, network
+    and inherited environment, and permits writes only to one private workspace.
+    read_only implies those restrictions and exposes no writable host mounts; cwd then
+    lies under read_paths. Both modes keep ephemeral /tmp and deny socket creation."""
     if isinstance(cmd, (str, bytes)) or not isinstance(cmd, (list, tuple)) or not cmd or not all(
             isinstance(a, str) and "\0" not in a for a in cmd) or not cmd[0]:
         raise GovernorDenied("invalid-command", "argv list of text, no shell string")
@@ -590,24 +669,69 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
               "nofile": int(_number(nofile, "nofile", 16, 65536))}
     allowed = _paths(allowed_paths, "allowed path")
     readable = _paths(read_paths, "read path")
-    if not allowed:
-        raise GovernorDenied("path-outside-grant", "no allowed paths")
+    if not isinstance(require_fs_isolation, bool) or not isinstance(read_only, bool):
+        raise GovernorDenied("invalid-sandbox-mode", "isolation mode flags must be boolean")
+    if not isinstance(network, bool):
+        raise GovernorDenied("invalid-limit", "network: True or False")
+    strict = require_fs_isolation or read_only
+    if strict:
+        if network or env_allow:
+            raise GovernorDenied("invalid-sandbox-mode", "strict execution is offline without environment passthrough")
+        _strict_paths(allowed, readable, read_only)
+        try:
+            _inspect_scope(allowed, writable=True)
+            _inspect_scope(readable, writable=False)
+        except OSError as exc:
+            raise GovernorDenied("invalid-sandbox-mode", "strict mount scope is unsafe or cannot be inspected") from exc
+    cwd_paths = readable if read_only else allowed
     real_cwd = os.path.realpath(_text_path(cwd))
     if not os.path.isdir(real_cwd):
         raise GovernorDenied("invalid-path", "cwd is not a directory")
-    if not any(_is_inside(real_cwd, root) and os.path.isdir(root) for root in allowed):
-        raise GovernorDenied("path-outside-grant", "cwd lies outside allowed_paths")
-    if not isinstance(network, bool):
-        raise GovernorDenied("invalid-limit", "network: True or False")
+    if not any(_is_inside(real_cwd, root) and os.path.isdir(root) for root in cwd_paths):
+        raise GovernorDenied("path-outside-grant", "cwd lies outside permitted workspace paths")
     env = _environment(env_allow, real_cwd)
     probe = isolation_probe()
     if probe["tier"] == "full":
         return _run_full(cmd, cwd=real_cwd, timeout=timeout, network=network, env=env,
-                         allowed=allowed, readable=readable, limits=limits)
+                         allowed=allowed, readable=readable, limits=limits, strict=strict)
+    if strict:
+        raise GovernorDenied("filesystem-isolation-unavailable", "the full namespace sandbox is required")
     return _run_plain(cmd, cwd=real_cwd, timeout=timeout, network=network, env=env, limits=limits, probe=probe)
 
 
 # ------------------------------------------------- inside the sandbox (pid 1 of the new pid ns)
+
+def _disable_socket_creation():
+    """Deny network and pathname socket creation for strict children, including io_uring."""
+    try:
+        library = ctypes.CDLL("libseccomp.so.2")
+        library.seccomp_init.argtypes = [ctypes.c_uint32]
+        library.seccomp_init.restype = ctypes.c_void_p
+        library.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
+        library.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint]
+        library.seccomp_load.argtypes = [ctypes.c_void_p]
+        library.seccomp_release.argtypes = [ctypes.c_void_p]
+        library.seccomp_release.restype = None
+    except (AttributeError, OSError):
+        raise OSError(errno.ENOSYS, "seccomp support is required") from None
+    context = library.seccomp_init(0x7FFF0000)  # SCMP_ACT_ALLOW
+    if not context:
+        raise OSError(errno.ENOMEM, "seccomp initialization failed")
+    try:
+        deny = 0x00050000 | errno.EPERM  # SCMP_ACT_ERRNO(EPERM)
+        for name in (b"socket", b"io_uring_setup"):
+            number = library.seccomp_syscall_resolve_name(name)
+            if number < 0:
+                raise OSError(errno.ENOSYS, "unsupported system call table")
+            result = library.seccomp_rule_add(context, deny, number, 0)
+            if result < 0:
+                raise OSError(-result, "seccomp rule could not be installed")
+        result = library.seccomp_load(context)
+        if result < 0:
+            raise OSError(-result, "seccomp could not be enabled")
+    finally:
+        library.seccomp_release(context)
+
 
 def _sandbox_init(raw):
     """Build the minimal root, drop every capability, run the command as a child and report its
@@ -653,6 +777,8 @@ def _sandbox_init(raw):
         handles = {}
         links = {}
         for path in SYSTEM_DIRS:
+            if spec["strict"] and path == "/etc":
+                continue
             if os.path.islink(path):
                 links[path] = os.readlink(path)
             elif os.path.isdir(path):
@@ -661,6 +787,13 @@ def _sandbox_init(raw):
             handles[path] = (grab(path), True)
         for path in spec["allowed"]:
             handles[path] = (grab(path), False)
+            marker = os.path.join(path, ".git")
+            if spec["strict"] and os.path.lexists(marker):
+                fd = grab(marker)
+                pointer = os.fstat(fd)
+                if not stat.S_ISREG(pointer.st_mode) or pointer.st_nlink != 1:
+                    raise OSError(errno.EPERM, "Git metadata is not a worktree pointer")
+                handles[marker] = (fd, True)
         devices = {name: grab("/dev/" + name) for name in DEVICES if os.path.exists("/dev/" + name)}
         with open("/proc/sys/kernel/cap_last_cap") as handle:
             last_cap = int(handle.read())
@@ -707,6 +840,10 @@ def _sandbox_init(raw):
         os.chdir("/")
         mount(None, "/", None, MS_REMOUNT | MS_BIND | MS_RDONLY | MS_NOSUID | MS_NODEV)
         os.chdir(spec["cwd"])
+        if spec["strict"]:
+            step = "inspect mounted workspace"
+            _inspect_scope(spec["allowed"], writable=True)
+            _inspect_scope(spec["readable"], writable=False)
         step = "drop capabilities"
         for cap in range(last_cap + 1):
             call(libc.prctl(24, cap, 0, 0, 0), "PR_CAPBSET_DROP")
@@ -716,6 +853,10 @@ def _sandbox_init(raw):
         data = (ctypes.c_uint32 * 6)()
         call(libc.capset(header, data), "capset")
         call(libc.prctl(38, 1, 0, 0, 0), "PR_SET_NO_NEW_PRIVS")
+        call(libc.prctl(4, 0, 0, 0, 0), "PR_SET_DUMPABLE")
+        if spec["strict"]:
+            step = "restrict socket creation"
+            _disable_socket_creation()
         env = {name: os.environ[name] for name in spec["env_names"] if name in os.environ}
         cmd = spec["cmd"]
     except OSError as exc:
@@ -729,7 +870,6 @@ def _sandbox_init(raw):
         except OSError as exc:
             os.write(2, f"governor-sandbox: cannot execute: {exc.strerror}\n".encode())
         os._exit(127)
-    libc.prctl(4, 0, 0, 0, 0)  # PR_SET_DUMPABLE 0: the command cannot ptrace pid 1 or open its fds
     while True:  # pid 1: reap everything, report the command, then end the namespace
         try:
             pid, wstatus, usage = os.wait4(-1, 0)
@@ -824,7 +964,7 @@ def isolation_probe():
 
 
 def isolation_report():
-    """Public-safe evidence of what this host enforces (no host names, users or paths)."""
+    """Public-safe evidence for the base namespace tier probe."""
     probe = isolation_probe()
     unshare = shutil.which("unshare", path=_cage().ENV["PATH"])
     version = ""
@@ -866,10 +1006,9 @@ def isolation_report():
         },
         "not_enforced": [
             "number of processes: a sandbox mapped to uid 0 is exempt from RLIMIT_NPROC (bounded by timeout only)",
-            "unix sockets inside allowed_paths or read_paths can be connected to",
-            "network=True shares the host network, including loopback services",
-            "system directories (/usr, /etc, /bin, /sbin, /lib*) are readable",
-            "kernel attack surface: no seccomp filter is installed",
+            "the base probe does not measure strict profile socket, filesystem or environment restrictions",
+            "legacy calls can reach visible unix sockets and opt into the host network",
+            "system runtime directories are read-only; legacy calls can also read host /etc",
         ],
     }
 
