@@ -19,7 +19,7 @@ import re
 import sys
 
 from . import gaie_router as router
-from .contracts import canonical, sha256 as digest
+from .contracts import sha256 as digest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DOMAINS = ROOT / "governance" / "domains"

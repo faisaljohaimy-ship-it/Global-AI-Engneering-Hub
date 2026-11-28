@@ -14,6 +14,7 @@ import unittest
 
 from engineering_os import gaie_router as router
 from engineering_os import requirements as rq
+from engineering_os.contracts import canonical
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PM_COMMAND = "ابنِ نظامًا جديدًا لإدارة المشاريع"
@@ -264,9 +265,9 @@ class ProjectManagementEndToEndTests(unittest.TestCase):
 
     def test_deterministic_across_calls_and_hash_seeds(self):
         self.assertEqual(rq.parse(PM_COMMAND), self.spec)
-        expected = hashlib.sha256(rq.canonical(self.spec).encode("utf-8")).hexdigest()
-        code = ("import hashlib,sys;from engineering_os import requirements as rq;"
-                "print(hashlib.sha256(rq.canonical(rq.parse(sys.argv[1])).encode()).hexdigest())")
+        expected = hashlib.sha256(canonical(self.spec).encode("utf-8")).hexdigest()
+        code = ("import hashlib,sys;from engineering_os import requirements as rq;from engineering_os.contracts import canonical;"
+                "print(hashlib.sha256(canonical(rq.parse(sys.argv[1])).encode()).hexdigest())")
         for seed in ("0", "1", "12345"):
             out = subprocess.run([sys.executable, "-c", code, PM_COMMAND], cwd=ROOT, capture_output=True, text=True,
                                  env={**os.environ, "PYTHONHASHSEED": seed}, check=True, timeout=60)
