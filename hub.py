@@ -5,7 +5,7 @@ import re
 import sys
 
 import hublink
-from engineering_os import control
+from engineering_os import control, gaie_inventory, gaie_router
 
 ROOT = pathlib.Path(__file__).resolve().parent
 HUB_URL = "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub"
@@ -293,6 +293,11 @@ def main():
     verify_parser = commands.add_parser("verify")
     verify_parser.add_argument("target")
     verify_parser.add_argument("--strict", action="store_true")
+    route_parser = commands.add_parser("route")
+    route_parser.add_argument("text")
+    route_parser.add_argument("--workspace")
+    inventory_parser = commands.add_parser("inventory")
+    inventory_parser.add_argument("target")
     projects_parser = commands.add_parser("projects")
     projects_parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
@@ -330,6 +335,17 @@ def main():
             args.apply,
             args.remove,
         )
+    elif args.cmd == "route":
+        try:
+            result = gaie_router.route(args.text, workspace_path=args.workspace)
+        except (ValueError, OSError, KeyError, TypeError, AttributeError) as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(1)
+        if result["status"] != "routed":
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            sys.exit(2)
+    elif args.cmd == "inventory":
+        result = gaie_inventory.inventory(args.target)
     elif args.cmd == "verify":
         result = hublink.verify(args.target, args.strict)
         if not result["ok"]:

@@ -56,6 +56,21 @@ public metadata into review artifacts, never installs what it discovers.
 
 See [the delivery status and remaining boundaries](docs/OPERATING_SYSTEM_STATUS.md) for per-layer before/after evidence.
 
+## GAIE software factory
+
+Give an owner command in Arabic or English and let the router pick the engine:
+
+```sh
+python3 hub.py route "طور سديد"          # plan: engine, skill, target, gates
+python3 hub.py inventory /path/to/project  # read-only discovery and coverage matrix
+python3 scripts/gaie_bootstrap.py install --scope user   # dry-run; add --apply
+```
+
+In Claude Code: `/plugin install gaie --marketplace faisaljohaimy-ship-it/Global-AI-Engneering-Hub`,
+or open this repository, where the `gaie-*` skills are committed. See
+[the factory guide](docs/GAIE_FACTORY.md) for commands, installation per
+environment, rollback and what is and is not verified.
+
 ## Architecture
 See the [twelve-layer architecture](ARCHITECTURE.md), [existing reference](docs/ARCHITECTURE.md) and [onboarding](docs/ONBOARDING.md). One independent repository and deployment target per app. Shared capabilities use versioned references; no live production dependency on this hub. Keep client code, secrets, private business assets and sensitive data outside this public repository. Use services only within approved budget and commercial-use terms.
 
