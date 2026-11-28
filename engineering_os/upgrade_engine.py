@@ -358,6 +358,28 @@ def _refuse_linked_databases(root, manifest):
                               "be proven, so the run is refused before anything was copied (list the real file instead)")
 
 
+def _left_out(root, rel):
+    """Why a database the manifest lists is not among the target's files: ``(status, reason)``.
+
+    ``absent`` when nothing is at that path; otherwise ``skipped-by-policy``: the engine never copies, reads or proves
+    a file under a ``detectors.SKIP_DIRS`` directory (venv/, node_modules/ ...), behind a symlink, with a compiled-cache
+    name or that is not a regular file, so that database's data is unproven.
+    """
+    path, parts = pathlib.Path(root) / rel, pathlib.PurePosixPath(rel).parts
+    if not (path.exists() or path.is_symlink()):
+        return "absent", "no file at this path in the target"
+    skipped = next((part for part in parts[:-1] if part in detectors.SKIP_DIRS), None)
+    if skipped is not None:
+        return "skipped-by-policy", f"it lies under {skipped}/, a directory the engine never copies, reads or proves"
+    linked = next((pathlib.PurePosixPath(*parts[:n]).as_posix() for n in range(1, len(parts) + 1)
+                   if (pathlib.Path(root) / pathlib.PurePosixPath(*parts[:n])).is_symlink()), None)
+    if linked is not None:
+        return "skipped-by-policy", f"it is reached through the symlink {linked}, which the engine never follows"
+    if rel.endswith((".pyc", ".pyo")):
+        return "skipped-by-policy", "it has a compiled-cache name the engine never copies"
+    return "skipped-by-policy", "it is not a regular file"
+
+
 def _test_spec(tests, root):
     if tests is None:
         start = root / "tests"
@@ -1612,6 +1634,7 @@ class _Run:
         self.changed, self.task_id, self.requested = {}, None, {"unmet": []}
         self.memory, self.memory_report, self.adr = None, {"written": False}, None
         self.unused, self.entrypoints, self.schemas = [], (), []
+        self.databases_missing, self.databases_skipped = [], []
         self.run_dir = self.candidate = self.sandbox = None
         self.original = self._snapshot(root)
 
@@ -1714,7 +1737,10 @@ class _Run:
         tests_dir = self.tests["start"] if self.tests else None
         databases = self.manifest.get("databases") or sqlite_files(self.root, files, tests_dir)
         self.databases = [rel for rel in databases if rel in files]
-        self.databases_missing = sorted(set(databases) - set(self.databases))  # listed but not a file in the target
+        left_out = {rel: _left_out(self.root, rel) for rel in sorted(set(databases) - set(self.databases))}
+        self.databases_missing = [rel for rel, (status, _) in left_out.items() if status == "absent"]  # listed, nothing there
+        self.databases_skipped = [{"path": rel, "status": status, "reason": reason}  # present but never read: unproven
+                                  for rel, (status, reason) in left_out.items() if status != "absent"]
         self.data = {}
         for number, rel in enumerate(self.databases, 1):
             try:  # an upgrade reads its copy through a verified snapshot (committed -wal frames count); the audit writes nowhere
@@ -1726,7 +1752,8 @@ class _Run:
         self.definitions = self.defs(self.root, files)
         self.route_entries = self.routes(self.root)
         self.test_files = {rel: digest for rel, digest in self.original.items() if tests_dir and _under(rel, tests_dir)}
-        result = {"data": self.data, "databases_missing": self.databases_missing, "assets": self.assets,
+        result = {"data": self.data, "databases_missing": self.databases_missing, "databases_skipped": self.databases_skipped,
+                  "assets": self.assets,
                   "definitions": len(self.definitions), "routes": len(self.route_entries),
                   "test_files": sorted(self.test_files)}
         if self.audit_only:
@@ -2412,6 +2439,9 @@ class _Run:
                                         "sha256_before": r["sha256"], "sha256_after": after["tables"].get(t, {}).get("sha256")}
                                     for t, r in manifest["tables"].items()},
                          "indexes_before": manifest["indexes"], "indexes_after": after["indexes"], "integrity": after["integrity"]}
+        for row in self.databases_skipped:  # listed and present, never copied or read: the data proof is incomplete
+            data[row["path"]] = {"preserved": False, "status": row["status"], "problems": [f"{row['status']}: {row['reason']}; its data is unproven"],
+                                 "tables": {}, "indexes_before": [], "indexes_after": [], "integrity": None}
         assets = {}
         for rel, digest in self.assets.items():
             path = self.candidate / rel
@@ -2661,10 +2691,22 @@ def _summary(run, status, applied):
     return {"en": f"{status}: {len(applied)} step(s) applied in an isolated copy ({names}); "
                   + ("the original system is unchanged." if unchanged else
                      "WARNING: the original system changed during the run (the original-unchanged check failed).")
-                  + (f" Requested but NOT implemented: {', '.join(unmet)}." if unmet else ""),
+                  + (f" Requested but NOT implemented: {', '.join(unmet)}." if unmet else "")
+                  + _skipped_sentence(run, "en"),
             "ar": f"الحالة {status}: طُبّقت {len(applied)} خطوة في نسخة معزولة ({names})؛ "
                   + ("النظام الأصلي لم يتغير." if unchanged else "تحذير: تغيّر النظام الأصلي أثناء التشغيل (فشل فحص عدم تغيّر الأصل).")
-                  + (f" طُلب ولم يُنفَّذ: {', '.join(unmet)}." if unmet else "")}
+                  + (f" طُلب ولم يُنفَّذ: {', '.join(unmet)}." if unmet else "")
+                  + _skipped_sentence(run, "ar")}
+
+
+def _skipped_sentence(run, language):
+    """The listed databases the run skipped by policy, named with the reason (their data is unproven), or ''."""
+    rows = getattr(run, "databases_skipped", None)  # a run stopped before its baseline has none
+    if not rows:
+        return ""
+    listed = "; ".join(f"{row['path']} ({row['reason']})" for row in rows)
+    return (f" WARNING: listed database(s) skipped by policy, data unproven: {listed}." if language == "en" else
+            f" تحذير: قاعدة بيانات مدرجة تُركت بحكم السياسة ولم تُثبت بياناتها: {listed}.")
 
 
 def _audit_report(run, extra, started):
@@ -2699,10 +2741,12 @@ def _audit_report(run, extra, started):
                            "simulated": [], "ai_reasoning": []},
               "summary": {"en": f"Audit only: {len(run.opportunities)} upgrade opportunities and {len(run.defects)} defect(s) found; "
                                 + ("nothing was changed." if unchanged and workdir_untouched else
-                                   f"WARNING: {written} file(s) changed during the audit (see no_change_proof)."),
+                                   f"WARNING: {written} file(s) changed during the audit (see no_change_proof).")
+                                + _skipped_sentence(run, "en"),
                           "ar": f"فحص فقط: وُجدت {len(run.opportunities)} فرصة تطوير و{len(run.defects)} عيب؛ "
                                 + ("لم يتغير شيء." if unchanged and workdir_untouched else
-                                   f"تحذير: تغيّر {written} ملف أثناء الفحص (انظر no_change_proof).")}}
+                                   f"تحذير: تغيّر {written} ملف أثناء الفحص (انظر no_change_proof).")
+                                + _skipped_sentence(run, "ar")}}
     result["report_sha256"] = sha(result)
     return result
 

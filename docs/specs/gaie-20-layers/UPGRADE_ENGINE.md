@@ -260,7 +260,13 @@ and malformed steps are refused before anything is created.
   `fstat`-ed first, and the target itself is snapshotted and copied with the same check.
   A database listed in `gaie-upgrade.json` that is a symlink, or lies under a symlinked
   directory, is refused before anything is copied (it would otherwise leave the data proof);
-  a listed database that does not exist is named in `baseline.databases_missing`.
+  a listed database that does not exist is named in `baseline.databases_missing`. A listed
+  database that exists but that the engine never copies or reads (under a `SKIP_DIRS`
+  directory such as `venv/` or `node_modules/`, behind a symlink that appeared after that
+  check, with a compiled-cache name, or not a regular file) is `baseline.databases_skipped`
+  (`skipped-by-policy`, with the reason): the data proof lists it as not preserved, so
+  `data-preserved` is false and the upgrade ends `rejected`; the audit and upgrade summaries
+  name it.
 - Template fixes never invent content: images without `alt` are reported for the owner. Label
   text comes from the spec, otherwise from the control's name.
 - Tests prove only what they check; a validated upgrade is not a release approval. Only
