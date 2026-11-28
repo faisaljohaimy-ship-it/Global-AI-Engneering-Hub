@@ -321,7 +321,7 @@ def _private_log(fd):
     info = os.fstat(fd)
     if not stat.S_ISREG(info.st_mode):
         raise GovernorDenied("audit-failed", "the audit log is not a regular file")
-    if info.st_uid != os.getuid() or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077:
+    if info.st_uid != os.geteuid() or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077:
         raise GovernorDenied("audit-failed", "the audit log is not a private file of the caller (owner, mode 0600, one link)")
 
 
@@ -544,8 +544,18 @@ def _classify(code, limit, cpu_used, cpu_seconds):
 def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, strict=False):
     """Run cmd inside user+mount+pid(+net) namespaces under a minimal read-only root."""
     unshare = shutil.which("unshare", path=_cage().ENV["PATH"])
-    if not strict:
-        readable = sorted(set(readable) | set(_exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable)))
+    # pid 1 is this interpreter: after pivot_root it still imports C modules (os.wait4 loads resource)
+    # from its own install, which lies outside the system directories on e.g. GitHub runners.
+    system = tuple(d for d in SYSTEM_DIRS if not (strict and d == "/etc"))
+    runtime = interpreter_prefixes(system + tuple(allowed) + tuple(readable))
+    if strict:  # /etc is hidden: pid 1 execs the host-resolved file itself, so alternatives links cannot dangle
+        _, prefix = _strict_program(cmd[0], env["PATH"], cwd, system + tuple(allowed + readable + runtime))
+        runtime += prefix
+        if any(_is_inside(root, path) or _is_inside(path, root) for path in runtime for root in allowed):
+            raise GovernorDenied("invalid-sandbox-mode", "the writable workspace must not overlap a program prefix")
+    else:
+        runtime += _exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable + runtime)
+    readable = sorted(set(readable) | set(runtime))
     status_r, status_w = os.pipe()
     spec = {"cmd": list(cmd), "cwd": cwd, "allowed": allowed, "readable": readable,
             "env_names": sorted(env), "status_fd": status_w, "strict": strict}
@@ -584,11 +594,53 @@ def _exec_prefix(program, path, cwd, visible):
     real = os.path.realpath(found)
     if any(_is_inside(real, root) for root in SYSTEM_DIRS + tuple(visible)):
         return []
-    prefix = os.path.dirname(os.path.dirname(real))
     try:
-        return [_real_path(prefix, "program prefix")]
+        return [_install_prefix(real)]
     except GovernorDenied:
         return []
+
+
+def _install_prefix(real):
+    """The install prefix (parent of bin/) of a resolved program file, checked by _mountable_prefix."""
+    return _mountable_prefix(os.path.dirname(os.path.dirname(real)))
+
+
+def _mountable_prefix(path):
+    """Never /, a whole top-level directory such as /opt, a system directory, a kernel tree, or a
+    directory that holds a scratch root or the home directory."""
+    prefix = _real_path(path, "program prefix")
+    common = {"/tmp", "/var/tmp", os.path.realpath(os.path.expanduser("~"))}
+    if prefix.count("/") < 2 or any(_is_inside(root, prefix) for root in common):
+        raise GovernorDenied("program-not-visible", "an install prefix is too broad to mount read-only")
+    return prefix
+
+
+def interpreter_prefixes(visible=SYSTEM_DIRS):
+    """Read-only mounts the sandbox's own interpreter needs: its install prefixes outside `visible`."""
+    found = []
+    for path in (sys.base_prefix, sys.base_exec_prefix, os.path.dirname(os.path.dirname(os.path.realpath(sys.executable)))):
+        real = os.path.realpath(path)
+        if not any(_is_inside(real, root) for root in tuple(visible) + tuple(found)):
+            found = [prefix for prefix in found if not _is_inside(prefix, real)]
+            found.append(_mountable_prefix(real))
+    return found
+
+
+def _resolve_program(program, path, cwd):
+    """The real file argv[0] names on the host view (pid 1 calls this again before pivot_root), or None."""
+    found = shutil.which(program, path=path) if "/" not in program else os.path.join(cwd, program)
+    real = os.path.realpath(found) if found else None
+    return real if real and os.path.isfile(real) and os.access(real, os.X_OK) else None
+
+
+def _strict_program(program, path, cwd, visible):
+    """Resolve cmd[0] on the host for a strict run: (real file to exec, prefixes to mount read-only)."""
+    real = _resolve_program(program, path, cwd)
+    if real is None:
+        raise GovernorDenied("program-not-visible", "the program cannot be resolved to an executable file")
+    if any(_is_inside(real, root) for root in visible):
+        return real, []
+    return real, [_install_prefix(real)]
 
 
 def _run_plain(cmd, *, cwd, timeout, network, env, limits, probe):
@@ -711,14 +763,27 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
 
 # ------------------------------------------------- inside the sandbox (pid 1 of the new pid ns)
 
+class _ArgCmp(ctypes.Structure):  # libseccomp struct scmp_arg_cmp
+    _fields_ = [("arg", ctypes.c_uint), ("op", ctypes.c_int), ("datum_a", ctypes.c_uint64),
+                ("datum_b", ctypes.c_uint64)]
+
+
+CLONE_NEWUSER = 0x10000000
+SCMP_CMP_MASKED_EQ = 7
+
+
 def _disable_socket_creation():
-    """Deny network and pathname socket creation for strict children, including io_uring."""
+    """Deny network and pathname socket creation for strict children, including io_uring, and nested
+    user namespaces: unshare is refused, clone with CLONE_NEWUSER is refused, and clone3 (whose flags
+    seccomp cannot read) reports ENOSYS so the C library falls back to clone, where the flag is checked."""
     try:
         library = ctypes.CDLL("libseccomp.so.2")
         library.seccomp_init.argtypes = [ctypes.c_uint32]
         library.seccomp_init.restype = ctypes.c_void_p
         library.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
         library.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint]
+        library.seccomp_rule_add_array.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint,
+                                                   ctypes.POINTER(_ArgCmp)]
         library.seccomp_load.argtypes = [ctypes.c_void_p]
         library.seccomp_release.argtypes = [ctypes.c_void_p]
         library.seccomp_release.restype = None
@@ -729,11 +794,18 @@ def _disable_socket_creation():
         raise OSError(errno.ENOMEM, "seccomp initialization failed")
     try:
         deny = 0x00050000 | errno.EPERM  # SCMP_ACT_ERRNO(EPERM)
-        for name in (b"socket", b"io_uring_setup"):
+        flags = _ArgCmp(1 if platform.machine().startswith("s390") else 0, SCMP_CMP_MASKED_EQ,
+                        CLONE_NEWUSER, CLONE_NEWUSER)  # s390 passes clone's flags second
+        for name, action, condition in ((b"socket", deny, None), (b"io_uring_setup", deny, None),
+                                        (b"unshare", deny, None), (b"clone", deny, flags),
+                                        (b"clone3", 0x00050000 | errno.ENOSYS, None)):
             number = library.seccomp_syscall_resolve_name(name)
             if number < 0:
                 raise OSError(errno.ENOSYS, "unsupported system call table")
-            result = library.seccomp_rule_add(context, deny, number, 0)
+            if condition is None:
+                result = library.seccomp_rule_add(context, action, number, 0)
+            else:
+                result = library.seccomp_rule_add_array(context, action, number, 1, ctypes.byref(condition))
             if result < 0:
                 raise OSError(-result, "seccomp rule could not be installed")
         result = library.seccomp_load(context)
@@ -784,6 +856,7 @@ def _sandbox_init(raw):
         if os.getpid() != 1:
             raise OSError(errno.EPERM, "not pid 1")
         step = "open sources"
+        exe = _resolve_program(spec["cmd"][0], os.environ.get("PATH", os.defpath), spec["cwd"]) if spec["strict"] else None
         handles = {}
         links = {}
         for path in SYSTEM_DIRS:
@@ -876,7 +949,7 @@ def _sandbox_init(raw):
     child = os.fork()
     if child == 0:
         try:
-            os.execvpe(cmd[0], cmd, env)
+            os.execve(exe, cmd, env) if exe else os.execvpe(cmd[0], cmd, env)
         except OSError as exc:
             os.write(2, f"governor-sandbox: cannot execute: {exc.strerror}\n".encode())
         os._exit(127)
@@ -1019,6 +1092,10 @@ def isolation_report():
             "the base probe does not measure strict profile socket, filesystem or environment restrictions",
             "legacy calls can reach visible unix sockets and opt into the host network",
             "system runtime directories are read-only; legacy calls can also read host /etc",
+            "strict runs filter only socket, io_uring_setup, unshare, clone with CLONE_NEWUSER and clone3; "
+            "other kernel interfaces (keyctl, bpf, perf_event_open, userfaultfd) are not filtered",
+            "legacy calls install no seccomp filter: a child can create a nested user namespace and hold a "
+            "full capability set inside it (the mount walls are locked, measured in pr30-isolation F6)",
         ],
     }
 

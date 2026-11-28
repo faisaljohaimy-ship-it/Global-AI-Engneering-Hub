@@ -17,7 +17,7 @@ import tempfile
 import threading
 import time
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -714,6 +714,15 @@ print(json.dumps(r))
         self.assertFalse(Path("/tmp/private.txt").exists())
 
     def test_host_files_outside_the_sandbox_are_not_even_readable(self):
+        # The interpreter's own install prefix is mounted when it lies outside the system directories
+        # (GitHub runners: /opt/hostedtoolcache/Python/<version>/x64). Only that path may appear: each of
+        # its ancestors must list exactly the next component, so no sibling such as /opt/<other> leaks.
+        prefixes = governor.interpreter_prefixes()
+        chains = {}
+        for prefix in prefixes:
+            parts = PurePosixPath(prefix).parts
+            for depth in range(1, len(parts) - 1):
+                chains.setdefault(str(PurePosixPath(*parts[:depth + 1])), set()).add(parts[depth + 1])
         code = r"""
 import json, os, sys
 r = {}
@@ -721,12 +730,14 @@ for name, path in (("outside", sys.argv[1] + "/secret.txt"), ("home", "/root"), 
     r[name] = os.path.exists(path)
 r["top"] = sorted(os.listdir("/"))
 r["dev"] = sorted(os.listdir("/dev"))
+r["chains"] = {path: sorted(os.listdir(path)) for path in json.loads(sys.argv[3])}
 print(json.dumps(r))
 """
-        seen = self.report(code, self.outside, ROOT)
+        seen = self.report(code, self.outside, ROOT, json.dumps(sorted(chains)))
         self.assertEqual((seen["outside"], seen["home"], seen["repo"]), (False, False, False))
         self.assertLessEqual(set(seen["top"]), {"bin", "dev", "etc", "lib", "lib32", "lib64", "libx32", "proc",
-                                                "sbin", "tmp", "usr"})
+                                                "sbin", "tmp", "usr"} | {PurePosixPath(p).parts[1] for p in prefixes})
+        self.assertEqual({path: set(names) for path, names in seen["chains"].items()}, chains)
         self.assertLessEqual(set(seen["dev"]), {"fd", "full", "null", "random", "shm", "stderr", "stdin",
                                                 "stdout", "tty", "urandom", "zero"})
 

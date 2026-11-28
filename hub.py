@@ -324,7 +324,12 @@ def workspace_run(args):
         command = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
         if not command:
             raise ValueError("An explicit child command is required.")
-        result = workspace_policy.WorkspaceSupervisor(assignments).run(args.agent, command, timeout=args.timeout)
+        # Only the selected agent is validated in full; the others are checked for independent roots.
+        supervisor = workspace_policy.WorkspaceSupervisor(assignments, selected=args.agent, relaunch=args.relaunch)
+        result = supervisor.run(args.agent, command, timeout=args.timeout)
+    except workspace_policy.WorkspaceTaintedError as error:  # the child ran; its workspace is not safe for Git
+        print(json.dumps({"status": "failed", "reason": str(error), "result": error.result}))
+        sys.exit(1)
     except governor.GovernorDenied as error:
         print(json.dumps({"status": "denied", "reason": error.reason}))
         sys.exit(3)
@@ -383,6 +388,8 @@ def main():
     workspace_parser.add_argument("--assignments", required=True, help="Operator-owned private assignment JSON file")
     workspace_parser.add_argument("--agent", required=True, help="Agent identity selected by the trusted operator")
     workspace_parser.add_argument("--timeout", required=True, type=float)
+    workspace_parser.add_argument("--relaunch", action="store_true",
+                                  help="The agent's workspace already holds its own work: skip the empty/clean check")
     workspace_parser.add_argument("argv", nargs=argparse.REMAINDER)
     inventory_parser = commands.add_parser("inventory")
     inventory_parser.add_argument("target")
