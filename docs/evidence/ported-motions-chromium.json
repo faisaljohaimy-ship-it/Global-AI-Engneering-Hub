@@ -1,0 +1,1564 @@
+{
+ "schema_version": 1,
+ "what": "Chromium proof of the Universal Motion SDK motions ported from earlier branches. Each group is bound to the SHA-256 of its module and of the SDK, this script and the static server; a changed file voids that group until it is proven again.",
+ "produced_by": "node tests/test_ported_motions_browser.mjs --source <module> --write",
+ "boundary": "SwiftShader/CPU Canvas2D in headless Chromium on a shared host. No real device, production frame rate, GPU acceleration, Firefox or WebKit run is claimed.",
+ "groups": {
+  "motion-library/expansion/nextgen-motion-systems.mjs": {
+   "status": "passed",
+   "recorded_at_utc": "2026-11-28T09:20:17.610Z",
+   "browser": "chromium",
+   "browser_version": "158.0.8127.36",
+   "playwright_version": "1.63.0",
+   "reviewed_playwright_pin": "1.65.1",
+   "toolchain_matches_reviewed_pin": false,
+   "platform": "linux",
+   "source_sha256": "6a3153c6e3b11f05fc2c8869cec7c4cc42eaa28e8bc934cf48198bcc93ae85b1",
+   "inputs": {
+    "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+    "tests/test_ported_motions_browser.mjs": "c36ce62d480c3c46af140ec5b53a7c4af693601d586a07898c2189a84023dd3a",
+    "motion-library/verify/serve.mjs": "a13b9eff1a7e34ad8240eb5f5cb73aab74c91e815f9163ad75099915566eba0d"
+   },
+   "motions": [
+    {
+     "id": "neural-synapse-activation",
+     "name_en": "Neural Synapse Activation",
+     "name_ar": "تنشيط المشابك العصبية",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "An artificial neuron in an AI model: input signals add up, and only when their sum crosses the threshold does the neuron fire an output.",
+      "ar": "خلية عصبية اصطناعية في نموذج ذكاء اصطناعي: تتجمع إشارات المدخلات، ولا تُطلق الخلية مخرجها إلا حين يتجاوز مجموعها العتبة."
+     }
+    },
+    {
+     "id": "neural-signal-propagation",
+     "name_en": "Neural Signal Propagation",
+     "name_ar": "انتشار الإشارة العصبية",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "A forward pass through a neural network: the input activates each layer in turn until the signal reaches the output layer.",
+      "ar": "تمريرة أمامية عبر شبكة عصبية: يُنشّط المُدخل كل طبقة بدورها حتى تبلغ الإشارة طبقة المخرجات."
+     }
+    },
+    {
+     "id": "neural-thought-flow",
+     "name_en": "AI Thought Flow Visualization",
+     "name_ar": "تصوير تدفق الأفكار",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "An AI assistant weighs several candidate answers in parallel, scoring each one before it settles on a single output.",
+      "ar": "مساعد ذكاء اصطناعي يوازن عدة إجابات مرشّحة في وقت واحد، ويقيّم كلًّا منها قبل أن يستقر على مخرج واحد."
+     }
+    },
+    {
+     "id": "neural-multi-agent-communication",
+     "name_en": "Multi-Agent Communication",
+     "name_ar": "اتصالات الوكلاء المتعددين",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "AI agents for planning, building, testing and review pass requests and replies to one another to hand the work along.",
+      "ar": "وكلاء ذكاء اصطناعي للتخطيط والبناء والاختبار والمراجعة يتبادلون الطلبات والردود لتسليم العمل فيما بينهم."
+     }
+    },
+    {
+     "id": "neural-network-growth",
+     "name_en": "Neural Network Growth",
+     "name_ar": "نمو الشبكة العصبية",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Network rollout: starting from the core node, each new node comes online through a node that is already connected.",
+      "ar": "توسيع الشبكة: بدءًا من العقدة الأساسية، تنضم كل عقدة جديدة عبر عقدة متصلة من قبل."
+     }
+    },
+    {
+     "id": "neural-decision-tree",
+     "name_en": "AI Decision Tree Animation",
+     "name_ar": "حركة شجرة القرار",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "A decision-tree model routes a case by its score: it takes the low or high branch at the rule and ends at one outcome.",
+      "ar": "نموذج شجرة قرار يوجّه الحالة بحسب درجتها: يسلك الفرع المنخفض أو المرتفع عند القاعدة وينتهي إلى نتيجة واحدة."
+     }
+    },
+    {
+     "id": "neural-attention-matrix",
+     "name_en": "Attention Matrix Visualization",
+     "name_ar": "تصوير مصفوفة الانتباه",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Attention in a language model: for each token the model weighs every other token, and the strongest weight shows what it attends to.",
+      "ar": "الانتباه في نموذج لغوي: يزن النموذج لكل رمز جميع الرموز الأخرى، وتُظهر أعلى الأوزان ما يركّز عليه."
+     }
+    },
+    {
+     "id": "networks-node-network-3d",
+     "name_en": "Three-dimensional Node Network",
+     "name_ar": "شبكة عقد ثلاثية الأبعاد",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "A server cluster's interconnect in 3D: eight servers wired as a cube, each linked to three neighbours, inspected from every side.",
+      "ar": "شبكة ربط عنقود خوادم بثلاثة أبعاد: ثمانية خوادم موصولة على هيئة مكعب، كلٌّ منها مرتبط بثلاثة جيران، تُفحص من كل جانب."
+     }
+    },
+    {
+     "id": "networks-reconfiguration",
+     "name_en": "Dynamic Network Reconfiguration",
+     "name_ar": "إعادة تشكيل الشبكة ديناميكيًا",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Network re-architecture: a ring of point-to-point links is retired, and every node reconnects through one central hub.",
+      "ar": "إعادة هندسة الشبكة: تُستبدل حلقة الروابط المباشرة بين العقد، وتعيد كل عقدة اتصالها عبر محور مركزي واحد."
+     }
+    },
+    {
+     "id": "networks-geographic-connection",
+     "name_en": "Geographic Network Connection",
+     "name_ar": "ربط الشبكات جغرافيًا",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Cross-region connectivity: data packets travel between data centres in different regions of a schematic world map.",
+      "ar": "الربط بين المناطق: تنتقل حزم البيانات بين مراكز بيانات في مناطق مختلفة على خريطة عالم تخطيطية."
+     }
+    },
+    {
+     "id": "networks-relationship-mapping",
+     "name_en": "Spatial Relationship Mapping",
+     "name_ar": "رسم العلاقات المكانية",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Data mapping between two systems: records on one side link to related records on the other, and each link's weight shows how strong the relation is.",
+      "ar": "مطابقة البيانات بين نظامين: ترتبط السجلات في جهة بالسجلات المقابلة في الجهة الأخرى، ويُظهر وزن كل رابط قوة العلاقة."
+     }
+    },
+    {
+     "id": "networks-agent-constellation",
+     "name_en": "Agent Collaboration Constellation",
+     "name_ar": "كوكبة تعاون الوكلاء",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "AI agent teams collaborate: three groups of agents converge through their leads, and a task passes from team to team around the cycle.",
+      "ar": "تعاون فرق وكلاء الذكاء الاصطناعي: تتقارب ثلاث مجموعات عبر قادتها، وتنتقل المهمة من فريق إلى آخر في دورة."
+     }
+    },
+    {
+     "id": "networks-dependency-animation",
+     "name_en": "Infrastructure Dependency Animation",
+     "name_ar": "حركة تبعيات البنية التحتية",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Infrastructure start-up in dependency order: base, core and data services come up first, then the API and cache, and the page last.",
+      "ar": "تشغيل البنية التحتية بترتيب التبعيات: تعمل الخدمات الأساسية والنواة والبيانات أولًا، ثم الواجهة البرمجية والذاكرة المؤقتة، والصفحة أخيرًا."
+     }
+    },
+    {
+     "id": "networks-hierarchical-expansion",
+     "name_en": "Hierarchical Network Expansion",
+     "name_ar": "تمدد الشبكة الهرمية",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "A hierarchical network unfolds: the root connects regional hubs, and each hub then brings its own endpoints online.",
+      "ar": "تمدد شبكة هرمية: يربط الجذر محاور إقليمية، ثم يُشغّل كل محور نقاط النهاية التابعة له."
+     }
+    },
+    {
+     "id": "networks-signal-routing",
+     "name_en": "Network Signal Routing",
+     "name_ar": "توجيه الإشارات في الشبكة",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Network routing: a data packet takes the shortest path around unavailable nodes to reach its destination.",
+      "ar": "توجيه الشبكة: تسلك حزمة البيانات أقصر مسار متجاوزةً العقد غير المتاحة حتى تبلغ وجهتها."
+     }
+    }
+   ],
+   "cases": [
+    {
+     "id": "neural-synapse-activation",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "bd0d71775afac5b75a6ee1e85e9f959a48d0ef104ad986ba9d811fe94479cc21",
+       "drawn_pixels": 4298
+      },
+      {
+       "sha256": "71b056ebf2eb9d3a7bb042407cae9813466d4d7adaf10d0ecaa91832199ce90a",
+       "drawn_pixels": 4535
+      },
+      {
+       "sha256": "920e3d3b038a6f8f13425db9d49ef5cf63699b076ac2ab17f9d0271c26dd615c",
+       "drawn_pixels": 5511
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 1.8000000000465661,
+      "max_ms": 4.099999999860302,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-signal-propagation",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "1c76e44edec1f24651b29ad0c682b5d8312859dd27fe8761ccc598ce5588c543",
+       "drawn_pixels": 7152
+      },
+      {
+       "sha256": "6bab3c504865bed6c56117f9d56abcb2a15a21289989226e38c4a64670ba8fb8",
+       "drawn_pixels": 7168
+      },
+      {
+       "sha256": "28e30263d842b1554f4b2cfdd4cdf5b75cc20a6909d01e7a23f8a29548f1dc6e",
+       "drawn_pixels": 7396
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.8999999999068677,
+      "max_ms": 2.300000000046566,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-thought-flow",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "1290c98fb3b85a61a35452d7a1ac0fa5165a5100bafbee4bcf90f4cffef2b8d8",
+       "drawn_pixels": 12616
+      },
+      {
+       "sha256": "968b4d3b6aa0c5fa02705ef8b78759371402911460d013a1eb9b99f3ad70457a",
+       "drawn_pixels": 10565
+      },
+      {
+       "sha256": "77b33ff330fee95424905778cab7c879da31e71a89cd8382afee730cd3b1997c",
+       "drawn_pixels": 12558
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 0.7000000001862645,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-multi-agent-communication",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "03cfe61f5c385cbe624ced52721d0e99a43e4eac45b3ebe4433bb11adfa892cd",
+       "drawn_pixels": 23162
+      },
+      {
+       "sha256": "c475f37c4e6d46242b39cfeb1ffc724d71f1b99efcbfeb9190d8aa182fee4216",
+       "drawn_pixels": 23044
+      },
+      {
+       "sha256": "4735b9ceeb78301136b021de8cb1eb61d9513a5c0b4f152c6a219d8c08fc1325",
+       "drawn_pixels": 23012
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.39999999990686774,
+      "max_ms": 3,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-network-growth",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "1c9ad812f4482fa843c755106e535506b6e6c982b761be518249f5c2e2b1c7df",
+       "drawn_pixels": 696
+      },
+      {
+       "sha256": "e35340564314416e65351b8f896ea64c014c5d8554045ebcfb8c642cab21808d",
+       "drawn_pixels": 3810
+      },
+      {
+       "sha256": "0734757a3b771d6d72e52112c6f2095c74b1081b43afe64fd94f4ba0c548caf2",
+       "drawn_pixels": 6932
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.8000000000465661,
+      "max_ms": 2.300000000046566,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-decision-tree",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "b68f573ff72afd65b3ea4c1d603f8ac95408d23159842c18f05d2c23410c59ef",
+       "drawn_pixels": 22342
+      },
+      {
+       "sha256": "1ec978ea069b3c6544da7596116ad7c971eb3763a9bf40cd73a8eb2c9c0c6702",
+       "drawn_pixels": 22860
+      },
+      {
+       "sha256": "506a15cf5f3343914b8611acce4f2221ac667c256fe0893f0fcc3cdb7a9d099d",
+       "drawn_pixels": 23563
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 1,
+      "max_ms": 3.8999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-attention-matrix",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "d0b80dda048fa32e6dd01a942ab2dd3af193dd9125432c13a972c639e99da729",
+       "drawn_pixels": 64630
+      },
+      {
+       "sha256": "0839becdac2a8a85bd31d79018d09db754b0221b4de181f8a39c9f3484000f33",
+       "drawn_pixels": 64599
+      },
+      {
+       "sha256": "478d40db4360983645af9cbba057c17e4c81d4a8dde739f83227584c36a85998",
+       "drawn_pixels": 65616
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 0.4000000001396984,
+      "max_ms": 1.6000000000931323,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-node-network-3d",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "1dab79d21b299fcf40e24f64984244058c341b015b1d0d9b19a2a887faafceaf",
+       "drawn_pixels": 8026
+      },
+      {
+       "sha256": "54e84b2de02d7a371038567f950df015ae2543c54a462dae4288d2929745a2b8",
+       "drawn_pixels": 7885
+      },
+      {
+       "sha256": "9ff02a84e7baa97a09ff79e8073d8936381b3a507dbb3e7060e0167db5da9537",
+       "drawn_pixels": 8022
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.4000000001396984,
+      "max_ms": 1.6000000000931323,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-reconfiguration",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "906c34c5eb74129714bb832fdf4a28b197030f1fd5eb12a90d7f3837389ddc76",
+       "drawn_pixels": 4702
+      },
+      {
+       "sha256": "f243ad4acf11079f2c0369ccff2a40fcac34ccfb9191b566bab5f8368609b12b",
+       "drawn_pixels": 4587
+      },
+      {
+       "sha256": "282cae671f63c9fb99b236eb4882dd0ce38b4a53186c37201e9deffc56b6d6d4",
+       "drawn_pixels": 5072
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 0.8999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-geographic-connection",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "d7e43f0cfc80417d8b6e0aba4988ae9be03c7c23468cdd71d2a6b7216f47e83f",
+       "drawn_pixels": 9711
+      },
+      {
+       "sha256": "e0f84c36ca75881e1fc89ea225f96c75e54542907e70132503cf514fb5cfdad4",
+       "drawn_pixels": 9695
+      },
+      {
+       "sha256": "9814a885bdfd0320e21f6f2e3e98cc118bc1a2928e98965a6393a87f26594512",
+       "drawn_pixels": 9692
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.8999999999068677,
+      "max_ms": 5.399999999906868,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-relationship-mapping",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "70551f7fbb7c52fac6e4a8c0168b873c813c0475855afb4ca9884da329d074b4",
+       "drawn_pixels": 20607
+      },
+      {
+       "sha256": "50c1d3a9cc8d5412e2358ce963080c4813c7820e1daddd945f8b511d8787612e",
+       "drawn_pixels": 20622
+      },
+      {
+       "sha256": "947056bf50c3ef2a5f5dbeea294cd404d94ff853a2d34019b1d5de7353a25c4b",
+       "drawn_pixels": 20651
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 2.8999999999068677,
+      "max_ms": 16.300000000046566,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-agent-constellation",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "0a35e09085ee196b5a9ba8fa240dc127017e48ec292d3d1908018b32d8221dca",
+       "drawn_pixels": 7021
+      },
+      {
+       "sha256": "84d27fd44d52674c5a07a3bfe4899b47574bd0302a3ba839fff345e60d25fc51",
+       "drawn_pixels": 6907
+      },
+      {
+       "sha256": "4ba96e12e1ec6bdde34b26ca26be85666df45ff6b11aa47ed4812b0286efbb6b",
+       "drawn_pixels": 6780
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 2.5,
+      "max_ms": 3.5,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-dependency-animation",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "213d6317a2ab8ca7d24d59ab15f6c4253210bcd7534f0f4a5ee526ccd64d12a3",
+       "drawn_pixels": 26196
+      },
+      {
+       "sha256": "7dbfde170507d919af2045c37375c9fa0eaa2398c6ddaed19e85011d0ba28bd3",
+       "drawn_pixels": 28249
+      },
+      {
+       "sha256": "704cc39e8868537deb1b043d18014913c9a3efc5758e82273fbabf28b1d2370f",
+       "drawn_pixels": 30507
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 2.4000000001396984,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-hierarchical-expansion",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "f8d27f8461aa1d322ffee8b17dac83d705edac39dc01cd24a7d53cfe417042b1",
+       "drawn_pixels": 1108
+      },
+      {
+       "sha256": "7b019a23c825949950ab60c1a26b606a0ba4d1ce8431ebc899f62759a7c8cdbb",
+       "drawn_pixels": 5450
+      },
+      {
+       "sha256": "52b0787595b3261c4324c7eea98107cecfd337cce62c7320696faf634dafdd21",
+       "drawn_pixels": 10564
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 2.199999999953434,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-signal-routing",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "d81a4546241ee7509b2b1f5a0136f228ef062954bcc5246bad90724e728594e9",
+       "drawn_pixels": 15595
+      },
+      {
+       "sha256": "d27100a476c1198762bd8fd5361829b072bcd4acf5c540f15cc2f982a8145482",
+       "drawn_pixels": 15676
+      },
+      {
+       "sha256": "fdea676c743c1d6edec976d902b222b368bce99da3087f58cc8332f373828a56",
+       "drawn_pixels": 15714
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 0.6999999999534339,
+      "max_ms": 1.5,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-synapse-activation",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "98ab118ec54e01da7c7e1197f15636d30881a8f12fdf95c71ed76b5a3afdd883",
+       "drawn_pixels": 14527
+      },
+      {
+       "sha256": "783403b36c8a40364e0f659eee8af662ff9c32fdc76ff22e15bbe37aac9e8eab",
+       "drawn_pixels": 15186
+      },
+      {
+       "sha256": "bf713df0652081845be5bc4b560a2f3dd94411a3dd15720ca6706e0d9b29b05d",
+       "drawn_pixels": 18241
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.6000000000931323,
+      "max_ms": 3.8999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-signal-propagation",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "f929caba5816f5f96295afe968ac7dcbb3028064c1d612b7e3c3a3f548c7c6ad",
+       "drawn_pixels": 19274
+      },
+      {
+       "sha256": "b8992a606deae7d757baccfcb97b0f545a5aef14bf046d3966a6de36d4f751c7",
+       "drawn_pixels": 19227
+      },
+      {
+       "sha256": "333e4f1b6b3c3c8d4f86b9b8e3453c84bb5bc1c2647e74d602d603c1e3088cf4",
+       "drawn_pixels": 19832
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 1.1000000000931323,
+      "max_ms": 2.8999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-thought-flow",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "e22ebd289da38d95901df975ec287282209f7cb8d26b7738ca470c8c1104c3e9",
+       "drawn_pixels": 38091
+      },
+      {
+       "sha256": "77135b5ab9ff9c99cf39a3ee9b2535000c722dd75c2caf12ff0fb2d3adf9375f",
+       "drawn_pixels": 32481
+      },
+      {
+       "sha256": "9c207d7b614d76cfc70fc7f2ee5c56ea21d566cf532b06962538314de3d997af",
+       "drawn_pixels": 37751
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.30000000004656613,
+      "max_ms": 2.5,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-multi-agent-communication",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "93b44b722d52683a3ab88c8b11f9a151bcbcd28e2ce053e96814262686763193",
+       "drawn_pixels": 61389
+      },
+      {
+       "sha256": "95463d8208be293aaf9adf971bfd7649edbc59fd92e89ce81ab47d1d62ab1f1d",
+       "drawn_pixels": 61120
+      },
+      {
+       "sha256": "5912487b6a5a04788c2323e33a31ba06507c9643fbea6b11136946a5d0851698",
+       "drawn_pixels": 61040
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 2.199999999953434,
+      "max_ms": 2.8999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-network-growth",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "480a70afc16384ceb35714e0aa194680288046f3f2aedcc07d3cb1178937fb02",
+       "drawn_pixels": 2166
+      },
+      {
+       "sha256": "88d8edd659affec10b48986d4fe59bbee7b723f3c3b9781a40a8806527c4bab8",
+       "drawn_pixels": 10736
+      },
+      {
+       "sha256": "07b91cbef1174e2eda69fbab41077335263badfa169bba2c4d2c206bb0f8cab9",
+       "drawn_pixels": 18800
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.19999999995343387,
+      "max_ms": 3.300000000046566,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-decision-tree",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "4cd5d390cbf62cd76e56b62b2ae7d19296ca73847725dd06f15eedb682ecccdd",
+       "drawn_pixels": 57274
+      },
+      {
+       "sha256": "891296f60c5e2a3b6d68fdd617499470dc87fa13ce6c51ebda112a11b3eecaef",
+       "drawn_pixels": 58859
+      },
+      {
+       "sha256": "90e78f3421f2950b48144fb2ab23f3d741c24ffe4e729ca4ad6fbafce1df5941",
+       "drawn_pixels": 60896
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.2999999998137355,
+      "max_ms": 0.8000000000465661,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "neural-attention-matrix",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "13b544f39bc653fa8798a2a5e6b127842aa2e5cad2bfcdb81274cdd52384195f",
+       "drawn_pixels": 176812
+      },
+      {
+       "sha256": "b0e44dd527996a656e97bbad1efd23e36308cf28543c798edc5834485a218e8a",
+       "drawn_pixels": 176778
+      },
+      {
+       "sha256": "436d31880d2a8889d85c3df8c1b4bcc843dd62fccc729f47e63ae2a8c0040c96",
+       "drawn_pixels": 179599
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 0.5,
+      "max_ms": 1.6999999999534339,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-node-network-3d",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "2d4c1f5da17dd41ea0f27a523e515358399008162354acf16792d72034af8b42",
+       "drawn_pixels": 23292
+      },
+      {
+       "sha256": "80aa93082eaabc4a2026cf42f146ad50f0c591c97aa431f9aa740658c72d1061",
+       "drawn_pixels": 22412
+      },
+      {
+       "sha256": "8d35de7ceaea7a09e8e7f3a48cfb37a037da468269c88fef02a137e7ac7fc889",
+       "drawn_pixels": 23681
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.5,
+      "max_ms": 5.099999999860302,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-reconfiguration",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "b438082db373c05fc53719df3f0f5eabb3b86878f2bf4a08c836bbab79f42cb1",
+       "drawn_pixels": 12762
+      },
+      {
+       "sha256": "ba26602a40033815eadbabe5d6341db521409a0d5c85564bcf77d2f5e3c06a0b",
+       "drawn_pixels": 12769
+      },
+      {
+       "sha256": "5715f52c437e71e41d5b6931628176a857a85e64c8dccd04d0cd70608c97f74e",
+       "drawn_pixels": 14529
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 0.5,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-geographic-connection",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "7263509e641f999dee9e039e02bc4eac76b5ce208da65d082d0c4a16194925fa",
+       "drawn_pixels": 23593
+      },
+      {
+       "sha256": "be01775a9580b40853daa72be167fde68a99016612b2c1c2ab8560ac9c62a0e3",
+       "drawn_pixels": 23549
+      },
+      {
+       "sha256": "e8392670beb9e97f4dcd582ee611e7ce00647cf18a990a7b49b45724e2d7a003",
+       "drawn_pixels": 23558
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.30000000004656613,
+      "max_ms": 0.5999999998603016,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-relationship-mapping",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "e540ea99a1ba5bd0a38eb3142cb0362afdc0e944bb3eb3460afa098666eba002",
+       "drawn_pixels": 58607
+      },
+      {
+       "sha256": "9356ff9aeeeee252da9b1bfaae4dfe187a150c14ff53279c664eee889f4b5a10",
+       "drawn_pixels": 58609
+      },
+      {
+       "sha256": "1a6d04cb1f66782ba46bb1d9a31210117ec4f98067a0a236396fcb57297bfca3",
+       "drawn_pixels": 58763
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.8999999999068677,
+      "max_ms": 3.5999999998603016,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-agent-constellation",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "60b30940252b5fd13199d19f17d96ec7e933fe97d508ab054b9e7e6451197d40",
+       "drawn_pixels": 19298
+      },
+      {
+       "sha256": "ff6a40425a8c141ae6842b4eae05d7f4696f2e65fa781d89b55ac683f9ea38a7",
+       "drawn_pixels": 19286
+      },
+      {
+       "sha256": "dfb841523cff3db1c511f57053eb3fa003996aa168a40fda77ad2abbb0229b42",
+       "drawn_pixels": 19067
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.5,
+      "max_ms": 1,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-dependency-animation",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "0633bc3c4403436c4afc5a4fde16e1bd9687a7ad23382d08ffeb5f5a5fb40860",
+       "drawn_pixels": 71663
+      },
+      {
+       "sha256": "e19e5963748492f3e4d4e938cc109c31bdfa9b65d682dd91ddb459453f343daa",
+       "drawn_pixels": 77347
+      },
+      {
+       "sha256": "ff2cf79d02b6f183712bfc7b192766fdf5bf9522aecf62019008238fe3a5de9f",
+       "drawn_pixels": 83549
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 1.4000000001396984,
+      "max_ms": 2,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-hierarchical-expansion",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "ff07f1f6239bee7bf2b33df619f4353c6149592ad656d251f487784bdcb7ba10",
+       "drawn_pixels": 3193
+      },
+      {
+       "sha256": "fc6d34129ab825241197ccbe3ed35c893fa6f0214c49c72365ded6a54b72d73d",
+       "drawn_pixels": 12777
+      },
+      {
+       "sha256": "12e07f003690735f3e2f94273ac3f18220f6e71e150a5a28859fadfa45f94d92",
+       "drawn_pixels": 22461
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 2.699999999953434,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "networks-signal-routing",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "19256f057f4eccbb189054bee3ebc11aeb643c10d2d3819516a2ee0027dd7385",
+       "drawn_pixels": 40921
+      },
+      {
+       "sha256": "f53177ea345ec1e73baf2a096ea0398f000f720f3531189ccea2a007a9a8e720",
+       "drawn_pixels": 41074
+      },
+      {
+       "sha256": "f99160b0c7974dd43c924667f7d114aa34cce712954950ce626417d9844611e7",
+       "drawn_pixels": 41050
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 0.4000000001396984,
+      "max_ms": 1,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    }
+   ],
+   "failures": [],
+   "page_errors": 0,
+   "external_requests": 0,
+   "production_fps_verified": false,
+   "real_devices_verified": false,
+   "gpu_runtime_verified": false
+  }
+ }
+}

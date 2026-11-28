@@ -1,0 +1,48 @@
+{
+ "schema_version": 1,
+ "what": "Original motions brought over from earlier branches with git checkout, not redrawn. Each group is one module as it was committed on its source branch, minus the motions listed in left_out, plus the meaning field the purposeful-motion policy requires. The drawing code of every ported motion is the source branch's code, unchanged.",
+ "policy": "governance/policies/motion-purpose.json",
+ "receipt": "docs/evidence/ported-motions-chromium.json",
+ "tests": [
+  "tests/test_ported_motions.py",
+  "tests/test_ported_motions.mjs",
+  "tests/test_ported_motions_browser.mjs"
+ ],
+ "meanings": "The source branches state no meaning for any of these motions. Every meaning here was written by the port from what the motion draws (its source and its proof frames) and is listed in the receipt; the owner may correct or withdraw any of them.",
+ "groups": [
+  {
+   "source": "motion-library/expansion/nextgen-motion-systems.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "985d8ac62da0b5404aab18fb990769f5e88f5885",
+   "from_blob": "83e14defb12fb3a7cbf5675b24fa1f95c0eb3f9a",
+   "ids": [
+    "neural-synapse-activation",
+    "neural-signal-propagation",
+    "neural-thought-flow",
+    "neural-multi-agent-communication",
+    "neural-network-growth",
+    "neural-decision-tree",
+    "neural-attention-matrix",
+    "networks-node-network-3d",
+    "networks-reconfiguration",
+    "networks-geographic-connection",
+    "networks-relationship-mapping",
+    "networks-agent-constellation",
+    "networks-dependency-animation",
+    "networks-hierarchical-expansion",
+    "networks-signal-routing"
+   ],
+   "left_out": {
+    "neural-task-orchestration": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/neural/task-orchestration.mjs)",
+    "neural-inference-pipeline": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/neural/inference-pipeline.mjs)",
+    "neural-embedding-space": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/neural/embedding-space.mjs)",
+    "networks-data-transmission": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/networks/data-transmission.mjs)",
+    "networks-distributed-system": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/networks/distributed-system.mjs)"
+   }
+  }
+ ],
+ "not_ported": {
+  "lighting-volumetric-beams": "withdrawn id (policy withdrawn_ids): origin/claude/native-motion-engines-wip f0c18d9 packages/motion-engines/motions/lighting/volumetric-beams.mjs, never browser-proven there",
+  "physics-cloth-simulation": "no stated purpose: the owner dropped the cloth draft as decorative (NATIVE_MOTIONS.md); origin/claude/native-motion-engines-wip f0c18d9 packages/motion-engines/motions/physics/cloth-simulation.mjs with its helpers physics/lib/scene.mjs and physics/lib/timeline.mjs, never browser-proven there"
+ }
+}
