@@ -239,6 +239,7 @@ class ProjectManagementEndToEndTests(unittest.TestCase):
         self.assertEqual(result["spec_sha256"], rq.validate_spec(self.spec)["spec_sha256"])
         checks = result["checks"]
         self.assertEqual(len(checks), sum(len(f["acceptance"]) for f in self.spec["features"]))
+        self.assertEqual((len(self.spec["features"]), len(checks)), (14, 64))  # numbers quoted in REQUIREMENTS.md
         by = {(c["method"], c["path"], c["status"]) for c in checks}
         self.assertIn(("POST", "/api/tasks", 201), by)
         self.assertIn(("POST", "/api/tasks", 400), by)
@@ -397,6 +398,16 @@ class RefineTests(unittest.TestCase):
         self.assertEqual(spec, rq.parse("Add customers", base=base, answers={"relation:Customer": "Project"}))
         self.assertIn("POST /api/customers with a project_id that does not exist returns 400",
                       next(f for f in spec["features"] if f["id"] == "manage-customers")["acceptance"])
+
+    def test_answer_made_moot_by_another_answer_is_dropped_and_recorded(self):
+        pending = rq.parse("A system for tracking tasks and milestones, with WhatsApp")
+        self.assertEqual(question_ids(pending), ["intent", "integration:whatsapp"])
+        spec = rq.refine(pending, {"intent": "change", "integration:whatsapp": "approve"})
+        self.assertEqual(question_ids(spec), ["base"])
+        self.assertEqual(spec["source"]["answers"], {"intent": "change"})
+        self.assertIn("answer-moot:integration:whatsapp", [a["id"] for a in spec["assumptions"]])
+        with self.assertRaises(rq.SpecError):  # parse(answers=...) stays strict
+            rq.parse(pending["source"]["command"], answers={"intent": "change", "integration:whatsapp": "approve"})
 
     def test_refine_refusals(self):
         pending = rq.parse("ابنِ نظامًا")
