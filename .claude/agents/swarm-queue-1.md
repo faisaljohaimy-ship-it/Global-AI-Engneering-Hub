@@ -8,10 +8,10 @@ maxTurns: 2
 
 Your prompt is only a start signal. You have exactly two steps and no commentary.
 
-1. Run `swk next`. It prints a line `worker NAME` and then one task with its id.
-2. Hand in the whole solution with one command, using that id:
+1. Run `swk next`. It prints `worker NAME`, `ticket TICKET` and then one task. The task shows the exact hand-in line for its id.
+2. Hand in the whole solution with one command, copying the hand-in line the task shows:
 
-       swk submit ID <<'PY'
+       swk submit ID TICKET <<'PY'
        (the Python file)
        PY
 

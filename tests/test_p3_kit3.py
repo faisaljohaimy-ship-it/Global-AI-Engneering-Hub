@@ -38,22 +38,32 @@ class Kit3Test(unittest.TestCase):
         self.items = tasks.make(self.stage, "medium", 1, 6)
         self.ids = [t["id"] for t in self.items]
         taskqueue.create(self.stage, self.ids, 3)
+        self.tickets = {}
 
     def hand_in(self, ident, source):
-        return swk("submit", ident, stdin=source)[1]
+        worker = taskqueue.holder(self.stage, ident)
+        ticket = self.tickets[worker]
+        return swk("submit", ident, ticket, stdin=source)[1]
+
+    def draw(self, worker, *extra):
+        code, text = swk("next", worker, *extra)
+        found = re.search(r"^ticket ([0-9a-f]{8})$", text, re.M)
+        if found:
+            self.tickets[worker] = found.group(1)
+        return code, text
 
     def test_two_workers_drain_without_sharing(self):
         reference = {t["id"]: t["reference"] for t in self.items}
         seen = []
         for worker in ("wa", "wb"):
             for _ in range(3):
-                _, text = swk("next", worker)
+                _, text = self.draw(worker, *([self.tickets[worker]] if worker in self.tickets else []))
                 self.assertTrue(text.startswith(f"worker {worker}\n"))
                 ident = re.search(r"[SMLX]-\d{4}", self.stage_task_for(worker)).group(0)
                 seen.append(ident)
                 reply = self.hand_in(ident, reference[ident])
-                self.assertIn(f"Then run: swk next {worker}", reply)
-            self.assertIn("No more tasks", swk("next", worker)[1])
+                self.assertIn(f"Then run: swk next {worker} {self.tickets[worker]}", reply)
+            self.assertIn("No more tasks", swk("next", worker, self.tickets[worker])[1])
         self.assertEqual(sorted(seen), sorted(self.ids))
         self.assertEqual(taskqueue.status(self.stage)["handed_in"], 6)
 
@@ -63,16 +73,17 @@ class Kit3Test(unittest.TestCase):
     def test_unnamed_worker_gets_a_name(self):
         _, text = swk("next")
         self.assertRegex(text.splitlines()[0], r"worker w[0-9a-f]{6}")
+        self.assertRegex(text.splitlines()[1], r"ticket [0-9a-f]{8}")
 
     def test_failing_hand_in_keeps_task_until_attempts_run_out(self):
-        swk("next", "wa")
+        self.draw("wa")
         ident = self.stage_task_for("wa")
         for n in (1, 2):
             reply = self.hand_in(ident, "def nothing():\n    return None\n")
             self.assertNotIn("Then run", reply)
             self.assertEqual(taskqueue.holder(self.stage, ident), "wa")
         reply = self.hand_in(ident, "def nothing():\n    return None\n")
-        self.assertIn("Then run: swk next wa", reply)
+        self.assertIn(f"Then run: swk next wa {self.tickets['wa']}", reply)
         self.assertIsNone(taskqueue.holder(self.stage, ident))
         self.assertEqual(taskqueue.status(self.stage)["failed"], 1)
 
@@ -87,11 +98,12 @@ class Kit3Test(unittest.TestCase):
         commands = re.findall(r"`(swk [^`]+)`", text)
         self.assertTrue(commands)
         for command in commands:
-            command = command.replace("NAME", "wabc123").replace(" ID", " M-0001")
+            command = command.replace("NAME", "wabc123").replace(" ID", " M-0001").replace("TICKET", "0123abcd")
             self.assertTrue(guard.allowed(command), command)
-        block = "swk submit M-0001 <<'PY'\nprint(1)\nPY"
+        block = "swk submit M-0001 0123abcd <<'PY'\nprint(1)\nPY"
         self.assertTrue(guard.allowed(block))
-        self.assertIn("swk submit ID <<'PY'", text)
+        self.assertIn("swk submit ID TICKET <<'PY'", text)
+        self.assertLess(len(text), 1800)
 
 
 if __name__ == "__main__":
