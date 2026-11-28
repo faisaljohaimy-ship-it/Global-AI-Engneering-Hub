@@ -1,0 +1,660 @@
+{
+ "cases": [
+  {
+   "criterion": "G1-G8",
+   "expected": "ELIGIBLE",
+   "expected_codes": [],
+   "id": "eligible",
+   "observed": "ELIGIBLE",
+   "observed_codes": []
+  },
+  {
+   "criterion": "G1",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "dirty-tree"
+   ],
+   "id": "dirty-tracked-file",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "dirty-tree"
+   ]
+  },
+  {
+   "criterion": "G1",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "dirty-tree"
+   ],
+   "id": "dirty-untracked-file",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "dirty-tree"
+   ]
+  },
+  {
+   "criterion": "G1",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "checkout-unsafe"
+   ],
+   "id": "checkout-defines-filter-program",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "checkout-unsafe"
+   ]
+  },
+  {
+   "criterion": "G1",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "checkout-unsafe"
+   ],
+   "id": "not-a-repository",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "checkout-unsafe"
+   ]
+  },
+  {
+   "criterion": "G2",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "commit-not-head"
+   ],
+   "id": "commit-not-head",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "commit-not-head"
+   ]
+  },
+  {
+   "criterion": "G2",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "commit-invalid"
+   ],
+   "id": "abbreviated-commit",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "commit-invalid"
+   ]
+  },
+  {
+   "criterion": "G2",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "base-not-ancestor"
+   ],
+   "id": "base-not-ancestor",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "base-not-ancestor"
+   ]
+  },
+  {
+   "criterion": "G3",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "job-receipt-other-commit"
+   ],
+   "id": "receipt-for-another-sha",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "job-receipt-other-commit"
+   ]
+  },
+  {
+   "criterion": "G3",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "job-receipt-other-commit",
+    "job-receipt-other-commit",
+    "job-receipt-other-commit",
+    "receipts-commit"
+   ],
+   "id": "receipts-document-for-another-sha",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "job-receipt-other-commit",
+    "job-receipt-other-commit",
+    "job-receipt-other-commit",
+    "receipts-commit"
+   ]
+  },
+  {
+   "criterion": "G3",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "job-receipt-missing"
+   ],
+   "id": "required-job-missing",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "job-receipt-missing"
+   ]
+  },
+  {
+   "criterion": "G3",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "job-failed"
+   ],
+   "id": "required-job-failed",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "job-failed"
+   ]
+  },
+  {
+   "criterion": "G3",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "job-failed"
+   ],
+   "id": "required-job-pending",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "job-failed"
+   ]
+  },
+  {
+   "criterion": "G3",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "job-receipt-ambiguous"
+   ],
+   "id": "required-job-ambiguous",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "job-receipt-ambiguous"
+   ]
+  },
+  {
+   "criterion": "G3",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "receipts-missing"
+   ],
+   "id": "receipts-missing",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "receipts-missing"
+   ]
+  },
+  {
+   "criterion": "G4",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "authorization-missing"
+   ],
+   "id": "authorization-missing",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "authorization-missing"
+   ]
+  },
+  {
+   "criterion": "G4",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "authorization-commit"
+   ],
+   "id": "authorization-for-another-sha",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "authorization-commit"
+   ]
+  },
+  {
+   "criterion": "G4",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "authorization-tag",
+    "authorization-version"
+   ],
+   "id": "authorization-for-another-version",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "authorization-tag",
+    "authorization-version"
+   ]
+  },
+  {
+   "criterion": "G5",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "authorization-tag",
+    "version-invalid"
+   ],
+   "id": "version-invalid",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "authorization-tag",
+    "version-invalid"
+   ]
+  },
+  {
+   "criterion": "G5",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "version-not-increasing"
+   ],
+   "id": "version-not-greater-than-tag",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "version-not-increasing"
+   ]
+  },
+  {
+   "criterion": "G5",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "version-not-increasing"
+   ],
+   "id": "version-not-greater-than-previous",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "version-not-increasing"
+   ]
+  },
+  {
+   "criterion": "G5",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "version-changelog-mismatch",
+    "version-source-mismatch"
+   ],
+   "id": "version-not-in-changelog",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "version-changelog-mismatch",
+    "version-source-mismatch"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-missing"
+   ],
+   "id": "review-gate-missing",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-missing"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-failed"
+   ],
+   "id": "review-gate-failed",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-failed"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-failed"
+   ],
+   "id": "review-gate-blocked-item",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-failed"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-failed"
+   ],
+   "id": "review-gate-verdict-block",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-failed"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-commit"
+   ],
+   "id": "review-gate-for-another-sha",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-commit"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-unbound"
+   ],
+   "id": "review-gate-unbound",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-unbound"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-self-review"
+   ],
+   "id": "review-gate-self-review",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-self-review"
+   ]
+  },
+  {
+   "criterion": "G6",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "review-gate-invalid"
+   ],
+   "id": "review-gate-without-signal",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "review-gate-invalid"
+   ]
+  },
+  {
+   "criterion": "G7",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "record-path-symlink"
+   ],
+   "id": "record-path-symlink",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "record-path-symlink"
+   ],
+   "written": false
+  },
+  {
+   "criterion": "G7",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "record-path-symlink"
+   ],
+   "id": "record-path-parent-symlink",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "record-path-symlink"
+   ],
+   "written": false
+  },
+  {
+   "criterion": "G7",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "record-path-in-repository"
+   ],
+   "id": "record-path-in-repository",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "record-path-in-repository"
+   ],
+   "written": false
+  },
+  {
+   "criterion": "G7",
+   "expected": "REFUSED",
+   "expected_codes": [
+    "record-exists"
+   ],
+   "id": "record-exists",
+   "observed": "REFUSED",
+   "observed_codes": [
+    "record-exists"
+   ],
+   "written": false
+  }
+ ],
+ "claims_not_made": [
+  "The engine was not run against this hub's own merge commit here; that needs the merged SHA and its CI.",
+  "Receipt, authorization and review gate authenticity is outside the engine; it checks consistency only.",
+  "Owner commands in the record were listed, never executed."
+ ],
+ "command": "python3 tests/fixtures/release/scenario_g.py --out docs/evidence/gaie-20-layers/scenario-g.json",
+ "commands_executed": {
+  "git_invocations": 437,
+  "git_subcommands": [
+   "cat-file",
+   "config",
+   "ls-files",
+   "ls-tree",
+   "merge-base",
+   "rev-parse",
+   "status",
+   "tag"
+  ],
+  "git_write_or_network_commands": 0,
+  "non_git_processes": 0,
+  "origin_refs_after": 0,
+  "processes_started": 437,
+  "socket_exec_or_url_events": 0,
+  "template_tags_unchanged": true
+ },
+ "kind": "scenario-g-acceptance",
+ "label": "SYNTHETIC: the repository, CI receipts, owner authorizations and review gate results are built by tests/fixtures/release/scenario_g.py in a temporary directory. No real CI run, owner authorization, tag or GitHub Release is represented, and nothing was deployed.",
+ "layer": "L11",
+ "model_calls": 0,
+ "network": false,
+ "record_cycle": {
+  "owner_commands": [
+   null,
+   [
+    "gh",
+    "release",
+    "create",
+    "synthetic-v1.1.0",
+    "--repo",
+    "example/synthetic",
+    "--target",
+    "979412cdc0e68b275e8283aa879cbdee76cbe40b",
+    "--title",
+    "Synthetic 1.1.0",
+    "--notes-file",
+    "RELEASE_NOTES.md",
+    "--latest"
+   ],
+   [
+    "gh",
+    "release",
+    "view",
+    "synthetic-v1.1.0",
+    "--repo",
+    "example/synthetic",
+    "--json",
+    "tagName,targetCommitish,isDraft,isPrerelease"
+   ],
+   [
+    "git",
+    "ls-remote",
+    "--tags",
+    "origin",
+    "refs/tags/synthetic-v1.1.0"
+   ]
+  ],
+  "record": {
+   "base_commit": "f00643a1306079291504263950cde4508992467f",
+   "deployed": false,
+   "planned_tag": "synthetic-v1.1.0",
+   "product": "synthetic",
+   "published": false,
+   "pushed": false,
+   "record_sha256": "ad3ce9a56bbc6b20545b69784682588fe335b1bde5efd57aadc91ba16ff8cd30",
+   "required_jobs": [
+    {
+     "commit": "979412cdc0e68b275e8283aa879cbdee76cbe40b",
+     "conclusion": "success",
+     "job": "lint",
+     "job_id": 1000,
+     "run_id": 100,
+     "url": "https://github.com/example/synthetic/actions/runs/100",
+     "workflow": ".github/workflows/ci.yml"
+    },
+    {
+     "commit": "979412cdc0e68b275e8283aa879cbdee76cbe40b",
+     "conclusion": "success",
+     "job": "test",
+     "job_id": 1001,
+     "run_id": 101,
+     "url": "https://github.com/example/synthetic/actions/runs/101",
+     "workflow": ".github/workflows/ci.yml"
+    },
+    {
+     "commit": "979412cdc0e68b275e8283aa879cbdee76cbe40b",
+     "conclusion": "success",
+     "job": "scan",
+     "job_id": 1002,
+     "run_id": 102,
+     "url": "https://github.com/example/synthetic/actions/runs/102",
+     "workflow": ".github/workflows/security.yml"
+    }
+   ],
+   "schema": "gaie.release-record/1",
+   "status": "recorded, tag pending",
+   "tag_created": false,
+   "tested_commit": "979412cdc0e68b275e8283aa879cbdee76cbe40b",
+   "tree": {
+    "git_tree": "be822d7a81aca9acfec61c9b7cadf4b44eecb7ae",
+    "listing_sha256": "573b1b3431847195bd4f8396f8d78bad78685e2bc0285f469e7c90b063055a02",
+    "object_format": "sha1"
+   },
+   "version": "1.1.0"
+  },
+  "rollback": {
+   "commands": [
+    {
+     "argv": [
+      "gh",
+      "release",
+      "edit",
+      "synthetic-v1.0.0",
+      "--repo",
+      "example/synthetic",
+      "--latest"
+     ],
+     "step": "mark synthetic-v1.0.0 as the latest release again"
+    },
+    {
+     "argv": [
+      "gh",
+      "release",
+      "delete",
+      "synthetic-v1.1.0",
+      "--repo",
+      "example/synthetic",
+      "--cleanup-tag",
+      "--yes"
+     ],
+     "step": "delete the new release and its tag"
+    }
+   ],
+   "note": "Rollback moves the release label back; commits already on main and product pins that adopted the tested commit are not reverted by it.",
+   "previous_commit": "f00643a1306079291504263950cde4508992467f",
+   "previous_tag": "synthetic-v1.0.0",
+   "previous_version": "1.0.0"
+  },
+  "steps": [
+   {
+    "codes": [],
+    "status": "ELIGIBLE",
+    "step": "written"
+   },
+   {
+    "codes": [],
+    "status": "VERIFIED",
+    "step": "verify"
+   },
+   {
+    "codes": [
+     "record-digest"
+    ],
+    "status": "UNVERIFIED",
+    "step": "record-one-byte-changed"
+   },
+   {
+    "codes": [],
+    "status": "VERIFIED",
+    "step": "record-restored"
+   },
+   {
+    "codes": [
+     "record-unreadable"
+    ],
+    "status": "UNVERIFIED",
+    "step": "record-truncated"
+   },
+   {
+    "codes": [
+     "component-changed",
+     "dirty-tree"
+    ],
+    "status": "UNVERIFIED",
+    "step": "component-one-byte-changed"
+   },
+   {
+    "codes": [],
+    "status": "VERIFIED",
+    "step": "component-restored"
+   },
+   {
+    "codes": [
+     "receipts-changed"
+    ],
+    "status": "UNVERIFIED",
+    "step": "other-receipts-supplied"
+   },
+   {
+    "codes": [],
+    "status": "VERIFIED",
+    "step": "same-inputs-supplied"
+   },
+   {
+    "codes": [
+     "record-unreadable"
+    ],
+    "status": "UNVERIFIED",
+    "step": "record-read-through-symlink"
+   }
+  ]
+ },
+ "scenario": "G",
+ "schema_version": 1,
+ "simulated": false,
+ "sources": {
+  "engineering_os/release_engine.py": "30949484c0c4324c871d76ad4efa4dc23bbf1cde6f26dbf82ad3fe57e65e98ed",
+  "tests/fixtures/release/scenario_g.py": "7de569a78d754e6e59b9935007ad70b0682a0d1b517b28738a361230c38d8a35"
+ },
+ "spec": "docs/specs/gaie-20-layers/RELEASE_ENGINE.md",
+ "synthetic": true,
+ "synthetic_repository": {
+  "base_commit": "f00643a1306079291504263950cde4508992467f",
+  "repository": "example/synthetic",
+  "required_jobs": {
+   ".github/workflows/ci.yml": [
+    "lint",
+    "test"
+   ],
+   ".github/workflows/security.yml": [
+    "scan"
+   ]
+  },
+  "tested_commit": "979412cdc0e68b275e8283aa879cbdee76cbe40b",
+  "version": "1.1.0"
+ },
+ "test": "tests/test_release_engine.py"
+}
