@@ -94,25 +94,27 @@ EVIDENCE_BOUNDARY = {
     "L20": "Source-bound test receipts; engineering_os/assurance.py is wave 2; hashes do not authenticate reviewers",
 }
 
-# Subprocess programs. Each imports only what it is asked to, records every in-tree .py file
-# opened (imports included; a private pycache prefix forces source reads) and writes JSON to a
-# result file, so test output on stdout/stderr can never forge a result.
+# Subprocess programs. Each imports only what it is asked to and writes JSON to a result file,
+# so nothing a test prints is parsed as a result. In-tree sources are observed without changing
+# how tests run: no audit hook, no environment change (both alter subprocess and bytecode
+# behaviour that some tests assert). The observation is the modules left in sys.modules plus the
+# locations passed to importlib.util.spec_from_file_location, which is wrapped transparently.
 _COLLECT = r'''
-import json, os, sys
+import importlib.util, json, os, sys
 ROOT = os.path.realpath(sys.argv[1]); OUT = sys.argv[2]
 sys.path.insert(0, ROOT)
-OPENED = set()
-def _hook(event, args):
-    if event == "open" and args:
-        try:
-            path = os.fsdecode(os.fspath(args[0]))
-        except TypeError:
-            return
-        if path.endswith(".py"):
-            OPENED.add(os.path.abspath(path))
-sys.addaudithook(_hook)
+LOADED = set()
+_spec_from_file_location = importlib.util.spec_from_file_location
+def _recording_spec_from_file_location(*args, **kwargs):
+    location = kwargs.get("location", args[1] if len(args) > 1 else None)
+    try:
+        LOADED.add(os.path.abspath(os.fsdecode(os.fspath(location))))
+    except TypeError:
+        pass
+    return _spec_from_file_location(*args, **kwargs)
+importlib.util.spec_from_file_location = _recording_spec_from_file_location
 def _files():
-    found = set(OPENED)
+    found = {name for name in LOADED if name.endswith(".py")}
     for module in list(sys.modules.values()):
         name = getattr(module, "__file__", None)
         if isinstance(name, str) and name.endswith(".py"):
@@ -443,17 +445,10 @@ def _now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _env(scratch, extra=None):
-    env = dict(os.environ)
-    env["PYTHONPYCACHEPREFIX"] = str(pathlib.Path(scratch) / "pycache")
-    env.update(extra or {})
-    return env
-
-
-def _run(argv, *, root, scratch, timeout, extra_env=None):
-    """Run argv in its own process group; kill the whole group on timeout."""
+def _run(argv, *, root, timeout):
+    """Run argv in its own process group with the caller's environment; kill the whole group on timeout."""
     started = time.monotonic()
-    process = subprocess.Popen(argv, cwd=root, env=_env(scratch, extra_env), stdin=subprocess.DEVNULL,
+    process = subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
     try:
         output, _ = process.communicate(timeout=timeout)
@@ -474,7 +469,7 @@ def probe_interfaces(refs, *, root=ROOT, scratch, timeout=120):
     root = pathlib.Path(root).resolve()
     out = pathlib.Path(scratch) / f"probe-{sha256(list(refs))[:16]}.json"
     code, output, _, timed_out = _run([sys.executable, "-c", _PROBE, str(root), str(out), json.dumps(list(refs))],
-                                      root=root, scratch=scratch, timeout=timeout)
+                                      root=root, timeout=timeout)
     if timed_out or not out.is_file():
         reason = "timeout" if timed_out else f"probe exited {code}: {output[-300:]}"
         return {"interfaces": [{"ref": ref, "ok": False, "file": None, "error": reason} for ref in refs], "files": []}
@@ -521,7 +516,7 @@ def _run_python_test(root, test, scratch, timeout):
     out = pathlib.Path(scratch) / f"test-{sha256(test)[:16]}.json"
     name = test[len("tests/"):-len(".py")]
     code, output, elapsed, timed_out = _run(
-        [sys.executable, "-c", _UNITTEST, str(root), str(out), name], root=root, scratch=scratch, timeout=timeout)
+        [sys.executable, "-c", _UNITTEST, str(root), str(out), name], root=root, timeout=timeout)
     if timed_out:
         return _result(test, "python-unittest", "error", reason=f"timeout after {timeout}s", duration_ms=elapsed,
                        returncode=code, output=output), []
@@ -552,8 +547,7 @@ def _run_node_test(root, test, scratch, timeout, node):
     files = _mjs_closure(root, test)
     if not node:
         return _result(test, "node-test", "skipped", reason="node is not available on this host"), files
-    code, output, elapsed, timed_out = _run([node, "--test", "--test-reporter=tap", test], root=root,
-                                            scratch=scratch, timeout=timeout)
+    code, output, elapsed, timed_out = _run([node, "--test", "--test-reporter=tap", test], root=root, timeout=timeout)
     tests, passed, failed = _tap(output, "tests"), _tap(output, "pass"), _tap(output, "fail")
     skipped, cancelled = _tap(output, "skipped") + _tap(output, "todo"), _tap(output, "cancelled")
     counted = dict(ran=tests, passed=passed, failed=failed + cancelled, skipped=skipped, duration_ms=elapsed,

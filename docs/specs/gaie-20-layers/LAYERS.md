@@ -25,9 +25,10 @@ comes only from a receipt:
 3. The receipt (`<state>/<Lxx>.json`, mode 0600, in a private directory outside Git;
    default `$GAIE_HOME/layers`, i.e. `~/.gaie/layers`) binds the SHA-256 of the layer record,
    of its test files and interface modules (with their packages), of every in-tree `.py`
-   file the interface probe and the tests imported (observed through an audit hook with a
-   private bytecode cache, so sources are really read), and of the relative import closure of
-   each `.mjs` test. It carries a `contract_receipt` valid under `contracts.validate_receipt`
+   file the interface probe and the tests loaded (the modules left in `sys.modules` plus every
+   location given to `importlib.util.spec_from_file_location`; the environment and the test
+   process are otherwise untouched), and of the relative import closure of each `.mjs` test.
+   It carries a `contract_receipt` valid under `contracts.validate_receipt`
    and a `receipt_sha256` over its own body.
 4. `status` / `receipt_status` report the receipt's status (`VERIFIED`, `FAILED`,
    `INCOMPLETE`) only while the receipt is intact, internally consistent, for the same layer
