@@ -189,7 +189,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.close_connection = True
             self._error(error)
         except auth.AuthError as error:
-            self._error(ApiError(error.status, error.code, error.message))
+            wait = (("Retry-After", str(error.retry_after)),) if error.retry_after else ()
+            self._error(ApiError(error.status, error.code, error.message, headers=wait))
         except Exception:  # pragma: no cover - defensive: never leak internals
             traceback.print_exc(file=sys.stderr)
             self._error(ApiError(500, "internal_error", "internal server error"))

@@ -7,16 +7,29 @@ the first administrator is created with `python3 manage.py create-account`.
 
 Sign-in does the same PBKDF2 work whether or not the e-mail has an account (a dummy
 hash with the schema's iteration count), so response time does not reveal which
-accounts exist. Failed sign-ins are counted per (e-mail, client address): after
-LOCKOUT_FAILURES failures within LOCKOUT_SECONDS that pair is refused (429) for a
-backoff that starts at BACKOFF_SECONDS and doubles with each further failure, up to
-LOCKOUT_SECONDS. Keying by the pair means nobody can lock an account out from another
-address; the backoff (instead of one long hard lock) keeps a legitimate user's own
-mistakes cheap while still slowing guessing. The table is in process memory and bounded.
+accounts exist. Failed sign-ins are counted over the last LOCKOUT_SECONDS (15 minutes)
+under three limits, all checked before any account lookup or hashing:
+
+- one e-mail from one client address: LOCKOUT_FAILURES (5) failures;
+- one client address, any e-mails: ADDRESS_FAILURES, so rotating e-mails (each of
+  which costs a full PBKDF2) cannot make one client burn unbounded CPU;
+- one e-mail from all client addresses together: ACCOUNT_FAILURES, a ceiling on
+  guessing one account from many addresses.
+
+A limit that is reached refuses sign-in (429 with Retry-After, the password is not
+checked) for a backoff that starts at BACKOFF_SECONDS after the latest failure and
+doubles with each further failure, up to LOCKOUT_SECONDS. An attempt is counted when
+it is admitted (so parallel requests cannot pass a limit) and stops counting once its
+password proves correct; a correct password also clears its (e-mail, address) pair.
+E-mails are counted whether or not an account has them. Failures from one address
+never refuse the pair of another address; only ACCOUNT_FAILURES failures from several
+addresses together hold one e-mail everywhere. The counters are in process memory,
+bounded to MAX_TRACKED keys each, and reset when the server restarts.
 """
 import datetime
 import hashlib
 import hmac
+import math
 import secrets
 import threading
 import time
@@ -25,16 +38,19 @@ from . import db
 
 MIN_PASSWORD = 12
 MAX_PASSWORD = 256
-LOCKOUT_FAILURES = 5
-LOCKOUT_SECONDS = 900
+MAX_EMAIL = 254
+LOCKOUT_SECONDS = 900  # the window of every sign-in limit, and the longest backoff
 BACKOFF_SECONDS = 30
-MAX_TRACKED = 10000
+LOCKOUT_FAILURES = 5  # per (e-mail, client address)
+ADDRESS_FAILURES = 20  # per client address, any e-mails
+ACCOUNT_FAILURES = 20  # per e-mail, all client addresses together
+MAX_TRACKED = 10000  # keys kept per counter
 
 
 class AuthError(Exception):
-    def __init__(self, status, code, message):
+    def __init__(self, status, code, message, retry_after=None):
         super().__init__(message)
-        self.status, self.code, self.message = status, code, message
+        self.status, self.code, self.message, self.retry_after = status, code, message, retry_after
 
 
 def hash_password(password, iterations, salt=None):
@@ -76,60 +92,85 @@ def token_digest(token):
 
 
 class Sessions:
-    """Login, logout and session lookup with a per-(e-mail, client address) failure backoff."""
+    """Login, logout and session lookup with the sign-in failure limits described above."""
 
     def __init__(self, schema):
         self.schema = schema
         self.hours = schema.auth.get("session_hours", 12)
-        self._failures = {}
+        self._failures = {"pair": {}, "address": {}, "account": {}}
         self._lock = threading.Lock()
         self.clock = time.monotonic
         # a salt and a digest no password produces: verifying against them costs the full PBKDF2 work
         self._dummy = (secrets.token_bytes(16).hex(), secrets.token_bytes(32).hex())
 
-    def _recent(self, key, now):
-        recent = [t for t in self._failures.get(key, []) if t > now - LOCKOUT_SECONDS]
+    @staticmethod
+    def _keys(email, source):
+        who, address = email.strip().casefold(), str(source or "")
+        return {"pair": (who, address), "address": address, "account": who}
+
+    def _recent(self, kind, key, now):
+        table = self._failures[kind]
+        recent = [t for t in table.get(key, ()) if t > now - LOCKOUT_SECONDS]
         if recent:
-            self._failures[key] = recent
+            table[key] = recent
         else:
-            self._failures.pop(key, None)
+            table.pop(key, None)
         return recent
 
-    def _locked(self, key):
-        with self._lock:
-            now = self.clock()
-            recent = self._recent(key, now)
-            if len(recent) < LOCKOUT_FAILURES:
-                return False
-            backoff = min(LOCKOUT_SECONDS, BACKOFF_SECONDS * 2 ** (len(recent) - LOCKOUT_FAILURES))
-            return now < recent[-1] + backoff
+    @staticmethod
+    def _wait(recent, limit, now):
+        """Seconds a window with these failures still refuses sign-in (0: it admits one)."""
+        if len(recent) < limit:
+            return 0
+        return max(0, recent[-1] + min(LOCKOUT_SECONDS, BACKOFF_SECONDS * 2 ** (len(recent) - limit)) - now)
 
-    def _fail(self, key):
+    def _admit(self, keys):
+        """Count one attempt in every window, or none when a window is full.
+
+        Returns (None, stamp) when admitted, else (seconds until every window admits, None)."""
+        limits = {"pair": LOCKOUT_FAILURES, "address": ADDRESS_FAILURES, "account": ACCOUNT_FAILURES}
         with self._lock:
             now = self.clock()
-            if key not in self._failures and len(self._failures) >= MAX_TRACKED:
-                for other in list(self._failures):
-                    self._recent(other, now)
-                while len(self._failures) >= MAX_TRACKED:
-                    oldest = min(self._failures, key=lambda k: self._failures[k][-1])
-                    del self._failures[oldest]
-            self._failures.setdefault(key, []).append(now)
+            wait = max(self._wait(self._recent(kind, key, now), limits[kind], now) for kind, key in keys.items())
+            if wait > 0:
+                return wait, None
+            for kind, key in keys.items():
+                table = self._failures[kind]
+                if key not in table and len(table) >= MAX_TRACKED:
+                    for other in list(table):
+                        self._recent(kind, other, now)
+                    while len(table) >= MAX_TRACKED:
+                        del table[min(table, key=lambda k: table[k][-1])]
+                table.setdefault(key, []).append(now)
+            return None, now
+
+    def _succeeded(self, keys, stamp):
+        """The password was right: the admitted attempt is no failure and the pair starts again."""
+        with self._lock:
+            self._failures["pair"].pop(keys["pair"], None)
+            for kind in ("address", "account"):
+                entries = self._failures[kind].get(keys[kind])
+                if entries and stamp in entries:
+                    entries.remove(stamp)
+                    if not entries:
+                        del self._failures[kind][keys[kind]]
 
     def login(self, connection, email, password, source=None):
-        if not isinstance(email, str) or not isinstance(password, str) or len(password) > MAX_PASSWORD:
+        if (not isinstance(email, str) or not isinstance(password, str) or len(password) > MAX_PASSWORD
+                or len(email) > MAX_EMAIL):
             raise AuthError(400, "validation_failed", "email and password are required")
-        key = (email.strip().casefold(), str(source or ""))
-        if self._locked(key):
-            raise AuthError(429, "too_many_attempts", "too many failed sign-in attempts; try again later")
+        keys = self._keys(email, source)
+        wait, stamp = self._admit(keys)
+        if wait is not None:
+            raise AuthError(429, "too_many_attempts", "too many failed sign-in attempts; try again later",
+                            retry_after=max(1, math.ceil(wait)))
         row = db.account_by_email(connection, email.strip())
         if row is None:
             verify_password(password, *self._dummy, self.schema.auth["pbkdf2_iterations"])  # same work, no account
         if row is None or not verify_password(password, row["password_salt"], row["password_hash"],
                                               row["password_iterations"]):
-            self._fail(key)
-            raise AuthError(401, "invalid_credentials", "e-mail or password is not correct")
-        with self._lock:
-            self._failures.pop(key, None)
+            raise AuthError(401, "invalid_credentials", "e-mail or password is not correct")  # stays counted
+        self._succeeded(keys, stamp)
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
         now = datetime.datetime.now(datetime.timezone.utc)
         db.create_session(connection, token_digest(token), row["id"], csrf, utc(now),

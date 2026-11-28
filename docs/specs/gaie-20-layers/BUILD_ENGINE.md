@@ -235,9 +235,12 @@ in the tests) to that record and let the adapter delegate them to
   uploads, e-mail or other integrations (refused, not faked).
 - Acceptance coverage is limited to the forms in §4; anything else is reported unmapped.
   Domain rules come only from criteria; the engine does not infer business logic.
-- Sign-in backoff is per (e-mail, client address) and in process memory (behind a reverse
-  proxy all clients share its address); unknown e-mails cost the same PBKDF2 work as wrong
-  passwords. No password reset, MFA, audit log or account UI
+- Sign-in failures are limited per (e-mail, client address), per client address and per
+  e-mail across addresses, in process memory (behind a reverse proxy all clients share its
+  address; a restart resets the counters); the per-e-mail ceiling means failures from
+  several addresses together can make that e-mail wait. Unknown e-mails cost the same
+  PBKDF2 work as wrong passwords, and a refused attempt costs none. No password reset, MFA,
+  audit log or account UI
   (accounts are created with `manage.py create-account`). Many-to-many links have an API,
   not a UI.
 - Accessibility evidence is automated (labels, keyboard order, focus outline, landmarks,

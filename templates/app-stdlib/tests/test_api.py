@@ -371,44 +371,64 @@ class ApiTests(unittest.TestCase):
         email, password = self.server.account(ADMIN)
         for _ in range(5):
             self.assertEqual(self.call("POST", "/api/login", {"email": email, "password": "wrong-" + password}, role=None)[0], 401)
-        self.assertEqual(self.call("POST", "/api/login", {"email": email, "password": password}, role=None)[0], 429)
-        # the backoff is per (e-mail, client address) and expires; nobody locks an account from elsewhere
+        status, headers, error = self.call("POST", "/api/login", {"email": email, "password": password}, role=None)
+        self.assertEqual((status, error["error"]["code"]), (429, "too_many_attempts"))
+        self.assertRegex(headers.get("retry-after", ""), r"^[1-9][0-9]*$")
         from app import auth
         sessions, now = auth.Sessions(SCHEMA), [1000.0]
         sessions.clock = lambda: now[0]
         email, password = self.server.account(ADMIN)
-        with db.session(self.server.db_path) as connection:
-            for _ in range(auth.LOCKOUT_FAILURES):
-                with self.assertRaises(auth.AuthError) as failed:
-                    sessions.login(connection, email, "wrong-" + password, source="198.51.100.7")
-                self.assertEqual(failed.exception.status, 401)
-            with self.assertRaises(auth.AuthError) as locked:
-                sessions.login(connection, email, password, source="198.51.100.7")
-            self.assertEqual(locked.exception.status, 429)
-            self.assertTrue(sessions.login(connection, email, password, source="203.0.113.9")[0])
-            now[0] += auth.BACKOFF_SECONDS + 1
-            with self.assertRaises(auth.AuthError) as again:
-                sessions.login(connection, email, "wrong-" + password, source="198.51.100.7")
-            self.assertEqual(again.exception.status, 401)
-            now[0] += auth.BACKOFF_SECONDS + 1
-            with self.assertRaises(auth.AuthError) as longer:
-                sessions.login(connection, email, password, source="198.51.100.7")
-            self.assertEqual(longer.exception.status, 429, "the backoff doubled after a further failure")
-            now[0] += auth.BACKOFF_SECONDS * 2
-            self.assertTrue(sessions.login(connection, email, password, source="198.51.100.7")[0])
-            # an unknown e-mail costs the same PBKDF2 work as a wrong password
-            calls = []
-            original = auth.hash_password
-            auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or original(*args, **kwargs)
+        calls, original = [], auth.hash_password
+        auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or original(*args, **kwargs)
+
+        def attempt(who, secret, source):
+            """Status of one sign-in through Sessions.login, and how many hashes it computed."""
+            del calls[:]
             try:
+                sessions.login(connection, who, secret, source=source)
+                return 200, len(calls)
+            except auth.AuthError as error:
+                if error.status == 429:
+                    self.assertGreaterEqual(error.retry_after, 1)
+                return error.status, len(calls)
+        try:
+            with db.session(self.server.db_path) as connection:
+                # one e-mail from one address: LOCKOUT_FAILURES failures, then a backoff that doubles
+                for _ in range(auth.LOCKOUT_FAILURES):
+                    self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.7"), (401, 1))
+                self.assertEqual(attempt(email, password, "198.51.100.7"), (429, 0), "refused before any hashing")
+                self.assertEqual(attempt(email, password, "203.0.113.9")[0], 200, "another address is not refused")
+                now[0] += auth.BACKOFF_SECONDS + 1
+                self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.7")[0], 401)
+                now[0] += auth.BACKOFF_SECONDS + 1
+                self.assertEqual(attempt(email, password, "198.51.100.7")[0], 429, "the backoff doubled")
+                now[0] += auth.BACKOFF_SECONDS * 2
+                self.assertEqual(attempt(email, password, "198.51.100.7")[0], 200)
+                # an unknown e-mail costs the same PBKDF2 work as a wrong password
+                del calls[:]
                 with self.assertRaises(auth.AuthError):
                     sessions.login(connection, f"nobody.{time.time_ns()}@example.invalid", password, source="x")
-            finally:
-                auth.hash_password = original
-            self.assertEqual(calls, [SCHEMA.auth["pbkdf2_iterations"]])
+                self.assertEqual(calls, [SCHEMA.auth["pbkdf2_iterations"]])
+                now[0] += auth.LOCKOUT_SECONDS
+                # one address rotating e-mails: ADDRESS_FAILURES failures, then refused before hashing
+                auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or ("", "")
+                for n in range(auth.ADDRESS_FAILURES):
+                    self.assertEqual(attempt(f"spray.{n}@example.invalid", password, "192.0.2.1"), (401, 1), n)
+                self.assertEqual(attempt("spray.next@example.invalid", password, "192.0.2.1"), (429, 0))
+                self.assertEqual(attempt(email, "wrong-" + password, "192.0.2.2")[0], 401)
+                # one e-mail from many addresses: ACCOUNT_FAILURES failures in all, then every address waits
+                target = f"target.{time.time_ns()}@example.invalid"
+                for n in range(auth.ACCOUNT_FAILURES):
+                    source = f"198.18.{n // auth.LOCKOUT_FAILURES}.1"
+                    self.assertEqual(attempt(target.upper() if n % 2 else target, password, source)[0], 401, n)
+                self.assertEqual(attempt(target, password, "198.19.0.1"), (429, 0), "the ceiling holds every address")
+                now[0] += auth.LOCKOUT_SECONDS
+                self.assertEqual(attempt(target, password, "198.19.0.1")[0], 401, "the ceiling expires")
+        finally:
+            auth.hash_password = original
         for n in range(auth.MAX_TRACKED + 5):
-            sessions._fail((f"user{n}@example.invalid", "x"))
-        self.assertLessEqual(len(sessions._failures), auth.MAX_TRACKED)
+            sessions._admit(sessions._keys(f"user{n}@example.invalid", f"10.{n // 65536}.{n // 256 % 256}.{n % 256}"))
+        self.assertTrue(all(len(table) <= auth.MAX_TRACKED for table in sessions._failures.values()))
 
     def test_passwords_are_salted_pbkdf2(self):
         password = secrets.token_urlsafe(24)
