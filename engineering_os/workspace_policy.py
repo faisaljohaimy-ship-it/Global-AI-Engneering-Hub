@@ -34,10 +34,17 @@ class WorkspaceScope:
 
 
 REPO = re.compile(r"(?P<owner>[A-Za-z0-9][A-Za-z0-9-]*)/(?P<repo>[A-Za-z0-9._-]+?)(?:\.git)?/?")
+# A remote on GitHub or the local Git proxy, in every spelling Git accepts for one repository
+# (recheck-authz F3): any scheme case, user info, a www. or ssh. host in any case with a trailing dot,
+# a port, or the scp form [user@]host:path. _repo_id normalises `path` and checks the port.
 REMOTE = re.compile(
-    r"(?:https://github\.com/|ssh://git@github\.com/|git@github\.com:"
-    r"|https?://local_proxy@(?:127\.0\.0\.1|localhost):[0-9]+/git/)(?P<path>.+)"
+    r"(?:https?://local_proxy@(?:127\.0\.0\.1|localhost):[0-9]+/git/"
+    r"|(?P<scheme>[a-z][a-z0-9+.-]*)://(?:[^/\s]*@)?(?P<host>(?:www\.|ssh\.)?github\.com)\.?(?::(?P<port>[0-9]*))?/"
+    r"|(?:[^/:\s]*@)?(?:www\.|ssh\.)?github\.com\.?:(?!//))(?P<path>\S+)",
+    re.IGNORECASE,
 )
+DEFAULT_PORTS = {"https": {"", "443"}, "http": {"", "80"}, "git": {"", "9418"},
+                 **{scheme: {"", "22", "443"} for scheme in ("ssh", "git+ssh", "ssh+git")}}  # ssh.github.com:443
 BRANCH = re.compile(r"(?:codex|claude)/[A-Za-z0-9][A-Za-z0-9._/-]{0,119}")
 REPO_INTENTS = frozenset({"upgrade", "accelerate", "repair", "cinematic"})
 AGENT_ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}")
@@ -45,13 +52,24 @@ ASSIGNMENT_KEYS = frozenset({"path", "intent", "expected_repository", "registere
 
 
 def _repo_id(value):
+    """`owner/name`, case-folded, of a GitHub or local-proxy remote or of a plain `owner/name`; None otherwise.
+
+    The host, the user info, a default port, the scp or ssh:// form, a `.git` suffix and a trailing
+    slash do not change the result. A GitHub remote that is not exactly one owner/name under a known
+    scheme and its default port could still be a registered project, so it is refused, never None.
+    """
     if not isinstance(value, str):
         return None
     remote = REMOTE.fullmatch(value)
-    match = REPO.fullmatch(remote["path"] if remote else value)
-    if not match or not match["repo"].strip("."):
-        return None
-    return f"{match['owner']}/{match['repo']}".casefold()
+    if remote is None:
+        match = REPO.fullmatch(value)
+        return f"{match['owner']}/{match['repo']}".casefold() if match and match["repo"].strip(".") else None
+    match = REPO.fullmatch(remote["path"].casefold())
+    port_ok = remote["host"] is None or (remote["port"] or "") in DEFAULT_PORTS.get(remote["scheme"].lower(), ())
+    if not (port_ok and match and match["repo"].strip(".")):
+        raise WorkspacePolicyError("A GitHub remote that is not exactly one owner/name repository on its default "
+                                   "port cannot be ruled out as a registered project; refused.")
+    return f"{match['owner']}/{match['repo']}"
 
 
 def _plain_path(value):
