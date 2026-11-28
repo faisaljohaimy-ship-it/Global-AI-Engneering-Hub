@@ -2,10 +2,10 @@
  "schema": "gaie.context7-probe/1",
  "endpoint": "https://mcp.context7.com/mcp",
  "transport": "MCP streamable HTTP (remote); nothing installed",
- "generated_at_utc": "2026-11-28T12:11:35Z",
+ "generated_at_utc": "2026-11-28T12:27:16Z",
  "generator": {
   "path": "integrations/context7/probe.py",
-  "sha256": "2defc11834f6804870b2d51b18d96e1e0f22495abddb6d3f98620111b76de289"
+  "sha256": "d7ea0aae5475d75281cb6c4c9aad21d681ad007ed4cd5cabc2fd2dcb2b3b3528"
  },
  "keys_read_into_output": 0,
  "paid_services": 0,
@@ -22,7 +22,9 @@
     "query"
    ],
    "read_only": true,
-   "destructive": false
+   "destructive": false,
+   "description_sha256": "46ee538850cda1a378d83c659dd418960810b22da0fc2aca65c0c1acd0ffa9aa",
+   "input_schema_sha256": "cef2a342039ea4d6558bdd462cfe307a47dc32aad186e598eb90b82ab4733514"
   },
   "query-docs": {
    "required": [
@@ -30,8 +32,17 @@
     "query"
    ],
    "read_only": true,
-   "destructive": false
+   "destructive": false,
+   "description_sha256": "029a4601874afe3156a47dc4b53f637df818f879c3484e7cb2ef77a79537a1b0",
+   "input_schema_sha256": "9485f6c222dbfc9ba2b8360778d93ee474f8468729eb92a27d9dbcf8b94cec6b"
   }
+ },
+ "host_loaded_text": {
+  "note": "server instructions and tool descriptions are loaded into the agent's context by the host",
+  "instructions_chars": 703,
+  "instructions_sha256": "136e3fffcc05f3ee87633ee3fa65277ea261134640b2ceed8d3c055f62f0181d",
+  "surface_sha256": "2866bed6302494c6ee38cc4fb13a4a3eabb21ad5dd942e8168d604583cbda1f2",
+  "reviewed_surface_sha256": "2866bed6302494c6ee38cc4fb13a4a3eabb21ad5dd942e8168d604583cbda1f2"
  },
  "calls": {
   "resolve-library-id": {
@@ -41,7 +52,7 @@
    },
    "is_error": false,
    "chars": 1629,
-   "sha256": "dc48dde3a7cc128408a6a84b43e36ba05ed4064e854b11c39aa488f453699102",
+   "sha256": "bf72d1f5831a82898d3bc142dbb1d4a9be9dc031d287b20ea28773017a29444b",
    "library_id": "/websites/fastapi_tiangolo"
   },
   "query-docs": {
@@ -61,9 +72,10 @@
   "lists_query_docs": true,
   "only_read_only_lookup_tools": true,
   "library_resolved": true,
-  "documentation_returned": true
+  "documentation_returned": true,
+  "host_loaded_text_matches_review": true
  },
  "status": "passed",
- "duration_s": 3.07,
+ "duration_s": 3.01,
  "key_source": "proxy network secret or none"
 }

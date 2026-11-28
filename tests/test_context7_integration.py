@@ -31,7 +31,7 @@ class HostConfig(unittest.TestCase):
         server = config["mcpServers"]["context7"]
         self.assertEqual(server["type"], "http")
         self.assertEqual(server["url"], ENDPOINT)
-        self.assertEqual(server["headers"], {"Authorization": "Bearer ${CONTEXT7_API_KEY:-proxy-injected}"})
+        self.assertEqual(set(server), {"type", "url"}, "no headers: a key or placeholder is never committed")
         self.assertNotIn("command", server, "remote only: nothing is installed or started")
 
     def test_no_key_shaped_value_in_committed_files(self):
@@ -79,6 +79,14 @@ class ProbeGuards(unittest.TestCase):
             with self.assertRaises(SystemExit, msg=endpoint):
                 probe.Client(endpoint)
 
+    def test_refuses_every_redirect(self):
+        probe = load_probe()
+        request = probe.urllib.request.Request(ENDPOINT)
+        with self.assertRaises(probe.urllib.error.HTTPError):
+            probe.NoRedirect().redirect_request(request, None, 302, "Found", {}, "https://evil.example/mcp")
+        with self.assertRaises(SystemExit):
+            probe.check_host("https://evil.example/mcp")
+
     def test_refuses_code_or_long_text(self):
         probe = load_probe()
         for library, question in (("x", "import os\nos.system('id')"), ("x" * 201, "q"), ("lib", "a;b`c`")):
@@ -101,6 +109,16 @@ class Evidence(unittest.TestCase):
         self.assertEqual(set(tools), {"resolve-library-id", "query-docs"}, "a new tool needs a new review")
         for name, tool in tools.items():
             self.assertTrue(tool["read_only"] and not tool["destructive"], name)
+
+    def test_host_loaded_text_matches_the_reviewed_digest(self):
+        receipt = json.loads(EVIDENCE_PATH.read_text())
+        loaded = receipt["host_loaded_text"]
+        self.assertEqual(loaded["surface_sha256"], POLICY["server"]["reviewed_surface"]["sha256"],
+                         "server instructions or tool descriptions changed: review the new text, then re-pin")
+        self.assertEqual(loaded["reviewed_surface_sha256"], loaded["surface_sha256"])
+        self.assertTrue(receipt["checks"]["host_loaded_text_matches_review"])
+        for name, tool in receipt["tools"].items():
+            self.assertRegex(tool["description_sha256"], "^[0-9a-f]{64}$", name)
 
     def test_receipt_was_made_by_the_committed_probe(self):
         receipt = json.loads(EVIDENCE_PATH.read_text())

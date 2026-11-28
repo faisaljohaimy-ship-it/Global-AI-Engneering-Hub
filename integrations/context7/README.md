@@ -21,21 +21,24 @@ The key is never in Git, `.mcp.json`, a receipt or a log.
 - **Claude Code cloud sessions.** The key is saved as a network secret on the
   environment for `mcp.context7.com` and `context7.com`. The session proxy injects it
   into requests to those hosts. Every session in that environment gets it, with no
-  further setup. The `proxy-injected` placeholder in `.mcp.json` is overwritten by the
-  proxy.
-- **Workstation.** Export `CONTEXT7_API_KEY` in the shell that starts the agent host.
-  `.mcp.json` reads it as `${CONTEXT7_API_KEY:-proxy-injected}`. Without the variable the
-  placeholder is sent; the service may then refuse the call or use its small anonymous
-  allowance.
+  further setup.
+- **Workstation.** The committed `.mcp.json` sends no `Authorization` header, so without
+  further setup the service answers from its small anonymous allowance. To use your own
+  key, add a user-scope server that reads it from your shell; it stays outside the
+  repository:
+
+  ```bash
+  claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp \
+    --header 'Authorization: Bearer ${CONTEXT7_API_KEY}'
+  ```
 
 ## Use in another project
 
 Pick one of these:
 
 ```bash
-# Claude Code, any project (project scope writes that project's .mcp.json, without the key)
-claude mcp add --scope project --transport http context7 https://mcp.context7.com/mcp \
-  --header 'Authorization: Bearer ${CONTEXT7_API_KEY:-proxy-injected}'
+# Claude Code, any project (project scope writes that project's .mcp.json, no header)
+claude mcp add --scope project --transport http context7 https://mcp.context7.com/mcp
 
 # or copy the "context7" block of this repository's .mcp.json
 ```
@@ -43,6 +46,15 @@ claude mcp add --scope project --transport http context7 https://mcp.context7.co
 For a cloud environment, add the same two network secrets (hosts `mcp.context7.com` and
 `context7.com`, Bearer) in that environment's settings, or start the session in an
 environment that already has them.
+
+## What the probe guards
+
+- Exactly one host over HTTPS; every redirect is refused, so a 30x cannot carry the key
+  to another host.
+- The text the host loads into each session (server instructions, tool descriptions,
+  schemas, annotations) is digested. The probe fails when it differs from the digest
+  reviewed in `governance/policies/context7.json`.
+- Only two read-only, non-destructive tools are accepted.
 
 ## Rules for every role
 

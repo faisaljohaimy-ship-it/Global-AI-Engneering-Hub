@@ -15,11 +15,17 @@
   ],
   "installs": "nothing: remote endpoint, no npm package and no lock",
   "probe": "python3 integrations/context7/probe.py",
-  "evidence": "docs/evidence/gaie-20-layers/context7.json"
+  "evidence": "docs/evidence/gaie-20-layers/context7.json",
+  "reviewed_surface": {
+   "sha256": "2866bed6302494c6ee38cc4fb13a4a3eabb21ad5dd942e8168d604583cbda1f2",
+   "covers": "server instructions plus every tool's name, description, input schema and annotations: the text a host loads into each session",
+   "reviewed": "2026-11-28, server 4.9.1: instructions say only when to use the server; two read-only lookup tools",
+   "on_change": "the probe fails; read the new text, then update this digest in a reviewed change"
+  }
  },
  "credential": {
   "storage": "environment network secret for mcp.context7.com and context7.com, injected by the session proxy; never in Git, .mcp.json, an environment variable file or a receipt",
-  "workstation": "export CONTEXT7_API_KEY in the shell that starts the agent host; .mcp.json reads it with a placeholder default",
+  "workstation": "the committed .mcp.json sends no Authorization header; to use your own key, add a user-scope server (see integrations/context7/README.md) that reads CONTEXT7_API_KEY. Never commit the header with a key.",
   "cost": "free tier only; a paid Context7 plan needs separate owner approval"
  },
  "data_rules": [

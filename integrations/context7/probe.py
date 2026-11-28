@@ -25,6 +25,7 @@ import pathlib
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -38,11 +39,25 @@ LIBRARY_ID = re.compile(r"Context7-compatible library ID:\s*(/[\w.\-]+/[\w.\-/]+
 SAFE_TEXT = re.compile(r"^[\w .,:/@+#'()\-]{1,200}$")
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse every redirect: a 30x to another host would otherwise receive the Authorization header."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, "redirect refused by probe", headers, fp)
+
+
+OPENER = urllib.request.build_opener(NoRedirect)
+
+
+def check_host(url):
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != "https" or parts.hostname != ALLOWED_HOST:
+        raise SystemExit(f"refused: endpoint must be https://{ALLOWED_HOST}/...")
+
+
 class Client:
     def __init__(self, endpoint=ENDPOINT, timeout=60):
-        host = urllib.parse.urlsplit(endpoint)
-        if host.scheme != "https" or host.hostname != ALLOWED_HOST:
-            raise SystemExit(f"refused: endpoint must be https://{ALLOWED_HOST}/...")
+        check_host(endpoint)
         self.endpoint, self.timeout, self.session, self.next_id = endpoint, timeout, None, 0
         self.key_source = "environment variable" if os.environ.get("CONTEXT7_API_KEY") else "proxy network secret or none"
 
@@ -54,8 +69,10 @@ class Client:
             headers["Authorization"] = "Bearer " + key
         if self.session:
             headers["Mcp-Session-Id"] = self.session
+        check_host(self.endpoint)
         request = urllib.request.Request(self.endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
-        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+        with OPENER.open(request, timeout=self.timeout) as response:
+            check_host(response.geturl())
             self.session = response.headers.get("Mcp-Session-Id") or self.session
             body = response.read(MAX_BYTES + 1)
         if len(body) > MAX_BYTES:
@@ -90,6 +107,20 @@ def digest(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def reviewed_surface():
+    policy = pathlib.Path(__file__).resolve().parents[2] / "governance" / "policies" / "context7.json"
+    return json.loads(policy.read_text())["server"]["reviewed_surface"]["sha256"]
+
+
+def surface_digest(instructions, listed):
+    """One digest over everything the host puts in the model's context: instructions, tool names, descriptions, schemas."""
+    surface = {"instructions": instructions,
+               "tools": sorted(({"name": t["name"], "description": t.get("description", ""),
+                                 "inputSchema": t.get("inputSchema", {}), "annotations": t.get("annotations", {})}
+                                for t in listed), key=lambda t: t["name"])}
+    return digest(json.dumps(surface, sort_keys=True, ensure_ascii=False))
+
+
 def run(library, question, endpoint=ENDPOINT):
     for value in (library, question):
         if not SAFE_TEXT.match(value):
@@ -98,10 +129,15 @@ def run(library, question, endpoint=ENDPOINT):
     init = client.request("initialize", {"protocolVersion": PROTOCOL, "capabilities": {},
                                          "clientInfo": {"name": "gaie-context7-probe", "version": "1"}})
     client.notify("notifications/initialized")
+    listed = client.request("tools/list").get("tools", [])
     tools = {tool["name"]: {"required": sorted(tool.get("inputSchema", {}).get("required", [])),
                             "read_only": (tool.get("annotations") or {}).get("readOnlyHint") is True,
-                            "destructive": (tool.get("annotations") or {}).get("destructiveHint") is not False}
-             for tool in client.request("tools/list").get("tools", [])}
+                            "destructive": (tool.get("annotations") or {}).get("destructiveHint") is not False,
+                            "description_sha256": digest(tool.get("description", "")),
+                            "input_schema_sha256": digest(json.dumps(tool.get("inputSchema", {}), sort_keys=True))}
+             for tool in listed}
+    instructions = init.get("instructions", "")
+    surface = surface_digest(instructions, listed)
     found, found_error = client.call("resolve-library-id", {"libraryName": library, "query": question})
     match = LIBRARY_ID.search(found)
     library_id = match.group(1) if match else None
@@ -115,11 +151,17 @@ def run(library, question, endpoint=ENDPOINT):
                                        and all(v["read_only"] and not v["destructive"] for v in tools.values()),
         "library_resolved": bool(library_id) and not found_error,
         "documentation_returned": not docs_error and len(docs) >= 200,
+        "host_loaded_text_matches_review": surface == reviewed_surface(),
     }
     return {
         "server": {"name": init.get("serverInfo", {}).get("name"), "version": init.get("serverInfo", {}).get("version"),
                    "protocol": init.get("protocolVersion")},
         "tools": tools,
+        "host_loaded_text": {
+            "note": "server instructions and tool descriptions are loaded into the agent's context by the host",
+            "instructions_chars": len(instructions), "instructions_sha256": digest(instructions),
+            "surface_sha256": surface, "reviewed_surface_sha256": reviewed_surface(),
+        },
         "calls": {
             "resolve-library-id": {"arguments": {"libraryName": library, "query": question}, "is_error": found_error,
                                    "chars": len(found), "sha256": digest(found), "library_id": library_id},
