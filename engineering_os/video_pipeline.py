@@ -231,13 +231,41 @@ def _visible_chars(text):
     return sum(1 for ch in text if not unicodedata.category(ch).startswith("M"))
 
 
+def _inside(path, root):
+    """True when the real location of `path` is the repository or below it."""
+    real, repo = pathlib.Path(os.path.realpath(path)), pathlib.Path(root).resolve()
+    return real == repo or repo in real.parents
+
+
 def _outside_repository(directory, root=ROOT):
+    """Validate, then create (SEC-08): nothing is made before the path is known to be outside the repository.
+
+    The path must be absolute, no existing component may be a symbolic link, and its real
+    location must not be the repository or below it. Missing directories are then created
+    with mode 0o700 (media and work files are private) and the location is checked again.
+    """
     path = pathlib.Path(directory).expanduser()
     _need(path.is_absolute(), "output directory must be an absolute path", RenderError)
-    path.mkdir(parents=True, exist_ok=True)
-    real, repo = path.resolve(), pathlib.Path(root).resolve()
-    if real == repo or repo in real.parents:
-        raise RenderError("media must be written outside the repository (only the manifest is committed)")
+    path = pathlib.Path(os.path.normpath(path))
+    refusal = "media must be written outside the repository (only the manifest is committed)"
+    if _inside(path, root):
+        raise RenderError(refusal)
+    missing = []
+    for part in (path, *path.parents):
+        if part.is_symlink():
+            raise RenderError("output directory: a symbolic link in the path is refused")
+        if not part.exists():
+            missing.append(part)
+        elif not part.is_dir():
+            raise RenderError("output directory: a path component is not a directory")
+    for part in reversed(missing):
+        try:
+            os.mkdir(part, 0o700)
+        except FileExistsError:
+            pass
+    real = path.resolve()
+    if real != path or not path.is_dir() or _inside(path, root):
+        raise RenderError(refusal)
     return real
 
 

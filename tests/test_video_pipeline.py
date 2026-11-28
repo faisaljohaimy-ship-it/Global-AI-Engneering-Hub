@@ -612,5 +612,57 @@ class EvidenceManifestTests(unittest.TestCase):
             self.assertTrue(vp.qa_media(path, expect)["passed"])
 
 
+class OutputDirectoryTests(unittest.TestCase):
+    """SEC-08: the output path is validated before anything is created, and created private."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.base = pathlib.Path(self.temp.name).resolve()
+        self.repo = self.base / "repo"
+        self.repo.mkdir()
+        self.addCleanup(self.temp.cleanup)
+
+    def test_a_path_inside_the_repository_is_refused_before_anything_is_created(self):
+        for inside in (self.repo, self.repo / "media", self.repo / "a" / "b" / "c"):
+            with self.subTest(inside.name), self.assertRaisesRegex(vp.RenderError, "outside the repository"):
+                vp._outside_repository(str(inside), root=self.repo)
+        self.assertEqual(list(self.repo.iterdir()), [], "the refusal must not leave a directory behind")
+        with self.assertRaisesRegex(vp.RenderError, "absolute"):
+            vp._outside_repository("media", root=self.repo)
+
+    def test_a_symbolic_link_in_the_path_is_refused_and_nothing_is_created_through_it(self):
+        elsewhere = self.base / "elsewhere"
+        elsewhere.mkdir()
+        (self.base / "into-repo").symlink_to(self.repo, target_is_directory=True)
+        (self.base / "link").symlink_to(elsewhere, target_is_directory=True)
+        with self.assertRaisesRegex(vp.RenderError, "outside the repository"):
+            vp._outside_repository(str(self.base / "into-repo" / "media"), root=self.repo)
+        with self.assertRaisesRegex(vp.RenderError, "symbolic link"):
+            vp._outside_repository(str(self.base / "link" / "media"), root=self.repo)
+        with self.assertRaisesRegex(vp.RenderError, "symbolic link"):
+            vp._outside_repository(str(self.base / "link"), root=self.repo)
+        self.assertEqual((list(self.repo.iterdir()), list(elsewhere.iterdir())), ([], []))
+        (self.base / "file").write_text("x")
+        with self.assertRaisesRegex(vp.RenderError, "not a directory"):
+            vp._outside_repository(str(self.base / "file" / "media"), root=self.repo)
+
+    def test_new_directories_are_created_private_and_existing_ones_are_left_alone(self):
+        old = os.umask(0)
+        self.addCleanup(os.umask, old)
+        existing = self.base / "state"
+        existing.mkdir(mode=0o755)
+        made = vp._outside_repository(str(existing / "media" / "show"), root=self.repo)
+        self.assertEqual(made, existing / "media" / "show")
+        for created in (existing / "media", existing / "media" / "show"):
+            self.assertEqual(created.stat().st_mode & 0o777, 0o700, created)
+        self.assertEqual(existing.stat().st_mode & 0o777, 0o755)
+        self.assertEqual(vp._outside_repository(str(made), root=self.repo), made)  # idempotent
+
+    def test_the_security_probe_reports_the_control_as_held(self):
+        from engineering_os import security_audit
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertFalse(security_audit.probe_video_output_dir(pathlib.Path(temp)))
+
+
 if __name__ == "__main__":
     unittest.main()
