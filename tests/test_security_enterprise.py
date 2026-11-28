@@ -22,7 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engineering_os import control_plane, governor, project_registry, security_audit  # noqa: E402
+from engineering_os import control_plane, governor, project_registry, security_audit, workspace_policy  # noqa: E402
 from engineering_os.memory import IntegrityError, MemoryStore  # noqa: E402
 from sdk import engineering_sdk as sdk  # noqa: E402
 
@@ -402,6 +402,93 @@ class RegistryHomeTests(unittest.TestCase):
     def test_a_private_home_still_registers_with_a_private_file(self):
         self.assertEqual(self.register()["status"], "registered")
         self.assertEqual(stat.S_IMODE((self.home / project_registry.PRIVATE_FILE).stat().st_mode), 0o600)
+
+
+# ---------------------------------------------------------------- SEC-09: Git behind `route --workspace`
+
+class WorkspaceGitTests(unittest.TestCase):
+    """workspace_policy runs Git in a linked worktree an agent may have prepared; the router runs none itself."""
+
+    def setUp(self):
+        self.base = private_tmp(self).resolve()
+        checkout = security_audit.linked_worktree(self.base)
+        self.canonical, self.worktree = checkout["canonical"], checkout["worktree"]
+        self.marker, self.trace = self.base / "program-ran", self.base / "trace"
+
+    def plain_status(self, **extra):
+        return subprocess.run(["git", "-C", str(self.worktree), "status", "--porcelain"], capture_output=True, text=True,
+                              env={**git_env(), **extra}, timeout=60).stdout
+
+    def validate(self):
+        return workspace_policy.validate_workspace(self.worktree, intent="upgrade", expected_repository="example/probe")
+
+    def test_a_clean_linked_worktree_is_still_verified(self):
+        scope = self.validate()
+        self.assertEqual((scope.root, scope.checkout, scope.branch), (self.worktree, self.worktree, "claude/probe"))
+
+    def test_the_router_launches_no_git_itself(self):
+        from engineering_os import gaie_router
+        self.assertFalse(hasattr(gaie_router, "subprocess") or hasattr(gaie_router, "workspace"))
+
+    def test_the_worktrees_fsmonitor_program_never_runs(self):
+        run_git(self.canonical, "config", "core.fsmonitor", f"touch {self.marker}; false")
+        self.plain_status()
+        self.assertTrue(self.marker.exists(), "premise: plain git status runs core.fsmonitor on this host")
+        self.marker.unlink()
+        self.validate()
+        self.assertFalse(self.marker.exists())
+
+    def test_the_index_hook_never_runs(self):
+        hook = self.canonical / ".git/hooks/post-index-change"
+        hook.parent.mkdir(exist_ok=True)
+        hook.write_text(f"#!/bin/sh\ntouch {self.marker}\n")
+        hook.chmod(0o700)
+        os.utime(self.worktree / "app.txt", (1_000_000, 1_000_000))  # same bytes, new stat data: status re-reads it
+        self.plain_status()
+        self.assertTrue(self.marker.exists(), "premise: plain git status rewrites the index and runs the hook")
+        self.marker.unlink()
+        os.utime(self.worktree / "app.txt", (2_000_000, 2_000_000))
+        self.validate()
+        self.assertFalse(self.marker.exists())
+
+    def test_inherited_git_variables_do_not_reach_the_check(self):
+        self.plain_status(GIT_TRACE=str(self.trace))
+        self.assertTrue(self.trace.exists(), "premise: a Git child that inherits GIT_TRACE writes the trace file")
+        self.trace.unlink()
+        elsewhere = private_tmp(self) / "elsewhere"
+        elsewhere.mkdir()
+        run_git(elsewhere, "init", "-q")
+        with mock.patch.dict(os.environ, {"GIT_TRACE": str(self.trace), "GIT_DIR": str(elsewhere / ".git")}):
+            self.assertEqual(self.validate().root, self.worktree)
+        self.assertFalse(self.trace.exists())
+
+    def test_programs_and_redirections_in_the_worktrees_config_are_refused(self):
+        for key, value in (("filter.probe.clean", f"sh -c 'touch {self.marker}; cat'"),
+                           ("core.hooksPath", str(self.base / "hooks")),
+                           ("include.path", str(self.base / "extra.config")),
+                           ("url.https://example.invalid/.insteadOf", "https://github.com/")):
+            with self.subTest(key=key):
+                run_git(self.canonical, "config", key, value)
+                with self.assertRaisesRegex(workspace_policy.WorkspacePolicyError, "includes, URL rewrites, filters and hooks"):
+                    self.validate()
+                run_git(self.canonical, "config", "--unset", key)
+        self.assertFalse(self.marker.exists())
+        self.assertEqual(self.validate().root, self.worktree)
+
+    def test_the_probe_reports_an_unhardened_git_call_as_open(self):
+        def unhardened(path, *args, absent=False):  # Git with the caller's environment and the checkout's programs
+            done = subprocess.run(["git", "-C", str(path), *args], capture_output=True, text=True, timeout=60, check=False)
+            if absent and done.returncode == 1 and not done.stdout:
+                return ""
+            if done.returncode:
+                raise workspace_policy.WorkspacePolicyError("Git could not verify the proposed workspace.")
+            return done.stdout
+
+        before = os.environ.get("GIT_TRACE")
+        with mock.patch.object(workspace_policy, "_git", unhardened):
+            self.assertTrue(security_audit.probe_router_workspace(private_tmp(self)))
+        self.assertFalse(security_audit.probe_router_workspace(private_tmp(self)))
+        self.assertEqual(os.environ.get("GIT_TRACE"), before, "the probe restores the caller's environment")
 
 
 # ---------------------------------------------------------------- SEC-13 / SEC-14: injection and backups

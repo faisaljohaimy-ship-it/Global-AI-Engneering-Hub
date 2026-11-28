@@ -21,6 +21,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SKILLS = ("gaie-master-router", "gaie-build", "gaie-upgrade", "gaie-audit", "gaie-cinematic", "gaie-release")
 ENGINE = {"engineering_os/gaie_router.py": "gaie_router.py", "engineering_os/gaie_memory.py": "gaie_memory.py",
+          "engineering_os/workspace_policy.py": "workspace_policy.py",
           "engineering_os/gaie_inventory.py": "gaie_inventory.py", "governance/policies/gaie-routes.json": "gaie-routes.json",
           "projects/registry.json": "projects.json", "projects/aliases.json": "aliases.json"}
 MANIFEST = "gaie-install.json"
