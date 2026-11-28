@@ -37,9 +37,13 @@ SOURCES = {
     "master-router": ("engineering_os/gaie_router.py", "governance/policies/gaie-routes.json",
                       "projects/registry.json", "projects/aliases.json", "skills/gaie-master-router/SKILL.md"),
     "master-build": ("engineering_os/factory.py", "engineering_os/gaie_router.py",
-                     "governance/policies/gaie-routes.json", "skills/gaie-build/SKILL.md", "prompts/MASTER_BUILD.md"),
+                     "governance/policies/gaie-routes.json", "skills/gaie-build/SKILL.md", "prompts/MASTER_BUILD.md",
+                     "engineering_os/build_engine.py", "engineering_os/requirements.py",
+                     "templates/app-stdlib/manifest.json"),
     "master-upgrade": ("engineering_os/factory.py", "engineering_os/gaie_router.py",
-                       "governance/policies/gaie-routes.json", "skills/gaie-upgrade/SKILL.md", "prompts/MASTER_UPGRADE.md"),
+                       "governance/policies/gaie-routes.json", "skills/gaie-upgrade/SKILL.md", "prompts/MASTER_UPGRADE.md",
+                       "engineering_os/upgrade_engine.py", "engineering_os/detectors.py", "engineering_os/healing.py",
+                       "engineering_os/workspace_policy.py"),
     "master-audit": ("engineering_os/gaie_inventory.py", "engineering_os/control.py", "hub.py", "hublink.py",
                      "engineering_os/gaie_router.py", "governance/policies/gaie-routes.json", "skills/gaie-audit/SKILL.md"),
     "master-cinematic": ("engineering_os/cinematic.py", "engineering_os/gaie_router.py",
@@ -49,8 +53,12 @@ SOURCES = {
                        "governance/policies/gaie-routes.json", "skills/gaie-release/SKILL.md"),
     "reasoning": ("engineering_os/reasoning.py",),
     "memory": ("engineering_os/memory.py", "engineering_os/orchestration.py"),
-    "self-healing": ("engineering_os/healing.py",),
-    "economics": ("engineering_os/economics.py", "engineering_os/model_router.py"),
+    "self-healing": ("engineering_os/healing.py", "engineering_os/detectors.py"),
+    "economics": ("engineering_os/economics.py", "engineering_os/model_router.py", "swarm/phase3/adaptive.py",
+                  "swarm/phase3/economics.py", "swarm/phase3/context_budget.py", "swarm/evidence/ladder.json",
+                  "swarm/evidence/tool-audit.json", "swarm/phase2/evidence/stages.json", "swarm/phase2/RESULTS.md",
+                  "swarm/phase2/PLAN.json", "swarm/phase3/evidence/team.json", "swarm/phase3/evidence/team2.json",
+                  "swarm/phase3/evidence/coordinator-scale.json"),
     "capability-registry": ("engineering_os/control.py", "hub.py", "catalog/registry.json"),
     "layers": ("engineering_os/layers.py", "engineering_os/contracts.py", "governance/layers.json",
                "governance/agent-roles.json"),
@@ -62,6 +70,15 @@ SOURCES = {
     "adaptive-scheduler": ("swarm/phase3/adaptive.py",),
     "security-governor": ("engineering_os/governor.py", "engineering_os/contracts.py"),
     "quality-assurance": ("engineering_os/governor.py", "engineering_os/contracts.py"),
+    # Wave-2 engines (adding an engine: CONTROL_PLANE.md section 6).
+    "orchestrator": ("engineering_os/orchestrator.py", "engineering_os/layers.py", "engineering_os/reasoning.py",
+                     "engineering_os/economics.py", "engineering_os/orchestration.py", "governance/agent-roles.json",
+                     "governance/layers.json", "swarm/scheduler.py", "swarm/phase3/adaptive.py"),
+    "security-audit": ("engineering_os/security_audit.py", "engineering_os/governor.py", "scripts/security_scan.py"),
+    "requirements": ("engineering_os/requirements.py",
+                     *sorted(f"governance/domains/{p.name}" for p in (ROOT / "governance/domains").glob("*.json"))),
+    "cinematic-production": ("engineering_os/video_pipeline.py", "engineering_os/cinematic.py",
+                             "packages/motion-engines/registry.json"),
 }
 
 # Payload fields that name a filesystem location; the governor checks each one
@@ -80,6 +97,17 @@ PATH_FIELDS = {
     ("memory", "verify"): ("source_root", "receipt_path"),
     ("context-intelligence", "optimize"): ("input",),
 }
+# Wave-2 location fields. Besides the governor's realpath check against the grant, each one must be
+# canonical before the governor is asked: absolute, normalized and with no symbolic link in any
+# existing component (adapters._location), so a link swapped in after the check cannot redirect a write.
+CANONICAL_PATH_FIELDS = {
+    ("orchestrator", "worktree-plan"): ("repo", "base_dir"),
+    ("cinematic-production", "render"): ("out_dir", "voiceover_dir", "music_file"),
+    ("cinematic-production", "qa"): ("path",),
+}
+PATH_FIELDS.update(CANONICAL_PATH_FIELDS)
+# Actions that always read the trusted Hub checkout: the grant must cover it.
+HUB_READERS = frozenset({("quality-assurance", "run-tests"), ("security-audit", "audit")})
 
 
 class AdapterError(ValueError):
@@ -156,17 +184,46 @@ def _healthy(check):
         return {"ok": False, "detail": f"{type(error).__name__}: {str(error)[:200]}"}
 
 
+def _location(value, field):
+    """A canonical absolute location: normalized text, no '..', no symbolic link in any existing component.
+    The location itself need not exist yet (an output directory is created by its engine)."""
+    raw = _string(value, field)
+    path = pathlib.Path(raw)
+    if not path.is_absolute() or raw != str(path) or ".." in path.parts or path == pathlib.Path(path.anchor):
+        raise AdapterError(f"{field}: canonical absolute path required")
+    if any(part.is_symlink() for part in (path, *path.parents)):
+        raise AdapterError(f"{field}: a symbolic link in the path is refused")
+    return raw
+
+
+def _directory(value, field):
+    """An existing canonical directory (see _location)."""
+    raw = _location(value, field)
+    if not pathlib.Path(raw).is_dir():
+        raise AdapterError(f"{field}: existing directory required")
+    return raw
+
+
+def _flag(payload, field, default):
+    value = payload.get(field, default)
+    if type(value) is not bool:
+        raise AdapterError(f"{field}: boolean")
+    return value
+
+
 def request_paths(engine, action, payload):
     """Filesystem locations named by a payload, for the governor's path check."""
     if not isinstance(payload, dict):
         raise AdapterError("payload must be an object")
-    if (engine, action) == ("quality-assurance", "run-tests"):
+    if (engine, action) in HUB_READERS:
         return (str(ROOT),)  # this adapter always reads the trusted Hub checkout
     paths = []
     for field in PATH_FIELDS.get((engine, action), ()):
         if payload.get(field) is not None:
             if engine == "master-audit":
                 paths.append(_audit_directory(payload[field], field))
+            elif (engine, action) in CANONICAL_PATH_FIELDS:
+                paths.append(_location(payload[field], field))
             else:
                 paths.append(_string(payload[field], field))
     return tuple(paths)
@@ -874,4 +931,137 @@ def quality_assurance_health():
         if not callable(getattr(governor, "sandbox_run", None)) or not (ROOT / "tests").is_dir():
             raise AdapterError("sandboxed test runner unavailable")
         return "unittest runner through governor.sandbox_run (no network) and registry contract checks"
+    return _healthy(check)
+
+
+# ---------------------------------------------------------------- wave-2 engines
+# Each wave-2 module already exposes engine(action, payload, ctx) and health(); these wrappers add what
+# the control-plane contract needs and those entrypoints do not give: a known action set (an unknown
+# action is an AdapterError), exact payload fields, canonical locations, and no fallback to host state.
+
+# ---------------------------------------------------------------- L03 orchestrator
+
+ORCHESTRATOR_ACTIONS = ("plan", "schedule", "review-assignment", "worktree-plan", "scenario-h")
+
+
+def orchestrator(action, payload, ctx):
+    """Plans, schedules and git worktree commands for up to twenty agents; nothing is started or run."""
+    from . import orchestrator as module
+    if action not in ORCHESTRATOR_ACTIONS:
+        return _unknown("orchestrator", action)
+    if not isinstance(payload, dict):
+        raise AdapterError("payload must be an object")
+    if action == "worktree-plan":
+        _fields(payload, ("plan", "repo", "base_dir"), ("base_ref",))
+        payload = {**payload, "repo": _directory(payload["repo"], "repo"), "base_dir": _location(payload["base_dir"], "base_dir")}
+    return module.engine(action, payload)
+
+
+def orchestrator_health():
+    def check():
+        from . import orchestrator as module
+        probe = module.health()
+        if not probe["ok"]:
+            raise AdapterError(probe["detail"])
+        return "twenty-role plan and verify_plan: " + probe["detail"]
+    return _healthy(check)
+
+
+# ---------------------------------------------------------------- L09 security-audit
+
+def security_audit(action, payload, ctx):
+    """The repeatable L09 audit of this checkout and the audit-log anchor of the control plane's state."""
+    from . import security_audit as module
+    if action == "scan":
+        _fields(payload)
+        return module.run(ROOT, probes=False)
+    if action == "audit":
+        _fields(payload)
+        return module.run(ROOT, probes=True)
+    if action == "anchor":
+        _fields(payload)
+        return module.audit_anchor(str(_state(ctx)))
+    if action == "verify-anchor":
+        _fields(payload, ("anchor",))
+        governor = _governor()
+        try:
+            count = module.verify_audit_anchor(str(_state(ctx)), payload["anchor"])
+        except governor.GovernorDenied as denial:
+            return {"intact": False, "reason": str(getattr(denial, "reason", denial))}
+        return {"intact": True, "records": count}
+    return _unknown("security-audit", action)
+
+
+def security_audit_health():
+    def check():
+        from . import security_audit as module
+        if not module.FINDINGS or not all(callable(f) for f in (module.run, module.audit_anchor, module.verify_audit_anchor)):
+            raise AdapterError("security audit API changed")
+        return (f"{len(module.FINDINGS)} registered findings with probes and static rules importable; "
+                "nothing is run by this probe")
+    return _healthy(check)
+
+
+# ---------------------------------------------------------------- L15 requirements
+
+REQUIREMENTS_ACTIONS = ("parse", "refine", "validate", "diff", "acceptance", "packs")
+
+
+def requirements(action, payload, ctx):
+    """Owner command or brief to gaie.spec/1 and back; deterministic lexicon matching, no model."""
+    from . import requirements as module
+    if action not in REQUIREMENTS_ACTIONS:
+        return _unknown("requirements", action)
+    return module.engine(action, payload)  # exact payload fields are checked by the module
+
+
+def requirements_health():
+    def check():
+        from . import requirements as module
+        probe = module.health()
+        if not probe["ok"]:
+            raise AdapterError(probe["detail"])
+        return "deterministic parser and validator importable; " + probe["detail"]
+    return _healthy(check)
+
+
+# ---------------------------------------------------------------- L18 cinematic-production
+
+def cinematic_production(action, payload, ctx):
+    """The video pipeline: storyboard checks, subtitles, headless rendering and measured media QA."""
+    from . import video_pipeline as module
+    if action == "inventory":
+        _fields(payload)
+        return module.inventory()
+    if action in ("validate", "direct", "subtitles"):
+        _fields(payload, ("storyboard",))
+        return module.engine(action, payload)
+    if action == "probe":
+        _fields(payload)
+        return module.engine("probe", {})
+    if action == "render":
+        # out_dir is required: the private state directory is never used as a media fallback.
+        _fields(payload, ("storyboard", "out_dir"), ("name", "voiceover_dir", "music_file", "music_license"))
+        located = {field: _location(payload[field], field) for field in ("out_dir", "voiceover_dir", "music_file")
+                   if field in payload}
+        return module.engine("render", {**payload, **located})
+    if action == "qa":
+        _fields(payload, ("path", "expect"))
+        path = pathlib.Path(_location(payload["path"], "path"))
+        if not path.is_file():
+            raise AdapterError("path: an existing regular media file is required")
+        if not isinstance(payload["expect"], dict):
+            raise AdapterError("expect: object")
+        return module.qa_media(path, payload["expect"])
+    return _unknown("cinematic-production", action)
+
+
+def cinematic_production_health():
+    def check():
+        from . import video_pipeline as module
+        plan = module.build_plan(module.validate_storyboard(module.SAMPLE_STORYBOARD))
+        native = module.inventory()["native_total"]
+        tools = module.health()
+        return (f"storyboard validation and planning importable ({plan['frames']} frames for the sample); "
+                f"{native} native motions in the registry; render/qa/probe tools: {tools['detail']}")
     return _healthy(check)

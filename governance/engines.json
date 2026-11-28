@@ -160,6 +160,60 @@
     "supersedes": []
   },
   {
+    "id": "orchestrator",
+    "layer": "L03",
+    "title": {
+      "en": "Adaptive Agent Orchestration",
+      "ar": "التنسيق التكيّفي للوكلاء"
+    },
+    "entrypoint": "engineering_os.adapters:orchestrator",
+    "health": "engineering_os.adapters:orchestrator_health",
+    "actions": {
+      "plan": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Plan a goal or gaie.spec/1 into milestones, tasks, roles, waves, least-privilege task grants and independent reviewers; nothing is started."
+      },
+      "schedule": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Size the next wave of a verified plan from measured wave history and the host cap; nothing is started."
+      },
+      "review-assignment": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Name the independent reviewer and approval panel of one plan task; never its implementer."
+      },
+      "worktree-plan": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Return git worktree and branch commands (argv lists) per agent outside the repository; nothing is executed."
+      },
+      "scenario-h": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Compute Scenario H figures from caller-supplied measured wave metrics; no file or clock is read."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.orchestrator plan|scenario-h (kept as an ungoverned CLI)"
+    ]
+  },
+  {
     "id": "capability-registry",
     "layer": "L04",
     "title": {
@@ -352,6 +406,55 @@
       }
     },
     "supersedes": []
+  },
+  {
+    "id": "security-audit",
+    "layer": "L09",
+    "title": {
+      "en": "Enterprise Security Audit",
+      "ar": "تدقيق الأمان المؤسسي"
+    },
+    "entrypoint": "engineering_os.adapters:security_audit",
+    "health": "engineering_os.adapters:security_audit_health",
+    "actions": {
+      "scan": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Static rules over the tracked files of this checkout (one hardened git ls-files read); hits by path, line and rule, never by value."
+      },
+      "audit": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Static rules plus every registered finding's probe, re-run in private temporary directories (child processes, Python-level checks, not an OS sandbox)."
+      },
+      "anchor": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Record count and last record digest of the control plane's intact governor audit log; keep the anchor outside the state directory."
+      },
+      "verify-anchor": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Check that the governor audit log is intact and still holds an anchored record (detects removal from its end)."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.security_audit (kept as an ungoverned CLI)"
+    ]
   },
   {
     "id": "master-release",
@@ -554,6 +657,66 @@
     ]
   },
   {
+    "id": "requirements",
+    "layer": "L15",
+    "title": {
+      "en": "Requirements & Specification Intelligence",
+      "ar": "ذكاء المتطلبات والمواصفات"
+    },
+    "entrypoint": "engineering_os.adapters:requirements",
+    "health": "engineering_os.adapters:requirements_health",
+    "actions": {
+      "parse": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Owner command or brief (Arabic or English) to gaie.spec/1 by deterministic lexicon matching; unknowns become open questions."
+      },
+      "refine": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Resolve a spec's open questions with the owner's answers."
+      },
+      "validate": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Validate a gaie.spec/1 document."
+      },
+      "diff": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Change set between two specs for an upgrade, with breaking changes flagged."
+      },
+      "acceptance": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Structured acceptance checks of a spec."
+      },
+      "packs": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "List the validated domain packs."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.requirements (kept as an ungoverned CLI)"
+    ]
+  },
+  {
     "id": "master-build",
     "layer": "L16",
     "title": {
@@ -652,6 +815,83 @@
     },
     "supersedes": [
       "intelligence.dispatch:cinematic"
+    ]
+  },
+  {
+    "id": "cinematic-production",
+    "layer": "L18",
+    "title": {
+      "en": "Cinematic Production Pipeline",
+      "ar": "خط الإنتاج السينمائي"
+    },
+    "entrypoint": "engineering_os.adapters:cinematic_production",
+    "health": "engineering_os.adapters:cinematic_production_health",
+    "actions": {
+      "inventory": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Count native engine motions (packages/motion-engines/registry.json) apart from Canvas2D reference motions."
+      },
+      "validate": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Validate a gaie.storyboard/1 document and count its frames."
+      },
+      "direct": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Static cinematic direction checks (reading time, pacing, language) of a storyboard."
+      },
+      "subtitles": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "WebVTT and SRT text of a storyboard for each language."
+      },
+      "probe": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Probe headless Chromium (WebGL2, WebGPU, Arabic shaping) and local TTS in child processes; temporary files only."
+      },
+      "render": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Render, encode and QA media into out_dir outside the repository (headless Chromium and ffmpeg child processes)."
+      },
+      "qa": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Measure one MP4 against an expected delivery format with ffprobe/ffmpeg child processes; temporary files only."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.video_pipeline (kept as an ungoverned CLI)"
     ]
   },
   {
