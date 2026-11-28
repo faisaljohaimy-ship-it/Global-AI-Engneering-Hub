@@ -28,7 +28,7 @@ Onboarding defaults to dry-run and writes only absent `.engineering/` files plus
 ## Evidence snapshot
 
 `hub.py audit` derives counts from manifests and browser evidence rather than
-hard-coding them. The current phase indexes 142 motion specifications, exposes 30
+hard-coding them. The current phase indexes 156 motion specifications, exposes 30
 executable Motion Lab components, and has 29 catalog entries with current Chromium
 runtime evidence: CSS/WAAPI plus one dedicated WebGL shader check. Remotion-adapter
 and Three-adapter evidence remains surface-specific instead of being promoted to an
@@ -54,7 +54,9 @@ provider candidates contain **zero operational model versions** and make no API
 calls. [Technology discovery](scripts/discover_technology.py) collects bounded
 public metadata into review artifacts, never installs what it discovers.
 
-See [the delivery status and remaining boundaries](docs/OPERATING_SYSTEM_STATUS.md) for per-layer before/after evidence.
+See [the delivery status and remaining boundaries](docs/OPERATING_SYSTEM_STATUS.md) for per-layer evidence and open items.
+`hub.py layers --verify` runs the tests each of the twenty layers lists; the registry binds no
+acceptance scenario yet, so a full VERIFIED result is not a statement about scenarios A–I.
 
 ## GAIE software factory
 
@@ -66,20 +68,21 @@ python3 hub.py inventory /path/to/project  # read-only discovery and coverage ma
 python3 scripts/gaie_bootstrap.py install --scope user   # dry-run; add --apply
 ```
 
-In Claude Code: `/plugin install gaie --marketplace faisaljohaimy-ship-it/Global-AI-Engneering-Hub`,
-or open this repository, where the `gaie-*` skills are committed. See
-[the factory guide](docs/GAIE_FACTORY.md) for commands, installation per
-environment, rollback and what is and is not verified.
+In Claude Code, open this repository, where the `gaie-*` skills are committed, or
+copy them into another project with `scripts/gaie_bootstrap.py` (tested). Plugin and
+registered-pack installs need these files on `main`, which does not have them yet;
+no install is host-verified at this revision. See [the factory guide](docs/GAIE_FACTORY.md)
+for commands, installation per environment, rollback and what is and is not verified.
 
 ## Architecture
-See the [twelve-layer architecture](ARCHITECTURE.md), [existing reference](docs/ARCHITECTURE.md) and [onboarding](docs/ONBOARDING.md). One independent repository and deployment target per app. Shared capabilities use versioned references; no live production dependency on this hub. Keep client code, secrets, private business assets and sensitive data outside this public repository. Use services only within approved budget and commercial-use terms.
+See the [twenty-layer architecture](ARCHITECTURE.md), [existing reference](docs/ARCHITECTURE.md) and [onboarding](docs/ONBOARDING.md). One independent repository and deployment target per app. Shared capabilities use versioned references; no live production dependency on this hub. Keep client code, secrets, private business assets and sensitive data outside this public repository. Use services only within approved budget and commercial-use terms.
 
 ## Catalog expansion
 Record canonical ID, license, commercial use, security review, and immutable revision before approval. Record runtime evidence separately. No third-party source copied here; upstream projects retain their own licenses. Public visibility does not grant a blanket license for this repository.
 
 ## Registering and verifying projects
 
-The [Engineering SDK 1.0.0](docs/SDK.md) adds offline verification, a private
+The [Engineering SDK 1.0.1](docs/SDK.md) adds offline verification, a private
 project registry validator, exact-target release guards and read-only MCP discovery.
 Select `pack:engineering-sdk` during registration. Product CI runs the vendored
 verifier without contacting this public repository. Dependency updates remain PRs
