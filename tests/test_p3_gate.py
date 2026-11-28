@@ -5,6 +5,7 @@ import datetime
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -49,6 +50,30 @@ class DecisionTests(unittest.TestCase):
         self.assertEqual(hook.decide(shell("swarm-dev", "git push"))[0], "refuse")
         self.assertEqual(hook.decide(shell("swarm-dev", "ls"))[0], "allow")
         self.assertEqual(hook.decide({"agent_type": "swarm-dev", "agent_id": "a", "tool_name": "Write", "tool_input": {"file_path": "/etc/x"}})[0], "refuse")
+        dev = lambda tool, given: hook.decide({"agent_type": "swarm-dev", "agent_id": "a", "tool_name": tool, "tool_input": given})[0]  # noqa: E731
+        with tempfile.TemporaryDirectory() as lanes:
+            before = os.environ.get("SWARM_LANES")
+            os.environ["SWARM_LANES"] = lanes
+            try:
+                self.assertEqual(dev("Read", {"file_path": str(ROOT / "README.md")}), "allow")
+                self.assertEqual(dev("Read", {"file_path": f"{lanes}/H1/swarm/phase3/x.py"}), "allow")
+                self.assertEqual(dev("Write", {"file_path": f"{lanes}/H1/swarm/phase3/x.py"}), "allow")
+                self.assertEqual(dev("Write", {"file_path": str(ROOT / "README.md")}), "refuse")
+                self.assertEqual(dev("Grep", {"pattern": "x"}), "allow")
+                self.assertEqual(dev("Glob", {"pattern": "*.py", "path": str(ROOT / "swarm")}), "allow")
+                for outside in ("/etc/passwd", str(pathlib.Path.home() / ".claude" / "projects"), f"{lanes}/../elsewhere", str(ROOT / ".." / "other")):
+                    self.assertEqual(dev("Read", {"file_path": outside}), "refuse", outside)
+                    self.assertEqual(dev("Grep", {"pattern": "x", "path": outside}), "refuse", outside)
+                self.assertEqual(dev("Read", {}), "refuse")
+                for command in ("env", "printenv", "ls; env", "env > /tmp/e", "cat /proc/self/environ", "cat ~/.claude/x", "ls /root/.claude/projects", "cat $HOME/.gaie-swarm/p3/hook.jsonl",
+                                "cat /home/user/.ssh/id", "cat ~/.git-credentials"):
+                    self.assertEqual(dev("Bash", {"command": command}), "refuse", command)
+                for command in ("env PYTHONPATH=. python3 -m unittest tests.test_p3_x", f"cat {ROOT}/.claude/agents/swarm-queue.md", "python3 -c 'print(1)'", f"git -C {lanes}/H1 add -A"):
+                    self.assertEqual(dev("Bash", {"command": command}), "allow", command)
+                for tool in ("WebFetch", "WebSearch", "Agent", "SendMessage", "ToolSearch", "mcp__claude-code-remote__send_message", "mcp__github__push_files"):
+                    self.assertEqual(dev(tool, {}), "refuse", tool)
+            finally:
+                os.environ.pop("SWARM_LANES") if before is None else os.environ.__setitem__("SWARM_LANES", before)
 
     def test_the_self_test_holds_and_notices_a_gate_that_lets_things_through(self):
         self.assertEqual(hook.selftest(installed=False), [])
@@ -82,6 +107,34 @@ class DecisionTests(unittest.TestCase):
             self.assertNotIn(marker, text)
             self.assertEqual(len(lines[0]["who"]), 10)
             self.assertIn("session_id", lines[0]["fields"])
+
+    def test_the_installed_gate_refuses_when_the_gate_crashes_or_cannot_record(self):
+        """The host lets a call run when its gate ends with a status other than 2. So a crash must not end with 1."""
+        with tempfile.TemporaryDirectory() as folder:
+            home = pathlib.Path(folder)
+            program = home / "swk-hook"
+            program.write_text(hook.wrapper(f"SWARM_HOME='{home / 'state'}'"))
+            program.chmod(0o755)
+            env = {"PATH": os.environ["PATH"]}
+            allowed, orchestrator = json.dumps(shell("swarm-queue-1", "swk next")), json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}})
+            run = lambda text, *more: subprocess.run([str(program), *more], input=text, capture_output=True, text=True, env=env)  # noqa: E731
+            self.assertEqual(run(allowed).returncode, 0)
+            crashed = run(allowed, "fault")
+            self.assertEqual(crashed.returncode, 2)
+            self.assertIn("did not run to its end", crashed.stderr)
+            self.assertEqual(run(json.dumps(shell("swarm-queue-1", "id"))).stderr.count(guard.MARK), 1, "a plain refusal is said once")
+            broken = home / "broken"
+            broken.write_text(hook.wrapper("").replace(str(P3 / "hook.py"), str(home / "no-such-gate.py")))
+            broken.chmod(0o755)
+            self.assertEqual(subprocess.run([str(broken)], input=allowed, capture_output=True, text=True, env=env).returncode, 2, "a gate that is not there refuses")
+            # the record cannot be written: the folder it belongs in is a file
+            (home / "state").rename(home / "kept")
+            (home / "state").write_text("not a folder")
+            unrecorded = run(allowed)
+            self.assertEqual(unrecorded.returncode, 2)
+            self.assertIn("not recorded does not run", unrecorded.stderr)
+            self.assertEqual(run(orchestrator).returncode, 0, "the orchestrator is not confined by this gate, and must be able to repair it")
+            self.assertEqual(run(json.dumps(shell("swarm-queue-1", "id"))).returncode, 2)
 
     def test_the_settings_entry_covers_every_tool_and_does_nothing_until_the_gate_is_installed(self):
         entry = json.loads((ROOT / ".claude" / "settings.json").read_text())["hooks"]["PreToolUse"][0]
@@ -238,15 +291,20 @@ class RunTests(unittest.TestCase):
         self.agent("swarm-probe-wide", "READ /etc/hostname", [("Read", {"file_path": "/etc/hostname"})])
         return self.stage3("finish")
 
-    def work_the_queue(self, extra=None, through_the_gate=True):
+    def work_the_queue(self, extra=None, through_the_gate=True, check_status=False):
         card = self.stage3("prep").stdout
         self.assertIn("prompt of every agent: the single word go", card)
         self.assertIn("Never put more than 20 Agent calls in one message", card)
-        for _ in range(4):
+        for done in range(4):
+            if check_status and done in (0, 3):
+                said = self.stage3("status").stdout
+                self.assertIn(f"STAGE q4 is open: {done} of 4 agents started, {4 - done} left = 1 more message(s) of at most 20 Agent calls. Start {4 - done} now.", said)
+                self.assertIn(f"queue: {4 - done} waiting, 0 claimed, {done} handed in, 0 given up, of 4", said)
             first = subprocess.run(["swk", "next"], capture_output=True, text=True, env=self.env).stdout
             worker, ident = first.splitlines()[0].split()[1], first.split("## Task ")[1].split()[0]
             reference = tasks.medium(int(ident.split("-")[1]), SMALL_PLAN["seed"])["reference"]
-            wants = [("Bash", {"command": f"swk submit {ident} <<'PY'\n{reference}\nPY"}), *(extra or [])]
+            ticket = re.search(r"^ticket (\S+)$", first, re.M)  # a queue that gives tickets wants the ticket in the hand-in
+            wants = [("Bash", {"command": f"swk submit {ident}{' ' + ticket.group(1) if ticket else ''} <<'PY'\n{reference}\nPY"}), *(extra or [])]
             # the stand-in's first call was made above, outside the gate: tell the gate of it, as the host would have
             subprocess.run(["swk-hook"], input=json.dumps({"agent_type": "swarm-queue-1", "agent_id": f"s{self.count + 1}", "tool_name": "Bash", "tool_input": {"command": "swk next"}}),
                            capture_output=True, text=True, env=self.env)
@@ -254,6 +312,8 @@ class RunTests(unittest.TestCase):
             path = self.home / "records" / f"agent-s{self.count}.jsonl"
             write_record(self.home / "records", f"s{self.count}", "swarm-queue-1", "go", [("Bash", {"command": "swk next"}, first, False), *made])
             self.assertTrue(path.exists() and worker)
+        if check_status:
+            self.assertIn("STAGE q4 is open: 4 of 4 agents started, 0 left. Start no more. Run: python3 swarm/phase3/stage3.py finish", self.stage3("status").stdout)
         return self.stage3("finish")
 
     def test_the_gate_stage_passes_and_then_the_queue_stage_runs_clean(self):
@@ -261,12 +321,19 @@ class RunTests(unittest.TestCase):
         self.assertEqual(gate.returncode, 0, gate.stderr)
         self.assertIn("security gate: PASSED", gate.stdout)
         self.assertTrue(gate.stdout.rstrip().splitlines()[-1].startswith("NEXT q4"))
-        done = self.work_the_queue()
+        self.assertIn("No stage is open", self.stage3("status").stdout)
+        done = self.work_the_queue(check_status=True)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn("gate saw every call: True", done.stdout)
         self.assertTrue(done.stdout.rstrip().splitlines()[-1].startswith("END - every stage"), done.stdout)
         text = (self.home / "public" / "evidence" / "stages.json").read_text()
-        gate_stage, work = json.loads(text)["stages"]
+        document = json.loads(text)
+        gate_stage, work = document["stages"]
+        self.assertTrue(document["about"].startswith("Third phase"))
+        self.assertEqual(document["plan_sha256"], __import__("hashlib").sha256((self.home / "plan.json").read_bytes()).hexdigest())
+        self.assertEqual(document["counted_before_this_run"]["total"], sum(document["counted_before_this_run"]["parts"].values()))
+        self.assertGreater(document["counted_before_this_run"]["reported_apart"]["orchestrator_of_the_second_phase_run"], 0)
+        self.assertTrue(gate_stage["guard_enforced"] and work["guard_enforced"])
         self.assertTrue(gate_stage["security_gate"]["passed"])
         self.assertEqual([(p["must_be"], p["held"], p["calls_outside_the_contract_that_ran"]) for p in gate_stage["security_gate"]["probes"]],
                          [("refused", True, 0), ("let through", True, 0), ("refused", True, 0)])
@@ -309,6 +376,8 @@ class RunTests(unittest.TestCase):
         last = done.stdout.rstrip().splitlines()[-1]
         self.assertTrue(last.startswith("END - "), done.stdout)
         self.assertIn("calls outside a worker's contract ran in q4", last)
+        work = json.loads((self.home / "public" / "evidence" / "stages.json").read_text())["stages"][1]
+        self.assertFalse(work["guard_enforced"], "a stage where a foreign call ran is not a stage where the gate held")
 
     def test_no_stage_is_opened_when_the_installed_gate_is_gone(self):
         self.assertEqual(self.stage3("setup").returncode, 0)

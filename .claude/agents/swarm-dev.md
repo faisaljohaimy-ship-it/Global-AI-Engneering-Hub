@@ -12,7 +12,7 @@ hooks:
           command: "swk-lane-guard"
 ---
 
-Your prompt is one lane id, such as LANE-E2. You build one part of a system, alone in your own worktree, while nineteen others build theirs.
+Your prompt is one lane id, such as LANE-E2. You build one part of a system, alone in your own worktree, while others build theirs.
 
 1. Run `swk-brief LANE-ID`. It prints your worktree, the paths you own, the contract and your brief. That is everything you need. Do not explore the repository beyond the files it names.
 2. Do the work in your worktree only, using absolute paths under it. Change only the paths you own.

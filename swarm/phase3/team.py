@@ -27,14 +27,16 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(HERE), str(HERE.parent / "phase2"), str(HERE.parent)]
+import hook  # noqa: E402
 import measure  # noqa: E402
 import stage  # noqa: E402
 
 ROOT = Path(os.environ.get("SWARM_TEAM_ROOT", HERE.parents[1])).resolve()
-TEAM = json.loads((ROOT / "swarm" / "phase3" / "TEAM.json").read_text())
+TEAM_FILE = ROOT / "swarm" / "phase3" / os.environ.get("SWARM_TEAM_FILE", "TEAM.json")  # TEAM.json was the first round; TEAM2.json the second
+TEAM = json.loads(TEAM_FILE.read_text())
 LANES = Path(os.environ.get("SWARM_LANES", ROOT.parent / "p3-lanes")).resolve()
 BIN = Path(os.environ.get("SWARM_BIN", "/usr/local/bin"))
-EVIDENCE = ROOT / "swarm" / "phase3" / "evidence" / "team.json"
+EVIDENCE = ROOT / "swarm" / "phase3" / "evidence" / TEAM_FILE.name.lower()  # team.json, team2.json
 LANE = re.compile(r"LANE-([A-Z]\d)")
 
 
@@ -59,7 +61,7 @@ def card() -> str:
     return (f"TEAM: start {len(TEAM['lanes'])} agents, all in ONE message, in the foreground.\n"
             f"  subagent_type: {TEAM['agent_type']}   model: {TEAM['model']}   effort: {TEAM['effort']}\n"
             f"  prompt of each agent: its lane id and nothing else. One agent per id:\n    {ids}\n"
-            "When every agent has returned, run: python3 swarm/phase3/team.py integrate")
+            f"When every agent has returned, run: {'' if TEAM_FILE.name == 'TEAM.json' else f'SWARM_TEAM_FILE={TEAM_FILE.name} '}python3 swarm/phase3/team.py integrate")
 
 
 def setup() -> int:
@@ -67,11 +69,12 @@ def setup() -> int:
     home = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm"))
     for name, line in (("swk", f"SWARM_HOME='{home}' exec python3 -I '{HERE.parent / 'phase2' / 'kit.py'}' \"$@\""),
                        ("swk-guard", f"exec python3 -I '{HERE.parent / 'phase2' / 'guard.py'}' \"$@\""),
-                       ("swk-hook", f"SWARM_HOME='{home}' SWARM_LANES='{LANES}' exec python3 -I '{HERE / 'hook.py'}' \"$@\""),
                        ("swk-lane-guard", f"SWARM_LANES='{LANES}' exec python3 -I '{HERE / 'lane_guard.py'}' \"$@\""),
-                       ("swk-brief", f"SWARM_TEAM_ROOT='{ROOT}' SWARM_LANES='{LANES}' exec python3 '{HERE / 'team.py'}' brief \"$@\"")):
+                       ("swk-brief", f"SWARM_TEAM_ROOT='{ROOT}' SWARM_LANES='{LANES}' SWARM_TEAM_FILE='{TEAM_FILE.name}' exec python3 '{HERE / 'team.py'}' brief \"$@\"")):
         (BIN / name).write_text(f"#!/bin/sh\n{line}\n")
         (BIN / name).chmod(0o755)
+    (BIN / "swk-hook").write_text(hook.wrapper(f"SWARM_HOME='{home}' SWARM_LANES='{LANES}'"))
+    (BIN / "swk-hook").chmod(0o755)
     base = git("rev-parse", "HEAD").stdout.strip()
     for lane in TEAM["lanes"]:
         if not (LANES / lane["id"]).exists():
@@ -86,7 +89,7 @@ def setup() -> int:
 def brief(name: str) -> int:
     lane = lane_of(name)
     print(f"Lane {lane['id']}: {lane['title']}\nYour worktree: {LANES / lane['id']}\nThe only paths you may change, relative to your worktree: {', '.join(lane['owns'])}\n")
-    print((ROOT / "swarm" / "phase3" / "CONTRACT.md").read_text())
+    print((ROOT / "swarm" / "phase3" / TEAM.get("contract", "CONTRACT.md")).read_text())
     print(f"## Your work, lane {lane['id']}\n\n{lane['brief']}")
     return 0
 

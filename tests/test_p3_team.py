@@ -117,6 +117,30 @@ class NetTests(unittest.TestCase):
         self.assertEqual(TEAM["agent_type"], "swarm-dev")
 
 
+class SecondRoundTests(unittest.TestCase):
+    def test_the_second_team_file_is_read_and_gets_its_own_evidence_file(self):
+        code = "import sys; sys.path.insert(0, 'swarm/phase3'); import team; print(len(team.TEAM['lanes']), team.EVIDENCE.name, team.TEAM['contract'])"
+        done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=ROOT, env={**os.environ, "SWARM_TEAM_FILE": "TEAM2.json"})
+        self.assertEqual(done.stdout.split(), ["16", "team2.json", "CONTRACT2.md"], done.stderr)
+        first = subprocess.run([sys.executable, "-c", code.replace(", team.TEAM['contract']", "")], capture_output=True, text=True, cwd=ROOT,
+                               env={k: v for k, v in os.environ.items() if k != "SWARM_TEAM_FILE"})
+        self.assertEqual(first.stdout.split(), ["20", "team.json"], first.stderr)
+
+    def test_no_path_has_two_owners_and_every_lane_has_a_test_file_and_a_new_id(self):
+        second = json.loads((ROOT / "swarm" / "phase3" / "TEAM2.json").read_text())
+        first = json.loads((ROOT / "swarm" / "phase3" / "TEAM.json").read_text())
+        owned = [path for lane in second["lanes"] for path in lane["owns"]]
+        self.assertEqual(len(owned), len(set(owned)))
+        self.assertFalse({lane["id"] for lane in second["lanes"]} & {lane["id"] for lane in first["lanes"]}, "a lane id names a local branch: it must be new")
+        for lane in second["lanes"]:
+            self.assertTrue(any(path.startswith("tests/test_p3_") for path in lane["owns"]), lane["id"])
+            self.assertIn(lane["group"], second["groups"])
+        self.assertTrue((ROOT / "swarm" / "phase3" / second["contract"]).exists())
+        self.assertLessEqual(len(second["lanes"]), 20, "the host runs 20 agents at once")
+        for mine in ("swarm/phase3/stage3.py", "swarm/phase3/team.py", "swarm/phase3/lane_guard.py", "swarm/phase3/PLAN3.json", "tests/test_p3_gate.py"):
+            self.assertNotIn(mine, owned, "the run's driver and its plan are not a lane's to change")
+
+
 class JoinTests(unittest.TestCase):
     def test_lanes_are_joined_one_by_one_and_a_lane_outside_its_paths_is_rejected_whole(self):
         with tempfile.TemporaryDirectory() as folder:

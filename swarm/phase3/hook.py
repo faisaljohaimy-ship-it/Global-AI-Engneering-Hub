@@ -18,7 +18,8 @@ who is calling, and what it does not know it refuses:
   of a fixed shape; every other tool is refused, whatever the worker's definition lists;
 - a development agent (swarm-dev): the lane net (lane_guard.allowed);
 - any other agent, of any type this gate does not know: every call refused;
-- a call this gate cannot read, or a fault in the gate itself: refused.
+- a call this gate cannot read, a fault in the gate itself, or an agent's call that
+  cannot be written to the record: refused.
 
 It records every call it judged: the time, the tool's name, the agent's type, a short
 hash of the agent's id, the verdict, and the names (never the values) of the fields the
@@ -77,7 +78,8 @@ def decide(call: dict) -> tuple[str, str]:
     return "refuse", f"{REFUSAL} In a session of this experiment only its own agent types may use tools."
 
 
-def record(call: dict, verdict: str) -> None:
+def record(call: dict, verdict: str) -> bool:
+    """One line for one judged call. False when the line could not be written."""
     try:
         kind, ident = caller(call)
         line = {"t": round(time.time(), 2), "tool": str(call.get("tool_name")), "agent": kind, "verdict": verdict,
@@ -88,8 +90,20 @@ def record(call: dict, verdict: str) -> None:
             os.write(descriptor, (json.dumps(line) + "\n").encode())  # one write: a line is whole or absent
         finally:
             os.close(descriptor)
+        return True
     except (OSError, TypeError, ValueError, AttributeError):
-        pass
+        return False
+
+
+def wrapper(settings: str) -> str:
+    """The installed program. The host lets a call run when its gate ends with any status but 2, so a gate that
+    crashes would open the door. This wrapper turns every ending except "allowed" into a refusal."""
+    return ("#!/bin/sh\n"
+            f"{settings} python3 -I '{HERE / 'hook.py'}' \"$@\"\n"
+            "status=$?\n"
+            "[ \"$status\" -eq 0 ] && exit 0\n"
+            f"[ \"$status\" -eq 2 ] || echo '{REFUSAL} The gate did not run to its end.' >&2\n"
+            "exit 2\n")
 
 
 CASES = (  # who calls, the call, and what the gate must say
@@ -121,6 +135,9 @@ def selftest(installed: bool = True) -> list[str]:
         for text in ("", "not json", "[1]"):
             if subprocess.run([program], input=text, capture_output=True, text=True, env=quiet).returncode != 2:
                 problems.append("the installed gate let a call through that it could not read")
+        allowed = json.dumps(CASES[1][1])
+        if subprocess.run([program, "fault"], input=allowed, capture_output=True, text=True, env=quiet).returncode != 2:
+            problems.append("the installed gate lets a call through when the gate itself crashes")
     return problems
 
 
@@ -143,6 +160,8 @@ def report() -> dict:
 
 
 def main() -> int:
+    if sys.argv[1:2] == ["fault"]:  # the self-test's way to see what a crash of the gate leads to
+        raise RuntimeError("a fault, asked for by the self-test")
     if sys.argv[1:2] == ["selftest"]:
         problems = selftest("--here" not in sys.argv)
         print(json.dumps({"holds": not problems, "problems": problems}, indent=1))
@@ -163,8 +182,9 @@ def main() -> int:
     except Exception:  # noqa: BLE001 - whatever goes wrong inside the gate, the call does not run
         print(f"{REFUSAL} The gate could not read this call.", file=sys.stderr)
         return 2
-    if os.environ.get("SWK_HOOK_DRY") != "1":
-        record(call, verdict)
+    if os.environ.get("SWK_HOOK_DRY") != "1" and not record(call, verdict) and verdict == "allow":
+        print(f"{REFUSAL} The gate could not record this call, and a call that is not recorded does not run.", file=sys.stderr)
+        return 2
     if verdict == "refuse":
         print(why, file=sys.stderr)
         return 2

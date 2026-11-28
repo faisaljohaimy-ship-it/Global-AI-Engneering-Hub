@@ -6,8 +6,11 @@ The agent host runs this before every Write, Edit and Bash call of a development
 input, exits 0 to let it run and 2 to refuse it.
 
 - Write and Edit may touch only files inside the folder of lane worktrees (SWARM_LANES).
+- Read, Grep and Glob may look only inside the repository and the folder of lanes.
 - The shell may not push, fetch, pull, clone, switch branch, rebase, merge or change
-  remotes or worktrees, may not use the network or a package manager, and may not use sudo.
+  remotes or worktrees, may not use the network or a package manager, may not use sudo,
+  may not list the environment and may not name the host's private folders.
+- Every other tool is refused.
 
 This is a net, not a wall. A shell can be made to do what a pattern did not foresee, and
 this script does not know which lane is calling, so it cannot keep one lane out of another.
@@ -27,7 +30,11 @@ START = r"(?:^|[;&|\n(]\s*|\bxargs\s+|\bexec\s+|\benv\s+(?:\w+=\S*\s+)*)"
 DENIED = re.compile(
     START + r"(?:sudo\b|curl\b|wget\b|nc\b|ssh\b|scp\b|apt(?:-get)?\b|pip3?\b|uv\b|npm\b|npx\b|pnpm\b|yarn\b)"
     r"|" + START + r"git\b(?:\s+-[cC]\s+\S+)*\s+(?:push|remote|fetch|pull|clone|worktree|checkout|switch|rebase|merge)\b"
-    r"|\bpython3?\s+-m\s+pip\b")
+    r"|\bpython3?\s+-m\s+pip\b"
+    # the environment and the host's private folders: they may hold credentials and other sessions' records
+    r"|" + START + r"(?:env|printenv)\s*(?:$|[;&|\n>])"
+    r"|/proc/\S*environ\b"
+    r"|(?:~|\$HOME|\$\{HOME\}|/root|/home/\w+)/\.(?:claude|gaie-swarm|ssh|config|netrc|git-credentials)\b")
 
 
 WRITES_A_FILE = re.compile(r"^\s*cat\b[^\n]*<<-?\s*(['\"]?)([A-Za-z_]+)\1[^\n]*$")
@@ -57,6 +64,15 @@ def allowed(call: dict) -> tuple[bool, str]:
             return False, "no lane folder is set"
         root, path = Path(lanes).resolve(), Path(target).resolve()
         return (root in path.parents, "a development agent writes only inside its lane's worktree")
+    if tool in ("Read", "Grep", "Glob"):
+        lanes = os.environ.get("SWARM_LANES")
+        target = given.get("file_path") if tool == "Read" else given.get("path")
+        if target is None and tool != "Read":
+            return True, ""  # a search with no folder named starts in the repository
+        if not lanes or not isinstance(target, str):
+            return False, "no lane folder is set"
+        path, roots = Path(target).resolve(), (Path(lanes).resolve(), Path(__file__).resolve().parents[2])
+        return (any(root == path or root in path.parents for root in roots), "a development agent reads only inside the repository and the lanes")
     if tool == "Bash":
         command = given.get("command")
         if not isinstance(command, str):

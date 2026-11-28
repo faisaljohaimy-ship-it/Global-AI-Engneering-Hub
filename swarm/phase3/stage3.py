@@ -26,6 +26,7 @@ The agents themselves are started by the agent host, not by this script.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -48,7 +49,7 @@ BIN = Path(os.environ.get("SWARM_BIN", "/usr/local/bin"))
 PLAN_FILE = Path(os.environ.get("SWARM_PLAN3", HERE / "PLAN3.json"))  # the tests point this at a small plan
 ROOT = HERE.parents[1]
 PROBE_ALLOWANCE = 47977  # two probe agents ran in the team's session and are in no evidence file; this is what the same probe used in the second phase
-SECOND_PHASE_DECIDE, SECOND_PHASE_CARD = stage.decide, stage.card
+SECOND_PHASE_DECIDE, SECOND_PHASE_CARD, SECOND_PHASE_SAVE = stage.decide, stage.card, stage.save
 
 
 def carried_over() -> dict:
@@ -62,7 +63,21 @@ def carried_over() -> dict:
     teams = sorted((HERE / "evidence").glob("team*.json"))
     parts["third_phase_development_agents"] = sum(json.loads(path.read_text())["totals"]["input_tokens"] for path in teams)
     parts["allowance_for_probe_agents_of_the_team_sessions"] = PROBE_ALLOWANCE * len(teams)
-    return {"total": sum(parts.values()), "parts": parts}
+    apart = sum((s.get("orchestrator_tokens") or {}).get("input_total", 0) for s in json.loads(second.read_text())["stages"]) if second.exists() else 0
+    return {"total": sum(parts.values()), "parts": parts,
+            "reported_apart": {"orchestrator_of_the_second_phase_run": apart,
+                               "note": "The limit has counted the input tokens of the experiment's agents since the first phase. What the orchestrating sessions read is measured per stage and reported beside it, not inside it."}}
+
+
+def save(stages: list[dict]) -> None:
+    """The second phase's save, with this phase's name, plan and starting count on the public document."""
+    SECOND_PHASE_SAVE(stages)
+    document = json.loads(stage.EVIDENCE.read_text())
+    document["about"] = ("Third phase of the swarm experiment: the run that opens with a security gate stage. Counts, times and tool names from the host's records "
+                         "of real agents and from the gate's own record; no record content.")
+    document["plan_sha256"] = hashlib.sha256(PLAN_FILE.read_bytes()).hexdigest()
+    document["counted_before_this_run"] = carried_over()
+    stage.EVIDENCE.write_text(json.dumps(document, indent=1) + "\n")
 
 
 def decide(stages: list[dict], spec: dict | None) -> tuple[list[str], list[str], list[str], dict]:
@@ -127,7 +142,7 @@ def configure() -> dict:
     stage.OUT = Path(os.environ["SWARM_REPORT_DIR"])
     stage.EVIDENCE = stage.OUT / "evidence" / "stages.json"
     stage.GUARDED = (*stage.GUARDED, "swarm-queue", "swarm-queue-1", "swarm-probe-wide", "swarm-probe-open")
-    stage.card, stage.decide, stage.following = card, decide, following
+    stage.card, stage.decide, stage.following, stage.save = card, decide, following, save
     return carried
 
 
@@ -135,10 +150,10 @@ def setup() -> int:
     for folder in ("work", "state", "samples", "runs"):
         (HOME / folder).mkdir(parents=True, exist_ok=True)
     os.chmod(HOME / "state", 0o700)
-    for name, line in (("swk", f"SWARM_HOME='{HOME.parent}' exec python3 -I '{HERE / 'kit3.py'}' \"$@\""),
-                       ("swk-guard", f"exec python3 -I '{HERE.parent / 'phase2' / 'guard.py'}' \"$@\""),
-                       ("swk-hook", f"SWARM_HOME='{HOME.parent}' exec python3 -I '{HERE / 'hook.py'}' \"$@\"")):
-        (BIN / name).write_text(f"#!/bin/sh\n{line}\n")
+    for name, text in (("swk", f"#!/bin/sh\nSWARM_HOME='{HOME.parent}' exec python3 -I '{HERE / 'kit3.py'}' \"$@\"\n"),
+                       ("swk-guard", f"#!/bin/sh\nexec python3 -I '{HERE.parent / 'phase2' / 'guard.py'}' \"$@\"\n"),
+                       ("swk-hook", hook.wrapper(f"SWARM_HOME='{HOME.parent}'"))):
+        (BIN / name).write_text(text)
         (BIN / name).chmod(0o755)
     main, folder = stage.locate()
     problems = hook.selftest()
@@ -238,6 +253,10 @@ def finish(carried: dict) -> int:
                          "given_up": state["failed"], "workers_that_drew_a_task": state["workers"], "most_tasks_one_worker_took": took[-1] if took else 0,
                          "batch_allowed": spec["batch"], "agent_calls_per_message": min(spec["per_message"], spec["agents"])}
     last["counted_before_this_run"] = carried
+    held = any((s.get("security_gate") or {}).get("passed") for s in stages)
+    # In the second phase this field said whether the host ran a gate at all. Here it is a measurement of this stage:
+    # the gate stage passed, the gate saw every call of this stage's agents, and nothing outside a worker's contract ran.
+    last["guard_enforced"] = bool(held and book["gate"]["reconciled"] and (spec.get("gate") or book["clean"]))
     nxt, end = stage.following(stages)
     stage.save(stages)
     print("\n".join(shown.getvalue().rstrip("\n").split("\n")[:-1]))
@@ -248,6 +267,32 @@ def finish(carried: dict) -> int:
     figures = decide(stages, nxt)[3]
     print(f"NEXT {nxt['id']} (projected {figures['projected_for_stage']})" if nxt else "END - " + "; ".join(end))
     return done
+
+
+def status() -> int:
+    """Where the open stage stands, from the records and the queue. For an orchestrator that has lost count."""
+    marker = HOME / "open"
+    if not marker.exists():
+        print("No stage is open. Run: python3 swarm/phase3/stage3.py prep")
+        return 0
+    ident = marker.read_text().strip()
+    spec, run = stage.spec_of(ident), json.loads((HOME / "runs" / f"{ident}.json").read_text())
+    _, folder = stage.locate()
+    types = {probe["agent_type"] for probe in spec["probes"]} if spec.get("gate") else {spec["agent_type"]}
+    started = sum(1 for path in stage.records(folder) if path.name not in run["before"] and ledger.agent_type(path) in types)
+    wanted = len(spec["probes"]) if spec.get("gate") else spec["agents"]
+    left = max(0, wanted - started)
+    per = min(spec.get("per_message", 20), 20)
+    line = f"STAGE {ident} is open: {started} of {wanted} agents started, {left} left"
+    if left:
+        line += f" = {-(-left // per)} more message(s) of at most {per} Agent calls. Start {min(left, per)} now."
+    else:
+        line += ". Start no more. Run: python3 swarm/phase3/stage3.py finish"
+    print(line)
+    if spec.get("delivery") == "queue":
+        state = taskqueue.status(HOME / "work" / ident)
+        print(f"  queue: {state['waiting']} waiting, {state['claimed']} claimed, {state['handed_in']} handed in, {state['failed']} given up, of {state['tasks']}")
+    return 0
 
 
 def report() -> int:
@@ -272,6 +317,8 @@ def main() -> int:
         return prep()
     if command == "finish":
         return finish(carried)
+    if command == "status":
+        return status()
     if command == "report":
         return report()
     print(__doc__.split("\n\n")[1])
