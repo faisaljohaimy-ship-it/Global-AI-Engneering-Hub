@@ -3,6 +3,9 @@
 The CLI builds a supervisor per call. It validates the selected agent in full (fresh, or with --relaunch
 as a workspace that already holds its own work) and checks the other assignments only for canonical,
 private, independent roots, so one agent's write neither blocks its own relaunch nor a peer.
+
+Since the recheck (item 2, tests/test_isolation_fixes_relaunch_binding.py) a relaunch also needs the
+fresh launch recorded in the private launch state, so these tests launch each agent fresh first.
 """
 
 import json
@@ -39,6 +42,7 @@ class RelaunchTests(unittest.TestCase):
             "dev": {"path": str(self.work), "intent": "upgrade", "expected_repository": "owner/demo"},
             "peer": {"path": str(self.peer), "intent": "build"},
         }
+        self.state = self.base / "launches.json"
 
     def private(self, name):
         path = self.base / name
@@ -62,7 +66,8 @@ class RelaunchTests(unittest.TestCase):
         return source, work
 
     def launch(self, agent, *, relaunch=False, assignments=None):
-        supervisor = WorkspaceSupervisor(assignments or self.assignments, selected=agent, relaunch=relaunch)
+        supervisor = WorkspaceSupervisor(assignments or self.assignments, selected=agent, relaunch=relaunch,
+                                         state=self.state)
         with mock.patch.object(governor, "sandbox_run", return_value=dict(ISOLATED)) as sandbox:
             supervisor.run(agent, ["/bin/true"], timeout=5)
         return sandbox
@@ -72,6 +77,8 @@ class RelaunchTests(unittest.TestCase):
         (self.peer / "output.txt").write_text("peer work")
 
     def test_relaunch_after_a_write_succeeds_and_fresh_still_means_fresh(self):
+        self.launch("dev")
+        self.launch("peer")
         self.write_as_agents()
         with self.assertRaisesRegex(WorkspacePolicyError, "clean dedicated worktree"):
             WorkspaceSupervisor(self.assignments, selected="dev")
@@ -84,6 +91,7 @@ class RelaunchTests(unittest.TestCase):
             WorkspaceSupervisor(self.assignments)
 
     def test_a_peer_is_unaffected_by_another_agents_writes(self):
+        self.launch("dev")
         (self.work / "feature.txt").write_text("dev work")
         (self.work / "src" / "nested").mkdir()
         self.launch("peer").assert_called_once()  # a fresh first launch of the untouched peer
@@ -101,6 +109,8 @@ class RelaunchTests(unittest.TestCase):
                 WorkspaceSupervisor(self.assignments, selected=selected, relaunch=relaunch)
 
     def test_the_selected_workspace_still_gets_the_full_check(self):
+        self.launch("dev")
+        self.launch("peer")
         self.write_as_agents()
         cases = []
 
@@ -131,16 +141,17 @@ class RelaunchTests(unittest.TestCase):
             with self.subTest(name):
                 undo = tamper()
                 with mock.patch.object(governor, "sandbox_run") as sandbox, self.assertRaises(WorkspacePolicyError):
-                    WorkspaceSupervisor(self.assignments, selected="dev", relaunch=True).run("dev", ["/bin/true"],
-                                                                                            timeout=5)
+                    WorkspaceSupervisor(self.assignments, selected="dev", relaunch=True,
+                                        state=self.state).run("dev", ["/bin/true"], timeout=5)
                 sandbox.assert_not_called()
                 undo()
         self.launch("dev", relaunch=True).assert_called_once()
         git(self.peer, "init", "--quiet")  # a build workspace that became a repository
         with self.assertRaises(WorkspacePolicyError):
-            WorkspaceSupervisor(self.assignments, selected="peer", relaunch=True)
+            WorkspaceSupervisor(self.assignments, selected="peer", relaunch=True, state=self.state)
 
     def test_tampering_with_a_peers_identity_is_still_refused(self):
+        self.launch("dev")
         self.write_as_agents()
         alias = self.base / "alias"
         alias.symlink_to(self.peer, target_is_directory=True)

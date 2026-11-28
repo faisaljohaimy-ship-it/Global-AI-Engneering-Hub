@@ -96,10 +96,17 @@ python3 hub.py workspace-run --assignments /private/assignments.json \
 Each call validates the selected agent in full: identity, Git metadata, links
 and, on a first launch, an empty build directory or a clean worktree. Add
 `--relaunch` once that agent's workspace holds its own work; every check except
-emptiness or cleanliness still applies. The other assignments are checked only
-for canonical, private roots that do not overlap the selected one, so one
-agent's writes never lock out its own relaunch or another agent
-(`tests/test_isolation_fixes_relaunch.py`).
+emptiness or cleanliness still applies. A relaunch is accepted only for the
+workspace identity (device, inode) and assignment digest that an earlier fresh
+launch of the same agent recorded in the operator's private launch record,
+`<assignments>.launches` next to the assignment file (0600, single link, in an
+operator-owned directory closed to other users); a missing, unreadable or
+mismatched record refuses it (recheck item 2: `--relaunch` on a first launch
+had turned a non-empty private directory, a stand-in for `~/.ssh`, into a
+writable scope). The other assignments are checked only for canonical, private
+roots that do not overlap the selected one, so one agent's writes never lock
+out its own relaunch or another agent (`tests/test_isolation_fixes_relaunch.py`,
+`tests/test_isolation_fixes_relaunch_binding.py`).
 
 This starts a single local work unit. It never creates a remote repository or
 publishes a project. The control-plane `master-build` and `master-upgrade`

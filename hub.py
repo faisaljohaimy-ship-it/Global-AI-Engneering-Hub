@@ -325,7 +325,9 @@ def workspace_run(args):
         if not command:
             raise ValueError("An explicit child command is required.")
         # Only the selected agent is validated in full; the others are checked for independent roots.
-        supervisor = workspace_policy.WorkspaceSupervisor(assignments, selected=args.agent, relaunch=args.relaunch)
+        # A relaunch is bound to the fresh launch recorded next to the assignment file (recheck item 2).
+        supervisor = workspace_policy.WorkspaceSupervisor(assignments, selected=args.agent, relaunch=args.relaunch,
+                                                          state=path.with_name(path.name + ".launches"))
         result = supervisor.run(args.agent, command, timeout=args.timeout)
     except workspace_policy.WorkspaceTaintedError as error:  # the child ran; its workspace is not safe for Git
         print(json.dumps({"status": "failed", "reason": str(error), "result": error.result}))
@@ -389,7 +391,8 @@ def main():
     workspace_parser.add_argument("--agent", required=True, help="Agent identity selected by the trusted operator")
     workspace_parser.add_argument("--timeout", required=True, type=float)
     workspace_parser.add_argument("--relaunch", action="store_true",
-                                  help="The agent's workspace already holds its own work: skip the empty/clean check")
+                                  help="The agent's workspace already holds its own work: skip the empty/clean check "
+                                       "(only for the workspace identity a fresh launch recorded in <assignments>.launches)")
     workspace_parser.add_argument("argv", nargs=argparse.REMAINDER)
     inventory_parser = commands.add_parser("inventory")
     inventory_parser.add_argument("target")
