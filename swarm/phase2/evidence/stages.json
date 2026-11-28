@@ -10,9 +10,9 @@
   "phase2_output_tokens": 3000000
  },
  "figures": {
-  "input_tokens_counted": 59955293,
+  "input_tokens_counted": 62689101,
   "cap": 150000000,
-  "agents_started_in_phase_2": 349,
+  "agents_started_in_phase_2": 399,
   "projected_for_stage": null
  },
  "stages": [
@@ -1640,6 +1640,119 @@
     "headroom_views": 0
    },
    "per_verified_task_cost_units": 36774,
+   "guard_enforced": false,
+   "index_cross_check": null
+  },
+  {
+   "label": "m50",
+   "actual_agents": 50,
+   "peak_concurrent_agents": 20,
+   "tasks": 50,
+   "verified_tasks": 50,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 886,
+   "hidden_tests_total": 886,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 71.8,
+   "agents_replying_done": 50,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 83.8,
+   "sum_of_agent_seconds": 597.2,
+   "effective_concurrency": 7.13,
+   "tasks_per_minute": 35.8,
+   "models": [
+    "haiku"
+   ],
+   "agent_tokens": {
+    "input_uncached": 374,
+    "cache_write": 916369,
+    "cache_read": 1817065,
+    "input_total": 2733808,
+    "output": 98451,
+    "total": 2832259
+   },
+   "cache_read_share": 0.6647,
+   "model_roundtrips": 169,
+   "tool_calls": 151,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 118416,
+   "per_verified_task": {
+    "input_total": 54676,
+    "output": 1969,
+    "roundtrips": 3.38,
+    "agent_seconds": 11.94
+   },
+   "helper_calls": {},
+   "speedup_against_one_agent": 5.35,
+   "parallel_efficiency": 0.107,
+   "orchestrator_tokens": {
+    "input_uncached": 5,
+    "cache_write": 913750,
+    "cache_read": 1046943,
+    "input_total": 1960698,
+    "output": 8994,
+    "roundtrips": 4
+   },
+   "orchestrator_share_of_all_tokens": 0.41,
+   "machine": {
+    "samples": 113,
+    "peak_load_1m": 0.31,
+    "least_memory_available_mb": 15266,
+    "peak_host_process_rss_mb": 575,
+    "host_process_cpu_seconds": 14.1
+   },
+   "kind": "task",
+   "size": "medium",
+   "agent_type": "swarm-light",
+   "model": "haiku",
+   "effort": "low",
+   "mode": null,
+   "delivery": "id",
+   "registered_agents": 50,
+   "started": "2026-11-28T04:09:13.972088Z",
+   "finished": "2026-11-28T04:11:06.298942Z",
+   "first_request_context": {
+    "median": 5486,
+    "least": 5486,
+    "most": 5486
+   },
+   "first_request_read_from_cache": 0.572,
+   "cache_written": {
+    "five_minutes": 916369,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 1819797,
+   "swk_calls": 101,
+   "refused_calls": 0,
+   "foreign_calls": 0,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-light"
+   ],
+   "replies_per_agent": {
+    "median": 3.0,
+    "most": 4
+   },
+   "ownership": {
+    "submitted": 50,
+    "approved": 50,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 397
+    },
+    "revision": 1588
+   },
+   "not_verified": [],
+   "worker_command": {
+    "hand_ins": 51,
+    "calls": 101,
+    "characters_printed": 115416,
+    "headroom_views": 0
+   },
+   "per_verified_task_cost_units": 36396,
    "guard_enforced": false,
    "index_cross_check": null
   }
