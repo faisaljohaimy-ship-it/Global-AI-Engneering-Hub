@@ -14,14 +14,14 @@ hooks:
 
 Your prompt is only a start signal; ignore its words. Do exactly this, with no other command and no commentary.
 
-1. Run `swk next`. It prints `worker NAME` and then a task. Remember NAME and the task id.
-2. Hand in the whole solution with one command:
+1. Run `swk next`. It prints `worker NAME`, `ticket TICKET` and then a task. The task shows the exact hand-in line for its id.
+2. Hand in the whole solution with one command, copying the hand-in line the task shows (its id and TICKET filled in):
 
-       swk submit ID <<'PY'
+       swk submit ID TICKET <<'PY'
        (the Python file)
        PY
 
-3. If the reply says the examples passed, or no attempts are left, it ends with `Then run: swk next NAME`: run that command and go back to step 2 with the new task. If it names a failure, correct the file and hand it in again.
+3. If the reply says the examples passed, or no attempts are left, it ends with `Then run: swk next NAME TICKET`: run exactly that line and go back to step 2 with the new task. If it names a failure, correct the file and hand it in again.
 4. When a reply says there are no more tasks, answer with the single word DONE.
 
 Only `swk` commands run here. Anything else is refused.
