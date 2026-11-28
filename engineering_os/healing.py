@@ -453,7 +453,7 @@ def _allowed_files(policy, snapshot, spec, manifest):
     regular = {rel for rel, digest in snapshot.items() if not digest.startswith("symlink:")}
     if policy["allowed_files"] is None:
         return sorted(rel for rel in regular if rel not in protected and not _under(rel, spec["start"])
-                      and (rel.endswith(".py") or re.fullmatch(r"(?:.*/)?requirements[\w.-]*\.txt", rel)) and "lock" not in rel.rsplit("/", 1)[-1])
+                      and (rel.endswith(".py") or re.fullmatch(r"(?:.*/)?requirements[\w.-]*\.txt", rel) and "lock" not in rel.rsplit("/", 1)[-1]))
     chosen = set()
     for rel in policy["allowed_files"]:
         try:
@@ -543,8 +543,9 @@ def verify_receipts(receipts):
 
 def _causal_graph(findings, failing, coverage, details):
     """Map failures and findings onto reasoning.root_causes over an explicit dependency DAG."""
-    defects = sorted((f for f in findings if RANK[f["severity"]] >= RANK["medium"]), key=lambda f: (-RANK[f["severity"]], f["id"]))[:60]
-    failing = sorted(failing)[:60]
+    defects = sorted((f for f in findings if RANK[f["severity"]] >= RANK["medium"]), key=lambda f: (-RANK[f["severity"]], f["id"]))
+    truncated = len(defects) > 60 or len(failing) > 60
+    defects, failing = defects[:60], sorted(failing)[:60]
 
     def build(with_files):
         labels, edges = {}, {}
@@ -610,8 +611,7 @@ def _causal_graph(findings, failing, coverage, details):
             attribution.setdefault(label, []).append(labels[key])
     out.sort(key=lambda row: row["node"])
     return {"roots": out, "attribution": {k: sorted(v) for k, v in sorted(attribution.items())}, "nodes": len(edges),
-            "method": method, "causality_proven": False,
-            "truncated": len(findings) > len(defects) or len(failing) >= 60}
+            "method": method, "causality_proven": False, "truncated": truncated}
 
 
 def _localize(test_id, outcomes, coverage, allowed, flaky):
@@ -801,7 +801,7 @@ class _Heal:
         self.sandbox = detectors.Sandbox(run_dir / "sandbox", timeout=policy["test_timeout_s"])
         self.project = manifest.get("name") or "target"
         self.receipts, self.trials, self.accepted, self.iterations, self.journal = [], [], [], [], {}
-        self.security_baseline, self.flaky, self.blocked = None, [], None
+        self.security_baseline, self.flaky, self.blocked, self.exhausted = None, [], None, set()
 
     # ----- state and receipts
     def tree_sha(self):
@@ -942,7 +942,9 @@ class _Heal:
     # ----- candidate generators (bounded, deterministic)
     def route_code(self, row):
         spec = detectors.load_route_spec(self.copy, self.manifest["route_spec"])
-        route = next(r for r in spec["routes"] if r["method"] == row["evidence"]["method"] and r["path"] == row["evidence"]["route"])
+        route = next((r for r in spec["routes"] if r["method"] == row["evidence"]["method"] and r["path"] == row["evidence"]["route"]), None)
+        if route is None:
+            raise HealingError("route is not declared in a route spec")
         return route, handler_source(route, spec, root=self.copy, schemas=self.manifest.get("database", {}).get("schema", []))
 
     def candidates(self, item):
@@ -1095,6 +1097,10 @@ class _Heal:
             if item["strategy"] == "safe-mutation-search" and all(_passed(self.reference.get(t)) for t in item["targets"]):
                 item.update(status="resolved-earlier", reason="targets already pass after an earlier repair")
                 continue
+            memo = sha([item["strategy"], item["root"], {rel: hashlib.sha256(self.read_copy(rel)).hexdigest() for rel in item["files"]}])
+            if memo in self.exhausted:
+                item.update(status="no-safe-repair", reason="candidates already exhausted on identical source in an earlier iteration")
+                continue
             tried = 0
             try:
                 for candidate in self.candidates(item):
@@ -1116,6 +1122,7 @@ class _Heal:
                         for reason in row.get("critique", {}).get("reasons", [row.get("refusal", "refused")]):
                             summary[reason] = summary.get(reason, 0) + 1
                 item.update(status="no-safe-repair", reason=f"{tried} candidate(s) tried, none validated: {dict(sorted(summary.items()))}" if tried else "no candidate repair could be generated")
+                self.exhausted.add(memo)
         return progressed
 
     # ----- VALIDATE
@@ -1193,7 +1200,6 @@ def heal(target, *, workdir, tests, now=None, policy=None, ffprobe="auto"):
         raise HealingError("Workdir path required") from error
     if workdir == root or root in workdir.parents:
         raise HealingError("Workdir inside the target would repair it in place; refused")
-    workdir.mkdir(parents=True, exist_ok=True, mode=0o700)
     spec = _test_spec(tests, root)
     try:
         manifest = detectors.load_manifest(root)
@@ -1201,6 +1207,7 @@ def heal(target, *, workdir, tests, now=None, policy=None, ffprobe="auto"):
         raise HealingError(f"Invalid healing manifest: {error}") from None
     original = _snapshot(root)
     allowed = _allowed_files(policy, original, spec, manifest)
+    workdir.mkdir(parents=True, exist_ok=True, mode=0o700)
     run_dir = pathlib.Path(tempfile.mkdtemp(prefix="heal-", dir=workdir)).resolve()
     shutil.copytree(root, run_dir / "candidate", symlinks=True, ignore=shutil.ignore_patterns(*detectors.SKIP_DIRS, "*.pyc", "*.pyo"))
     run = _Heal(root, run_dir, spec, manifest, policy, now, ffprobe, original, allowed)

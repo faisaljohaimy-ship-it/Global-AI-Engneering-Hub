@@ -310,6 +310,7 @@ class LoopSafetyTests(unittest.TestCase):
             with self.subTest(spec=spec), self.assertRaises(HealingError):
                 heal(target, workdir=self.workdir, tests=spec, now=NOW)
         self.assertEqual(tree_digest(target), before)
+        self.assertFalse(self.workdir.exists())
 
     def test_targets_with_escaping_symlinks_are_refused(self):
         outside = self.base / "outside.py"
@@ -357,7 +358,7 @@ class LoopSafetyTests(unittest.TestCase):
                        {"environment": "in-place"}, {"deploy": True}, {"allow_dead_code_removal": "yes"}):
             with self.subTest(policy=policy), self.assertRaises(HealingError):
                 heal(target, workdir=self.workdir, tests=TESTS, now=NOW, policy=policy)
-        self.assertFalse(self.workdir.exists() and any(self.workdir.iterdir()))
+        self.assertFalse(self.workdir.exists())
 
     def test_dead_code_is_removed_only_when_opted_in_and_stays_recoverable(self):
         target = make_target(self.base / "app", {
@@ -426,6 +427,46 @@ class LoopSafetyTests(unittest.TestCase):
         self.assertEqual(result["repairs"], [])
         self.assertIsNone(result["patch"])
         self.assertIn("orphan_formatter", (pathlib.Path(result["isolated_copy"]) / "helpers.py").read_text())
+
+    def test_partial_repair_keeps_validated_fix_and_reports_the_rest(self):
+        target = make_target(self.base / "partial", {
+            "blocking.py": '''
+                def window(start, size):
+                    return list(range(start, start + size - 1))
+            ''',
+            "greet.py": '''
+                def greet(name):
+                    return "Hi " + name
+            ''',
+            "suite/case_mixed.py": '''
+                import unittest
+                from blocking import window
+                from greet import greet
+
+
+                class Tests(unittest.TestCase):
+                    def test_window_has_size_items(self):
+                        self.assertEqual(window(2, 3), [2, 3, 4])
+
+                    def test_empty_window(self):
+                        self.assertEqual(window(5, 0), [])
+
+                    def test_greeting(self):
+                        self.assertEqual(greet("Ada"), "Hello, Ada!")
+            ''',
+        })
+        result = heal(target, workdir=self.workdir, tests=TESTS, now=NOW, policy={"max_iterations": 2})
+        self.assertIn("blocking.py", result["allowed_files"])
+        self.assertEqual(result["status"], "partially-repaired")
+        self.assertTrue(result["validation"]["passed"])
+        self.assertEqual([row["files"] for row in result["repairs"]], [["blocking.py"]])
+        self.assertIn("+    return list(range(start, start + size - 0))", result["patch"])  # first validated mutation, not idiomatic
+        ledger = {row["defect"]: row for row in result["defects"]}
+        self.assertEqual(ledger["test:case_mixed.Tests.test_window_has_size_items"]["status"], "repaired")
+        self.assertEqual(ledger["test:case_mixed.Tests.test_greeting"]["status"], "unrepaired")
+        second = result["iterations"][1]["plan"]
+        self.assertEqual([item["reason"] for item in second], ["candidates already exhausted on identical source in an earlier iteration"])
+        self.assertEqual(result["validation"]["final_failing"], ["case_mixed.Tests.test_greeting"])
 
 
 if __name__ == "__main__":
