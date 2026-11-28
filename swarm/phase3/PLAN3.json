@@ -1,0 +1,42 @@
+{
+ "about": "The plan of the third phase's measured run, written before its first agent ran. Workers draw tasks from a queue, so every worker of a stage gets the same prompt. The host showed in the second phase that it runs at most 20 agents at once: a stage of 1,000 agents here is 1,000 real agents started and finished, not 1,000 running at the same moment. Rules for skipping a stage and for ending everything are those of the second phase.",
+ "seed": 20261130,
+ "caps": {
+  "cumulative_input_tokens": 150000000,
+  "spent_before_phase2": 0,
+  "preflight_input_tokens": 0,
+  "carried_over_note": "spent_before_phase2 is filled in by stage3.py when it starts, from the repository's own evidence: the first phase's total, the second phase's preflight and stages, and the development team of the third phase. The figure and its parts are written into this phase's evidence.",
+  "first_phase_input_tokens": 36168638,
+  "phase2_agent_runs": 2000,
+  "phase2_output_tokens": 6000000
+ },
+ "stops": {
+  "min_verified_rate_to_continue": 60.0,
+  "note_verified_rate_below": 90.0,
+  "max_security_findings": 0,
+  "max_stage_wall_seconds": 3600,
+  "min_memory_available_mb": 1500,
+  "max_host_process_rss_mb": 10000,
+  "margin_without_projection": 5000000
+ },
+ "cost_weights": {
+  "about": "Cost units weigh each kind of token against one uncached input token. The weights are the ratios of the published API prices (a cache read costs a tenth, a five-minute cache write a quarter more, a one-hour write double, an output token five times). They are an assumption for comparing configurations. They are not a measure of subscription allowance, which the host does not show.",
+  "cache_read": 0.1,
+  "cache_write_5m": 1.25,
+  "cache_write_1h": 2.0,
+  "output": 5.0
+ },
+ "stages": [
+  {"id": "p3", "kind": "probe", "agents": 2, "agent_type": "swarm-probe", "model": "haiku", "effort": "low", "prompts": ["cat /etc/hostname", "swk status"],
+   "note": "Is the session-wide gate enforced for a worker? One command it must refuse, one it must allow."},
+  {"id": "q20", "kind": "task", "size": "small", "agents": 20, "tasks": 20, "batch": 1, "first": 1001, "agent_type": "swarm-queue-1", "model": "haiku", "effort": "low", "delivery": "queue", "per_message": 250,
+   "note": "The queue worker at the host's own limit of 20 at once. Compare with s20 and c2 of the second phase."},
+  {"id": "b20", "kind": "task", "size": "small", "agents": 20, "tasks": 100, "batch": 5, "first": 1101, "agent_type": "swarm-queue", "model": "haiku", "effort": "low", "delivery": "queue", "per_message": 250,
+   "note": "Batching: twenty workers, five tasks each. What a task costs when a worker keeps its context for the next one."},
+  {"id": "q100", "kind": "task", "size": "small", "agents": 100, "tasks": 100, "batch": 1, "first": 1301, "agent_type": "swarm-queue-1", "model": "haiku", "effort": "low", "delivery": "queue", "per_message": 250},
+  {"id": "q250", "kind": "task", "size": "small", "agents": 250, "tasks": 250, "batch": 1, "first": 1501, "agent_type": "swarm-queue-1", "model": "haiku", "effort": "low", "delivery": "queue", "per_message": 250,
+   "note": "As many agents in one message as the host accepts."},
+  {"id": "q1000", "kind": "task", "size": "small", "agents": 1000, "tasks": 1000, "batch": 1, "first": 2001, "agent_type": "swarm-queue-1", "model": "haiku", "effort": "low", "delivery": "queue", "per_message": 250,
+   "note": "One thousand real agents, started in as few messages as the host accepts."}
+ ]
+}
