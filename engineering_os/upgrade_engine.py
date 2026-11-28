@@ -660,14 +660,37 @@ def _open_ro(path):
 
 
 def _companions(path):
-    """Journal companions next to a SQLite file (``-wal``, ``-shm``, ``-journal``) that exist; a symlinked one is refused."""
+    """Journal companions next to a SQLite file (``-wal``, ``-shm``, ``-journal``) that exist.
+
+    One that is a symlink, or not a regular file (a directory, FIFO, socket or device), is refused from its lstat,
+    without being opened: a FIFO would block the read and a directory raised IsADirectoryError out of ``upgrade``.
+    """
     found = []
     for suffix in ("-wal", "-shm", "-journal"):
         companion = pathlib.Path(f"{path}{suffix}")
-        _need(not companion.is_symlink(), f"Database companion {companion.name} is a symlink; refused")
-        if companion.exists():
-            found.append(suffix)
+        try:
+            kind = healing._special(companion.lstat().st_mode)
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        except OSError as error:
+            raise UpgradeError(f"Database companion {companion.name} cannot be inspected ({error.strerror}); refused") from None
+        _need(kind != "a symlink", f"Database companion {companion.name} is a symlink; refused")
+        _need(kind is None, f"Database companion {companion.name} is {kind}, not a regular file; refused before it was opened")
+        found.append(suffix)
     return found
+
+
+def _open_regular(path):
+    """``healing._open_regular`` for the engine: a regular file only, never blocking; UpgradeError otherwise."""
+    try:
+        return healing._open_regular(path)
+    except healing.HealingError as error:
+        raise UpgradeError(f"Database file {error}") from None
+
+
+def _copy_regular(source, destination):
+    with _open_regular(source) as stream, open(destination, "xb") as out:  # the destination is new, in a private directory
+        shutil.copyfileobj(stream, out)
 
 
 def _pending(path):
@@ -695,13 +718,15 @@ def _journal_refusal(path):
     empty or zeroed one (``TRUNCATE``/``PERSIST`` residue) is inert and is never copied.
     """
     try:
-        with open(f"{path}-journal", "rb") as stream:
+        with _open_regular(f"{path}-journal") as stream:
             first = stream.read(1)
             size = stream.seek(0, 2)
             stream.seek(max(size - 8, 0))
             tail = stream.read(8)
-    except FileNotFoundError:
-        return None
+    except UpgradeError:
+        if pathlib.Path(f"{path}-journal").exists() or pathlib.Path(f"{path}-journal").is_symlink():
+            raise  # not a regular file (any more): refused, never opened by SQLite
+        return None  # gone since the companion scan: nothing to roll back
     if size >= 8 and tail == JOURNAL_MAGIC:
         return ("its -journal ends in a super-journal record (a multi-database transaction); rolling it back would make "
                 "SQLite delete the file that record names")
@@ -713,7 +738,7 @@ def _journal_refusal(path):
 
 def _wal_refusal(wal):
     """Why the ``-wal`` file ``wal`` must not be opened, or None: empty, or a SQLite WAL header whose checksum verifies."""
-    with open(wal, "rb") as stream:
+    with _open_regular(wal) as stream:
         header = stream.read(32)
     if not header:
         return None
@@ -759,10 +784,10 @@ def snapshot_database(path, dest, staging):
     staging.mkdir(parents=True, mode=0o700)  # exist_ok=False: the private directory is the one created here
     source = staging / "source.db"
     try:
-        shutil.copyfile(path, source)
+        _copy_regular(path, source)  # a regular file only (a FIFO or device swapped in is refused without blocking)
         wal = "-wal" in companions
         if wal:  # the WAL index (-shm) is rebuilt from the WAL; a copied one could be stale. A journal is never copied
-            shutil.copyfile(f"{path}-wal", f"{source}-wal")
+            _copy_regular(f"{path}-wal", f"{source}-wal")
             refusal = _wal_refusal(f"{source}-wal")  # the bytes SQLite would read
             _need(refusal is None, f"Database {path.name}: {refusal}. Refused before SQLite opened it")
         on_disk = source.stat().st_size + (pathlib.Path(f"{source}-wal").stat().st_size if wal else 0)
@@ -1598,6 +1623,13 @@ class _Run:
         except healing.HealingError as error:
             raise UpgradeError(str(error)) from None
 
+    @staticmethod
+    def _copy_regular(source, destination):  # copytree's copy function for the target: regular files only, never blocking
+        try:
+            return healing._copy_regular(source, destination)
+        except healing.HealingError as error:
+            raise UpgradeError(str(error)) from None
+
     def base(self):
         return self.root if self.audit_only else self.candidate
 
@@ -1634,7 +1666,8 @@ class _Run:
         self.workdir.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.run_dir = pathlib.Path(tempfile.mkdtemp(prefix="upgrade-", dir=self.workdir)).resolve()
         self.candidate = self.run_dir / "upgraded"
-        shutil.copytree(self.root, self.candidate, symlinks=True, ignore=shutil.ignore_patterns(*detectors.SKIP_DIRS, "*.pyc", "*.pyo"))
+        shutil.copytree(self.root, self.candidate, symlinks=True, ignore=shutil.ignore_patterns(*detectors.SKIP_DIRS, "*.pyc", "*.pyo"),
+                        copy_function=self._copy_regular)
         _need(self._snapshot(self.candidate) == self.original, "Isolated copy does not match the target")
         self.sandbox = detectors.Sandbox(self.run_dir / "sandbox", timeout=self.policy["test_timeout_s"])
         self.task_id = _slugify(self.run_dir.name, 80)

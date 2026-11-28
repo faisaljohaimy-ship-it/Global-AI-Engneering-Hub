@@ -161,7 +161,12 @@ pass VALIDATE, so in practice an `unrepaired` one).
 
 - The target is never written: work happens in a fresh copy; the target snapshot is
   compared before and after; a workdir inside the target is refused before anything
-  is created; targets with absolute or escaping symlinks are refused.
+  is created; targets with absolute or escaping symlinks are refused, and so are targets
+  with an entry that is not a regular file or a directory (a named pipe, a socket, a
+  device): `_snapshot` refuses it from its `lstat` without opening it, every file is opened
+  `O_NONBLOCK | O_NOFOLLOW` and `fstat`-ed before it is read, and the isolated copy uses the
+  same check (`_copy_regular`), so such an entry can neither block the run nor stream
+  without end.
 - Writes go only through `safe_destination` and only to allowed files; tests are the
   oracle and can never be edited.
 - Bounded: `max_iterations` 1–10, `max_candidates` 1–200 per item, `test_timeout_s`

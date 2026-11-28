@@ -25,6 +25,7 @@ import pathlib
 import re
 import shutil
 import sqlite3
+import stat
 import tempfile
 import time
 
@@ -400,8 +401,53 @@ def _write_bytes(base, relative, data):
     return path
 
 
+def _special(mode):
+    """None for a regular file, else what the entry is: a directory, a named pipe, a socket, a device are never read."""
+    if stat.S_ISREG(mode):
+        return None
+    for test, name in ((stat.S_ISDIR, "a directory"), (stat.S_ISFIFO, "a named pipe (FIFO)"), (stat.S_ISSOCK, "a socket"),
+                       (stat.S_ISCHR, "a character device"), (stat.S_ISBLK, "a block device"), (stat.S_ISLNK, "a symlink")):
+        if test(mode):
+            return name
+    return "a special file"
+
+
+def _open_regular(path, label=None):
+    """``path`` opened for reading only when it is a regular file, without blocking and without following a symlink.
+
+    The entry is lstat-ed first, so a directory, FIFO, socket or device is refused without being opened. A regular
+    file is opened ``O_NONBLOCK | O_NOFOLLOW`` (a FIFO swapped in after the lstat cannot block the open) and the
+    descriptor is ``fstat``-ed before any read. Raises HealingError naming what the entry is; returns a binary stream.
+    """
+    path, label = pathlib.Path(path), label or pathlib.Path(path).name
+    try:
+        kind = _special(path.lstat().st_mode)
+        if kind is None:
+            descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0))
+            try:
+                kind = _special(os.fstat(descriptor).st_mode)
+            except OSError:
+                os.close(descriptor)
+                raise
+            if kind is None:
+                return os.fdopen(descriptor, "rb")
+            os.close(descriptor)
+    except OSError as error:
+        raise HealingError(f"{label} cannot be read as a regular file ({error.strerror or type(error).__name__})") from None
+    raise HealingError(f"{label} is {kind}, not a regular file; it is never opened, read or copied")
+
+
+def _copy_regular(source, destination, *, follow_symlinks=True):
+    """``shutil.copytree``'s copy function: copies a regular file only (``_open_regular``), then its metadata like copy2."""
+    with _open_regular(source) as stream, open(destination, "wb") as out:
+        shutil.copyfileobj(stream, out)
+    shutil.copystat(source, destination, follow_symlinks=follow_symlinks)
+    return destination
+
+
 def _snapshot(root):
-    """{relative path: sha256} of the target; refuses symlinks that leave it and unbounded trees."""
+    """{relative path: sha256} of the target; refuses symlinks that leave it, entries that are not regular files
+    (a FIFO, socket or device is refused without being opened, so it cannot block or stream) and unbounded trees."""
     root = pathlib.Path(root)
     files, total = {}, 0
     for dirpath, dirnames, filenames in os.walk(root):
@@ -424,7 +470,11 @@ def _snapshot(root):
             if full.is_symlink():
                 files[rel] = "symlink:" + hashlib.sha256(os.readlink(full).encode()).hexdigest()
             else:
-                data = full.read_bytes()
+                try:
+                    with _open_regular(full, f"Target entry {rel}") as stream:
+                        data = stream.read(MAX_TARGET_BYTES - total + 1)  # one byte past the bound is enough to refuse
+                except HealingError as error:
+                    raise HealingError(f"{error}: an isolated copy cannot be guaranteed") from None
                 total += len(data)
                 files[rel] = hashlib.sha256(data).hexdigest()
             if len(files) > MAX_TARGET_FILES or total > MAX_TARGET_BYTES:
@@ -1290,7 +1340,8 @@ def heal(target, *, workdir, tests, now=None, policy=None, ffprobe="auto"):
     allowed = _allowed_files(policy, original, spec, manifest)
     workdir.mkdir(parents=True, exist_ok=True, mode=0o700)
     run_dir = pathlib.Path(tempfile.mkdtemp(prefix="heal-", dir=workdir)).resolve()
-    shutil.copytree(root, run_dir / "candidate", symlinks=True, ignore=shutil.ignore_patterns(*detectors.SKIP_DIRS, "*.pyc", "*.pyo"))
+    shutil.copytree(root, run_dir / "candidate", symlinks=True, ignore=shutil.ignore_patterns(*detectors.SKIP_DIRS, "*.pyc", "*.pyo"),
+                    copy_function=_copy_regular)
     run = _Heal(root, run_dir, spec, manifest, policy, now, ffprobe, original, allowed)
     if _snapshot(run.copy) != original:
         raise HealingError("Isolated copy does not match the target")

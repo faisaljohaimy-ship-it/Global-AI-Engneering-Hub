@@ -254,6 +254,10 @@ and malformed steps are refused before anything is created.
   rollback journal (a crashed write) or a journal carrying a super-journal record, or with a
   `-wal` whose header does not verify, is refused before SQLite opens it: the engine never
   rolls back a journal it did not create. The owner recovers it with the application first.
+  A `-journal`, `-wal` or `-shm` that is not a regular file (a directory, a named pipe, a
+  socket, a device) is refused from its `lstat` before anything opens it; the main file and
+  the `-wal` are copied into staging only as regular files opened `O_NONBLOCK` and
+  `fstat`-ed first, and the target itself is snapshotted and copied with the same check.
   A database listed in `gaie-upgrade.json` that is a symlink, or lies under a symlinked
   directory, is refused before anything is copied (it would otherwise leave the data proof);
   a listed database that does not exist is named in `baseline.databases_missing`.

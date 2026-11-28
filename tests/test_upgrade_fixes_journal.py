@@ -11,14 +11,21 @@ Everything here is generated from the synthetic taskapp fixture in temporary dir
 """
 
 import hashlib
+import json
+import os
 import pathlib
 import shutil
+import socket
 import sqlite3
+import stat
 import struct
+import subprocess
+import sys
 import tempfile
 import unittest
+from unittest import mock
 
-from engineering_os import upgrade_engine as engine
+from engineering_os import healing, upgrade_engine as engine
 from engineering_os.upgrade_engine import UpgradeError, upgrade
 
 try:  # SEC-07 (final branch): explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
@@ -269,6 +276,135 @@ class DeclaredSize(_Base):
         committed_wal(source)
         info = engine.snapshot_database(source, self.base / "copy.db", self.base / "staging")
         self.assertEqual((info["rows"], info["integrity"], info["journal_mode"]), ({"tasks": 300}, "ok", "wal"))
+
+
+# Re-check 2 (low): a companion or a target entry that is not a regular file. A directory -journal escaped upgrade() as
+# an uncaught IsADirectoryError, a FIFO anywhere in the target hung healing._snapshot (and so upgrade() and heal()), and
+# a socket escaped as OSError. Now every such entry is refused from its lstat without being opened, and a file that is
+# swapped after the lstat is opened O_NONBLOCK and fstat-ed before any read. Every case that could block on a
+# regression runs in a child process with a timeout, so a regression fails the test instead of hanging the suite.
+CHILD_FIFO = """
+import json, os, pathlib, shutil, sys
+sys.path.insert(0, sys.argv[1])
+from unittest import mock
+from engineering_os import healing, upgrade_engine as engine
+case, base = sys.argv[2], pathlib.Path(sys.argv[3])
+def outcome(call):
+    try:
+        call()
+        return "no refusal"
+    except (engine.UpgradeError, healing.HealingError) as error:
+        return str(error)
+    except Exception as error:
+        return f"uncaught {type(error).__name__}: {error}"
+if case == "upgrade":
+    os.mkfifo(base / "target" / "data" / "tasks.db-journal")
+    result = outcome(lambda: engine.upgrade(base / "target", command="Upgrade the task management system", workdir=base / "wd",
+                                            now=1800000000, environ={"GAIE_HOME": str(base / "home")}))
+elif case == "audit":
+    os.mkfifo(base / "target" / "data" / "tasks.db-wal")
+    result = outcome(lambda: engine.upgrade(base / "target", command="Audit the task management system", workdir=base / "wd",
+                                            now=1800000000, environ={"GAIE_HOME": str(base / "home")}))
+elif case == "snapshot":
+    os.mkfifo(base / "target" / "notes.txt")
+    result = outcome(lambda: healing._snapshot(base / "target"))
+else:  # swapped: the lstat saw a regular file, the open finds a FIFO
+    os.mkfifo(base / "pipe")
+    regular = os.stat(sys.argv[0] if os.path.isfile(sys.argv[0]) else sys.executable)
+    with mock.patch.object(pathlib.Path, "lstat", lambda self: regular):
+        result = outcome(lambda: healing._open_regular(base / "pipe"))
+        if result == "no refusal":
+            result = "opened"
+print(json.dumps({"result": result}))
+"""
+
+
+class NotRegular(_Base):
+    def target(self):
+        target = self.base / "target"
+        shutil.copytree(TASKAPP, target)
+        (self.base / "home").mkdir(mode=0o700)
+        return target
+
+    def child(self, case):
+        done = subprocess.run([sys.executable, "-I", "-c", CHILD_FIFO, str(ROOT), case, str(self.base)], capture_output=True, text=True,
+                              timeout=120, check=True)
+        return json.loads(done.stdout)["result"]
+
+    def special(self, path, kind):
+        if kind == "directory":
+            path.mkdir()
+        elif kind == "fifo":
+            os.mkfifo(path)
+        elif kind == "socket":
+            server = socket.socket(socket.AF_UNIX)
+            server.bind(str(path))
+            self.addCleanup(server.close)
+        else:
+            try:
+                os.mknod(path, stat.S_IFCHR | 0o600, os.makedev(1, 3))  # the null device's numbers
+            except (PermissionError, OSError) as error:
+                self.skipTest(f"this host cannot create a device node ({error})")
+
+    def test_a_directory_journal_is_refused_in_upgrade_and_audit(self):
+        target = self.target()
+        (target / "data" / "tasks.db-journal").mkdir()
+        before = digest(target)
+        for number, command in enumerate((COMMAND, "Audit the task management system")):
+            with self.subTest(command=command):
+                with self.assertRaises(UpgradeError) as caught:
+                    upgrade(target, command=command, workdir=self.base / f"wd-{number}", now=NOW,
+                            environ={"GAIE_HOME": str(self.base / "home")})
+                self.assertIn("Database companion tasks.db-journal is a directory, not a regular file; refused before it was opened",
+                              str(caught.exception))
+                self.assertEqual(digest(target), before)
+        self.assertTrue(self.victim.is_file())
+
+    def test_every_kind_of_non_regular_companion_is_refused_without_opening_it(self):
+        expected = {"directory": "a directory", "fifo": "a named pipe (FIFO)", "socket": "a socket", "device": "a character device"}
+        for kind, words in expected.items():
+            for suffix in ("-journal", "-wal", "-shm"):
+                with self.subTest(kind=kind, suffix=suffix):
+                    source = self.database(f"{kind}{suffix}")
+                    self.special(pathlib.Path(f"{source}{suffix}"), kind)
+                    with self.assertRaises(UpgradeError) as caught:
+                        engine._companions(source)
+                    self.assertIn(f"Database companion app.db{suffix} is {words}, not a regular file", str(caught.exception))
+                    with self.assertRaises(UpgradeError):
+                        engine.snapshot_database(source, self.base / "copy.db", self.base / "staging")
+                    self.assertFalse((self.base / "staging").exists())
+
+    def test_a_fifo_in_the_target_is_refused_without_blocking(self):
+        for case, words in (("upgrade", "Target entry data/tasks.db-journal is a named pipe (FIFO), not a regular file"),
+                            ("audit", "Target entry data/tasks.db-wal is a named pipe (FIFO), not a regular file"),
+                            ("snapshot", "Target entry notes.txt is a named pipe (FIFO), not a regular file")):
+            with self.subTest(case):
+                shutil.rmtree(self.base / "target", ignore_errors=True)
+                shutil.rmtree(self.base / "home", ignore_errors=True)
+                self.target()
+                self.assertIn(words, self.child(case))
+
+    def test_an_entry_swapped_to_a_fifo_after_its_lstat_is_refused_by_fstat(self):
+        self.assertEqual(self.child("swapped"), "pipe is a named pipe (FIFO), not a regular file; it is never opened, read or copied")
+
+    def test_sockets_and_devices_in_the_target_are_refused(self):
+        for kind, words in (("socket", "is a socket"), ("device", "is a character device")):
+            with self.subTest(kind):
+                target = self.base / f"target-{kind}"
+                shutil.copytree(TASKAPP, target)
+                self.special(target / "entry", kind)
+                with self.assertRaises(healing.HealingError) as caught:
+                    healing._snapshot(target)
+                self.assertIn(f"Target entry entry {words}, not a regular file", str(caught.exception))
+        with self.assertRaises(healing.HealingError) as caught:  # a real character device, opened by nobody
+            healing._open_regular("/dev/null")
+        self.assertIn("null is a character device", str(caught.exception))
+
+    def test_regular_files_are_still_read_and_copied(self):
+        snapshot = healing._snapshot(TASKAPP)
+        self.assertEqual(snapshot["data/tasks.db"], hashlib.sha256(DB.read_bytes()).hexdigest())
+        healing._copy_regular(DB, self.base / "copy.db")
+        self.assertEqual(rows(self.base / "copy.db"), 300)
 
 
 class FullUpgrade(_Base):
