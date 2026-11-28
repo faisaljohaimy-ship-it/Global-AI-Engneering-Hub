@@ -1,5 +1,11 @@
 version: 2
 updates:
+  - package-ecosystem: pip
+    directory: /integrations/headroom
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 1
+    labels: []
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "id": "headroomlabs-ai/headroom",
+  "version": "0.45.0",
+  "revision": "ce0460cfa8598dc939243dbc7aec4b2d35f4e44a",
+  "requested_state": "APPROVED",
+  "scope": "Opt-in isolated local Python SDK context preparation for selected non-sensitive tool JSON/logs; code/policy/short/protected inputs pass through. No provider/model calls, native host interception or product runtime dependency.",
+  "review": {
+    "upstream": "Official v0.45.0 Git tag resolves to the full revision; PyPI headroom-ai metadata matches 0.45.0 and requires Python 3.11+.",
+    "license": "Apache-2.0; retain LICENSE/NOTICE. Resolved dependencies and optional weights retain their own terms.",
+    "commercial_use": "Scoped local SDK development use only; no paid service or model entitlement enabled.",
+    "security": "Initial 68-wheel hash/advisory/notice gate and isolated synthetic SDK preflight recorded privately. This is not a full binary/source security audit or approval of all extras/integrations.",
+    "approval": "Scoped approval of the exact core SDK closure and reviewed Linux local launcher after independent real SDK, concurrency, preservation and retrieval tests. Does not approve proxy, MCP, native model sessions, all extras or production adoption. Merged release still requires exact-head Hub CI."
+  },
+  "installation": {
+    "package": "headroom-ai==0.45.0",
+    "environment": "Separate reviewed private venv; invoke its Python directly. SDK optional, no automatic install.",
+    "extras": [],
+    "linux_x86_64_wheel_sha256": "75c386fb9d9124ea9259a61567ffa46128759f2695691459c6e7d751f9d4c2ca",
+    "tool_siblings": [
+      "tools/headroom_context.py",
+      "tools/headroom_worker.py"
+    ],
+    "hash_lock": "integrations/headroom/requirements.lock",
+    "hash_lock_sha256": "2bfb5f5ddfb54dc16d98b8d647c7dbf7821b0e14b345f1811e430418d2f29bbb"
+  },
+  "sdk_regime": {
+    "mode": "agent",
+    "compress_system_messages": false,
+    "compress_user_messages": false,
+    "kompress_model": "disabled",
+    "original_sha256_and_retrieval_required": true,
+    "offline": true,
+    "beacon": false,
+    "telemetry": false
+  },
+  "launcher_limits": {
+    "input_max_bytes": 2097152,
+    "short_passthrough_below_bytes": 1024,
+    "retrieval_context_max_characters": 4096,
+    "literal_query_max_characters": 128,
+    "json_max_depth": 40,
+    "json_max_values": 100000,
+    "store_total_quota": "not implemented; each original is input-bounded",
+    "runtime_isolation": "Linux worker response must report linux-seccomp-no-ip; installed metadata alone is not runtime proof"
+  },
+  "initial_preflight": {
+    "scope": "Earlier 122-entry public catalog fixture through an actual Codex tool-session subprocess; final launcher tests are separate.",
+    "input_bytes": 33743,
+    "output_bytes": 9340,
+    "lossless": true,
+    "preserved_fixture_ids": 122,
+    "original_retrieval_exact": true,
+    "protected_system_user_unchanged": true,
+    "ipv4_ipv6_denied_in_test_process": true,
+    "reported_token_counts_exact": false,
+    "token_limit": "BPE asset host returned 403 during preparation; estimated counters do not establish exact token/billing/context savings.",
+    "real_model_calls": 0
+  },
+  "documentation": "docs/headroom-context-engineering.md",
+  "skill": "skills/headroom-context-engineering/SKILL.md",
+  "not_proven": [
+    "Native Codex or Claude CLI/MCP interception and activation",
+    "Authenticated model-session retrieval or answer equivalence",
+    "Actual model-context utilization or provider billing savings",
+    "Every optional Headroom extra, proxy, wrapper, model and integration",
+    "Account-wide network isolation or durable recovery from an SDK TTL cache",
+    "Automatic activation in existing products or production"
+  ],
+  "launcher_review": {
+    "source_sha256": {
+      "tools/headroom_context.py": "cbe2aa3abd390ec76c214a8dded622d3620e5871ba32199e22020e8925b68ca4",
+      "tools/headroom_worker.py": "09b5fc89f34113ebc10f9fe877988e70b61b4ef733b89c407d99898f597b03f6",
+      "tests/test_headroom_context.py": "fa8912321cadf712aa20e1b88bd3c7ca95257747bf5124b8079ae21f4f314dba"
+    },
+    "actual_sdk_focused_tests_passed": 27,
+    "actual_concurrent_two_process_pairs_passed": 20,
+    "independent_review": true,
+    "fresh_base_python_full_retrieval": true,
+    "missing_sdk_byte_exact_fallback": true,
+    "initialization_race_before_fix_reproduced": true,
+    "scope": "Local CLI/SDK fixtures, not authenticated native agent sessions or a whole-machine security boundary."
+  }
+}
