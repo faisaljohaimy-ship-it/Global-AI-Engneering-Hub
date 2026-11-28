@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 """
 
 import ast
+import collections
 import copy
 import difflib
 import hashlib
@@ -549,18 +550,25 @@ def apply_patch(files, patch):
 def introduced(reference, detection):
     """What ``detection`` shows that ``reference`` did not: the fail-closed recheck of a repair.
 
-    ``new_findings`` are findings of medium or higher severity (the loop's defect
-    threshold) whose stable ``key`` is absent from every ``reference`` finding;
-    ``not_rechecked`` are detectors that ran for ``reference`` but did not run now (an
-    app that no longer starts skips its integrations, so their findings cannot vanish
-    unseen). Both lists are deterministic: no measured evidence is copied.
+    ``new_findings`` lists, once per stable ``key``, every key that has more instances in
+    ``detection`` than in ``reference`` (absent before, or a second identical line next
+    to a known one) and whose worst instance is medium or higher (the loop's defect
+    threshold); ``instances`` and ``previously`` give both counts. ``not_rechecked`` are
+    detectors that ran for ``reference`` but did not run now (an app that no longer
+    starts skips its integrations, so their findings cannot vanish unseen). Both lists
+    are deterministic: no measured evidence is copied.
     """
-    known = {row["key"] for row in reference["findings"]}
-    new = {}
+    known = collections.Counter(row["key"] for row in reference["findings"])
+    groups = {}
     for row in detection["findings"]:
-        if RANK[row["severity"]] >= RANK["medium"] and row["key"] not in known and row["key"] not in new:
-            new[row["key"]] = {"key": row["key"], "detector": row["detector"], "kind": row["kind"], "severity": row["severity"],
-                               "path": row["location"]["path"], "symbol": row["location"]["symbol"]}
+        groups.setdefault(row["key"], []).append(row)
+    new = {}
+    for key, rows in groups.items():
+        worst = max(rows, key=lambda row: RANK[row["severity"]])
+        if len(rows) > known[key] and RANK[worst["severity"]] >= RANK["medium"]:
+            new[key] = {"key": key, "detector": worst["detector"], "kind": worst["kind"], "severity": worst["severity"],
+                        "path": worst["location"]["path"], "symbol": worst["location"]["symbol"],
+                        "instances": len(rows), "previously": known[key]}
     status = {row["detector"]: row["status"] for row in detection["detectors"]}
     lost = sorted(row["detector"] for row in reference["detectors"] if row["status"] == "ran" and status.get(row["detector"]) != "ran")
     ordered = sorted(new.values(), key=lambda row: (-RANK[row["severity"]], row["detector"], row["kind"], row["path"], str(row["symbol"]), row["key"]))
@@ -1326,14 +1334,24 @@ def _ledger(run, detection, final_outcomes):
         entries.append({"defect": label, "type": "finding" if row else "test", "kind": row["kind"] if row else "failing-test",
                         "severity": row["severity"] if row else "high", "location": row["location"] if row else None,
                         "root_causes": roots, "status": status, "repair": repair["item"] if repair else None, "reason": reason})
-    known, seen = {f["key"] for f in run.initial["findings"]}, set()
-    for row in run.defects(detection["findings"]):
-        if row["key"] not in known and row["key"] not in seen:
-            seen.add(row["key"])
-            entries.append({"defect": "finding:" + row["id"], "type": "finding", "kind": row["kind"], "severity": row["severity"],
-                            "location": row["location"], "root_causes": [], "status": "introduced", "repair": None,
-                            "reason": "absent at the start, present in the final detection of the repaired copy"})
+    for row in _introduced_rows(run.initial, detection, introduced(run.initial, detection)["new_findings"]):
+        entries.append({"defect": "finding:" + row["id"], "type": "finding", "kind": row["kind"], "severity": row["severity"],
+                        "location": row["location"], "root_causes": [], "status": "introduced", "repair": None,
+                        "reason": "absent at the start (or one more instance of a finding present at the start), "
+                                  "present in the final detection of the repaired copy"})
     return entries
+
+
+def _introduced_rows(initial, detection, entries):
+    """The final-detection rows behind ``introduced`` entries: per key, the instances added
+    since ``initial`` (rows whose id is new first, then the rest in detection order)."""
+    ids = {row["id"] for row in initial["findings"]}
+    rows = []
+    for entry in entries:
+        group = [row for row in detection["findings"] if row["key"] == entry["key"]]
+        ordered = [row for row in group if row["id"] not in ids] + [row for row in group if row["id"] in ids]
+        rows.extend(ordered[:entry["instances"] - entry["previously"]])
+    return rows
 
 
 def _report_heal(run, validation, detection, patch, reverse, changed):

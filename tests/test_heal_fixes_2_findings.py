@@ -5,6 +5,12 @@ genuine repair that inserted lines above an unrelated broken SQL literal was rej
 CRITIQUE as ``new-finding``. The key is now built from the file, the whitespace-normalised
 statement and the error class; a different broken statement is still a new finding.
 
+(b) Two identical TLS-disabled lines in one file share one key and one fingerprint, so the
+reviewer's V7 mutation (``verify=1`` -> ``verify=0`` next to a flagged
+``fetch(url, verify=0)``) added a second high instance that both the security baseline and
+the recheck read as known. The security baseline is now a multiset (one occurrence per
+instance) and ``introduced`` compares instance counts per key.
+
 Synthetic targets in temporary directories only; the Scenario F fixture is copied, never written.
 """
 
@@ -15,7 +21,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from engineering_os import detectors
+from engineering_os import detectors, healing
 from engineering_os.healing import heal, introduced
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -136,6 +142,94 @@ class MovedLiteralRepairTests(unittest.TestCase):
         self.assertEqual([row["status"] for row in query], ["unrepaired"])
         self.assertEqual(self.result["status"], "partially-repaired")
         self.assertEqual(self.result["validation"]["new_findings"], [])
+
+
+V7_LIB = """
+def fetch(url, verify=True, timeout=5):
+    return {"url": url, "verify": verify, "timeout": timeout}
+
+
+def legacy(url):
+    return fetch(url, verify=0)
+
+
+def modern(url):
+    return fetch(url, verify=1)
+"""
+V7_TEST = """import unittest
+import lib
+
+
+class T(unittest.TestCase):
+    def test_modern_matches_the_legacy_profile(self):
+        self.assertEqual(lib.modern("u"), {"url": "u", "verify": 0, "timeout": 5})
+"""
+
+
+def write(root, files):
+    root = pathlib.Path(root)
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8")
+    return root
+
+
+class InstanceCountTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="gaie-hf2-")
+        self.addCleanup(self.tmp.cleanup)
+        self.root = pathlib.Path(self.tmp.name)
+
+    def security(self, name, source, baseline=None):
+        report = detectors.detect_security(write(self.root / name, {"lib.py": source}), baseline=baseline)
+        return {"detectors": [report], "findings": report["findings"]}
+
+    def test_a_second_identical_tls_line_is_new_against_the_baseline(self):
+        before = self.security("one", V7_LIB)
+        [row] = before["findings"]
+        baseline = [r["evidence"]["fingerprint"] for r in before["findings"]]
+        after = self.security("two", V7_LIB.replace("verify=1", "verify=0"), baseline)
+        self.assertEqual([(r["location"]["line"], r["evidence"]["fingerprint"] == row["evidence"]["fingerprint"])
+                          for r in after["findings"]], [(7, True), (11, True)])
+        self.assertEqual([r["evidence"]["baseline"] for r in after["findings"]], ["known", "new"])
+        # one baseline entry per instance: two listed occurrences cover two identical lines
+        both = self.security("three", V7_LIB.replace("verify=1", "verify=0"), baseline * 2)
+        self.assertEqual([r["evidence"]["baseline"] for r in both["findings"]], ["known", "known"])
+
+    def test_introduced_counts_instances_per_key(self):
+        before = self.security("one", V7_LIB)
+        after = self.security("two", V7_LIB.replace("verify=1", "verify=0"))
+        self.assertEqual(len({r["key"] for r in after["findings"]}), 1)
+        new = introduced(before, after)["new_findings"]
+        self.assertEqual([(r["kind"], r["severity"], r["instances"], r["previously"]) for r in new],
+                         [("tls-verification-disabled", "high", 2, 1)])
+        self.assertEqual(introduced(after, after)["new_findings"], [])
+        self.assertEqual(introduced(after, before)["new_findings"], [])  # fewer instances is not new
+
+    def test_the_ledger_row_is_the_added_instance(self):
+        before = self.security("one", V7_LIB)
+        after = self.security("two", V7_LIB.replace("verify=1", "verify=0"))
+        rows = healing._introduced_rows(before, after, introduced(before, after)["new_findings"])
+        self.assertEqual([r["location"]["line"] for r in rows], [11])
+
+
+class TlsInstanceHealTests(unittest.TestCase):
+    """The reviewer's V7 target end to end: the only test-passing mutation adds the second instance."""
+
+    def test_the_second_high_instance_is_rejected_and_no_patch_is_offered(self):
+        with tempfile.TemporaryDirectory(prefix="gaie-hf2-v7-") as scratch:
+            target = write(pathlib.Path(scratch) / "t", {"lib.py": V7_LIB, "tests/test_lib.py": V7_TEST})
+            result = heal(target, workdir=pathlib.Path(scratch) / "w", tests={"start": "tests", "pattern": "test_*.py"},
+                          now=NOW, policy={"max_iterations": 2, "test_timeout_s": 60})
+        trial = next(row for row in result["trials"] if "'1' -> '0'" in row["candidate"])
+        self.assertEqual(trial["repair"], "rolled-back")
+        self.assertIn("new-security-finding", trial["critique"]["reasons"])
+        self.assertTrue(trial["rollback_verified"])
+        self.assertEqual(result["status"], "no-safe-repair")
+        self.assertIsNone(result["patch"])
+        self.assertEqual(len([r for r in result["final_findings"] if r["kind"] == "tls-verification-disabled"]), 1)
+        ledger = {row["kind"]: row["status"] for row in result["defects"]}
+        self.assertEqual(ledger, {"tls-verification-disabled": "unrepaired", "failing-test": "unrepaired"})
 
 
 if __name__ == "__main__":
