@@ -29,6 +29,10 @@ def read(path, expected_sha256=None):
     if expected_sha256 is not None:
         if not isinstance(expected_sha256,str) or not re.fullmatch('[a-f0-9]{64}',expected_sha256):raise ValueError('invalid receipt digest')
         if hashlib.sha256(data).hexdigest()!=expected_sha256:raise ValueError('changed receipt bytes')
+    return _decode_json(data)
+
+
+def _decode_json(data):
     def pairs(items):
         result={}
         for key,value in items:
@@ -267,7 +271,7 @@ def health(project=None):
         target=pathlib.Path(project).resolve()
         if not target.is_dir(): raise ValueError('existing project directory required')
         if (target/'.engineering').is_symlink(): raise ValueError('symlink engineering directory refused')
-        from sdk.engineering_sdk import verify
+        from sdk.engineering_sdk import read_audit_file, verify
         try:
             integrity=verify(target)
             findings.append({'check':'offline-capability-integrity','status':'passed','files':integrity['files']})
@@ -276,12 +280,18 @@ def health(project=None):
         for name in ('capabilities.json','integration-manifest.json','release-manifest.json'):
             path=target/'.engineering'/name
             if path.is_symlink(): raise ValueError('symlink manifest refused')
-            if not path.is_file():findings.append({'check':name,'status':'missing'})
+            try:
+                value=_decode_json(read_audit_file(target, f'.engineering/{name}'))
+            except FileNotFoundError:
+                findings.append({'check':name,'status':'missing'})
             else:
-                value=read(path)
                 findings.append({'check':name,'status':'present-not-operational-proof','schema_version':value.get('schema_version')})
         contract=target/'.engineering/project.json'
-        identity=read(contract).get('identity_verified') is True if contract.is_file() else False
+        if contract.is_symlink(): raise ValueError('symlink project identity refused')
+        try:
+            identity=_decode_json(read_audit_file(target, '.engineering/project.json')).get('identity_verified') is True
+        except FileNotFoundError:
+            identity=False
         if not identity:findings.append({'check':'deployment-identity','status':'unverified'})
         return {'scope':'private project; do not publish this receipt','status':'attention',
                 'findings':findings,'release_eligible':False,

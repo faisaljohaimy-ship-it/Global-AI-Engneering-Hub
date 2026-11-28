@@ -164,6 +164,27 @@ class EngineFormatTests(Base):
         with self.assertRaises(IntegrityError):
             MemoryStore(broken)
 
+    def test_read_only_store_refuses_writes_and_never_creates_state(self):
+        missing = self.tmp / "missing"
+        with self.assertRaises(MissingMemory):
+            MemoryStore(missing, read_only=True)
+        self.assertFalse(missing.exists())
+
+        store = self.store()
+        store.put(self.record())
+        reader = MemoryStore(store.directory, project="shop", read_only=True)
+        self.assertEqual(len(reader.entries("shop")), 1)
+        original = store.path.read_bytes()
+        destination = self.private / "never-created.json"
+        for change in (lambda: reader.put(self.record(title="Unapproved decision")),
+                       lambda: reader.checkpoint(destination),
+                       lambda: reader.restore(missing / "checkpoint.json")):
+            with self.assertRaisesRegex(MemoryError, "read-only"):
+                change()
+        self.assertEqual(store.path.read_bytes(), original)
+        self.assertFalse(destination.exists())
+        self.assertFalse(missing.exists())
+
 
 class IsolationTests(Base):
     def test_a_project_store_never_reads_or_lists_another_project(self):

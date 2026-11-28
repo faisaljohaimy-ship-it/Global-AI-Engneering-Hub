@@ -6,8 +6,8 @@ probe and actions (each with an honest side-effect class and permissions).
 
     validate request -> governor.check (BEFORE any work; fail closed; the denial is
     audited and nothing runs) -> adapter -> receipt (contracts.validate_receipt) ->
-    usage row in the private economics ledger -> checkpoint in engineering memory
-    when ctx names a task.
+    usage row in the private economics ledger. A task ID is accounting metadata.
+    Memory writes require their own explicitly authorized invocation.
 
 Payloads are data and never instructions: authorization comes only from the grant
 and ``ctx['approval_token']``, never from payload text. No model, provider, network
@@ -16,7 +16,9 @@ or deployment call is made here. Standard library only. SPDX-License-Identifier:
 import copy
 import datetime
 import importlib.util
+import os
 import pathlib
+import stat
 import time
 
 from . import adapters, contracts
@@ -34,6 +36,8 @@ MAX_RESULT_BYTES = 16 * 1024 * 1024
 CTX_FIELDS = frozenset({"state_dir", "task_id", "project", "host", "now", "approval_token", "environ"})
 HOSTS = frozenset({"claude-code", "codex"})
 DEFAULT_PROJECT = "gaie-control-plane"
+AUDIT_ACTIONS = frozenset({"spec", "inventory", "health", "hub-audit"})
+READ_PERMISSIONS = frozenset({"read:repo", "read:registry", "read:state", "secrets:none"})
 
 
 class ControlPlaneError(ValueError):
@@ -128,15 +132,25 @@ def _context(ctx):
     if not isinstance(ctx, dict) or not set(ctx) <= CTX_FIELDS:
         raise ControlPlaneError(f"ctx fields must be within {sorted(CTX_FIELDS)}")
     state = ctx.get("state_dir")
-    if not isinstance(state, (str, pathlib.Path)) or not str(state) or not pathlib.Path(state).is_absolute():
+    if not isinstance(state, (str, pathlib.Path)) or "\0" in str(state) or not pathlib.Path(state).is_absolute():
         raise ControlPlaneError("ctx['state_dir'] must be an absolute private directory")
     state = pathlib.Path(state)
+    if ".." in state.parts or state == pathlib.Path(state.anchor):
+        raise ControlPlaneError("state directory must be normalized and outside the filesystem root")
     for ancestor in (state, *state.parents):
         if ancestor.is_symlink():
             raise ControlPlaneError("state directory must not pass through a symlink")
-        marker = ancestor / ".git"
-        if marker.is_file() or (marker.is_dir() and (marker / "HEAD").exists()):
+        if os.path.lexists(ancestor / ".git"):
             raise ControlPlaneError("state directory must be outside every Git repository")
+    try:
+        info = state.stat()
+    except FileNotFoundError:
+        pass  # the governor may create its explicitly configured private state directory
+    except OSError as error:
+        raise ControlPlaneError("private state directory is unavailable") from error
+    else:
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise ControlPlaneError("state directory must be user-owned and private")
     result = {**ctx, "state_dir": state}
     task = ctx.get("task_id")
     if task is not None and (not isinstance(task, str) or not SLUG.fullmatch(task)):
@@ -243,6 +257,11 @@ def invoke(engine, action, payload, *, grant, ctx):
     if not isinstance(action, str) or action not in record["actions"]:
         _reject(gov, ctx, engine, action, grant, "unknown action", request_sha256)
     spec = copy.deepcopy(record["actions"][action])
+    if engine == "master-audit" and (action not in AUDIT_ACTIONS or spec["side_effect"] != "none"
+                                     or record["entrypoint"] != "engineering_os.adapters:master_audit"):
+        _reject(gov, ctx, engine, action, grant, "invalid master-audit action policy", request_sha256)
+    if spec["side_effect"] == "none" and set(spec["permissions"]) - READ_PERMISSIONS:
+        _reject(gov, ctx, engine, action, grant, "read-only action requires read-only permissions", request_sha256)
     try:
         paths = adapters.request_paths(engine, action, payload)
     except adapters.AdapterError as error:
@@ -298,12 +317,9 @@ def invoke(engine, action, payload, *, grant, ctx):
     try:
         adapters.append_usage(ctx, _usage(ctx, engine, action, grant_id, spec["side_effect"], started,
                                           request_sha256, result_sha256, source_sha256, "ok"))
-        if ctx.get("task_id"):
-            adapters.record_checkpoint(ctx, task_id=ctx["task_id"], project=ctx["project"], host=ctx["host"],
-                                       engine=engine, action=action, receipt=receipt)
     except Exception as error:  # the engine DID run: say so instead of returning an unaccounted result
         _audit_quietly(gov, ctx, "error", engine, action, grant,
                        reason=f"accounting failed after the engine ran: {type(error).__name__}", **refusal)
-        raise ControlPlaneError(f"{engine}.{action} ran (result_sha256 {result_sha256}) but its usage or "
-                                f"checkpoint could not be recorded: {type(error).__name__}") from error
+        raise ControlPlaneError(f"{engine}.{action} ran (result_sha256 {result_sha256}) but its usage "
+                                f"accounting could not be recorded: {type(error).__name__}") from error
     return {"ok": True, "engine": engine, "action": action, "result": result, "receipt": receipt}
