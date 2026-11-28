@@ -549,12 +549,24 @@ class ProbeInconclusive(AuditError):
 
 
 PARENT_ONLY = "GAIE_PROBE_PARENT_ONLY"
-ESCAPE_TEST = """import os, unittest
+ESCAPE_TEST = """import os, subprocess, sys, unittest
+
+# A child process connects with the raw _socket module, so no in-process guard of the runner is in its way.
+CHILD = "import _socket, sys\\ns = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)\\ns.settimeout(3)\\n" \\
+        "s.connect((sys.argv[1], int(sys.argv[2])))\\nprint('CONNECTED')"
 
 
 class Probe(unittest.TestCase):
     def test_probe(self):
         seen = ["probe-ran"]
+        for host, port in {targets!r}:
+            try:
+                done = subprocess.run([sys.executable, "-c", CHILD, host, str(port)], capture_output=True, text=True,
+                                      timeout=20)
+                if "CONNECTED" in done.stdout:
+                    seen.append("connected:" + host)
+            except (OSError, subprocess.SubprocessError):
+                pass
         if os.environ.get({env!r}):
             seen.append("parent-environment")
         try:
@@ -573,43 +585,97 @@ class Probe(unittest.TestCase):
 """
 
 
+def _host_address():
+    """This host's own non-loopback IPv4 address (the source address a route to TEST-NET-1 would use; a UDP
+    connect sends nothing), or None."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        try:
+            probe.connect(("192.0.2.1", 9))
+        except OSError:
+            return None
+        address = probe.getsockname()[0]
+    return None if address.startswith("127.") or address == "0.0.0.0" else address
+
+
 @contextlib.contextmanager
-def _escape_fixture(base):
+def _host_listeners(network):
+    """Non-blocking TCP listeners on the host's loopback and on its own address (none when network is False):
+    yields ([[host, port], ...], reached() -> True when any of them accepted a connection)."""
+    import socket
+    listeners = []
+    try:
+        for host in (("127.0.0.1", _host_address()) if network else ()):
+            if host is None:
+                continue
+            listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            listeners.append(listener)
+            listener.bind((host, 0))
+            listener.listen(8)
+            listener.setblocking(False)
+
+        def reached():
+            hit = False
+            for listener in listeners:
+                while True:
+                    try:
+                        connection, _ = listener.accept()
+                    except (BlockingIOError, InterruptedError):
+                        break
+                    connection.close()
+                    hit = True
+            return hit
+        yield [list(listener.getsockname()[:2]) for listener in listeners], reached
+    finally:
+        for listener in listeners:
+            listener.close()
+
+
+@contextlib.contextmanager
+def _escape_fixture(base, *, network=False):
     """A repository whose only test reports what it reached outside its workspace, with the caller's environment
-    holding a variable the test must not see: yields (repository, check(output) -> True when anything escaped)."""
+    holding a variable the test must not see: yields (repository, check(output) -> True when anything escaped).
+    With network=True the test also connects, from a child process, to TCP listeners on the host's loopback and
+    on the host's own address; an accepted connection counts as an escape (recheck-security item 2)."""
     outside, repository = base / "outside", base / "repository"
     outside.mkdir(mode=0o700)
     (repository / "tests").mkdir(parents=True, mode=0o700)
     marker, escape = outside / "marker.txt", outside / "escaped.txt"
     marker.write_text("outside-marker\n", encoding="utf-8")
-    (repository / "tests" / "test_probe.py").write_text(
-        ESCAPE_TEST.format(env=PARENT_ONLY, marker=str(marker), escape=str(escape)), encoding="utf-8")
+    with _host_listeners(network) as (targets, reached):
+        (repository / "tests" / "test_probe.py").write_text(
+            ESCAPE_TEST.format(env=PARENT_ONLY, marker=str(marker), escape=str(escape), targets=targets),
+            encoding="utf-8")
 
-    def escaped(output):
-        output = output or ""
-        if escape.exists() or "read-outside" in output or "parent-environment" in output:
-            return True
-        if "probe-ran" not in output:
-            raise ProbeInconclusive("the planted test left no trace")
-        return False
-    previous = os.environ.get(PARENT_ONLY)
-    os.environ[PARENT_ONLY] = "1"
-    try:
-        yield repository, escaped
-    finally:
-        if previous is None:
-            os.environ.pop(PARENT_ONLY, None)
-        else:
-            os.environ[PARENT_ONLY] = previous
+        def escaped(output):
+            output = output or ""
+            if reached() or "connected:" in output:
+                return True
+            if escape.exists() or "read-outside" in output or "parent-environment" in output:
+                return True
+            if "probe-ran" not in output:
+                raise ProbeInconclusive("the planted test left no trace")
+            return False
+        previous = os.environ.get(PARENT_ONLY)
+        os.environ[PARENT_ONLY] = "1"
+        try:
+            yield repository, escaped
+        finally:
+            if previous is None:
+                os.environ.pop(PARENT_ONLY, None)
+            else:
+                os.environ[PARENT_ONLY] = previous
 
 
 def probe_healing_sandbox(base):
     """True when a target repository's test, run by detectors.Sandbox, reads a file outside its copy, writes outside
-    it or sees a variable of the caller's environment (SEC-07). A refusal to run (DetectorError or PermissionError,
-    or a result with status "refused", which detectors.Sandbox returns on a host without the governor's full
-    sandbox: nothing executed) is not exploitable; a run that leaves no trace is inconclusive."""
+    it, sees a variable of the caller's environment, or reaches a host TCP listener (on the host's loopback, outside
+    the sandbox's own loopback, or on the host's address) from a child process (SEC-07). A refusal to run
+    (DetectorError or PermissionError, or a result with status "refused", which detectors.Sandbox returns on a host
+    without the governor's full sandbox: nothing executed) is not exploitable; a run that leaves no trace is
+    inconclusive."""
     from . import detectors
-    with _escape_fixture(base) as (repository, escaped):
+    with _escape_fixture(base, network=True) as (repository, escaped):
         try:
             result = detectors.Sandbox(base / "scratch", timeout=120).run_tests(repository, "tests", "test_*.py")
         except (detectors.DetectorError, PermissionError):

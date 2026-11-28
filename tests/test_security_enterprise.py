@@ -806,6 +806,35 @@ class BehaviouralProbeTests(unittest.TestCase):
             with self.assertRaises(security_audit.ProbeInconclusive):
                 self.probe(security_audit.probe_healing_sandbox)
 
+    def test_sec07_probe_counts_a_host_listener_reached_from_the_sandbox(self):
+        """recheck-security item 2: the probe's child connects to TCP listeners on the host's loopback and address;
+        an accepted connection reads open even when the test's own output looks contained."""
+        import socket
+        from engineering_os import detectors
+
+        def network_only(sandbox, root, start, pattern, **kwargs):
+            """Files and environment held; the host network reached (the host side sees the connection)."""
+            text = (pathlib.Path(root) / "tests" / "test_probe.py").read_text(encoding="utf-8")
+            targets = re.findall(r"\['([0-9.]+)', ([0-9]+)\]", text)
+            self.assertIn("127.0.0.1", [host for host, _ in targets])
+            for host, port in targets:
+                socket.create_connection((host, int(port)), timeout=3).close()
+            return {"status": "ok", "log_tail": "FAIL: test_probe\nAssertionError: probe-ran\n"}
+        with mock.patch.object(detectors.Sandbox, "run_tests", network_only):
+            self.assertTrue(self.probe(security_audit.probe_healing_sandbox))
+        if governor.isolation_probe()["tier"] != "full":  # measured refusal: nothing runs, nothing is reached
+            self.assertFalse(self.probe(security_audit.probe_healing_sandbox))
+            return
+        self.assertFalse(self.probe(security_audit.probe_healing_sandbox))
+        real = governor.sandbox_run
+
+        def host_network(cmd, **kwargs):
+            """The reviewer's stub: the host network namespace, and the network_isolated check dropped."""
+            kwargs.update(network=True, loopback=False)
+            return {**real(cmd, **kwargs), "network_isolated": True}
+        with mock.patch.object(governor, "sandbox_run", host_network):
+            self.assertTrue(self.probe(security_audit.probe_healing_sandbox))
+
     def test_sec12_probe_runs_a_layer_test_and_measures_what_it_reached(self):
         from engineering_os import layers
 
