@@ -27,3 +27,7 @@ Deliberate weaknesses the upgrade must find and fix:
 4. Unused asset: `static/old-banner.png` is referenced nowhere.
 
 The fixture must stay byte-for-byte unchanged by every test that upgrades it.
+
+Other fixture directories: `unsafe-sql/` (schema-SQL attack templates for W2-UP-01, rendered by
+`tests/test_upgrade_fixes_sql.py`) and `taskapp-wal/` (an overlay with a WAL-mode database whose `-wal` holds 5
+committed rows, for W2-UP-02/03). Each has its own README.
