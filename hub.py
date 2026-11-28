@@ -325,6 +325,9 @@ def workspace_run(args):
         if not command:
             raise ValueError("An explicit child command is required.")
         result = workspace_policy.WorkspaceSupervisor(assignments).run(args.agent, command, timeout=args.timeout)
+    except workspace_policy.WorkspaceTaintedError as error:  # the child ran; its workspace is not safe for Git
+        print(json.dumps({"status": "failed", "reason": str(error), "result": error.result}))
+        sys.exit(1)
     except governor.GovernorDenied as error:
         print(json.dumps({"status": "denied", "reason": error.reason}))
         sys.exit(3)

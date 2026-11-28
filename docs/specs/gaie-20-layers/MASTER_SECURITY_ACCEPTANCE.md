@@ -34,6 +34,17 @@ A trusted operator separately approves and dispatches a scoped write.
   program (`.uploadpack`, `.receivepack`, `.vcs`) or a repository extension
   other than `worktreeConfig` and `objectFormat` is refused
   (`tests/test_isolation_fixes_git.py`).
+- Only an existing `.git` pointer is overlaid read-only, so after every run the
+  supervisor re-inspects the writable root. A new `.git` (any letter case), a
+  directory holding `HEAD` next to `objects`, `refs` or `commondir`, a link or a
+  special file makes the run fail (`hub.py workspace-run` prints
+  `"status": "failed"` with the child's result and exits 1). Nothing is removed;
+  the operator inspects the tree before running Git there, and the next launch
+  of that agent is refused. The build engine's Git helper runs without hooks,
+  fsmonitor, untracked cache, lazy fetch or any transport except a push's own
+  https or local destination, and refuses a repository whose config names a
+  program, filter, include, URL rewrite, promisor, credential helper or HTTP
+  setting (`tests/test_isolation_fixes_planted_git.py`).
 - A Claude Code audit forks into the verifier's Read/Grep/Glob-only tool scope.
   Native host settings and hooks determine path and tool enforcement. Treat a
   validated plugin as artifact evidence and use the governed static audit when

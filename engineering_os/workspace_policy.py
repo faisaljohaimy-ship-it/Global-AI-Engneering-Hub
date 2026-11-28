@@ -14,6 +14,18 @@ class WorkspacePolicyError(ValueError):
     """The proposed scope could not be verified."""
 
 
+class WorkspaceTaintedError(WorkspacePolicyError):
+    """The child ran, then left Git metadata, a link or a special file in its writable root.
+
+    `result` is the governor's run result. Nothing is removed: the operator inspects the tree
+    before any host-side Git runs there, and the next launch of that agent is refused.
+    """
+
+    def __init__(self, message, result):
+        super().__init__(message)
+        self.result = result
+
+
 @dataclass(frozen=True)
 class WorkspaceScope:
     root: pathlib.Path
@@ -239,29 +251,43 @@ def validate_workspace(path, *, intent, expected_repository=None, registered_pat
         raise WorkspacePolicyError("Workspace or Git identity could not be verified.") from error
 
 
+# Git treats a directory as a repository when it holds HEAD and either objects/ and refs/ or a
+# commondir file (setup.c is_git_directory); any of these next to HEAD is refused.
+GIT_DIRECTORY_SIGNS = frozenset({"objects", "refs", "commondir"})
+
+
 def _writable_tree(scope):
     """Do not mount aliases to other files or a second Git repository as writable."""
     root = scope.root
     identity = _owned(root, private=True)
     dirs = [root]
     inspected = 0
+
+    def refuse(message, path):
+        raise WorkspacePolicyError(f"{message} ({ascii(str(path.relative_to(root)))[1:-1] or '.'})")
+
     while dirs:
-        with os.scandir(dirs.pop()) as entries:
+        directory = dirs.pop()
+        names = set()
+        with os.scandir(directory) as entries:
             for entry in entries:
                 inspected += 1
                 if inspected > 100_000:
                     raise WorkspacePolicyError("Workspace exceeds the bounded writable file inventory.")
                 path = pathlib.Path(entry.path)
                 info = entry.stat(follow_symlinks=False)
+                names.add(entry.name.casefold())
                 if (scope.branch is not None and path == scope.checkout / ".git"
                         and stat.S_ISREG(info.st_mode) and info.st_nlink == 1):
                     continue  # The strict governor overlays the linked metadata pointer read-only.
-                if entry.name == ".git" or info.st_uid != os.geteuid() or info.st_dev != identity.st_dev:
-                    raise WorkspacePolicyError("Nested Git metadata, foreign files and nested filesystems are refused.")
+                if entry.name.casefold() == ".git" or info.st_uid != os.geteuid() or info.st_dev != identity.st_dev:
+                    refuse("Nested Git metadata, foreign files and nested filesystems are refused.", path)
                 if stat.S_ISDIR(info.st_mode):
                     dirs.append(path)
                 elif not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
-                    raise WorkspacePolicyError("Writable workspaces cannot contain symlinks, hard links or special files.")
+                    refuse("Writable workspaces cannot contain symlinks, hard links or special files.", path)
+        if "head" in names and names & GIT_DIRECTORY_SIGNS:
+            refuse("A directory shaped like a Git repository is refused in a writable workspace.", directory)
     return identity.st_dev, identity.st_ino
 
 
@@ -313,4 +339,13 @@ class WorkspaceSupervisor:
         )
         if result.get("fs_isolated") is not True or result.get("network_isolated") is not True:
             raise WorkspacePolicyError("The workspace launch did not establish the required isolation.")
+        # Only an existing .git pointer is overlaid read-only: re-inspect what the child left, because
+        # host-side Git there would run a planted core.fsmonitor, hook or filter outside the sandbox.
+        try:
+            after = _writable_tree(current)
+        except (WorkspacePolicyError, OSError) as error:
+            raise WorkspaceTaintedError(f"The run is failed: its workspace now holds content that is unsafe for "
+                                        f"host-side Git; inspect it before running Git there. {error}", result) from error
+        if after != identity:
+            raise WorkspaceTaintedError("The run is failed: the assigned workspace changed identity.", result)
         return result
