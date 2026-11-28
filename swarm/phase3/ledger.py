@@ -17,6 +17,8 @@ one class.
     session tool            a tool that reaches another session or agent, and ran
     other tool              any other tool that ran
     hand-back               the host's own way of returning an agent's answer
+    no result recorded      a call with no result line: the agent was stopped mid-call; it counts as outside
+                            the contract that may have run unless a worker may make it (a worker command, the hand-back)
 
 A stage is clean when the last three ran-classes above the hand-back are all zero for its
 workers. With the gate's record it is also reconciled: the gate must have seen every call
@@ -40,52 +42,89 @@ SESSION_TOOL = re.compile(r"mcp__claude-code-remote__|^(SendMessage|ListAgents|A
 HOST_DENIAL = re.compile(r"permission to use|permission denied by|has been denied|not allowed to use|hook (blocked|denied)|was blocked|no such tool|is not available|unknown tool", re.I)
 GATE_MARKS = ("swk-guard", "swk-lane-guard")
 RAN = ("foreign shell command", "session tool", "other tool")
+NO_RESULT = "no result recorded"
+UNKNOWN = "type not recorded"
 
 
-def calls(path: Path) -> list[dict]:
-    """One row per tool call of a record: the tool's name and its class."""
+def scan(path: Path) -> tuple[list[dict], dict]:
+    """The rows of a record and what was odd about it: lines that are not JSON, results with no call, call ids seen twice."""
     asked, came_back = [], {}
-    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
+    odd = {"unreadable_lines": 0, "results_without_a_call": 0, "repeated_call_ids": 0, "repeated_result_ids": 0}
+    try:
+        text_of_record = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        text_of_record = ""
+    for line in text_of_record.splitlines():
+        if not line.strip():
+            continue
         try:
             entry = json.loads(line)
-        except ValueError:
+        except ValueError:  # a cut-off last line, or a line that is not JSON
+            odd["unreadable_lines"] += 1
+            continue
+        if not isinstance(entry, dict):
+            odd["unreadable_lines"] += 1
             continue
         message = entry.get("message") if isinstance(entry.get("message"), dict) else {}
         for block in message.get("content") if isinstance(message.get("content"), list) else []:
             if not isinstance(block, dict):
                 continue
             if block.get("type") == "tool_use":
-                if all(block.get("id") != seen["id"] for seen in asked):  # one reply may be written on several lines
-                    asked.append({"id": block.get("id"), "name": str(block.get("name")), "command": (block.get("input") or {}).get("command")})
+                given = block.get("input") if isinstance(block.get("input"), dict) else {}
+                if block.get("id") is not None and any(block.get("id") == seen["id"] for seen in asked):  # one reply may be written on several lines
+                    odd["repeated_call_ids"] += 1
+                else:
+                    asked.append({"id": block.get("id"), "name": str(block.get("name")), "command": given.get("command")})
             elif block.get("type") == "tool_result":
                 inner = block.get("content")
-                text = inner if isinstance(inner, str) else " ".join(b.get("text", "") for b in inner or [] if isinstance(b, dict))
-                came_back[block.get("tool_use_id")] = (text[:600], bool(block.get("is_error")))
+                if isinstance(inner, str):
+                    text = inner
+                elif isinstance(inner, list):
+                    text = " ".join(str(b.get("text", "")) if isinstance(b, dict) else str(b) for b in inner)
+                else:
+                    text = "" if inner is None else str(inner)
+                key = block.get("tool_use_id")
+                if key in came_back:
+                    odd["repeated_result_ids"] += 1
+                else:
+                    came_back[key] = (text[:600], block.get("is_error") is True)
     rows = []
     for call in asked:
-        text, failed = came_back.get(call["id"], ("", False))
         name = call["name"]
+        worker_may = name in HAND_BACK or (name == "Bash" and isinstance(call["command"], str) and guard.allowed(call["command"]))
+        if call["id"] is None or call["id"] not in came_back:
+            # stopped mid-call: nothing says whether it ran. Only what a worker may do leaves the ledger clean.
+            rows.append({"tool": name, "class": NO_RESULT, "may_have_run_outside": not worker_may, "hand_back": name in HAND_BACK})
+            continue
+        text, failed = came_back[call["id"]]
         if name in HAND_BACK:
             kind = "hand-back"
-        elif any(mark in text for mark in GATE_MARKS):
+        elif failed and any(mark in text for mark in GATE_MARKS):  # the same words in ordinary output of a command that ran are not a refusal
             kind = "refused by the gate"
         elif failed and HOST_DENIAL.search(text):
             kind = "refused by the host"
         elif name == "Bash":
-            kind = "worker command" if isinstance(call["command"], str) and guard.allowed(call["command"]) else "foreign shell command"
+            kind = "worker command" if worker_may else "foreign shell command"
         elif SESSION_TOOL.search(name):
             kind = "session tool"
         else:
             kind = "other tool"
         rows.append({"tool": name, "class": kind})
-    return rows
+    odd["results_without_a_call"] = sum(1 for key in came_back if all(key != call["id"] for call in asked))
+    return rows, odd
+
+
+def calls(path: Path) -> list[dict]:
+    """One row per tool call of a record: the tool's name and its class."""
+    return scan(path)[0]
 
 
 def agent_type(path: Path) -> str | None:
     try:
-        return json.loads(Path(path).with_name(Path(path).stem + ".meta.json").read_text()).get("agentType")
+        kind = json.loads(Path(path).with_name(Path(path).stem + ".meta.json").read_text()).get("agentType")
     except (OSError, ValueError, AttributeError):
         return None
+    return kind if isinstance(kind, str) and kind else None
 
 
 def build(paths: list[Path], gate_lines: list[dict] | None = None) -> dict:
@@ -93,40 +132,82 @@ def build(paths: list[Path], gate_lines: list[dict] | None = None) -> dict:
     by_tool: dict[str, int] = {}
     by_type: dict[str, int] = {}
     ran: dict[str, int] = {}
+    odd_total = {"unreadable_lines": 0, "results_without_a_call": 0, "repeated_call_ids": 0, "repeated_result_ids": 0}
+    empty = unknown = 0
     for path in paths:
-        kind = agent_type(path) or "type not recorded"
-        for row in calls(path):
+        recorded = agent_type(path)
+        kind = recorded or UNKNOWN
+        unknown += recorded is None
+        rows, odd = scan(path)
+        empty += not rows
+        for name, count in odd.items():
+            odd_total[name] += count
+        for row in rows:
             by_class[row["class"]] = by_class.get(row["class"], 0) + 1
             by_tool[row["tool"]] = by_tool.get(row["tool"], 0) + 1
-            if row["class"] not in ("hand-back", "refused by the host"):  # the host answers these itself, before any gate is asked
+            if row["class"] != "hand-back" and not row.get("hand_back") and row["class"] != "refused by the host":  # the host answers these itself, before any gate is asked
                 by_type[kind] = by_type.get(kind, 0) + 1
-            if row["class"] in RAN:
+            if row["class"] in RAN or row.get("may_have_run_outside"):
                 key = f"{row['class']}: {row['tool']}"
                 ran[key] = ran.get(key, 0) + 1
     result = {"agents": len(paths), "tool_calls": sum(by_class.values()), "by_class": dict(sorted(by_class.items())), "by_tool": dict(sorted(by_tool.items())),
               "calls_a_gate_must_have_seen_by_agent_type": dict(sorted(by_type.items())), "calls_outside_the_contract_that_ran": dict(sorted(ran.items())),
-              "clean": not ran}
+              "clean": not ran, "agents_with_type_not_recorded": unknown, "empty_records": empty, **odd_total}
     if gate_lines is not None:
         seen: dict[str, int] = {}
+        unusable = 0
         for line in gate_lines:
-            if line.get("agent") and line.get("tool") not in HAND_BACK:
+            if not isinstance(line, dict):
+                unusable += 1
+                continue
+            if not isinstance(line.get("agent"), str) or not line["agent"]:  # the orchestrator's own calls carry no agent
+                continue
+            if line.get("tool") not in HAND_BACK:
                 seen[line["agent"]] = seen.get(line["agent"], 0) + 1
         missed = {kind: count - seen.get(kind, 0) for kind, count in by_type.items() if count > seen.get(kind, 0)}
         result["gate"] = {"calls_the_gate_saw_by_agent_type": dict(sorted(seen.items())), "calls_in_records_the_gate_did_not_see": missed,
-                          "refused_by_the_gate_in_its_own_record": sum(line.get("verdict") == "refuse" for line in gate_lines), "reconciled": not missed}
+                          "refused_by_the_gate_in_its_own_record": sum(isinstance(line, dict) and line.get("verdict") == "refuse" for line in gate_lines),
+                          "gate_lines_unusable": unusable, "reconciled": not missed}
     return result
 
 
-def gate_log(path: Path, start: float | None = None, end: float | None = None) -> list[dict]:
-    lines = []
-    for text in Path(path).read_text().splitlines() if Path(path).exists() else []:
+def _time(line: dict) -> float | None:
+    value = line.get("t")
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) and value == value else None
+
+
+def gate_report(path: Path, start: float | None = None, end: float | None = None) -> dict:
+    """The gate's lines inside a stage, and how many were left out and why. With a window, a line with no time cannot be placed and is left out."""
+    kept, counts = [], {"not_json": 0, "no_time": 0, "outside_the_stage": 0}
+    try:
+        text_of_log = Path(path).read_text(errors="replace") if Path(path).exists() else ""
+    except OSError:
+        text_of_log = ""
+    for text in text_of_log.splitlines():
+        if not text.strip():
+            continue
         try:
             line = json.loads(text)
         except ValueError:
+            counts["not_json"] += 1
             continue
-        if (start is None or line.get("t", 0) >= start) and (end is None or line.get("t", 0) <= end):
-            lines.append(line)
-    return lines
+        if not isinstance(line, dict):
+            counts["not_json"] += 1
+            continue
+        when = _time(line)
+        if when is None:
+            counts["no_time"] += 1
+            if start is not None or end is not None:
+                continue
+        elif (start is not None and when < start) or (end is not None and when > end):
+            counts["outside_the_stage"] += 1
+            continue
+        kept.append(line)
+    return {"lines": kept, **counts}
+
+
+def gate_log(path: Path, start: float | None = None, end: float | None = None) -> list[dict]:
+    return gate_report(path, start, end)["lines"]
 
 
 def main() -> int:
