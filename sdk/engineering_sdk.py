@@ -14,7 +14,7 @@ import stat
 import subprocess
 import sys
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 HERE = pathlib.Path(__file__).resolve().parent
 SHA = re.compile(r"[a-f0-9]{40}")
 REPOSITORY = re.compile(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")

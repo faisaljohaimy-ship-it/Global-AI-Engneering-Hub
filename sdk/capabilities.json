@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "sdk_version": "1.0.0",
+  "sdk_version": "1.0.1",
   "policy": "Discover selectively; inspect status, license, security, exact lockfile version and budget before enabling a tool. Candidates are never executable approvals.",
   "capabilities": [
     {
