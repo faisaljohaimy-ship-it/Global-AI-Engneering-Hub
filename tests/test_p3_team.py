@@ -150,8 +150,8 @@ class SessionGateTests(unittest.TestCase):
         def run(*arguments, text=""):
             return subprocess.run([sys.executable, "-I", str(P3 / "hook.py"), *arguments], input=text, capture_output=True, text=True, env=env)
 
-        secret = "do-not-record-this-value"
-        self.assertEqual(run(text=json.dumps({"agent_type": "swarm-probe", "tool_name": "Bash", "tool_input": {"command": f"cat /etc/hostname {secret}"}, "session_id": secret})).returncode, 2)
+        marker = "a-value-the-record-must-not-hold"
+        self.assertEqual(run(text=json.dumps({"agent_type": "swarm-probe", "tool_name": "Bash", "tool_input": {"command": f"cat /etc/hostname {marker}"}, "session_id": marker})).returncode, 2)
         self.assertEqual(run(text=json.dumps({"agent_type": "swarm-probe", "tool_name": "Bash", "tool_input": {"command": "swk status"}})).returncode, 0)
         self.assertEqual(run(text=json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}})).returncode, 0)
         for text in ("", "nonsense", "[1]"):
@@ -159,7 +159,7 @@ class SessionGateTests(unittest.TestCase):
         seen = json.loads(run("report").stdout)
         self.assertEqual((seen["calls_seen"], seen["calls_with_an_agent_type"], seen["refused"], seen["host_reports_the_agent_type"]), (3, 2, 1, True))
         self.assertIn("session_id", seen["fields_the_host_sends"])
-        self.assertNotIn(secret, (pathlib.Path(self.folder.name) / "p3" / "hook.jsonl").read_text())
+        self.assertNotIn(marker, (pathlib.Path(self.folder.name) / "p3" / "hook.jsonl").read_text())
 
     def test_the_settings_hook_does_nothing_until_the_gate_is_installed(self):
         settings = json.loads((ROOT / ".claude" / "settings.json").read_text())
