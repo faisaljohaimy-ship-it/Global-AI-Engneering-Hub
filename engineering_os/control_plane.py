@@ -183,8 +183,8 @@ def _audit(gov, ctx, event, engine, action, grant, *, reason, side_effect=None, 
     gov.audit(str(ctx["state_dir"]), row)
 
 
-def _audit_refusal(gov, ctx, event, engine, action, grant, **fields):
-    """Audit a refusal; the refusal stands even when its audit row cannot be written."""
+def _audit_quietly(gov, ctx, event, engine, action, grant, **fields):
+    """Audit a refusal or error; the refusal stands even when its audit row cannot be written."""
     try:
         _audit(gov, ctx, event, engine, action, grant, **fields)
         return True
@@ -193,7 +193,7 @@ def _audit_refusal(gov, ctx, event, engine, action, grant, **fields):
 
 
 def _reject(gov, ctx, engine, action, grant, reason, request_sha256=None):
-    _audit_refusal(gov, ctx, "reject", engine, action, grant, reason=reason, request_sha256=request_sha256)
+    _audit_quietly(gov, ctx, "reject", engine, action, grant, reason=reason, request_sha256=request_sha256)
     raise ControlPlaneError(reason)
 
 
@@ -249,14 +249,14 @@ def invoke(engine, action, payload, *, grant, ctx):
         decision = gov.check(copy.deepcopy(grant), engine, action, copy.deepcopy(spec), paths=paths,
                              approval_token=ctx.get("approval_token"), now=ctx.get("now"))
     except gov.GovernorDenied as denial:
-        _audit_refusal(gov, ctx, "deny", engine, action, grant, reason=getattr(denial, "reason", denial), **refusal)
+        _audit_quietly(gov, ctx, "deny", engine, action, grant, reason=getattr(denial, "reason", denial), **refusal)
         raise
     except Exception as error:  # any governor fault fails closed
-        _audit_refusal(gov, ctx, "deny", engine, action, grant, reason=f"governor fault: {type(error).__name__}", **refusal)
+        _audit_quietly(gov, ctx, "deny", engine, action, grant, reason=f"governor fault: {type(error).__name__}", **refusal)
         raise ControlPlaneError("Security Governor failed; nothing was run") from error
     if not isinstance(decision, dict) or decision.get("allowed") is not True \
             or decision.get("side_effect") != spec["side_effect"]:
-        _audit_refusal(gov, ctx, "deny", engine, action, grant, reason="governor returned no explicit allow", **refusal)
+        _audit_quietly(gov, ctx, "deny", engine, action, grant, reason="governor returned no explicit allow", **refusal)
         raise ControlPlaneError("Security Governor did not explicitly allow this action; nothing was run")
     grant_id = decision.get("grant_id")
     if not isinstance(grant_id, str) or grant_id != _grant_id(grant):
@@ -276,7 +276,9 @@ def invoke(engine, action, payload, *, grant, ctx):
         result_sha256 = _digest(result, MAX_RESULT_BYTES, "engine result")
     except Exception as error:  # an authorized attempt is still audited and accounted
         message = f"{engine}.{action} failed: {type(error).__name__}: {str(error)[:300]}"
-        _audit_refusal(gov, ctx, "error", engine, action, grant, reason=message, **refusal)
+        # The audit row keeps the error class only; validator messages may quote payload data.
+        _audit_quietly(gov, ctx, "error", engine, action, grant,
+                       reason=f"{engine}.{action} failed: {type(error).__name__}", **refusal)
         try:
             adapters.append_usage(ctx, _usage(ctx, engine, action, grant_id, spec["side_effect"], started,
                                               request_sha256, None, source_sha256, "failed"))
@@ -288,9 +290,15 @@ def invoke(engine, action, payload, *, grant, ctx):
         "request_sha256": request_sha256, "result_sha256": result_sha256, "grant_id": grant_id,
         "side_effect": spec["side_effect"], "duration_ms": _elapsed(started), "at": _now(),
         "source_sha256": source_sha256})
-    adapters.append_usage(ctx, _usage(ctx, engine, action, grant_id, spec["side_effect"], started,
-                                      request_sha256, result_sha256, source_sha256, "ok"))
-    if ctx.get("task_id"):
-        adapters.record_checkpoint(ctx, task_id=ctx["task_id"], project=ctx["project"], host=ctx["host"],
-                                   engine=engine, action=action, receipt=receipt)
+    try:
+        adapters.append_usage(ctx, _usage(ctx, engine, action, grant_id, spec["side_effect"], started,
+                                          request_sha256, result_sha256, source_sha256, "ok"))
+        if ctx.get("task_id"):
+            adapters.record_checkpoint(ctx, task_id=ctx["task_id"], project=ctx["project"], host=ctx["host"],
+                                       engine=engine, action=action, receipt=receipt)
+    except Exception as error:  # the engine DID run: say so instead of returning an unaccounted result
+        _audit_quietly(gov, ctx, "error", engine, action, grant,
+                       reason=f"accounting failed after the engine ran: {type(error).__name__}", **refusal)
+        raise ControlPlaneError(f"{engine}.{action} ran (result_sha256 {result_sha256}) but its usage or "
+                                f"checkpoint could not be recorded: {type(error).__name__}") from error
     return {"ok": True, "engine": engine, "action": action, "result": result, "receipt": receipt}

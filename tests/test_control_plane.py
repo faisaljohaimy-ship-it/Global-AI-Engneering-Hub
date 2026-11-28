@@ -477,10 +477,19 @@ class RejectionTests(_FakeCase):
         self.assertFalse((self.state / "memory").exists())
 
     def test_engine_failure_is_audited_and_accounted(self):
+        secret_looking = "private-project-detail-zz"
         with self.assertRaises(cp.EngineFailure):
-            cp.invoke("reasoning", "root-causes", {"observations": [], "dependencies": {"a": ["a"]}},
+            cp.invoke("reasoning", "root-causes", {"observations": [], "dependencies": {secret_looking: [secret_looking]}},
                       grant=grant({"reasoning": ["root-causes"]}), ctx=self.ctx)
         self.assertEqual([row["status"] for row in self.ledger()], ["failed"])
+        self.assertEqual([e["event"] for e in self.audit()], ["allow", "error"])
+        self.assertNotIn(secret_looking, (self.state / "governor-audit.jsonl").read_text())
+
+    def test_accounting_failure_after_a_run_is_reported_as_such(self):
+        with mock.patch.object(adapters, "append_usage", side_effect=OSError("read-only state")), \
+                self.assertRaises(cp.ControlPlaneError) as caught:
+            cp.invoke("reasoning", "root-causes", root_cause_payload(), grant=grant({"reasoning": ["root-causes"]}), ctx=self.ctx)
+        self.assertIn("ran (result_sha256", str(caught.exception))
         self.assertEqual([e["event"] for e in self.audit()], ["allow", "error"])
 
 
