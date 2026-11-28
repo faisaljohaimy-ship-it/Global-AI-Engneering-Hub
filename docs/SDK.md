@@ -1,4 +1,4 @@
-# Engineering SDK 1.0.0
+# Engineering SDK 1.0.1
 
 Python standard library only. Install selected capabilities through existing
 registration after the release commit has merged:
