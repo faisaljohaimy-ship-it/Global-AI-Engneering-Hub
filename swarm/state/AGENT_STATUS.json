@@ -25,10 +25,10 @@
  "roles_never_run": 98,
  "models": {
   "ladder": [
-   "claude-haiku-5-5"
+   "haiku"
   ],
   "benchmark": [
-   "claude-sonnet-5-5"
+   "sonnet"
   ]
  },
  "review_agents_started": 4,

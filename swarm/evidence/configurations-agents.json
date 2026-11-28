@@ -19,7 +19,7 @@
     "score": 5,
     "out_of": 5
    },
-   "model": "claude-sonnet-5-5",
+   "model": "sonnet",
    "seconds": 20.37,
    "roundtrips": 8,
    "input_uncached": 16,
@@ -57,7 +57,7 @@
     "score": 5,
     "out_of": 5
    },
-   "model": "claude-sonnet-5-5",
+   "model": "sonnet",
    "seconds": 17.36,
    "roundtrips": 7,
    "input_uncached": 14,

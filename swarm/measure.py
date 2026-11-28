@@ -116,8 +116,10 @@ def peak(rows: list[dict]) -> int:
 
 
 def stage(label: str, rows: list[dict], check: dict, main: dict | None, samples: list[dict], baseline: float | None) -> dict:
-    wall = max(r["end"] for r in rows) - min(r["start"] for r in rows)
-    own = sum(r["seconds"] for r in rows)
+    timed = [r for r in rows if r["start"] is not None and r["end"] is not None]
+    wall = max(r["end"] for r in timed) - min(r["start"] for r in timed) if timed else 0.0
+    rate = (lambda value: round(value / wall, 2)) if wall > 0 else (lambda value: None)  # no time measured: no rate, never a division by zero
+    own = sum(r["seconds"] or 0 for r in rows)
     add = lambda key: sum(r[key] for r in rows)  # noqa: E731
     verified, tasks = check["verified"], check["tasks"]
     out = {
@@ -125,8 +127,8 @@ def stage(label: str, rows: list[dict], check: dict, main: dict | None, samples:
         "verified_success_rate": round(100 * verified / tasks, 1), "hidden_tests_passed": check["tests_passed"], "hidden_tests_total": check["tests_total"],
         "security_findings": check["security_findings"], "files_outside_contract": check["extra_files"], "mean_solution_lines": check["mean_lines"],
         "agents_replying_done": sum(r["final_reply"].upper().startswith("DONE") for r in rows), "agents_with_limit_error": sum(r["limit_error"] for r in rows),
-        "wall_seconds": round(wall, 2), "sum_of_agent_seconds": round(own, 2), "effective_concurrency": round(own / wall, 2),
-        "tasks_per_minute": round(60 * verified / wall, 2),
+        "wall_seconds": round(wall, 2), "sum_of_agent_seconds": round(own, 2), "effective_concurrency": rate(own),
+        "tasks_per_minute": rate(60 * verified),
         "models": sorted({r["model"] for r in rows if r["model"]}),
         "agent_tokens": {"input_uncached": add("input_uncached"), "cache_write": add("cache_write"), "cache_read": add("cache_read"),
                          "input_total": add("input_total"), "output": add("output"), "total": add("input_total") + add("output")},
@@ -137,7 +139,7 @@ def stage(label: str, rows: list[dict], check: dict, main: dict | None, samples:
                               "roundtrips": round(add("roundtrips") / verified, 2) if verified else None, "agent_seconds": round(own / verified, 2) if verified else None},
         "helper_calls": {name: sum(r["helpers"].get(name, 0) for r in rows) for name in HELPERS if any(r["helpers"].get(name) for r in rows)},
     }
-    if baseline:
+    if baseline and wall > 0:
         speedup = baseline * tasks / wall
         out["speedup_against_one_agent"] = round(speedup, 2)
         out["parallel_efficiency"] = round(speedup / len(rows), 3)

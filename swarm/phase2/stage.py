@@ -311,7 +311,7 @@ def prep(ident: str | None) -> int:
     model, out, ids = resolve(spec, stages), HOME / "work" / spec["id"], []
     out.mkdir(parents=True, exist_ok=True)
     if spec["kind"] == "task":
-        ids = [item["id"] for item in tasks.make(out, spec["size"], spec["first"], spec["tasks"], spec.get("mode", "lean"), PLAN["seed"])]
+        ids = [item["id"] for item in tasks.make(out, spec["size"], spec["first"], spec["tasks"], spec.get("mode", "lean"), spec.get("seed", PLAN["seed"]))]
         scheduler.own(HOME / "state", spec["id"], ids)
     (HOME / "current").write_text(spec["id"])
     checked = None
@@ -368,7 +368,8 @@ def finish() -> int:
         result = {"label": ident, "actual_agents": len(rows), "agents_with_limit_error": sum(r["limit_error"] for r in rows),
                   "agent_tokens": {"input_uncached": sums["input_uncached"], "cache_write": total(rows, "cache_write"), "cache_read": sums["cache_read"],
                                    "input_total": total(rows, "input_total"), "output": sums["output"], "total": total(rows, "input_total") + sums["output"]},
-                  "wall_seconds": round(max(r["end"] for r in rows) - min(r["start"] for r in rows), 2) if rows else 0, **common}
+                  "wall_seconds": round(max(r["end"] for r in rows if r["end"] is not None) - min(r["start"] for r in rows if r["start"] is not None), 2)
+                  if any(r["start"] is not None and r["end"] is not None for r in rows) else 0, **common}
         if spec["kind"] == "probe":
             result["guard_enforced"] = bool(rows) and result["refused_calls"] >= 1 and result["foreign_calls"] == 0
             result["allowed_command_ran"] = result["swk_calls"] >= 1

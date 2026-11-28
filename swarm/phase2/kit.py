@@ -29,6 +29,7 @@ import importlib.util
 import json
 import os
 import re
+import signal
 import sys
 from pathlib import Path
 
@@ -42,6 +43,7 @@ HOME = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm")) / "p2"
 ID = re.compile(r"[SMLX]-\d{4}")
 ATTEMPTS = 3
 RAW_CAP, LEAN_CAP = 60000, 4000
+LONG_LINE, AROUND, MATCHES_ON_A_LINE = 400, 80, 60  # a line longer than this is shown match by match, with this much text around each
 PROJECT_FILE = re.compile(r"(inv|tests|data|logs)(/[A-Za-z0-9_.-]+)?")
 FACTS = ("fixed_function", "direct_callers", "failed_event_ids", "build_error_code")
 
@@ -76,8 +78,26 @@ def emit(state: Path, verb: str, text: str, view: bool = False) -> None:
     kit["calls"][verb] = kit["calls"].get(verb, 0) + 1
     kit["chars_out"] += len(text)
     kit["views"] += int(view)
-    state.write_text(json.dumps(kit, ensure_ascii=False))
+    keep(state, kit)
     sys.stdout.write(text if text.endswith("\n") else text + "\n")
+
+
+def keep(state: Path, kit: dict) -> None:
+    """Replace the task's state file whole, readable by its owner only. A reader never sees it half written."""
+    scratch = state.with_name(f".{state.name}.{os.getpid()}")
+    descriptor = os.open(scratch, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(kit, ensure_ascii=False))
+    os.replace(scratch, state)
+
+
+def write_plain(path: Path, text: str) -> None:
+    """Write a worker's file in its task folder. A link lying at that name is refused, never written through."""
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise Refused("that name is not a plain file here")
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(text)
 
 
 def inside(folder: Path, name: str) -> Path:
@@ -96,6 +116,18 @@ def need_large(state: Path, lean: bool = False) -> dict:
     if lean and kit["mode"] != "lean":
         raise Refused("this command is not part of this task's commands")
     return kit
+
+
+def read_input(limit: int) -> str:
+    """Standard input, but never more than one character past LIMIT: a huge input is refused, not held in memory."""
+    return sys.stdin.read(limit + 1)
+
+
+SEARCH_SECONDS = 5
+
+
+def stopped(signum, frame):
+    raise Refused("that search took too long; use a simpler regular expression")
 
 
 def capped(text: str, limit: int, hint: str) -> str:
@@ -137,14 +169,16 @@ def submit(ident: str) -> None:
     if kit["attempts"] >= ATTEMPTS:
         emit(state, "submit", "No attempts are left. Reply FAILED.")
         return
-    source = sys.stdin.read()
+    source = read_input(40000)
     if len(source) > 40000:
         raise Refused("the file is too long")
+    if (folder / "solution.py").is_symlink():
+        raise Refused("that name is not a plain file here")
     kit["attempts"] += 1
-    state.write_text(json.dumps(kit, ensure_ascii=False))
+    keep(state, kit)
     left = ATTEMPTS - kit["attempts"]
     again = f"Attempt {kit['attempts']} of {ATTEMPTS}: correct it and hand it in again." if left else "No attempts are left. Reply FAILED."
-    (folder / "solution.py").write_text(source, encoding="utf-8")
+    write_plain(folder / "solution.py", source)
     findings = workload.inspect(source)
     if findings:
         emit(state, "submit", f"Not run: {'; '.join(findings[:3])}. Only Python that keeps the task's rules is run. {again}")
@@ -201,13 +235,33 @@ def grep(ident: str, pattern: str, name: str = "") -> None:
     except re.error as problem:
         raise Refused(f"not a regular expression: {problem}") from None
     root = inside(folder, name) if name else folder
+    whole = folder.resolve()
     files = [root] if root.is_file() else sorted(p for sub in ("inv", "tests", "data", "logs") for p in (folder / sub).glob("*") if p.is_file()
-                                                 and (root == folder or root in p.parents))
+                                                 and (root == folder or root in p.parents) and whole in p.resolve().parents)
     hits = []
-    for path in files:
-        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if wanted.search(line):
-                hits.append(f"{path.relative_to(folder)}:{number}:{line}")
+    signal.signal(signal.SIGALRM, stopped)
+    signal.setitimer(signal.ITIMER_REAL, SEARCH_SECONDS)
+    try:
+        for path in files:
+            for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                if len(line) <= LONG_LINE:
+                    if wanted.search(line):
+                        hits.append(f"{path.relative_to(folder)}:{number}:{line}")
+                    continue
+                # A data file written as one line of 70,000 characters matched whole, and filled a worker's context without
+                # showing it where the match was. Each match of a long line is shown with the text around it instead.
+                found = 0
+                for match in wanted.finditer(line):
+                    found += 1
+                    if found <= MATCHES_ON_A_LINE:
+                        first, last = max(0, match.start() - AROUND), min(len(line), match.end() + AROUND)
+                        hits.append(f"{path.relative_to(folder)}:{number}:at {match.start()}: {'...' if first else ''}{line[first:last]}{'...' if last < len(line) else ''}")
+                    if match.end() == match.start():  # an empty match on every position would never end
+                        break
+                if found > MATCHES_ON_A_LINE:
+                    hits.append(f"{path.relative_to(folder)}:{number}: {found - MATCHES_ON_A_LINE} more matches on this line are not shown; narrow the search")
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
     limit = LEAN_CAP if kit["mode"] == "lean" else RAW_CAP
     emit(state, "grep", capped("\n".join(hits) or "no line matches", limit, f"{len(hits)} lines matched; narrow the search"))
 
@@ -250,7 +304,7 @@ def setline(ident: str, name: str, number: str) -> None:
     need_large(state)
     if not re.fullmatch(r"inv/m\d+\.py", name):
         raise Refused("only a module of the package may be changed")
-    text = sys.stdin.read().rstrip("\n")
+    text = read_input(401).rstrip("\n")
     if "\n" in text or len(text) > 400:
         raise Refused("give exactly one line")
     path = inside(folder, name)
@@ -271,15 +325,18 @@ def answer(ident: str) -> None:
     folder, state = locate(ident)
     need_large(state)
     try:
-        given = json.loads(sys.stdin.read())
-    except ValueError:
+        given = json.loads(read_input(20000))
+    except (ValueError, RecursionError):
         raise Refused("that is not JSON") from None
     if not isinstance(given, dict) or sorted(given) != sorted(FACTS):
         raise Refused(f"give one object with exactly these keys: {', '.join(FACTS)}")
     for key in ("direct_callers", "failed_event_ids"):  # the order of a list is not part of the answer
-        if isinstance(given[key], list):
+        if isinstance(given[key], list) and all(isinstance(item, (str, int)) and not isinstance(item, bool) for item in given[key]):
             given[key] = sorted(given[key], key=lambda item: (str(type(item)), item))
-    (folder / "ANSWER.json").write_text(json.dumps(given))
+    for key in ("direct_callers", "failed_event_ids"):
+        if isinstance(given[key], list) and not all(isinstance(item, (str, int)) and not isinstance(item, bool) for item in given[key]):
+            raise Refused(f"{key} is a list of names or numbers")
+    write_plain(folder / "ANSWER.json", json.dumps(given))
     emit(state, "answer", "The answer is recorded. If swk test reports no failure, reply DONE.")
 
 
@@ -302,7 +359,7 @@ def main(argv: list[str] | None = None) -> int:
     except Refused as problem:
         print(f"swk: refused: {problem}")
         return 2
-    except (OSError, ValueError, KeyError) as problem:
+    except Exception as problem:  # noqa: BLE001 - a worker is never shown a traceback: it holds paths of this machine
         print(f"swk: refused: {type(problem).__name__}")
         return 2
     return 0
