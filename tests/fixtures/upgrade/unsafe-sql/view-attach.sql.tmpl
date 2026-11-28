@@ -1,0 +1,3 @@
+-- declared only in gaie-upgrade.json "schema" (synthetic attack; no table statement for discovery)
+ATTACH DATABASE '{outside}/view-by-audit.db' AS side;
+CREATE VIEW side.v AS SELECT 1 AS one;

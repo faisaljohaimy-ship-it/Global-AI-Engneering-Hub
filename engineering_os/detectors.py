@@ -770,12 +770,69 @@ def _bindings(query):
     return (None,) * max([stripped.count("?")] + numbered)
 
 
+# Target SQL is data. It only ever runs in a throwaway ":memory:" database where nothing can reach a file:
+# ATTACH (and VACUUM, which attaches; VACUUM INTO writes a file), DETACH, load_extension and every PRAGMA
+# except schema introspection and connection-local switches are denied by an authorizer.
+SQL_PRAGMAS_ALLOWED = frozenset({"foreign_keys", "user_version", "table_info", "table_xinfo", "index_list", "index_info",
+                                 "index_xinfo", "foreign_key_list"})
+SQL_FUNCTIONS_REFUSED = frozenset({"load_extension", "fts3_tokenizer"})
+SQL_WORK_LIMIT = 2000  # progress-handler calls of 10000 virtual-machine instructions per schema script
+
+
+def schema_memory(root, schemas):
+    """Load schema files into a fresh ``:memory:`` SQLite database that no statement can use to reach a file.
+
+    An authorizer denies ATTACH/VACUUM, DETACH, load_extension and PRAGMA outside
+    ``SQL_PRAGMAS_ALLOWED``; the attached-database limit is 0, extension loading stays off
+    and each script's work is bounded. Returns ``(connection, problems)``: one problem per
+    schema that did not load, ``kind`` ``unsafe-schema-sql`` (a statement was refused; the
+    script stops there) or ``schema-error``. The caller closes the connection.
+    """
+    memory = sqlite3.connect(":memory:")
+    memory.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
+    if hasattr(memory, "enable_load_extension"):
+        memory.enable_load_extension(False)
+    refused, work = [], [0]
+
+    def authorize(action, first, second, database, trigger):
+        if action in (sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH):
+            refused.append("ATTACH or VACUUM" if action == sqlite3.SQLITE_ATTACH else "DETACH")
+        elif action == sqlite3.SQLITE_PRAGMA and (first or "").casefold() not in SQL_PRAGMAS_ALLOWED:
+            refused.append(f"PRAGMA {first}")
+        elif action == sqlite3.SQLITE_FUNCTION and (second or "").casefold() in SQL_FUNCTIONS_REFUSED:
+            refused.append(f"function {second}")
+        else:
+            return sqlite3.SQLITE_OK
+        return sqlite3.SQLITE_DENY
+
+    def progress():
+        work[0] += 1
+        if work[0] > SQL_WORK_LIMIT:
+            refused.append("work limit")
+            return 1
+        return 0
+
+    memory.set_authorizer(authorize)
+    memory.set_progress_handler(progress, 10000)
+    problems = []
+    for rel in schemas:
+        refused.clear()
+        work[0] = 0
+        try:
+            memory.executescript(read_text(root, rel) or "")
+        except sqlite3.Error as error:
+            problems.append({"path": rel, "kind": "unsafe-schema-sql" if refused else "schema-error",
+                             "refused": sorted(set(refused)), "error": _redact(str(error), 200)})
+    work[0] = 0
+    return memory, problems
+
+
 def explain_query(root, schemas, query):
     """EXPLAIN one query against the declared schema in a fresh in-memory database; None or the error text."""
-    memory = sqlite3.connect(":memory:")
+    memory, problems = schema_memory(root, schemas)
     try:
-        for rel in schemas:
-            memory.executescript(read_text(root, rel) or "")
+        if problems:
+            return _redact(f"schema {problems[0]['path']} did not load ({problems[0]['kind']}): {problems[0]['error']}", 200)
         memory.execute("EXPLAIN " + query, _bindings(query))
         return None
     except (sqlite3.Error, ValueError) as error:
@@ -806,13 +863,11 @@ def detect_database(root, files=None, manifest=None, *, tests_dir=None, extra_qu
     if not schemas and not queries and not databases:
         return _report("database", "not-configured", reason="no schema, SQL literals or database files", method="sqlite-in-memory")
     out = []
-    memory = sqlite3.connect(":memory:")
+    memory, problems = schema_memory(root, schemas)
     try:
-        for rel in schemas:
-            try:
-                memory.executescript(read_text(root, rel) or "")
-            except sqlite3.Error as error:
-                out.append(finding("database", "schema-error", rel, None, rel, {"error": _redact(str(error), 200)}, "high"))
+        for row in problems:
+            evidence = {"error": row["error"]} if row["kind"] == "schema-error" else {"refused": row["refused"], "error": row["error"]}
+            out.append(finding("database", row["kind"], row["path"], None, row["path"], evidence, "high"))
         if schemas:
             for rel, line, query in queries:
                 try:

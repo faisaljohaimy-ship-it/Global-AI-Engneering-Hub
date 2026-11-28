@@ -759,10 +759,15 @@ def _plan(conn, query):
 
 
 def _schema_db(root, schemas):
-    conn = sqlite3.connect(":memory:")
-    for rel in schemas:
-        conn.executescript(detectors.read_text(root, rel) or "")
-    return conn
+    """The declared schema in a throwaway in-memory database (detectors.schema_memory: no statement reaches a file).
+
+    Returns ``(connection, problems)``; the connection is closed and ``None`` when any schema did not load.
+    """
+    conn, problems = detectors.schema_memory(root, schemas)
+    if problems:
+        conn.close()
+        return None, problems
+    return conn, []
 
 
 def _index_effect(conn, table, columns, query):
@@ -780,10 +785,12 @@ def audit_queries(root, files, schemas, tests_dir):
     """Full-table scans in filtered SQL literals, with the index chosen by a reasoning.trade_off over measured plans."""
     if not schemas:
         return []
-    try:
-        conn = _schema_db(root, schemas)
-    except sqlite3.Error:
-        return []
+    conn, problems = _schema_db(root, schemas)
+    if conn is None:  # a refused statement is reported; a broken schema leaves nothing to measure (detectors report it)
+        return [{"kind": "unsafe-schema-sql", "path": row["path"], "line": None, "symbol": row["path"], "severity": "high",
+                 "evidence": {"refused": row["refused"], "error": row["error"],
+                              "detail": "target SQL was refused, not executed: it would reach a file or extension; no query plan was measured"}}
+                for row in problems if row["kind"] == "unsafe-schema-sql"]
     out, seen = [], set()
     try:
         for rel, line, query in detectors.sql_queries(root, files, tests_dir=tests_dir):

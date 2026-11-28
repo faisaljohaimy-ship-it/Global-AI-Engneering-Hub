@@ -83,6 +83,12 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
    write routes of a spec entity without a 4xx rejection path, templates without
    `lang`/`dir`, viewport or labels, filtered SQL literals whose `EXPLAIN QUERY PLAN` is a full
    `SCAN`, assets with no internal reference, and the requested change (`requested_changes`).
+   The target's schema SQL is data: it runs only in a throwaway `:memory:` database
+   (`detectors.schema_memory`) whose authorizer denies `ATTACH` and `VACUUM` (`VACUUM INTO`
+   writes a file), `DETACH`, `load_extension` and every `PRAGMA` except schema introspection,
+   `foreign_keys` and `user_version`; the attached-database limit is 0, extension loading is
+   off and each script's work is bounded. A refused statement stops that script and is
+   reported as `unsafe-schema-sql` (severity high), by the detectors and by the query audit.
 4. **PLAN** — one step per area from a bounded generator catalogue (§3), filtered by the
    command's scope (by primary area), ordered with `reasoning.decompose` (areas in the order
    `code, architecture, database, performance, security, ui, assets, tests, docs`, the notes
