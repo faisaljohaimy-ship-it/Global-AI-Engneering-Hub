@@ -418,6 +418,30 @@ class IntegrityTests(Base):
         self.assertEqual(status["skills/gaie-master-router/engine/master-prompts.json"], "current")
         self.assertEqual(status["skills/gaie-master-router/engine/master_docs.py"], "current")
 
+    def test_skills_name_every_install_location(self):
+        """Each gaie-* skill names, verbatim, the path its item has in every install mode (gaie_bootstrap.LOCATIONS)."""
+        for mode, items in gaie_bootstrap.LOCATIONS.items():
+            for item, path in items.items():
+                skill = gaie_bootstrap.LOCATION_SKILL[item]
+                text = (ROOT / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+                self.assertIn(path, text, f"{skill} must name the {mode} {item} path")
+
+    def test_skill_loader_paths_resolve_in_every_install_mode(self):
+        """The MASTER loader each skill names exists after a bootstrap install and in a plugin root (the hub)."""
+        from engineering_os import master_docs
+        claude = self.tmp / "home/.claude"
+        gaie_bootstrap.install(claude, False, apply=True)
+        for skill, name in (("gaie-build", "MASTER_BUILD"), ("gaie-upgrade", "MASTER_UPGRADE")):
+            text = (ROOT / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+            for template, base, layout in (("${CLAUDE_SKILL_DIR}/../gaie-master-router/engine/master_docs.py",
+                                            claude / "skills" / skill, "claude"),
+                                           ("${CLAUDE_SKILL_DIR}/../../engineering_os/master_docs.py", ROOT / "skills" / skill, "hub")):
+                self.assertIn(f'python3 "{template}" show {name}', text, skill)
+                loader = pathlib.Path(os.path.normpath(template.replace("${CLAUDE_SKILL_DIR}", str(base))))
+                self.assertTrue(loader.is_file(), f"{skill}: {loader}")
+                self.assertEqual(loader, (base.parents[1] if layout == "claude" else ROOT) / master_docs.LAYOUTS[layout]["loader"])
+            self.assertNotIn("CLAUDE_PLUGIN_ROOT", text, "one placeholder, the skill directory")
+
     def test_pack_ships_the_master_loader_where_it_looks(self):
         from engineering_os import master_docs
         files = gaie_bootstrap.pack()["files"]
