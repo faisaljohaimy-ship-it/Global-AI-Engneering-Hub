@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "note": "Synthetic fixture lock: these packages do not exist, are never installed and are never fetched.",
+  "packages": {
+    "fixture-http-utils": {"version": "0.9.1", "sha256": "818cd1e7c27d306a3a0f18e011500382f3884597e79a6be18412a986f32432b2"},
+    "fixture-json-schema": {"version": "1.3.0", "sha256": "3c7ccd4ae8cbe6ae64cc779c2729be3331090b94d46ba61fb6a32d93b8ec8250"}
+  }
+}
