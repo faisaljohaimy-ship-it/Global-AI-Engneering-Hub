@@ -342,8 +342,14 @@ class IntegrityTests(Base):
         plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         market = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual((plugin["name"], market["plugins"][0]["name"], market["plugins"][0]["source"]), ("gaie", "gaie", "./"))
-        for path in plugin["agents"]:
-            self.assertTrue(path.startswith("./") and ".." not in path and (ROOT / path).is_file())
+        # No component path fields: Claude Code then reads the plugin's default skills/ and agents/
+        # directories, the form `claude plugin details` counts (an explicit "agents" list showed Agents (0)).
+        self.assertFalse({"agents", "skills", "commands", "hooks", "mcpServers"} & set(plugin))
+        agents = [source for source, target in gaie_bootstrap.pack()["files"].items() if target.startswith(".claude/agents/")]
+        self.assertIn("agents/gaie-verifier.md", agents)
+        for source in agents:
+            self.assertEqual(pathlib.PurePosixPath(source).parent.as_posix(), "agents")
+            self.assertTrue((ROOT / source).is_file() and not (ROOT / source).is_symlink())
 
     def test_pack_registers_and_runs_vendored_in_a_project(self):
         project = self.tmp / "product"
