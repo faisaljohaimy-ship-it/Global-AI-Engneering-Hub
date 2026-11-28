@@ -6,11 +6,13 @@ devices and deployed products require their own evidence. SPDX-License-Identifie
 
 import argparse
 import hashlib
-import io
 import json
+import os
 import re
+import stat
 import subprocess
-import unittest
+import sys
+import tempfile
 
 from . import control
 
@@ -20,7 +22,8 @@ CHECKS = {
     'L02': ('tests/test_model_router.py',),
     'L03': ('tests/test_os_orchestration.py',),
     'L04': ('tests/test_hub.py',),
-    'L05': ('tests/test_claude_bridge.py',),
+    'L05': ('tests/test_claude_bridge.py', 'tests/test_capability_scope.py',
+            'tests/test_master_approval.py', 'tests/test_master_workflow.py'),
     'L06': ('tests/test_factory_generate.py',),
     'L07': ('tests/test_engineering_memory.py',),
     'L08': ('tests/test_universal_motion_sdk.mjs',),
@@ -41,57 +44,133 @@ CHECKS = {
             'tests/test_nextgen_motion_systems.mjs', 'tests/test_nextgen_motion_ui.mjs',
             'tests/test_nextgen_motion_webgl.mjs'),
     'L19': ('tests/test_economics.py',),
-    'L20': ('tests/test_intelligence.py', 'tests/test_claude_bridge.py', 'tests/test_layer_checks.py'),
+    'L20': ('tests/test_intelligence.py', 'tests/test_claude_bridge.py', 'tests/test_layer_checks.py',
+            'tests/test_master_approval.py', 'tests/test_master_workflow.py', 'tests/test_capability_scope.py',
+            'tests/test_claude_native_fixture.py'),
 }
+
+MCP_INPUTS = (
+    '.mcp.json', 'CLAUDE.md', 'engineering_os/claude_bridge.py', 'engineering_os/intelligence.py',
+    'engineering_os/master_approval.py', 'engineering_os/master_workflow.py', 'engineering_os/capability_scope.py',
+    'engineering_os/orchestration.py', 'engineering_os/memory.py', 'engineering_os/factory.py',
+    'engineering_os/factory_generate.py', 'engineering_os/healing.py', 'engineering_os/healing_runtime.py',
+    'engineering_os/reasoning.py', 'engineering_os/economics.py', 'engineering_os/cinematic.py',
+    'scripts/security_scan.py',
+)
+SUPPLEMENTARY_INPUTS = {
+    'L05': MCP_INPUTS,
+    'L20': (*MCP_INPUTS, 'scripts/verify_claude_master_mcp.py'),
+}
+COMMON_INPUTS = ('engineering_os/control.py', 'engineering_os/layer_checks.py')
+MAX_INPUT_BYTES = 16 * 1024 * 1024
+SUITE_TIMEOUT = 90
 
 
 def _run_suite(name):
     path = control.safe_path(name)
     if not path.is_file():
         return {'suite': name, 'status': 'missing', 'tests': 0, 'skipped': 0}
+    env = {'PATH': os.environ.get('PATH', os.defpath), 'LANG': 'C.UTF-8'}
     if path.suffix == '.py':
-        suite = unittest.TestLoader().discover(str(path.parent), pattern=path.name)
-        result = unittest.TextTestRunner(stream=io.StringIO()).run(suite)
-        passed = result.wasSuccessful() and result.testsRun > 0 and not result.skipped
-        return {'suite': name, 'status': 'passed' if passed else 'failed',
-                'tests': result.testsRun, 'skipped': len(result.skipped)}
+        # A fresh interpreter with an empty bytecode location ensures the observed
+        # source is loaded, even when the caller previously imported repository modules.
+        with tempfile.TemporaryDirectory(prefix='gaie-layer-cache-') as cache:
+            result = subprocess.run(
+                [sys.executable, '-E', '-s', '-B', '-X', f'pycache_prefix={cache}', '-m', 'unittest',
+                 'discover', '-s', str(path.parent), '-p', path.name],
+                cwd=control.ROOT, env=env, capture_output=True, text=True, timeout=SUITE_TIMEOUT,
+            )
+        counts = re.findall(r'^Ran (\d+) tests? in [0-9.]+s$', result.stderr, re.MULTILINE)
+        count = int(counts[0]) if len(counts) == 1 else 0
+        summaries = [line for line in result.stderr.splitlines()
+                     if line == 'OK' or line.startswith(('OK (', 'FAILED ('))]
+        skipped = sum(map(int, re.findall(r'\bskipped=(\d+)', '\n'.join(summaries))))
+        passed = result.returncode == 0 and count > 0 and summaries == ['OK']
+        return {'suite': name, 'status': 'passed' if passed else 'failed', 'tests': count, 'skipped': skipped}
+    if path.suffix != '.mjs':
+        return {'suite': name, 'status': 'unavailable', 'tests': 0, 'skipped': 0}
     result = subprocess.run(['node', '--test', '--test-reporter=tap', name],
-                            cwd=control.ROOT, capture_output=True, text=True, timeout=90)
-    counts = dict(re.findall(r'^# (tests|skipped|todo) (\d+)$', result.stdout, re.MULTILINE))
+                            cwd=control.ROOT, env=env, capture_output=True, text=True, timeout=SUITE_TIMEOUT)
+    rows = re.findall(r'^# (tests|pass|fail|cancelled|skipped|todo) (\d+)$', result.stdout, re.MULTILINE)
+    counts = {key: int(value) for key, value in rows}
     count = int(counts.get('tests', 0))
     skipped = int(counts.get('skipped', 0)) + int(counts.get('todo', 0))
-    passed = result.returncode == 0 and count > 0 and len(counts) == 3 and not skipped
+    passed = (result.returncode == 0 and count > 0 and len(rows) == len(counts) == 6
+              and counts['pass'] == count and counts['fail'] == counts['cancelled'] == skipped == 0)
     return {'suite': name, 'status': 'passed' if passed else 'failed',
             'tests': count, 'skipped': skipped}
 
 
+def _file_stamp(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _snapshot(names):
+    values = {}
+    for name in sorted(names):
+        try:
+            path = control.safe_path(name)
+            if not stat.S_ISREG(path.stat(follow_symlinks=False).st_mode):
+                continue
+            with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK), 'rb') as stream:
+                before = os.fstat(stream.fileno())
+                if not stat.S_ISREG(before.st_mode) or before.st_size > MAX_INPUT_BYTES:
+                    continue
+                data = stream.read(MAX_INPUT_BYTES + 1)
+                after = os.fstat(stream.fileno())
+                if (len(data) == before.st_size and _file_stamp(before) == _file_stamp(after)
+                        and _file_stamp(after) == _file_stamp(path.stat(follow_symlinks=False))):
+                    values[name] = (hashlib.sha256(data).hexdigest(), _file_stamp(after))
+        except (OSError, ValueError):
+            continue
+    return values
+
+
+def _passed_suite(expected, result):
+    return (isinstance(result, dict) and result.get('suite') == expected
+            and result.get('status') == 'passed'
+            and type(result.get('tests')) is int and result['tests'] > 0
+            and type(result.get('skipped')) is int and result['skipped'] == 0)
+
+
 def verify_layers(layer=None):
-    """Measure fixed local tests and bind their result to the declared source paths."""
+    """Measure all selected tests between two snapshots of their declared inputs."""
     if layer is not None and layer not in CHECKS:
         raise ValueError('Unknown layer')
     if set(CHECKS) != {row[0] for row in control.LAYERS}:
         raise ValueError('Layer and acceptance suite identifiers differ')
-    rows = []
-    suites = {}
+    scope = {}
     for identifier, _, sources in control.LAYERS:
         if layer is not None and identifier != layer:
             continue
-        inputs = sorted(set([*sources, *CHECKS[identifier], 'engineering_os/layer_checks.py']))
-        hashes = {name: hashlib.sha256(control.safe_path(name).read_bytes()).hexdigest()
-                  for name in inputs if control.safe_path(name).is_file()}
+        scope[identifier] = set((*sources, *CHECKS[identifier], *COMMON_INPUTS,
+                                 *SUPPLEMENTARY_INPUTS.get(identifier, ())))
+    inputs = set().union(*scope.values())
+    before = _snapshot(inputs)
+
+    suites = {}
+    for identifier in scope:
         for name in CHECKS[identifier]:
             if name not in suites:
                 try:
                     suites[name] = _run_suite(name)
-                except (OSError, subprocess.TimeoutExpired):
+                except (OSError, ValueError, subprocess.TimeoutExpired):
                     suites[name] = {'suite': name, 'status': 'unavailable', 'tests': 0, 'skipped': 0}
+
+    after = _snapshot(inputs)
+    changed = sorted(name for name in inputs if before.get(name) != after.get(name))
+    rows = []
+    for identifier, names in scope.items():
         checks = [suites[name] for name in CHECKS[identifier]]
-        passed = len(hashes) == len(inputs) and control.source_matches(hashes) and all(
-            check['status'] == 'passed' for check in checks)
+        unavailable = sorted(names - (before.keys() & after.keys()))
+        passed = not changed and not unavailable and bool(checks) and all(
+            _passed_suite(expected, check) for expected, check in zip(CHECKS[identifier], checks))
+        hashes = {name: before[name][0] for name in sorted(names) if name in before}
         rows.append({'id': identifier, 'status': 'passed' if passed else 'failed',
-                     'checks': checks, 'source_sha256': hashes})
+                     'checks': checks, 'source_sha256': hashes, 'unavailable_inputs': unavailable})
     return {'schema_version': 1, 'scope': 'fixed local acceptance suites',
-            'passed': sum(row['status'] == 'passed' for row in rows), 'layers': rows}
+            'passed': sum(row['status'] == 'passed' for row in rows), 'layers': rows,
+            'inputs_changed_during_verification': changed}
 
 
 def main():
