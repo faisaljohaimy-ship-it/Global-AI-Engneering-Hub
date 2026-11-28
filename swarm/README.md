@@ -37,7 +37,8 @@ What the ladder shows:
 - Throughput doubled from five to ten agents and then stopped: twenty agents took twice as long each.
 - Every new agent started with 222,067 tokens of context before reading its task, and the host wrote about
   182,023 of them to the cache again for each agent. That fixed cost, not the task, is what the tokens went on.
-  It comes from this session: six repositories' instruction files and many connectors are attached to it.
+  That context is what the host gives every agent in this session before its task. The session has six repositories'
+  instruction files and many connectors attached, which is the likely reason; the split was not measured.
 - Speedup is measured against stage one's 4.65 seconds a task. Efficiency is speedup divided by agents.
 
 ## Configurations A to D
