@@ -67,6 +67,14 @@ With one real agent each (`evidence/configurations-agents.json`, one sample, so 
 
 Configurations B and C were not run with real agents: the token limit left no room.
 
+## A leaner worker
+
+The worker type with file tools only could not be loaded while the ladder ran. After the session's worker process
+restarted it was, and one agent ran with it on one more task of the same kind (`evidence/minimal-worker.json`, one sample).
+Its first request carried 127,620 tokens of context against 222,067, 42.5% less. It finished the task in 2 model replies,
+7.98 seconds and 268,504 input tokens, against 812,863 a task for the general worker at ten agents. It passed 14 of 14 withheld tests.
+This is the first thing to change before a larger run; a ladder with this worker has not been run.
+
 ## Independent review
 
 Four reviewers, started by the host's workflow tool and told to refute this report, returned 12 findings
@@ -78,7 +86,7 @@ They also measured that tool's limit: 2 of the 4 ran at once, as its documentati
 
 - 4 tool calls by 4 agents went outside their task (calls to session-control tools); the host refused 4 of them. See `evidence/tool-audit.json`.
 - No solution imported anything outside the allowed list, and no agent wrote a file outside its folder.
-- A minimal worker agent type could not be used: the host loads agent definitions only when a session starts.
+- The ladder's workers had every tool, because the minimal worker type could not be loaded until the session restarted. See the section above.
 
 ## Run it again
 

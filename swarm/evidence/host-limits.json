@@ -18,7 +18,8 @@
  },
  "agent_definitions": {
   "observed": "A definition written during the session was not usable: the host answered that agent type 'swarm-worker' was not found and listed the types it had loaded at the start.",
-  "how": "one refused call at the start of stage one"
+  "how": "one refused call at the start of stage one",
+  "after_restart": "After the session's worker process restarted, the same definition was listed and one agent ran with it (evidence/minimal-worker.json)."
  },
  "network": {
   "http_status_and_proxy_status": {

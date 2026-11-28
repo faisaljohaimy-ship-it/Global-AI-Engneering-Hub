@@ -32,5 +32,6 @@
   ]
  },
  "review_agents_started": 4,
- "all_real_agents_started": 42
+ "all_real_agents_started": 43,
+ "minimal_worker_agents_started": 1
 }

@@ -36,7 +36,7 @@
    "s100"
   ],
   "review_agents_started": 4,
-  "all_real_agents_started": 42
+  "all_real_agents_started": 43
  },
  "why_the_ladder_stopped": "Stage s25 was not started. After s20 two limits written before the first run said stop: throughput was 29.64 tasks a minute against 29.46 at ten agents, under the required 10% gain; and the next stage was projected to pass the limit of 40,000,000 input tokens.",
  "tokens": {
@@ -47,7 +47,7 @@
   "note": "Usage as returned by the API with each reply. Cache reads are included in input. Not a measure of subscription allowance.",
   "review_agents_input": 3319350,
   "review_agents_output": 14584,
-  "all_agents_input_with_review": 35900134
+  "all_agents_input_with_review": 36168638
  },
  "tasks": {
   "ladder_verified": 40,
@@ -137,5 +137,12 @@
    "cache_read": 2451194,
    "cache_write": 868128
   }
+ },
+ "minimal_worker": {
+  "verified": true,
+  "first_request_context_tokens": 127620,
+  "input_total": 268504,
+  "context_smaller_by_percent": 42.5,
+  "input_tokens_fewer_by_percent": 67.0
  }
 }
