@@ -205,6 +205,71 @@ class ClaudeBridgeTests(unittest.TestCase):
             with self.subTest(operation=operation):
                 self.assertEqual("gaie_" + operation.replace("-", "_") in names, operation in OPERATIONS)
 
+    def test_default_native_tools_do_not_activate_unapproved_master_or_headroom_mcp(self):
+        _, listed, status, catalog, rejected = self.process([
+            *handshake(), rpc("tools/list", 1), call(2, "gaie_master_status", {}),
+            call(3, "gaie_capabilities", {}), call(4, "gaie_master_execute", {"command": "build a project"}),
+        ])
+        names = {tool["name"] for tool in listed["result"]["tools"]}
+        self.assertNotIn("gaie_master_route", names)
+        self.assertNotIn("gaie_master_execute", names)
+        self.assertNotIn("gaie_browser_qa", names)
+        self.assertEqual(self.value(status), {"status": "approval-required", "master_tools_enabled": False})
+        evidence = self.value(catalog)
+        self.assertEqual(len(evidence["operations"]), len(OPERATIONS))
+        headroom = next(row for row in evidence["external_capabilities"] if row["id"] == "headroomlabs-ai/headroom")
+        self.assertFalse(headroom["mcp_enabled"])
+        self.assertEqual(rejected["error"]["code"], -32602)
+
+    def test_memory_checkpoint_uses_private_id_and_preserves_scope(self):
+        memory, checkpoints = self.root / "memory", self.root / "checkpoints"
+        responses = self.process([
+            *handshake(), call(1, "gaie_memory_put", record()),
+            call(2, "gaie_memory_checkpoint", {"project": "gaie", "id": "verified"}),
+            call(3, "gaie_memory_checkpoint", {"project": "gaie", "id": "../escape"}),
+        ], "--memory-dir", str(memory), "--checkpoint-dir", str(checkpoints))
+        self.assertEqual(self.value(responses[2])["revision"], 1)
+        self.assertTrue((checkpoints / "verified.json").is_file())
+        self.assertTrue(responses[3]["result"]["isError"])
+        target = self.root / "restored"
+        _, saved = self.process([
+            *handshake(), call(1, "gaie_memory_restore", {"project": "gaie", "id": "verified"}),
+        ], "--memory-dir", str(target), "--checkpoint-dir", str(checkpoints))
+        self.assertEqual(self.value(saved)["state_sha256"], self.value(responses[2])["state_sha256"])
+
+    def test_verified_fixture_routes_plain_build_and_upgrade_through_real_mcp_stages(self):
+        from scripts.verify_claude_master_mcp import BUILD_COMMAND, UPGRADE_COMMAND, create_approval_fixture
+
+        checkout, approval, revision = create_approval_fixture(self.root)
+        pin = hashlib.sha256(approval.read_bytes()).hexdigest()
+        settings = '{"foreign_keys":false,"atomic_batches":true,"deduplicate":false}'
+        generation = {"schema_version": 1, "project": "gaie", "source_revision": revision,
+                      "resources": [{"name": "tasks", "fields": [
+                          {"name": "title", "type": "text", "required": True}]}]}
+        repair = {"schema_version": 1, "project": "gaie", "settings_json": settings,
+                  "settings_sha256": hashlib.sha256(settings.encode()).hexdigest()}
+
+        def execute(command, inputs):
+            return {"command": command, "workflow": {"schema_version": 1, "project": "gaie",
+                    "mode": "execute", "inputs": inputs}}
+
+        output = self.root / "generated"
+        _, route, build, upgrade = self.process([
+            *handshake(), call(1, "gaie_master_route", {"command": BUILD_COMMAND}),
+            call(2, "gaie_master_execute", execute(BUILD_COMMAND, {"generation": generation})),
+            call(3, "gaie_master_execute", execute(UPGRADE_COMMAND, {"repair": repair})),
+        ], "--master-approval", str(approval), "--master-approval-sha256", pin,
+            "--master-source-root", str(checkout), "--master-workspace", str(checkout),
+            "--destination", str(output))
+        self.assertEqual(self.value(route)["engine"], "MASTER_BUILD")
+        generated, repaired = self.value(build), self.value(upgrade)
+        self.assertEqual(generated["status"], "local-verified")
+        self.assertTrue((output / "manifest.json").is_file())
+        self.assertEqual(repaired["engine"], "MASTER_UPGRADE")
+        self.assertEqual(repaired["operations"], ["architecture", "healing-repair", "healing-replay"])
+        self.assertEqual(repaired["status"], "local-verified")
+        self.assertEqual(repaired["production_mutations"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,50 +7,26 @@ SPDX-License-Identifier: MIT
 """
 
 import argparse
-import pathlib
 import sys
 
 from scripts.security_scan import secret_findings
 
-from .intelligence import OPERATIONS, dispatch
-from .orchestration import SECRET, _safe_directory, _slug, canonical, load_json
+from .capability_scope import CapabilityScope
+from .master_approval import approved_route, verify_master_approval
+from .mcp_local_tools import browser_qa, validate_browser_cache
+from .orchestration import SECRET, canonical, load_json
 
 
 PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 MAX_MESSAGE = 1024 * 1024
 MAX_OUTPUT = 2 * MAX_MESSAGE
-TOOLS = {
-    "architecture": ("Inspect the twenty-layer local architecture and its evidence.", None),
-    "reasoning-plan": ("Build a bounded engineering plan from constraints and evidence.", None),
-    "reasoning-review": ("Review a plan with supplied verification and review receipts.", None),
-    "root-causes": ("Trace observed failures on a declared dependency graph.", None),
-    "memory-search": ("Find knowledge in the configured private project memory.", "memory_dir"),
-    "memory-graph": ("Inspect links in the configured private project memory.", "memory_dir"),
-    "memory-put": ("Record one curated item in the configured private project memory.", "memory_dir"),
-    "memory-index": ("Index Python symbols in the configured project source tree.", "source_and_memory"),
-    "factory-plan": ("Plan stage gates for structured engineering requirements.", None),
-    "factory-evaluate": ("Verify factory artifacts within the configured project root.", "artifact_root"),
-    "factory-generate": ("Generate and verify a SQLite service at the configured new destination.", "destination"),
-    "healing-analyze": ("Diagnose regressions using source-bound observations.", None),
-    "healing-verify": ("Check a candidate and rollback using disposable artifacts and declared assertions.", None),
-    "healing-repair": ("Test and repair bounded SQLite settings in disposable storage.", None),
-    "healing-replay": ("Re-run a SQLite repair report against the original supplied settings.", None),
-    "economics": ("Summarize engineering usage and cost evidence for this project.", None),
-    "economics-measure": ("Measure fixed offline engineering operations in this process.", None),
-    "cinematic": ("Inspect original-motion implementation and current browser evidence.", None),
+BRIDGE_TOOLS = {
+    "gaie_capabilities": ("List scoped engineering operations and availability.", True),
+    "gaie_master_status": ("Check whether the approved MASTER integration is enabled.", True),
+    "gaie_master_route": ("Route one build or upgrade command with the approved GAIE router. Supply command.", True),
+    "gaie_master_execute": ("Run the selected approved MASTER workflow. Supply command and structured workflow.", False),
+    "gaie_browser_qa": ("Run the reviewed local Chromium QA fixture at the existing 20 ms budget.", True),
 }
-UNSCOPED = frozenset({"architecture", "root-causes", "cinematic"})
-MUTATING = frozenset({"memory-put", "memory-index", "factory-generate"})
-NESTED_PROJECT = {
-    "reasoning-review": ("plan", "request"),
-    "factory-evaluate": ("plan", "request"),
-    "healing-replay": ("request",),
-    "economics-measure": ("request",),
-}
-
-
-def _wire_name(operation):
-    return "gaie_" + operation.replace("-", "_")
 
 
 def _result(identifier, result):
@@ -67,94 +43,104 @@ def _tool_response(text, is_error=False):
     return {"content": [{"type": "text", "text": text}], "isError": is_error}
 
 
-def _absolute_path(value):
-    result = pathlib.Path(value)
-    if not result.is_absolute() or ".." in result.parts:
-        raise ValueError("Configured paths must be absolute and canonical")
-    if any(part.is_symlink() for part in (result, *result.parents)):
-        raise ValueError("Symlink directory refused")
-    return result
-
-
-def _relative_path(value, suffix):
-    if not isinstance(value, str) or not value or len(value) > 256 or "\\" in value:
-        raise ValueError("Artifact path rejected")
-    path = pathlib.PurePosixPath(value)
-    if (path.is_absolute() or path.as_posix() != value or path.suffix != suffix
-            or any(part.startswith(".") for part in path.parts)):
-        raise ValueError("Artifact path rejected")
-    return path
-
-
 class Bridge:
-    """Track MCP startup and authorize the subset of tools bound at launch."""
+    """Authorize scopes at launch and use the same engine dispatch for every caller."""
 
-    def __init__(self, project, *, memory_dir=None, artifact_root=None, destination=None):
-        self.project = _slug(project)
-        self.memory_dir = _safe_directory(_absolute_path(memory_dir)) if memory_dir else None
-        self.artifact_root = _absolute_path(artifact_root) if artifact_root else None
-        if self.artifact_root is not None and not self.artifact_root.is_dir():
-            raise ValueError("Artifact root must be an existing directory")
-        self.destination = _absolute_path(destination) if destination else None
-        if self.destination is not None:
-            if self.destination.exists() or not self.destination.parent.is_dir():
-                raise ValueError("Factory destination must be new with a private existing parent")
-            _safe_directory(self.destination.parent)
-        enabled = {
-            None, *[name for name in ("memory_dir", "artifact_root", "destination") if getattr(self, name)]
-        }
-        if self.memory_dir and self.artifact_root:
-            enabled.add("source_and_memory")
-        self.tools = {_wire_name(op): op for op, (_, requirement) in TOOLS.items()
-                      if op in OPERATIONS and requirement in enabled}
+    def __init__(self, project, *, memory_dir=None, artifact_root=None, destination=None,
+                 checkpoint_dir=None, receipt_dir=None, browser_cache=None,
+                 master_approval=None, master_approval_sha256=None, master_source_root=None,
+                 master_workspace=None):
+        self.scope = CapabilityScope(project, memory_dir=memory_dir, artifact_root=artifact_root,
+                                     destination=destination, checkpoint_dir=checkpoint_dir,
+                                     receipt_dir=receipt_dir)
+        self.project = self.scope.project
+        self.browser_cache = validate_browser_cache(browser_cache) if browser_cache is not None else None
+        self.approval_args = None
+        if any(value is not None for value in (master_approval, master_approval_sha256,
+                                                master_source_root, master_workspace)):
+            if master_approval is None or master_approval_sha256 is None:
+                raise ValueError("Exact local MASTER approval is required")
+            self.approval_args = {"approval_file": master_approval, "approval_sha256": master_approval_sha256,
+                                  "source_root": master_source_root}
+            verify_master_approval(**self.approval_args)
+        self.master_workspace = master_workspace
+        self.tools = dict(self.scope.tools)
+        self.tools.update({name: name for name in ("gaie_capabilities", "gaie_master_status")})
+        if self.approval_args is not None:
+            self.tools.update({name: name for name in ("gaie_master_route", "gaie_master_execute")})
+        if self.browser_cache is not None:
+            self.tools["gaie_browser_qa"] = "gaie_browser_qa"
         self.initialized = False
         self.ready = False
 
     def list_tools(self):
-        return [
-            {"name": name, "description": TOOLS[op][0] + " Input uses the GAIE CLI request schema.",
-             "inputSchema": {"type": "object", "properties": {"request": {"type": "object"}},
-                             "required": ["request"], "additionalProperties": False},
-             "annotations": {"readOnlyHint": op not in MUTATING, "destructiveHint": False,
-                             "openWorldHint": False}}
-            for name, op in self.tools.items()
-        ]
+        items = self.scope.list_tools()
+        for name, (description, read_only) in BRIDGE_TOOLS.items():
+            if name in self.tools:
+                items.append({
+                    "name": name, "description": description,
+                    "inputSchema": {"type": "object", "properties": {"request": {"type": "object"}},
+                                    "required": ["request"], "additionalProperties": False},
+                    "annotations": {"readOnlyHint": read_only, "destructiveHint": False, "openWorldHint": False},
+                })
+        return items
 
-    def _scope(self, operation, request):
+    def _master_status(self):
+        if self.approval_args is None:
+            return {"status": "approval-required", "master_tools_enabled": False}
+        try:
+            approval = verify_master_approval(**self.approval_args)
+        except (ValueError, OSError, TypeError, KeyError):
+            return {"status": "approval-invalid", "master_tools_enabled": False}
+        return {"status": "approved-source-verified", "master_tools_enabled": True,
+                "revision": approval["revision"], "approval_sha256": approval["approval_sha256"]}
+
+    def _dispatch_tool(self, operation, request):
+        if operation not in BRIDGE_TOOLS:
+            return self.scope.invoke(operation, request)
         if not isinstance(request, dict):
             raise ValueError("Expected a request object")
-        if "project" in request and request["project"] != self.project:
-            raise ValueError("Call targets another project")
-        if operation not in UNSCOPED:
-            subject = request
-            for key in NESTED_PROJECT.get(operation, ()):
-                subject = subject[key]
-            if subject["project"] != self.project:
-                raise ValueError("Call targets another project")
-        encoded = canonical(request).decode("utf-8")
-        if SECRET.search(encoded) or secret_findings("mcp.json", encoded):
-            raise ValueError("Credential-shaped tool input refused")
-        if operation == "memory-index":
-            _relative_path(request["path"], ".py")
-            request = {**request, "engine": "claude-code"}
-        elif operation == "memory-put":
-            provenance = request["provenance"]
-            if not isinstance(provenance, dict) or provenance.get("engine") != "claude-code":
-                raise ValueError("Memory writes require Claude Code provenance")
-        elif operation == "factory-evaluate":
-            for receipt in request["receipts"]:
-                _relative_path(receipt["artifact"]["path"], ".json")
-                for check in receipt["checks"]:
-                    _relative_path(check["evidence"]["path"], ".json")
-        return request
+        if operation in {"gaie_capabilities", "gaie_master_status", "gaie_browser_qa"}:
+            if request:
+                raise ValueError("This tool expects an empty request object")
+            if operation == "gaie_master_status":
+                return self._master_status()
+            if operation == "gaie_browser_qa":
+                if self.browser_cache is None:
+                    raise ValueError("Local browser scope is disabled")
+                return browser_qa(self.browser_cache)
+            external = self.scope.external_catalog()
+            for item in external:
+                item["mcp_enabled"] = item["id"] == "microsoft/playwright" and self.browser_cache is not None
+                if item["id"] == "microsoft/playwright":
+                    item["mcp_tool"] = "gaie_browser_qa"
+                elif item["id"] == "headroomlabs-ai/headroom":
+                    item["mcp_boundary"] = "Approved local CLI. The reviewed scope excludes MCP."
+            return {"project": self.project, "operations": self.scope.catalog(),
+                    "master": self._master_status(), "external_capabilities": external}
+        expected = {"command", "workflow"} if operation == "gaie_master_execute" else {"command"}
+        if self.approval_args is None or set(request) != expected:
+            raise ValueError("Approved MASTER command required")
+        route = approved_route(request["command"], workspace_root=self.master_workspace,
+                               **self.approval_args)
+        if operation == "gaie_master_route":
+            return route
+        from .master_workflow import run_master
+        workflow = request["workflow"]
+        if not isinstance(workflow, dict) or workflow.get("project") != self.project:
+            raise ValueError("MASTER workflow targets another project")
+        return run_master(route, workflow, approval_revision=route["master_approval"]["revision"],
+                          invoke=self.scope.invoke, available=tuple(self.scope.tools.values()))
 
     def call(self, operation, arguments):
         try:
             if not isinstance(arguments, dict) or set(arguments) != {"request"}:
                 raise ValueError("Expected a request object")
-            request = self._scope(operation, arguments["request"])
-            artifact_root = self.destination if operation == "factory-generate" else self.artifact_root
-            value = dispatch(operation, request, state_dir=self.memory_dir, artifact_root=artifact_root)
+            request = arguments["request"]
+            encoded = canonical(request).decode("utf-8")
+            if SECRET.search(encoded) or secret_findings("mcp.json", encoded):
+                raise ValueError("Credential-shaped tool input refused")
+            value = self._dispatch_tool(operation, request)
             encoded = canonical(value).decode("utf-8")
             if SECRET.search(encoded) or secret_findings("mcp.json", encoded):
                 raise ValueError("Credential-shaped tool output refused")
@@ -236,10 +222,16 @@ def main(argv=None):
     parser.add_argument("--memory-dir")
     parser.add_argument("--artifact-root")
     parser.add_argument("--destination")
+    parser.add_argument("--checkpoint-dir")
+    parser.add_argument("--receipt-dir")
+    parser.add_argument("--browser-cache")
+    parser.add_argument("--master-approval")
+    parser.add_argument("--master-approval-sha256")
+    parser.add_argument("--master-source-root")
+    parser.add_argument("--master-workspace")
     args = parser.parse_args(argv)
     try:
-        bridge = Bridge(args.project, memory_dir=args.memory_dir, artifact_root=args.artifact_root,
-                        destination=args.destination)
+        bridge = Bridge(**vars(args))
     except (OSError, ValueError):
         print("GAIE MCP startup rejected the configured project or directory scope.", file=sys.stderr)
         return 1

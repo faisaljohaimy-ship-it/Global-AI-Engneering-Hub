@@ -23,7 +23,7 @@ CHECKS = {
     'L03': ('tests/test_os_orchestration.py',),
     'L04': ('tests/test_hub.py',),
     'L05': ('tests/test_claude_bridge.py', 'tests/test_capability_scope.py',
-            'tests/test_master_approval.py', 'tests/test_master_workflow.py'),
+            'tests/test_master_approval.py', 'tests/test_master_workflow.py', 'tests/test_mcp_local_tools.py'),
     'L06': ('tests/test_factory_generate.py',),
     'L07': ('tests/test_engineering_memory.py',),
     'L08': ('tests/test_universal_motion_sdk.mjs',),
@@ -46,12 +46,13 @@ CHECKS = {
     'L19': ('tests/test_economics.py',),
     'L20': ('tests/test_intelligence.py', 'tests/test_claude_bridge.py', 'tests/test_layer_checks.py',
             'tests/test_master_approval.py', 'tests/test_master_workflow.py', 'tests/test_capability_scope.py',
-            'tests/test_claude_native_fixture.py'),
+            'tests/test_claude_native_fixture.py', 'tests/test_mcp_local_tools.py'),
 }
 
 MCP_INPUTS = (
     '.mcp.json', 'CLAUDE.md', 'engineering_os/claude_bridge.py', 'engineering_os/intelligence.py',
     'engineering_os/master_approval.py', 'engineering_os/master_workflow.py', 'engineering_os/capability_scope.py',
+    'engineering_os/mcp_local_tools.py', 'scripts/verify_claude_master_mcp.py',
     'engineering_os/orchestration.py', 'engineering_os/memory.py', 'engineering_os/factory.py',
     'engineering_os/factory_generate.py', 'engineering_os/healing.py', 'engineering_os/healing_runtime.py',
     'engineering_os/reasoning.py', 'engineering_os/economics.py', 'engineering_os/cinematic.py',
@@ -59,7 +60,8 @@ MCP_INPUTS = (
 )
 SUPPLEMENTARY_INPUTS = {
     'L05': MCP_INPUTS,
-    'L20': (*MCP_INPUTS, 'scripts/verify_claude_master_mcp.py'),
+    'L11': ('scripts/verify_release.py', '.github/workflows/release.yml', '.github/workflows/nextgen-intelligence.yml'),
+    'L20': MCP_INPUTS,
 }
 COMMON_INPUTS = ('engineering_os/control.py', 'engineering_os/layer_checks.py')
 MAX_INPUT_BYTES = 16 * 1024 * 1024

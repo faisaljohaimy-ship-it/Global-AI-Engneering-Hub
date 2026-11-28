@@ -1,0 +1,26 @@
+{
+  "adapter_source_sha256": "b5ae9a6139cf37a6dc41ae089c167f8260ee71bc945c138b2add036fc0ec20bd",
+  "browser": {
+    "engine": "chromium",
+    "mode": "headless",
+    "version": "159.0.8154.6"
+  },
+  "cases": 3,
+  "external_requests": 0,
+  "frame_budget_ms": 20,
+  "frames_per_case": 30,
+  "maximum_p95_ms": 16.799999999999983,
+  "playwright": "1.65.1",
+  "production_fps_verified": false,
+  "receipt_sha256": "105bb23821889fc04f3dd05a3a4ab6d4cbf30b70bf8bf3e19ef353f47323d79d",
+  "source_sha256": {
+    "harness.html": "1ab65f6d93ac1c13d5459df0fa1fd036a52ea28fd310b2c2fa03d57f264cfd9c",
+    "native-probes.mjs": "fe07b47a73658ed5d2772ed5c906fc0f3d2a117ba6d826df24fe3bfdc172c436",
+    "options.mjs": "da805dae3dfdd1a948b0d77516ec2da8dcc24ed00f721a81cd5b9038ab1b214e",
+    "package-lock.json": "d9707412b1d264ae7aa625d6192170228e61a1f2a7ec777c2f001cae3ab24d3c",
+    "package.json": "1c5d01b838ff9f5a18cc73ebc5befa6f25063721e429be3feebaba0593311557",
+    "smoke.mjs": "82ae20eff583d02b3230578dfb6342e5a608d5063318fbb748dab9b305709ce0"
+  },
+  "status": "passed",
+  "transport": "stdio-mcp"
+}

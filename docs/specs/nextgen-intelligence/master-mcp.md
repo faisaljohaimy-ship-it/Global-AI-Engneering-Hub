@@ -21,7 +21,7 @@ One project-scoped GAIE stdio server exposes the registered local engineering op
 | Cinematic evidence | `cinematic` | Inspect eligible motions and browser proofs | Review current proof before selecting or replacing motion |
 | Architecture | `architecture` and the twenty-layer acceptance runner | Inspect current local layer coverage | Check the same contracts after changes |
 
-Capabilities outside this bounded dispatcher keep their own reviewed invocation workflows. Browser render packages, provider integrations, optional model access and the catalog's discovered entries are examples. Each capability requires evidence for its actual runtime scope before adoption.
+`gaie_capabilities` describes all 22 local operations and their required scopes. With `--browser-cache` pointing to the existing reviewed runtime, `gaie_browser_qa` runs the fixed localhost Chromium fixture. It verifies three cases at 30 frames each against the existing 20 ms budget. Provider integrations and catalog candidates keep their own lifecycle. The current Headroom approval explicitly covers its local CLI and excludes MCP.
 
 ## Enable the master connection after approval
 
@@ -92,3 +92,11 @@ The local profile accepts optional `reasoning`, `memory`, `economics` and `cinem
 | Layer and release | The fixed acceptance contracts for all twenty layers pass, including the source, approval, project scope and protocol controls. Run all required CI on the exact integration head. Mark it ready for review after the required results are verified. |
 
 From the reviewed checkout, use `claude mcp list` to check native discovery and `python3 -m engineering_os.layer_checks` to replay the local layer checks. Review `python3 -m engineering_os.claude_bridge --help` for the startup options and consult the callable implementation and tests for exact payloads. Keep native harness fixtures and temporary app artifacts in isolated directories outside Git. Public evidence records generic scope, versions, outcomes and digests. Keep live credentials, private names, prompts, timestamps that expose active agent work and operator paths private.
+
+Run the native test with the already reviewed Claude Code binary. It starts a new private configuration and a loopback Messages fixture for each scenario. It records observed native MCP results and performs zero hosted model calls.
+
+```sh
+python3 -m scripts.verify_claude_master_mcp --claude /absolute/path/to/reviewed/claude
+```
+
+The stable release verifier now requires the exact successful main workflows and all four Next generation intelligence jobs. This includes the three original-motion browser jobs and the twenty-layer job. PR checks prepare the code for review. Release provenance is evaluated at the merged main commit and a reviewed release tag.

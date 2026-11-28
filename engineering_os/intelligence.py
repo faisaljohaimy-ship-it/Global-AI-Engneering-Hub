@@ -12,17 +12,11 @@ import pathlib
 import stat
 import sys
 
+from .capability_scope import DESCRIPTORS
 from .orchestration import MAX_BYTES, load_json
 
 
-OPERATIONS = (
-    "reasoning-plan", "reasoning-review", "root-causes",
-    "memory-put", "memory-search", "memory-graph", "memory-index",
-    "memory-checkpoint", "memory-restore", "memory-verify",
-    "factory-plan", "factory-evaluate", "factory-generate",
-    "healing-analyze", "healing-verify", "healing-repair", "healing-replay",
-    "economics", "economics-measure", "cinematic", "architecture",
-)
+OPERATIONS = tuple(DESCRIPTORS)
 
 
 def read_request(path):
@@ -83,8 +77,8 @@ def dispatch(operation, request, *, state_dir=None, artifact_root=None):
             "memory-search": (("project", "query"), ("limit",)),
             "memory-graph": (("project",), ()),
             "memory-index": (("project", "path", "engine"), ()),
-            "memory-checkpoint": (("destination",), ()),
-            "memory-restore": (("checkpoint",), ()),
+            "memory-checkpoint": (("destination",), ("project",)),
+            "memory-restore": (("checkpoint",), ("project",)),
             "memory-verify": (("project", "id", "receipt_path", "receipt_sha256"), ()),
         }
         if operation != "memory-put":
@@ -105,9 +99,9 @@ def dispatch(operation, request, *, state_dir=None, artifact_root=None):
             return store.index_python(request["project"], request["path"],
                                       artifact_root, request["engine"])
         if operation == "memory-checkpoint":
-            return store.checkpoint(request["destination"])
+            return store.checkpoint(request["destination"], project=request.get("project"))
         if operation == "memory-restore":
-            return store.restore(request["checkpoint"])
+            return store.restore(request["checkpoint"], project=request.get("project"))
         return store.verify_solution(request["project"], request["id"], artifact_root,
                                      request["receipt_path"], request["receipt_sha256"])
     if operation == "factory-plan":

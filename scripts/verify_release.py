@@ -14,6 +14,10 @@ WORKFLOWS = {
     '.github/workflows/security.yml': {'Tracked secrets and Python execution hazards'},
     '.github/workflows/dependency-audit.yml': {'Audit exact tracked npm locks'},
     '.github/workflows/motion-cross-browser.yml': {'Motion Studio in firefox', 'Motion Studio in webkit'},
+    '.github/workflows/nextgen-intelligence.yml': {
+        'Original motions in chromium', 'Original motions in firefox', 'Original motions in webkit',
+        'Twenty layer acceptance suites',
+    },
 }
 
 
