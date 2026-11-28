@@ -285,7 +285,7 @@ Responsibilities:
 - **Tools:** `python3`, `git`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `adaptive-agent-orchestration-engineer`, `agent-isolation-security-engineer`
-- **Tests:** `tests/test_os_orchestration.py`, `tests/test_swarm.py`, `tests/test_orchestrator.py`, `tests/test_w2_fixes_orchestration.py`, `tests/test_w2_fixes_orchestrator.py`
+- **Tests:** `tests/test_os_orchestration.py`, `tests/test_swarm.py`, `tests/test_orchestrator.py`, `tests/test_w2_fixes_orchestration.py`, `tests/test_w2_fixes_orchestrator.py`, `tests/test_heal_fixes_2_orchestrator.py`
 - **Scenarios:** H — `tests/test_orchestrator.py` `ScenarioHTests`
 - **Evidence boundary:** Explicit invocations/file-state coordination; no continuous daemon claim
 - **Evidence status:** VERIFIED — 3/3 test files, 72 test cases passed, 1 skipped; 25 sources bound (`source_sha256` 36e25dea649003d3…).
@@ -488,7 +488,7 @@ Responsibilities:
 - **Tools:** `python3`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `engineering-reasoning-engineer`
-- **Tests:** `tests/test_reasoning.py`, `tests/test_reasoning_cases.py`, `tests/test_w2_fixes_reasoning.py`
+- **Tests:** `tests/test_reasoning.py`, `tests/test_reasoning_cases.py`, `tests/test_w2_fixes_reasoning.py`, `tests/test_heal_fixes_2_reasoning.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Deterministic ranking of supplied alternatives and schedules; no model reasoning or inferred causality
 - **Evidence status:** VERIFIED — 2/2 test files, 75 test cases passed; 7 sources bound (`source_sha256` c65d4bfcefef4ecd…).
@@ -569,7 +569,7 @@ Responsibilities:
 - **Tools:** `python3`, `node`
 - **Skills:** `skills/nextgen-intelligence/SKILL.md`
 - **Agents:** `testing-self-healing-engineer`
-- **Tests:** `tests/test_healing.py`, `tests/test_self_healing_loop.py`, `tests/test_w2_fixes_healing.py`, `tests/test_w2_fixes_patch.py`
+- **Tests:** `tests/test_healing.py`, `tests/test_self_healing_loop.py`, `tests/test_w2_fixes_healing.py`, `tests/test_w2_fixes_patch.py`, `tests/test_heal_fixes_2_findings.py`, `tests/test_heal_fixes_2_healing.py`
 - **Scenarios:** F — `tests/test_self_healing_loop.py` `ScenarioF`
 - **Evidence boundary:** Repair proposals and fixed declarative checks; candidate code is never executed
 - **Evidence status:** VERIFIED — 2/2 test files, 67 test cases passed; 9 sources bound (`source_sha256` ddf31fcf7fe122b6…).

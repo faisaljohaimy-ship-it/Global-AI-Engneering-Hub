@@ -14,12 +14,10 @@ instance) and ``introduced`` compares instance counts per key.
 Synthetic targets in temporary directories only; the Scenario F fixture is copied, never written.
 """
 
-import os
 import pathlib
 import shutil
 import tempfile
 import unittest
-from unittest import mock
 
 from engineering_os import detectors, healing
 from engineering_os.healing import heal, introduced
@@ -32,16 +30,10 @@ SCHEMA = "CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT NOT NULL);\n"
 AUDIT = 'def audit(conn):\n    return conn.execute("SELECT missing_column FROM items").fetchall()\n\n\n'
 
 
-def setUpModule():
-    """Same opt-in as tests/test_healing.py: the full sandbox tier, or the audited process-only mode."""
-    from engineering_os import governor
-    if governor.isolation_probe()["tier"] == "full":
-        return
-    if os.environ.get("GAIE_REQUIRE_FULL_SANDBOX") == "1":
-        raise AssertionError("GAIE_REQUIRE_FULL_SANDBOX=1 but the governor's full sandbox tier is missing")
-    patcher = mock.patch.object(detectors, "DEFAULT_ISOLATION", "process-only")
-    patcher.start()
-    unittest.addModuleCleanup(patcher.stop)
+try:  # SEC-07: explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:  # imported from the tests directory (discover -s tests, layers.verify)
+    from _target_code_mode import opt_in_without_full_tier as setUpModule
 
 
 def database(root, files):
