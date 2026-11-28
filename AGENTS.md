@@ -9,6 +9,13 @@ Leases are advisory coordination, not authenticated OS access control. Review
 ARCHITECTURE.md and source-bound receipts; do not infer tool/host/provider access
 from a manifest. Claude Code availability must be tested separately from Codex.
 
+For scoped tool-output context preparation, discover
+`skills/headroom-context-engineering/SKILL.md` and
+`docs/headroom-context-engineering.md`. Headroom is an optional reviewed local SDK
+capability; preserve protected/short inputs and verified originals. Do not infer
+native host/MCP activation, exact token/billing savings or production authority.
+
 Before a large task, and whenever a command prints a lot or code must be explored, read
-`skills/ultra-context-optimization/SKILL.md`: compress output with the original kept
-retrievable, query code by symbol, one measured tool per kind of content.
+`skills/ultra-context-optimization/SKILL.md`: which tool to use for which kind of content,
+symbol queries, and a command wrapper that keeps originals retrievable. It complements the
+Headroom capability above and does not replace it.

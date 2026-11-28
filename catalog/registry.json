@@ -1219,5 +1219,16 @@
     "license_review": "pending",
     "security_review": "pending",
     "commercial_review": "pending"
+  },
+  {
+    "id": "headroomlabs-ai/headroom",
+    "source": "https://github.com/headroomlabs-ai/headroom",
+    "category": "engineering",
+    "status": "approved",
+    "revision": "ce0460cfa8598dc939243dbc7aec4b2d35f4e44a",
+    "license_review": "approved",
+    "security_review": "approved",
+    "commercial_review": "approved",
+    "approval_scope": "Headroom 0.45.0 optional offline Python SDK for isolated non-sensitive tool JSON/log preparation; no model, proxy, native-host or production activation. See catalog/capabilities/headroom.json."
   }
 ]

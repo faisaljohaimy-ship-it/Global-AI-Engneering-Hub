@@ -5,7 +5,9 @@
     "engineering-sdk": {
       "summary": "Versioned offline integrity, deployment identity and release guards plus read-only MCP discovery.",
       "version": "1.0.0",
-      "skills": ["engineering-sdk"],
+      "skills": [
+        "engineering-sdk"
+      ],
       "files": {
         "sdk/engineering_sdk.py": ".engineering/sdk/engineering_sdk.py",
         "sdk/capabilities.json": ".engineering/sdk/capabilities.json",
@@ -13,13 +15,18 @@
         "catalog/registry.json": ".engineering/sdk/tool-registry.json",
         "integrations/PROGRAMS.json": ".engineering/sdk/integrations.json"
       },
-      "requires": ["Python 3.10+", "git for target and release checks"],
+      "requires": [
+        "Python 3.10+",
+        "git for target and release checks"
+      ],
       "origin": "Owner-authorized original engineering tooling in this hub. Review at an immutable merged SHA; no third-party runtime dependencies."
     },
     "motion-sdk": {
       "summary": "Universal Motion SDK with 400 original Canvas2D reference scenes, local examples and scoped MIT licenses; no provider or optional rendering engine dependencies.",
       "version": "1.0.0",
-      "skills": ["universal-motion"],
+      "skills": [
+        "universal-motion"
+      ],
       "files": {
         "packages/motion-sdk/index.mjs": ".engineering/vendor/os-motion/packages/motion-sdk/index.mjs",
         "packages/motion-sdk/examples.mjs": ".engineering/vendor/os-motion/packages/motion-sdk/examples.mjs",
@@ -34,7 +41,10 @@
         "motion-library/expansion/README.md": ".engineering/vendor/os-motion/motion-library/expansion/README.md",
         "motion-library/expansion/LICENSE": ".engineering/vendor/os-motion/motion-library/expansion/LICENSE"
       },
-      "requires": ["Node.js 20+ for deterministic scene sampling, or a browser with Canvas2D", "requestAnimationFrame only for browser playback"],
+      "requires": [
+        "Node.js 20+ for deterministic scene sampling, or a browser with Canvas2D",
+        "requestAnimationFrame only for browser playback"
+      ],
       "origin": "Owner-authorized original MIT source in packages/motion-sdk and motion-library/expansion, copied by checksum from one reviewed merged hub SHA with both scoped license files. Relative imports are preserved; no npm packages, remote textures, model calls or paid rendering services are installed.",
       "limits": "Canvas2D reference scenes only. Studio, browser binaries, GPU engines, encoded video and production performance evidence are not installed by this pack."
     },
@@ -45,8 +55,31 @@
         "motion-library/runtime/core.mjs": ".engineering/vendor/hub-motion/core.mjs",
         "motion-library/runtime/hub-motion.mjs": ".engineering/vendor/hub-motion/hub-motion.mjs"
       },
-      "requires": ["a browser with the Web Animations API"],
+      "requires": [
+        "a browser with the Web Animations API"
+      ],
       "origin": "Implemented and reviewed in this public hub; copied by checksum from the pinned hub revision."
+    },
+    "headroom-context": {
+      "summary": "Optional local Headroom context preparation with durable SHA256 originals and bounded verified retrieval; no provider calls or native host interception.",
+      "version": "0.1.0",
+      "skills": [
+        "headroom-context-engineering"
+      ],
+      "files": {
+        "tools/headroom_context.py": ".engineering/headroom/headroom_context.py",
+        "tools/headroom_worker.py": ".engineering/headroom/headroom_worker.py",
+        "integrations/headroom/requirements.lock": ".engineering/headroom/requirements.lock",
+        "integrations/headroom/requirements.txt": ".engineering/headroom/requirements.txt",
+        "docs/headroom-context-engineering.md": ".engineering/headroom/README.md"
+      },
+      "requires": [
+        "Linux x86_64 or aarch64 with libseccomp.so.2 for optimization; unsupported boundaries pass through",
+        "Python 3.11+; reviewed closure tested on CPython 3.12 Linux x86_64",
+        "Optional separately installed headroom-ai==0.45.0; no automatic installation"
+      ],
+      "origin": "Owner-authorized local launcher plus shared instructions, copied from one reviewed merged hub commit. Audited Python dependencies are downloaded separately with exact versions and hashes; no third-party library binaries are redistributed in this pack.",
+      "limits": "Selective development tool only; no proxy, wrapper, MCP registration, authentication changes, live model session, production runtime dependency or measured billing savings."
     }
   }
 }

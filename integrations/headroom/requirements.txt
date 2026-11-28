@@ -1,0 +1,2 @@
+# Reviewed Linux CPython 3.12 closure; hash verification is mandatory.
+-r requirements.lock
