@@ -534,10 +534,54 @@ def probe_legacy_journal(base):
     return "os.open(memory.journal" in text and "st_nlink" not in text
 
 
+def linked_worktree(base, *, repository="https://github.com/example/probe.git", branch="claude/probe"):
+    """A registered-looking canonical checkout and one clean, private linked worktree of it: {canonical, worktree}."""
+    base = pathlib.Path(base).resolve()  # the validator refuses a path that passes through a symlink
+    canonical_root, worktree = base / "canonical", base / "worktree"
+    previous = os.umask(0o077)  # and Git identity files that group or others can write
+    try:
+        canonical_root.mkdir(mode=0o700)
+        _run_git(canonical_root, "init", "-q", "-b", "main")
+        (canonical_root / "app.txt").write_text("release\n")
+        _run_git(canonical_root, "add", ".")
+        _run_git(canonical_root, "commit", "-qm", "probe")
+        _run_git(canonical_root, "remote", "add", "origin", repository)
+        _run_git(canonical_root, "update-ref", "refs/remotes/origin/main", "HEAD")
+        _run_git(canonical_root, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+        _run_git(canonical_root, "worktree", "add", "-q", "-b", branch, str(worktree))
+    finally:
+        os.umask(previous)
+    os.chmod(worktree, 0o700)
+    return {"canonical": canonical_root, "worktree": worktree}
+
+
 def probe_router_workspace(base):
-    """True when the router's workspace probe runs an index-refreshing Git command or inherits GIT_* variables."""
-    text = _source("engineering_os/gaie_router.py").split("def workspace(", 1)[-1].split("\ndef ", 1)[0]
-    return '"remote", "get-url"' not in text or 'startswith("GIT_")' not in text
+    """True when the workspace check behind `route --workspace` runs a program the checkout configures
+    (fsmonitor, index hook), follows an inherited GIT_* variable, or the router launches Git itself."""
+    from . import gaie_router, workspace_policy
+    if hasattr(gaie_router, "subprocess") or hasattr(gaie_router, "workspace"):
+        return True  # the router must leave every Git call to the reviewed validator
+    base = pathlib.Path(base).resolve()
+    checkout = linked_worktree(base)
+    marker, trace = base / "ran", base / "trace"
+    _run_git(checkout["canonical"], "config", "core.fsmonitor", f"touch {marker}; false")
+    hook = checkout["canonical"] / ".git" / "hooks" / "post-index-change"
+    hook.parent.mkdir(exist_ok=True)
+    hook.write_text(f"#!/bin/sh\ntouch {marker}\n")
+    hook.chmod(0o700)
+    os.utime(checkout["worktree"] / "app.txt", (1, 1))  # stat-dirty: an index refresh would run the hook
+    inherited = os.environ.get("GIT_TRACE")
+    os.environ["GIT_TRACE"] = str(trace)  # a Git child that inherits GIT_* writes its trace here
+    try:
+        workspace_policy.validate_workspace(checkout["worktree"], intent="upgrade", expected_repository="example/probe")
+    except workspace_policy.WorkspacePolicyError:
+        return True  # the check stopped before `git status`, so it proved nothing
+    finally:
+        if inherited is None:
+            os.environ.pop("GIT_TRACE", None)
+        else:
+            os.environ["GIT_TRACE"] = inherited
+    return marker.exists() or trace.exists()
 
 
 def probe_injection(base):
@@ -573,8 +617,8 @@ FINDINGS = (
      "another file, foreign-owned, or in a directory others can write",
      "engineering_os/governor.py:audit", "audit-log-permissions", ("open", "fixed"), probe_audit_log_file,
      "tests/test_security_enterprise.py::AuditLogTests",
-     "fstat after O_NOFOLLOW open: regular, caller-owned, one link, no group/other bits; state dir not writable by others; "
-     "verify_audit opens with O_NOFOLLOW"),
+     "O_NOFOLLOW open relative to the directory descriptor of a caller-owned mode 0700 state dir, then fstat: regular, "
+     "caller-owned, one link, no group/other bits (rechecked under the lock); verify_audit opens the same way"),
     ("SEC-04", "medium", "Private project registry was written into a GAIE_HOME that another user owns or can write",
      "engineering_os/project_registry.py:_write", "private-state-permissions", ("open", "fixed"), probe_registry_home,
      "tests/test_security_enterprise.py::RegistryHomeTests",
@@ -597,10 +641,12 @@ FINDINGS = (
      "engineering_os/video_pipeline.py:_outside_repository", "private-state-permissions", ("open", "held"),
      probe_video_output_dir, "probe_video_output_dir",
      "fix: resolve and check before mkdir, create with mode 0o700 (owner: cinematic)"),
-    ("SEC-09", "low", "Router workspace probe runs git in a workspace without the hardening flags",
-     "engineering_os/gaie_router.py:workspace", "git-untrusted-checkout", ("open", "accepted"), probe_router_workspace,
-     "probe_router_workspace",
-     "`git remote get-url` refreshes no index and runs no hook or filter; GIT_* variables are stripped"),
+    ("SEC-09", "low", "Router workspace probe ran git in a workspace without the hardening flags",
+     "engineering_os/workspace_policy.py:_git", "git-untrusted-checkout", ("open", "fixed"), probe_router_workspace,
+     "tests/test_security_enterprise.py::WorkspaceGitTests",
+     "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or "
+     "global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope "
+     "refuses configs with includes, URL rewrites, filters or core.hooksPath"),
     ("SEC-10", "low", "Frozen gaie_memory journal is appended without an owner, mode or hard-link check",
      "engineering_os/gaie_memory.py:_journal_add", "private-state-permissions", ("open", "held"), probe_legacy_journal,
      "probe_legacy_journal",

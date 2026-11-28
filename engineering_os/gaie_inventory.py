@@ -11,6 +11,7 @@ import json
 import os
 import pathlib
 import re
+import stat
 import sys
 
 MAX_FILES, MAX_MANIFEST = 50000, 2 * 1024 * 1024
@@ -65,20 +66,23 @@ class InventoryError(ValueError):
     pass
 
 
-def _read(path):
+def _read(directory_fd, name):
     """Bounded text of a regular, non-symlink file; empty on any problem."""
     try:
-        if path.is_symlink() or not path.is_file():
-            return ""
-        with path.open("rb") as stream:
-            return stream.read(MAX_MANIFEST).decode("utf-8", "replace")
+        fd = os.open(name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=directory_fd)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                return ""
+            data = stream.read(MAX_MANIFEST + 1)
+            return data.decode("utf-8", "replace") if len(data) <= MAX_MANIFEST else ""
     except OSError:
         return ""
 
 
-def _manifest(path):
+def _manifest(directory_fd, name):
     try:
-        data = json.loads(_read(path))
+        data = json.loads(_read(directory_fd, name))
     except ValueError:
         return {}
     return data if isinstance(data, dict) else {}
@@ -88,16 +92,26 @@ def inventory(target, large_bytes=5 * 1024 * 1024):
     root = pathlib.Path(target).resolve()
     if not root.is_dir():
         raise InventoryError("existing project directory required")
+    if not hasattr(os, "fwalk") or not hasattr(os, "O_NOFOLLOW"):
+        raise InventoryError("safe descriptor-based inventory is unavailable")
     counts = {name: 0 for name, *_ in SURFACES}
     kinds = {name: 0 for name in EXT}
     kinds.update(test=0, other=0)
     bytes_by = {"image": 0, "video": 0, "audio": 0, "model3d": 0}
     large, manifests, locks, env_files, total, truncated = [], [], [], [], 0, False
-    for directory, names, files in os.walk(root, followlinks=False):
-        names[:] = sorted(name for name in names if name not in SKIP and not (pathlib.Path(directory) / name).is_symlink())
+    dependencies, scripts = set(), set()
+    has_ci = has_agent_instructions = hub_linked = False
+    for directory, names, files, directory_fd in os.fwalk(root, follow_symlinks=False):
+        names[:] = sorted(name for name in names if name not in SKIP)
+        if pathlib.Path(directory).relative_to(root).as_posix() in {".github/workflows", ".gitlab", ".circleci"}:
+            has_ci = True
         for name in sorted(files):
             path = pathlib.Path(directory) / name
-            if path.is_symlink() or not path.is_file():
+            try:
+                info = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+            except OSError:
+                continue
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
                 continue
             total += 1
             if total > MAX_FILES:
@@ -114,38 +128,35 @@ def inventory(target, large_bytes=5 * 1024 * 1024):
                     if pattern.search(relative) and (kind in ("code", "style", "other") or surface in ("database", "deployment")):
                         counts[surface] += 1
             if kind in bytes_by:
-                try:
-                    size = path.stat().st_size
-                except OSError:
-                    size = 0
+                size = info.st_size
                 bytes_by[kind] += size
                 if size >= large_bytes:
                     large.append({"path": relative, "bytes": size, "kind": kind})
             if name in ("package.json", "pyproject.toml", "requirements.txt", "Cargo.toml", "go.mod", "pubspec.yaml"):
                 manifests.append(relative)
+            if name == "package.json":
+                data = _manifest(directory_fd, name)
+                for key in ("dependencies", "devDependencies", "peerDependencies"):
+                    if isinstance(data.get(key), dict):
+                        dependencies.update(data[key])
+                if isinstance(data.get("scripts"), dict):
+                    scripts.update(data["scripts"])
+            elif name == "requirements.txt":
+                dependencies.update(package.casefold() for package in re.findall(
+                    r"^[ \t]*([A-Za-z0-9][A-Za-z0-9._-]*)[ \t]*(?:[=<>~!\[;]|$)",
+                    _read(directory_fd, name), re.M))
             if name in LOCKS:
                 locks.append(relative)
             if ENV.fullmatch(name) and not name.endswith((".example", ".sample", ".template")):
                 env_files.append(relative)
+            has_ci |= relative == ".gitlab-ci.yml"
+            has_agent_instructions |= relative in {"CLAUDE.md", "AGENTS.md"}
+            hub_linked |= relative == ".engineering/capabilities.json"
         if truncated:
             break
-    has_ci = any((root / name).is_dir() for name in (".github/workflows", ".gitlab", ".circleci")) or (root / ".gitlab-ci.yml").is_file()
-    dependencies, scripts = set(), set()
-    for relative in manifests:
-        if relative.endswith("package.json"):
-            data = _manifest(root / relative)
-            for key in ("dependencies", "devDependencies", "peerDependencies"):
-                if isinstance(data.get(key), dict):
-                    dependencies.update(data[key])
-            if isinstance(data.get("scripts"), dict):
-                scripts.update(data["scripts"])
-        elif relative.endswith("requirements.txt"):
-            dependencies.update(name.casefold() for name in re.findall(
-                r"^[ \t]*([A-Za-z0-9][A-Za-z0-9._-]*)[ \t]*(?:[=<>~!\[;]|$)", _read(root / relative), re.M))
     signals = {
         "has_tests": kinds["test"] > 0, "has_ci": has_ci, "has_lockfile": bool(locks),
-        "has_agent_instructions": any((root / name).is_file() for name in ("CLAUDE.md", "AGENTS.md")),
-        "hub_linked": (root / ".engineering/capabilities.json").is_file(),
+        "has_agent_instructions": has_agent_instructions, "hub_linked": hub_linked,
         "env_files_present": sorted(env_files), "scripts": sorted(scripts & {"build", "test", "lint", "typecheck", "e2e", "dev"}),
     }
     findings = []

@@ -39,11 +39,15 @@
       "دقق",
       "راجع",
       "قيم",
+      "تحقق",
+      "تفقد",
       "audit",
       "inspect",
       "review",
       "scan",
-      "assess"
+      "assess",
+      "check",
+      "verify"
     ],
     "repair": [
       "اصلح",
@@ -838,9 +842,6 @@
             "inventory",
             "health",
             "hub-audit"
-          ],
-          "memory": [
-            "search"
           ]
         },
         "max_side_effect": "none",

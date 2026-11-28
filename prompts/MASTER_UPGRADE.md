@@ -8,9 +8,10 @@ self-healing, media). It always starts from the current state of the system.
 
 ## Operating rules
 
-1. Confirm the target first. The router names the project and repository; verify the
-   repository is reachable here and that the checkout's origin matches before any
-   write (`route --workspace`). Similar names never authorize editing another project.
+1. Confirm the exact target and validate its isolated worktree with
+   `route --workspace`. Require separate operator approval, the matching repository
+   and branch, and a host grant restricted to that worktree before a write. For an
+   audit, use the read-only course from the router.
 2. Preserve what works. Do not replace a sound component without an engineering
    reason. Do not delete a function, file or asset before proving it is unused and
    keeping a way to restore it. Preserve data, permissions, identity and both
@@ -42,16 +43,16 @@ test, and evidence of completion. A row is done only when its evidence exists.
 Record before changing anything: test results, build status, bundle size, Core Web
 Vitals where applicable (LCP, INP, CLS), API and AI response latency, slow queries,
 media weight, open defects and security findings. Store the baseline as a
-`performance` or `test-result` entry in project memory.
+`performance` or `test-result` entry only under a scoped state grant.
 
 ## Step 3 — Plan and distribute
 
-Group matrix rows into independent workstreams with explicit path ownership and one
-branch or worktree each (`engineering_os.orchestration`). Use the router's
-workstreams as the upper bound; spawn fewer agents when work overlaps or a smaller
-team is faster, never more than 20. Give each agent only its rows, its paths and
-the capabilities it needs. Record significant choices as Architecture Decision
-Records with options, constraints and trade-offs.
+Group matrix rows into independent workstreams with explicit path ownership and
+one isolated worktree per writing agent (`engineering_os.orchestration`).
+Enforce a host grant restricted to that agent's paths and tools. Keep the
+workstream in planning if isolation cannot be verified. Use the router's
+workstreams as the upper bound. Record significant choices as Architecture
+Decision Records with options, constraints and trade-offs.
 
 ## Step 4 — Upgrade
 
@@ -89,21 +90,21 @@ authorization.
 
 ## Step 6 — Independent verification
 
-The implementer is never the only reviewer. An independent verifier re-runs tests,
-reviews the diff against the matrix, and checks the interface visually at several
-viewport sizes and in both directions. Cover core journeys, permissions, data, AI
+An independent read-only verifier reviews the diff and source-bound test
+receipts against the matrix. A fresh test or preview requires an authorized QA
+run confined to its own workspace. Cover core journeys, permissions, data, AI
 behaviour, integrations, media, languages, mobile, desktop, performance and
-recoverability. Failed tests are reported, not hidden.
+recoverability. Record failures and any unverified criteria.
 
 ## Step 7 — Deliver
 
-Open a documented pull request from the isolated branch; pass mandatory checks;
-prepare a preview. Production release follows `skills/gaie-release` and needs
-explicit owner authorization. Deliver the completed coverage matrix, the
+Prepare a documented pull request from the isolated branch and pass mandatory
+checks. Opening the remote pull request requires authorization for that action.
+Remote preview and production release require separate grants under
+`skills/gaie-release`. Deliver the completed coverage matrix, the
 before-and-after measurements, test results, security status, costs incurred
 (expected: none) and remaining limitations. Save decisions, proven fixes, root
-causes and checkpoints to project memory after every phase so a new session can
-resume.
+causes and checkpoints only under a grant for the intended project memory.
 
 ## Scoped runs
 
@@ -123,7 +124,10 @@ reporting to the owner.
 
 - It routes the owner's Arabic or English command through `gaie_router`: an audit command
   («افحص», `audit`) reads only and writes nothing; build, release, deploy, production, media
-  scope and network are refused, as are breaking requested changes (field or entity removal).
+  scope and network are refused, as are breaking requested changes (field or entity removal),
+  questions, and read-only or no-change wording next to an operation. The route is a plan
+  and grants nothing. A command that names a registered project is accepted only on that
+  project's verified isolated worktree (rule 1).
 - It works only in a copy under `workdir` (outside the target and outside every Git
   repository): baseline tests, data checksums and asset hashes first; then audit
   (`gaie_inventory`, `detectors`, spec checks), an ordered plan (`reasoning`), and one gated,
@@ -131,5 +135,6 @@ reporting to the owner.
   its new tests failed before and pass after, every table keeps its rows, and nothing is
   deleted without proof of non-use and a verified backup; otherwise it is rolled back.
 - Deliver its `upgraded/` copy, `upgrade.patch`, `rollback.patch` and `rollback/` through the
-  isolated branch of Step 7; never apply them to production. Report `unmet_requests`,
+  isolated branch of Step 7. Applying the patch to that worktree is a write and needs the
+  approval and host grant of rule 1; never apply it to production. Report `unmet_requests`,
   `rejected` steps and the `limits` field plainly; `requires_human_review` is always true.

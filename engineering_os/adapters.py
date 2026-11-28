@@ -7,8 +7,8 @@ implementation. Payloads are data: no field is ever evaluated, executed, used as
 a command line or treated as an instruction. Authorization is not decided here:
 ``control_plane.invoke`` asks the Security Governor before any adapter runs.
 
-Memory and the usage ledger are reached only through ``memory_store`` /
-``record_checkpoint`` and ``append_usage`` / ``read_usage`` so that a storage
+Memory and the usage ledger are reached only through ``memory_store`` and
+``append_usage`` / ``read_usage`` so that a storage
 switch (for example the unified engineering memory) is a change in one place.
 Standard library only. SPDX-License-Identifier: MIT.
 """
@@ -32,7 +32,7 @@ TEST_MODULE = re.compile(r"tests\.test_[a-z0-9_]{1,80}")
 _TESTS = re.compile(r"Ran (\d+) tests? in")
 
 # Files whose bytes define each engine's behaviour; hashed into every receipt.
-COMMON_SOURCES = ("engineering_os/adapters.py",)
+COMMON_SOURCES = ("engineering_os/adapters.py", "engineering_os/control_plane.py", "governance/engines.json")
 SOURCES = {
     "master-router": ("engineering_os/gaie_router.py", "governance/policies/gaie-routes.json",
                       "projects/registry.json", "projects/aliases.json", "skills/gaie-master-router/SKILL.md"),
@@ -61,7 +61,7 @@ SOURCES = {
     "agent-swarm": ("swarm/scheduler.py", "engineering_os/orchestration.py"),
     "adaptive-scheduler": ("swarm/phase3/adaptive.py",),
     "security-governor": ("engineering_os/governor.py", "engineering_os/contracts.py"),
-    "quality-assurance": ("engineering_os/governor.py", "engineering_os/contracts.py", "governance/engines.json"),
+    "quality-assurance": ("engineering_os/governor.py", "engineering_os/contracts.py"),
 }
 
 # Payload fields that name a filesystem location; the governor checks each one
@@ -160,10 +160,15 @@ def request_paths(engine, action, payload):
     """Filesystem locations named by a payload, for the governor's path check."""
     if not isinstance(payload, dict):
         raise AdapterError("payload must be an object")
+    if (engine, action) == ("quality-assurance", "run-tests"):
+        return (str(ROOT),)  # this adapter always reads the trusted Hub checkout
     paths = []
     for field in PATH_FIELDS.get((engine, action), ()):
         if payload.get(field) is not None:
-            paths.append(_string(payload[field], field))
+            if engine == "master-audit":
+                paths.append(_audit_directory(payload[field], field))
+            else:
+                paths.append(_string(payload[field], field))
     return tuple(paths)
 
 
@@ -287,6 +292,16 @@ def master_upgrade_health():
 
 # ---------------------------------------------------------------- L12 master-audit
 
+def _audit_directory(value, field):
+    raw = _string(value, field)
+    path = pathlib.Path(raw)
+    if not path.is_absolute() or path == pathlib.Path(path.anchor) or raw != str(path) or ".." in path.parts:
+        raise AdapterError(f"{field}: canonical absolute project directory required")
+    if any(part.is_symlink() for part in (path, *path.parents)) or not path.is_dir():
+        raise AdapterError(f"{field}: existing project directory without symlinks required")
+    return str(path)
+
+
 def master_audit(action, payload, ctx):
     if action == "spec":
         _fields(payload)
@@ -294,12 +309,12 @@ def master_audit(action, payload, ctx):
     if action == "inventory":
         from . import gaie_inventory
         _fields(payload, ("target",))
-        return gaie_inventory.inventory(_string(payload["target"], "target"))
+        return gaie_inventory.inventory(_audit_directory(payload["target"], "target"))
     if action == "health":
         from . import control
         _fields(payload, (), ("project",))
         project = payload.get("project")
-        return control.health(None if project is None else _string(project, "project"))
+        return control.health(None if project is None else _audit_directory(project, "project"))
     if action == "hub-audit":
         import hub
         _fields(payload)
@@ -407,45 +422,31 @@ def reasoning_health():
 
 # ---------------------------------------------------------------- L14 memory
 
-def memory_store(ctx):
-    """The single place that opens engineering memory (the unified L14 engine) for the control plane."""
+def memory_store(ctx, *, read_only=False):
+    """Open the private memory store in the mode required by the governed action."""
     from .memory import MemoryStore
-    return MemoryStore(_state(ctx) / MEMORY_DIR)
-
-
-def _memory_exists(ctx):
-    """A store exists in the engine's schema-2 file, or a schema-1 file it migrates on open; reads never create one."""
-    from .memory import LEGACY_STATE_FILE, STATE_FILE
-    directory = _state(ctx) / MEMORY_DIR
-    return any((directory / name).is_file() for name in (STATE_FILE, LEGACY_STATE_FILE))
-
-
-def record_checkpoint(ctx, *, task_id, project, host, engine, action, receipt):
-    """Store an invocation checkpoint for a task in engineering memory."""
-    summary = (f"{engine}.{action} ok; side_effect={receipt['side_effect']}; grant={receipt['grant_id']}; "
-               f"request_sha256={receipt['request_sha256']}; result_sha256={receipt['result_sha256']}; "
-               f"source_sha256={receipt['source_sha256']}; at={receipt['at']}")
-    return memory_store(ctx).put({
-        "project": project, "kind": "checkpoint", "title": f"{task_id}: {engine}.{action}", "summary": summary,
-        "tags": sorted({"control-plane", engine, f"task-{task_id}"}), "symbols": [], "links": [],
-        "provenance": {"engine": host, "source_sha256": receipt["source_sha256"]}})
+    return MemoryStore(_state(ctx) / MEMORY_DIR, read_only=read_only)
 
 
 def memory(action, payload, ctx):
+    from .memory import MissingMemory
     if action == "put":
         return memory_store(ctx).put(payload)
     if action == "search":
         _fields(payload, ("project", "query"), ("limit", "source_root"))
-        if not _memory_exists(ctx):
+        try:
+            rows = memory_store(ctx, read_only=True).search(payload["project"], payload["query"],
+                                                            limit=payload.get("limit", 10),
+                                                            source_root=payload.get("source_root"))
+        except MissingMemory:
             return _rows([])
-        rows = memory_store(ctx).search(payload["project"], payload["query"], limit=payload.get("limit", 10),
-                                        source_root=payload.get("source_root"))
         return _rows(rows)
     if action == "graph":
         _fields(payload, ("project",))
-        if not _memory_exists(ctx):
+        try:
+            return memory_store(ctx, read_only=True).graph(payload["project"])
+        except MissingMemory:
             return {"project": payload["project"], "nodes": [], "edges": []}
-        return memory_store(ctx).graph(payload["project"])
     if action == "index":
         _fields(payload, ("project", "path", "source_root", "engine"))
         return _rows(memory_store(ctx).index_python(payload["project"], payload["path"],
@@ -825,15 +826,24 @@ def quality_assurance(action, payload, ctx):
                 raise AdapterError("modules: existing tests.test_* modules only")
         timeout = _integer(payload.get("timeout", 600), "timeout", 1, 1800)
         governor = _governor()
-        run = governor.sandbox_run([sys.executable, "-m", "unittest", *modules], cwd=str(ROOT), timeout=timeout,
-                                   network=False, env_allow=("PATH", "HOME", "LANG", "TMPDIR"),
-                                   allowed_paths=(str(ROOT), tempfile.gettempdir()))
+        interpreter = pathlib.Path(sys.executable).resolve()
+        runtime = pathlib.Path(sys.base_prefix).resolve()
+        readable = [str(ROOT)]
+        if not any(runtime.is_relative_to(path) for path in governor.SYSTEM_DIRS):
+            readable.append(str(runtime))
+        runner = "import sys, unittest; sys.path.insert(0, sys.argv.pop(1)); unittest.main(module=None)"
+        with tempfile.TemporaryDirectory(prefix="gaie-qa-", dir="/tmp") as workspace:
+            run = governor.sandbox_run([str(interpreter), "-I", "-B", "-c", runner, str(ROOT), *modules],
+                                       cwd=workspace, timeout=timeout, allowed_paths=(workspace,),
+                                       read_paths=tuple(readable), require_fs_isolation=True)
+        if run.get("fs_isolated") is not True or run.get("network_isolated") is not True:
+            raise AdapterError("test runner did not establish filesystem and network isolation")
         output = f"{run.get('stdout', '')}\n{run.get('stderr', '')}"
         counted = _TESTS.findall(output)
         lines = [line for line in output.splitlines() if line.strip()]
         return {"modules": modules, "returncode": run["returncode"], "passed": run["returncode"] == 0,
                 "tests_ran": int(counted[-1]) if counted else None, "summary": lines[-1][:300] if lines else "",
-                "network_isolated": run.get("network_isolated"), "limit": run.get("limit"),
+                "network_isolated": run["network_isolated"], "fs_isolated": run["fs_isolated"], "limit": run.get("limit"),
                 "evidence_boundary": "Local test process in the governor sandbox; not CI or project verification."}
     if action == "contracts":
         from . import contracts, control_plane

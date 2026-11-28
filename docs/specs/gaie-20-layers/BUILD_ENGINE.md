@@ -165,9 +165,12 @@ review — `evaluate(app)` or `factory.evaluate_factory` can be re-run by the ve
 
 ## 6. How a project is created end to end
 
-1. `python3 hub.py route "ابنِ نظامًا جديدًا لإدارة المشاريع"` → MASTER_BUILD.
+1. `python3 hub.py route "ابنِ نظامًا جديدًا لإدارة المشاريع" --workspace <empty private dir>`
+   → MASTER_BUILD. The route is a plan (`write_allowed: false`, no grant template): with a
+   verified workspace its decision is `needs-approval`, without one it is `blocked`.
 2. `spec = requirements.parse(text)`; answer open questions with `requirements.refine`.
-3. `report = build_engine.build(spec, out_dir=$GAIE_HOME/workspace/project-management,
+3. After the operator separately approved the build and that workspace:
+   `report = build_engine.build(spec, out_dir=$GAIE_HOME/workspace/project-management,
    hub_revision=<reviewed main SHA>)` → `report["ok"]` and `report["factory"]`.
 4. Owner reviews `README.md`, `docs/`, `.gaie/factory/evaluation.json` and the open items.
 5. Owner approves the repository: creates the private repository named in

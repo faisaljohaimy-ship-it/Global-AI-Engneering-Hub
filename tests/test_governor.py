@@ -11,6 +11,7 @@ import os
 import shutil
 import socket
 import stat
+import subprocess
 import sys
 import tempfile
 import threading
@@ -100,6 +101,12 @@ class Workspace(unittest.TestCase):
 
     def denied(self, reason):
         return Denied(self, reason)
+
+    def run_in(self, cmd=("true",), **kw):
+        kw.setdefault("cwd", self.workspace)
+        kw.setdefault("timeout", 10)
+        kw.setdefault("allowed_paths", [self.workspace])
+        return governor.sandbox_run(list(cmd) if isinstance(cmd, tuple) else cmd, **kw)
 
 
 class ErrorTests(unittest.TestCase):
@@ -424,7 +431,7 @@ class AuditTests(Workspace):
             governor.audit(ROOT / "governor-state", {"decision": "deny", "reason": "x"})
         self.assertEqual(caught.exception.reason, "audit-in-repository")
         self.assertFalse((ROOT / "governor-state").exists())
-        self.state().mkdir()
+        self.state().mkdir(mode=0o700)
         os.symlink(self.outside / "elsewhere.jsonl", self.state() / governor.AUDIT_FILE)
         with self.assertRaises(GovernorDenied) as caught:
             governor.audit(self.state(), {"decision": "deny", "reason": "x"})
@@ -435,6 +442,33 @@ class AuditTests(Workspace):
                 governor.audit(self.tmp / "state2", event)
             self.assertEqual(caught.exception.reason, "invalid-audit-event")
         self.assertEqual(governor.verify_audit(self.tmp / "never-written"), 0)
+
+    def test_backing_file_rejects_alias_permissions_and_nondisk_streams(self):
+        event = {"decision": "allow"}
+        self.state().mkdir(mode=0o700)
+        destination = self.state() / governor.AUDIT_FILE
+        untouched = self.outside / "untouched.txt"
+        untouched.write_text("")
+        untouched.chmod(0o600)
+        for make in (
+            lambda: os.link(untouched, destination),
+            lambda: destination.write_text(""),
+            lambda: os.mkfifo(destination, mode=0o600),
+        ):
+            with self.subTest(make=make):
+                make()
+                if stat.S_ISREG(destination.stat().st_mode) and destination.stat().st_nlink == 1:
+                    destination.chmod(0o644)
+                with self.denied("audit-failed"):
+                    governor.audit(self.state(), event)
+                with self.denied("audit-tampered"):
+                    governor.verify_audit(self.state())
+                destination.unlink()
+        self.assertEqual(untouched.read_text(), "")
+        self.state().chmod(0o755)
+        with self.denied("audit-failed"):
+            governor.audit(self.state(), event)
+        self.assertFalse(destination.exists())
 
 
 def host_alive(marker):
@@ -455,12 +489,6 @@ def host_alive(marker):
 
 class SandboxArgumentTests(Workspace):
     """Preconditions are refused before anything runs, on every host."""
-
-    def run_in(self, cmd=("true",), **kw):
-        kw.setdefault("cwd", self.workspace)
-        kw.setdefault("timeout", 10)
-        kw.setdefault("allowed_paths", [self.workspace])
-        return governor.sandbox_run(list(cmd) if isinstance(cmd, tuple) else cmd, **kw)
 
     def test_cwd_outside_allowed_paths_is_refused(self):
         with self.denied("path-outside-grant"):
@@ -510,6 +538,133 @@ class SandboxArgumentTests(Workspace):
             self.assertEqual((result["fs_isolated"], result["network_isolated"]), (False, True))
             self.assertNotEqual(result["returncode"], 0)
             self.assertIn("Network is unreachable", result["stderr"])
+
+
+class StrictSandboxTests(Workspace):
+    """Strict profiles never dispatch through the degraded namespace tier."""
+
+    def setUp(self):
+        super().setUp()
+        self.workspace.chmod(0o700)
+
+    def test_strict_scope_refuses_ambient_authority_and_unsafe_writable_roots(self):
+        for changes in (
+            {"network": True},
+            {"env_allow": ("PATH",)},
+            {"allowed_paths": [self.workspace, self.outside]},
+            {"read_paths": [self.workspace]},
+            {"read_only": True},
+        ):
+            with self.subTest(changes=changes), self.denied("invalid-sandbox-mode"):
+                self.run_in(require_fs_isolation=True, **changes)
+        (self.workspace / ".git").mkdir()
+        with self.denied("invalid-sandbox-mode"):
+            self.run_in(require_fs_isolation=True)
+        (self.workspace / ".git").rmdir()
+        self.workspace.chmod(0o755)
+        with self.denied("invalid-sandbox-mode"):
+            self.run_in(require_fs_isolation=True)
+
+    def test_strict_scope_refuses_preexisting_writable_aliases_and_ipc(self):
+        with self.denied("path-outside-grant"):
+            self.run_in(cwd=self.outside, read_only=True, allowed_paths=[], read_paths=[self.workspace])
+        alias = self.workspace / "alias.txt"
+        os.link(self.outside / "secret.txt", alias)
+        with self.denied("invalid-sandbox-mode"):
+            self.run_in(require_fs_isolation=True)
+        alias.unlink()
+        os.mkfifo(self.workspace / "fixture.fifo", mode=0o600)
+        with self.denied("invalid-sandbox-mode"):
+            self.run_in(read_only=True, allowed_paths=[], read_paths=[self.workspace])
+
+    def test_strict_audit_and_agent_never_enter_plain_runner(self):
+        marker = self.workspace / "marker.txt"
+        code = f"printf 'mutation\\n' > {marker}"
+        plain = {"tier": "plain", "root_netns": True, "userns_netns": False}
+        with mock.patch.object(governor, "isolation_probe", return_value=plain), \
+                mock.patch.object(governor, "_run_plain", side_effect=AssertionError("plain dispatch forbidden")):
+            with self.denied("filesystem-isolation-unavailable"):
+                self.run_in(("sh", "-c", code), require_fs_isolation=True)
+            with self.denied("filesystem-isolation-unavailable"):
+                self.run_in(("sh", "-c", code), read_only=True, allowed_paths=[], read_paths=[self.workspace])
+        self.assertFalse(marker.exists())
+
+    def test_namespace_bootstrap_imports_cannot_write_bytecode(self):
+        directory = str(self.workspace)
+        with mock.patch.object(governor, "_launch", side_effect=RuntimeError("bootstrap intercepted")) as launch:
+            with self.assertRaisesRegex(RuntimeError, "bootstrap intercepted"):
+                governor._run_full(["true"], cwd=directory, timeout=1, network=False, env={"PATH": os.defpath},
+                                   allowed=[], readable=[directory], limits={}, strict=True)
+        argv = launch.call_args.args[0]
+        bootstrap = argv[argv.index("--") + 1 : argv.index("--") + 6]
+        self.assertEqual(bootstrap, [sys.executable, "-I", "-B", "-S", "-c"])
+        (self.workspace / "synthetic_boot_module.py").write_text("answer = 42\n")
+        program = "import sys;sys.path.insert(0,sys.argv[1]);import synthetic_boot_module"
+        result = subprocess.run([*bootstrap, program, directory], capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.workspace / "__pycache__").exists())
+
+    def test_real_strict_boundary_or_measured_refusal(self):
+        marker = self.workspace / "marker.txt"
+        marker.write_text("source")
+        pointer = self.workspace / ".git"
+        pointer.write_text("gitdir: /workspace-metadata-fixture\n")
+        actor_file = self.workspace / "write.txt"
+        neighbour = self.outside / "write.txt"
+        code = (
+            'set -eu; test "$(cat marker.txt)" = source; '
+            'if (printf overwrite > "$1") 2>/dev/null; then exit 7; fi; '
+            'if (printf overwrite > .git) 2>/dev/null; then exit 8; fi; '
+            'if (printf output > write.txt) 2>/dev/null; then echo wrote; else echo denied; fi; '
+            'test -z "${GAIE_BOUNDARY_FIXTURE-}"; test ! -e /etc/passwd'
+        )
+        if governor.isolation_probe()["tier"] != "full":
+            for options in ({"require_fs_isolation": True},
+                            {"read_only": True, "allowed_paths": [], "read_paths": [self.workspace]}):
+                with self.denied("filesystem-isolation-unavailable"):
+                    self.run_in(("sh", "-c", code, "fixture", str(neighbour)), **options)
+            self.assertFalse(actor_file.exists())
+            self.assertFalse(neighbour.exists())
+            return
+        with mock.patch.dict(os.environ, {"GAIE_BOUNDARY_FIXTURE": "ambient"}):
+            command = ("sh", "-c", code, "fixture", str(neighbour))
+            audit = self.run_in(command, read_only=True, allowed_paths=[], read_paths=[self.workspace])
+            self.assertEqual(audit["returncode"], 0, audit["stderr"])
+            self.assertEqual(audit["stdout"], "denied\n")
+            self.assertTrue(audit["fs_isolated"] and audit["network_isolated"])
+            self.assertFalse(actor_file.exists())
+            actor = self.run_in(command, require_fs_isolation=True)
+            self.assertEqual(actor["returncode"], 0, actor["stderr"])
+        self.assertEqual(actor["stdout"], "wrote\n")
+        self.assertTrue(actor["fs_isolated"] and actor["network_isolated"])
+        self.assertEqual(actor_file.read_text(), "output")
+        self.assertEqual(marker.read_text(), "source")
+        self.assertEqual(pointer.read_text(), "gitdir: /workspace-metadata-fixture\n")
+        self.assertFalse(neighbour.exists())
+
+    def test_socket_filter_applies_to_a_real_child_for_ip_and_pathname_sockets(self):
+        source = """
+import errno
+import socket
+from engineering_os.governor import _disable_socket_creation
+with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM):
+    pass  # Establish that the inherited policy did not already block pathname sockets.
+try:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM):
+        pass
+except OSError as error:
+    assert error.errno == errno.EPERM, error  # Some hosts already deny IP sockets.
+_disable_socket_creation()
+for family in (socket.AF_INET, socket.AF_UNIX):
+    try:
+        with socket.socket(family, socket.SOCK_STREAM):
+            raise AssertionError("socket creation should be denied")
+    except OSError as error:
+        assert error.errno == errno.EPERM, error
+"""
+        result = subprocess.run([sys.executable, "-c", source], cwd=ROOT,
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 class SandboxTests(Workspace):
