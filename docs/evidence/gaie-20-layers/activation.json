@@ -1,0 +1,1516 @@
+{
+ "schema": "gaie.activation-receipt/1",
+ "title": "Activation receipt: approved tools, Headroom, engines and skills run on this host",
+ "mode": "full",
+ "generated_at_utc": "2026-11-28T09:13:21Z",
+ "duration_s": 20.7,
+ "generator": {
+  "path": "scripts/activation_receipt.py",
+  "sha256": "c18762177c44688664333a4d79dffdfaf5eab03cd1f0f69ea6777c9bbf4e184a",
+  "command": "python3 scripts/activation_receipt.py --out docs/evidence/gaie-20-layers/activation.json",
+  "regenerate": "python3 scripts/activation_receipt.py --out docs/evidence/gaie-20-layers/activation.json"
+ },
+ "git": {
+  "head": "aa11e86a6208a0005474acd6aae8fa9807b983fd",
+  "worktree_clean": true,
+  "changed_paths": 0
+ },
+ "statuses": {
+  "ran-here": "ran during this generation; exit status and a digest of the lock or source it ran against are recorded",
+  "installed-test-blocked": "installed, but its functional test needs a key or an unreachable host",
+  "not-installed": "no install found (or not looked for in --no-tools mode)",
+  "catalog-only": "recorded in the repository; not run by this generator",
+  "failed-here": "ran during this generation and failed"
+ },
+ "provider_calls": 0,
+ "paid_services": 0,
+ "keys_read": 0,
+ "deployments": 0,
+ "host": {
+  "cpu_count": 4,
+  "load_average_at_start": [
+   4.16,
+   3.58,
+   2.09
+  ],
+  "os": {
+   "system": "Linux",
+   "kernel": "6.18.44-fc-v880",
+   "machine": "x86_64",
+   "name": "Ubuntu",
+   "version_id": "24.04"
+  },
+  "python": "3.13.18",
+  "python3.12": "3.12.3",
+  "node": "22.23.5",
+  "npm": "10.9.9",
+  "ffmpeg": "6.1.1-3ubuntu5",
+  "ffprobe": "6.1.1-3ubuntu5",
+  "ripgrep": "14.1.0",
+  "git": "2.43.0",
+  "uv": "0.11.32",
+  "unshare_network_namespace": true,
+  "browsers": {
+   "playwright_builds": [
+    "chromium-1243",
+    "chromium_headless_shell-1243",
+    "ffmpeg-1011"
+   ],
+   "playwright_chromium_version": "158.0.8127.36",
+   "google-chrome": "158.0.8127.36"
+  }
+ },
+ "tools": [
+  {
+   "id": "pydantic/pydantic-ai",
+   "name": "pydantic-ai",
+   "package": "pydantic-ai-slim",
+   "ecosystem": "pypi",
+   "version_locked": "2.68.0",
+   "lock": "activation/locks/pydantic-ai/requirements.lock",
+   "lock_sha256": "e73205006d60de331af38148f0b060228a950937c98c07ebe39857b363bd9c7b",
+   "test": "activation/tests/pydantic_ai_typed_tool.py",
+   "test_sha256": "c89625107122e0386e6fe7b694a89b7cdf9dbb7d2b7fdec3d03d59f423974333",
+   "script": "activation/activate.sh",
+   "script_sha256": "947b9f73e211d9af3c402fccaa0de94c099a14f1f47a8c4880cae1c73bbfd8f5",
+   "probed": true,
+   "not_proven": [
+    "a call to a real model provider",
+    "use from Codex",
+    "use inside a registered project"
+   ],
+   "command": "activation/activate.sh pydantic-ai",
+   "version_installed": "2.68.0",
+   "lock_check": {
+    "locked_packages": 17,
+    "installed_packages": 17,
+    "missing": [],
+    "extra": [],
+    "different_version": [],
+    "matches_lock": true
+   },
+   "exit": 0,
+   "duration_s": 1.03,
+   "network_isolated_by_script": true,
+   "network_note": null,
+   "output_head": [
+    "passed  pydantic-ai"
+   ],
+   "result": {
+    "status": "passed",
+    "passed": "6/6",
+    "test_reported_version": "2.68.0",
+    "provider_requests_allowed": false
+   },
+   "digest": "e73205006d60de331af38148f0b060228a950937c98c07ebe39857b363bd9c7b",
+   "digest_of": "activation/locks/pydantic-ai/requirements.lock",
+   "status": "ran-here"
+  },
+  {
+   "id": "UKGovernmentBEIS/inspect_ai",
+   "name": "inspect-ai",
+   "package": "inspect-ai",
+   "ecosystem": "pypi",
+   "version_locked": "0.3.289",
+   "lock": "activation/locks/inspect-ai/requirements.lock",
+   "lock_sha256": "5e8c9180365ff94ee2498e45f458f4d606106c7c0df6f01ebddf31e4a6435dff",
+   "test": "activation/tests/inspect_ai_mock_eval.py",
+   "test_sha256": "4e4276b9be191df2550e7e95abcfdf374617453b3be8b0a92aeadaf18a74aff6",
+   "script": "activation/activate.sh",
+   "script_sha256": "947b9f73e211d9af3c402fccaa0de94c099a14f1f47a8c4880cae1c73bbfd8f5",
+   "probed": true,
+   "not_proven": [
+    "an evaluation against a real model",
+    "use from Codex",
+    "a run with no network (it downloads a tokenizer file once)"
+   ],
+   "command": "activation/activate.sh inspect-ai",
+   "version_installed": "0.3.289",
+   "lock_check": {
+    "locked_packages": 80,
+    "installed_packages": 80,
+    "missing": [],
+    "extra": [],
+    "different_version": [],
+    "matches_lock": true
+   },
+   "exit": 0,
+   "duration_s": 4.12,
+   "network_isolated_by_script": false,
+   "network_note": "activate.sh runs this test with the network available. Inspect AI reads a tokenizer file through tiktoken's cache in the temporary folder and downloads it once from its public host when the cache is empty; no provider is called.",
+   "output_head": [
+    "passed  inspect-ai"
+   ],
+   "result": {
+    "status": "passed",
+    "passed": "3/3",
+    "test_reported_version": "0.3.289"
+   },
+   "digest": "5e8c9180365ff94ee2498e45f458f4d606106c7c0df6f01ebddf31e4a6435dff",
+   "digest_of": "activation/locks/inspect-ai/requirements.lock",
+   "status": "ran-here"
+  },
+  {
+   "id": "promptfoo/promptfoo",
+   "name": "promptfoo",
+   "package": "promptfoo",
+   "ecosystem": "npm",
+   "version_locked": "0.125.1",
+   "lock": "activation/locks/promptfoo/package-lock.json",
+   "lock_sha256": "ebd329a343329da62e1931cee0b941708ecf0c3be4790673581db6b0981136d0",
+   "test": "activation/tests/promptfoo/promptfooconfig.yaml",
+   "test_sha256": "20d9f8e2a4e7f2b52ffd94490aede9f3e9283634f21979106ce225e8df0e803c",
+   "script": "activation/activate.sh",
+   "script_sha256": "947b9f73e211d9af3c402fccaa0de94c099a14f1f47a8c4880cae1c73bbfd8f5",
+   "probed": true,
+   "not_proven": [
+    "an evaluation against a real model",
+    "a comparison across agent hosts"
+   ],
+   "command": "activation/activate.sh promptfoo",
+   "version_installed": "0.125.1",
+   "lock_check": {
+    "locked_packages": 691,
+    "installed_packages": 629,
+    "optional_platform_packages_not_installed": 62,
+    "missing": [],
+    "extra": [],
+    "different_version_or_integrity": [],
+    "matches_lock": true
+   },
+   "exit": 0,
+   "duration_s": 1.57,
+   "network_isolated_by_script": false,
+   "network_note": "telemetry and the update check are switched off by environment variables; the provider is echo.",
+   "output_head": [
+    "{\"expected\": {\"successes\": 1, \"failures\": 1, \"errors\": 0}, \"found\": {\"successes\": 1, \"failures\": 1, \"errors\": 0}}",
+    "passed  promptfoo",
+    "  ✓ 1 passed (50.00%)",
+    "  ✗ 1 failed (50.00%)",
+    "  0 errors (0%)",
+    "Duration: 0s (concurrency: 4)",
+    "Writing output to <scratch>/out-promptfoo/promptfoo.json"
+   ],
+   "result": {
+    "stats": {
+     "successes": 1,
+     "failures": 1,
+     "errors": 0
+    },
+    "expected": {
+     "successes": 1,
+     "failures": 1,
+     "errors": 0
+    }
+   },
+   "digest": "ebd329a343329da62e1931cee0b941708ecf0c3be4790673581db6b0981136d0",
+   "digest_of": "activation/locks/promptfoo/package-lock.json",
+   "status": "ran-here"
+  },
+  {
+   "id": "microsoft/playwright-mcp",
+   "name": "playwright-mcp",
+   "package": "@playwright/mcp",
+   "ecosystem": "npm",
+   "version_locked": "0.0.85",
+   "lock": "activation/locks/playwright-mcp/package-lock.json",
+   "lock_sha256": "8e735c8630bdf9149ed2ef1a862e9a2b86d61732f9c388623aea2b1e93f6190d",
+   "test": "activation/tests/mcp_browser_probe.py",
+   "test_sha256": "6dd7891deee8bc7d4a15c843508f4155fcd9cc8268c919e2b90a26ac69aabfc6",
+   "script": "activation/activate.sh",
+   "script_sha256": "947b9f73e211d9af3c402fccaa0de94c099a14f1f47a8c4880cae1c73bbfd8f5",
+   "probed": true,
+   "not_proven": [
+    "attachment to an agent session (driven by a stdio probe)",
+    "use from Codex",
+    "Firefox or WebKit"
+   ],
+   "command": "activation/activate.sh playwright-mcp",
+   "version_installed": "0.0.85",
+   "lock_check": {
+    "locked_packages": 3,
+    "installed_packages": 3,
+    "optional_platform_packages_not_installed": 0,
+    "missing": [],
+    "extra": [],
+    "different_version_or_integrity": [],
+    "matches_lock": true
+   },
+   "exit": 0,
+   "duration_s": 1.62,
+   "network_isolated_by_script": false,
+   "network_note": "the page is a data: URL and the browser is the one already on the host; nothing is downloaded.",
+   "output_head": [
+    "passed  playwright-mcp"
+   ],
+   "result": {
+    "status": "passed",
+    "passed": "6/6",
+    "server_reported": {
+     "name": "Playwright",
+     "version": "1.66.0-alpha-2026-11-09"
+    }
+   },
+   "digest": "8e735c8630bdf9149ed2ef1a862e9a2b86d61732f9c388623aea2b1e93f6190d",
+   "digest_of": "activation/locks/playwright-mcp/package-lock.json",
+   "status": "ran-here"
+  },
+  {
+   "id": "ChromeDevTools/chrome-devtools-mcp",
+   "name": "chrome-devtools-mcp",
+   "package": "chrome-devtools-mcp",
+   "ecosystem": "npm",
+   "version_locked": "1.13.0",
+   "lock": "activation/locks/chrome-devtools-mcp/package-lock.json",
+   "lock_sha256": "dec1c9593bec49f979775706583f5078ae5a5cd05ca76ecdc3fc3fa06aa8ddda",
+   "test": "activation/tests/mcp_browser_probe.py",
+   "test_sha256": "6dd7891deee8bc7d4a15c843508f4155fcd9cc8268c919e2b90a26ac69aabfc6",
+   "script": "activation/activate.sh",
+   "script_sha256": "947b9f73e211d9af3c402fccaa0de94c099a14f1f47a8c4880cae1c73bbfd8f5",
+   "probed": true,
+   "not_proven": [
+    "attachment to an agent session (driven by a stdio probe)",
+    "use from Codex",
+    "performance tracing"
+   ],
+   "command": "activation/activate.sh chrome-devtools-mcp",
+   "version_installed": "1.13.0",
+   "lock_check": {
+    "locked_packages": 1,
+    "installed_packages": 1,
+    "optional_platform_packages_not_installed": 0,
+    "missing": [],
+    "extra": [],
+    "different_version_or_integrity": [],
+    "matches_lock": true
+   },
+   "exit": 0,
+   "duration_s": 1.77,
+   "network_isolated_by_script": false,
+   "network_note": "the page is a data: URL; usage statistics and CrUX lookups are switched off.",
+   "output_head": [
+    "passed  chrome-devtools-mcp"
+   ],
+   "result": {
+    "status": "passed",
+    "passed": "6/6",
+    "server_reported": {
+     "name": "chrome_devtools",
+     "title": "Chrome DevTools MCP server",
+     "version": "1.13.0"
+    }
+   },
+   "digest": "dec1c9593bec49f979775706583f5078ae5a5cd05ca76ecdc3fc3fa06aa8ddda",
+   "digest_of": "activation/locks/chrome-devtools-mcp/package-lock.json",
+   "status": "ran-here"
+  },
+  {
+   "id": "upstash/context7",
+   "name": "context7",
+   "package": "@upstash/context7-mcp",
+   "ecosystem": "npm",
+   "version_locked": "4.7.0",
+   "lock": null,
+   "lock_sha256": null,
+   "test": "activation/tests/context7_probe.py",
+   "test_sha256": "189a3ba99b5c81b7c90501d6e7a21ffc71f199aa62568ce49798f07f950bd073",
+   "script": "activation/activate.sh",
+   "script_sha256": "947b9f73e211d9af3c402fccaa0de94c099a14f1f47a8c4880cae1c73bbfd8f5",
+   "probed": true,
+   "not_proven": [
+    "any documentation returned",
+    "use from Codex",
+    "attachment to an agent session"
+   ],
+   "status": "not-installed",
+   "command": null,
+   "exit": null,
+   "digest": null,
+   "reason": "no lock is committed for this tool, so activation/activate.sh has no target for it and this generator does not start it; its probe also needs an API key the owner has not provided",
+   "blocked_by": "Two things. Its service refuses requests without an API key once the shared anonymous allowance is used: both requests were answered with a quota message, so it needs a free key from the owner. And its lock is not committed: the hub's dependency scan accepts at most eight npm locks and this would be the ninth. It was installed and started once in the session from the package and checksum recorded here."
+  }
+ ],
+ "headroom": {
+  "id": "headroomlabs-ai/headroom",
+  "package": "headroom-ai",
+  "version_locked": "0.45.0",
+  "lock": "integrations/headroom/requirements.lock",
+  "lock_sha256": "2bfb5f5ddfb54dc16d98b8d647c7dbf7821b0e14b345f1811e430418d2f29bbb",
+  "locked_artifacts": 68,
+  "install_command": "python3.12 -m venv <private>/headroom-venv && <private>/headroom-venv/bin/python -m pip --isolated install --disable-pip-version-check --only-binary=:all: --require-hashes --no-compile -r integrations/headroom/requirements.lock",
+  "launcher": {
+   "tools/headroom_context.py": "cbe2aa3abd390ec76c214a8dded622d3620e5871ba32199e22020e8925b68ca4",
+   "tools/headroom_worker.py": "09b5fc89f34113ebc10f9fe877988e70b61b4ef733b89c407d99898f597b03f6"
+  },
+  "probed": true,
+  "version_installed": "0.45.0",
+  "lock_check": {
+   "locked_packages": 68,
+   "different_or_missing": [],
+   "matches_lock": true
+  },
+  "status_command": {
+   "command": "<venv>/bin/python tools/headroom_context.py status",
+   "exit": 0,
+   "result": {
+    "schema_version": 1,
+    "required_sdk_version": "0.45.0",
+    "installed_sdk_version": "0.45.0",
+    "sdk_imported": false,
+    "linux_isolation_required": true,
+    "platform_supported": true,
+    "optimization_candidate": true,
+    "context_usage": null,
+    "billing": null,
+    "native_agent_interception": false
+   }
+  },
+  "command": "<venv>/bin/python tools/headroom_context.py optimize --input <private sample> --store <private store> --kind tool-json",
+  "sample": {
+   "produced_by": "python3 hub.py capabilities",
+   "bytes": 53406,
+   "sha256": "5ddc837790bafadaa418dcc025023233329949bd0238408e762fd6397d635739",
+   "note": "the sample's content is catalogue data used only as real tool output to compress"
+  },
+  "exit": 0,
+  "duration_s": 0.59,
+  "digest": "2bfb5f5ddfb54dc16d98b8d647c7dbf7821b0e14b345f1811e430418d2f29bbb",
+  "digest_of": "integrations/headroom/requirements.lock",
+  "launcher_sha256": "b6276daed171cf93d98a66a37ed3be8e38e6423c746e436a15880efb8d8c5e5c",
+  "measurement": {
+   "status": "optimized",
+   "reason": "lossless-sdk-and-ccr-verified",
+   "input_bytes": 53406,
+   "output_bytes": 15422,
+   "byte_reduction": 37984,
+   "sdk_version": "0.45.0",
+   "lossless": true,
+   "ccr_roundtrip": true,
+   "protected_messages_unchanged": true,
+   "network_boundary": "linux-seccomp-no-ip",
+   "exact_tokens": {
+    "before": null,
+    "after": null
+   },
+   "estimated_tokens": {
+    "before": 17255,
+    "after": 4422,
+    "source": "SDK reported counts; exact BPE not independently verified"
+   },
+   "compression_latency_ms": 321.0,
+   "context_usage": null,
+   "billing": null,
+   "native_agent_interception": false,
+   "original_sha256": "5ddc837790bafadaa418dcc025023233329949bd0238408e762fd6397d635739",
+   "output_sha256": "fb611b87597073dbfc81a63155461e44a2a7e2f7f9b5a89ba2b3288c0decb920",
+   "byte_reduction_percent": 71.12,
+   "full_retrieval": {
+    "exit": 0,
+    "complete": true,
+    "sha256_matches_original": true
+   }
+  },
+  "limits": [
+   "Byte counts are UTF-8 bytes of this one sample (the JSON printed by `python3 hub.py capabilities`); they are not a compression promise for other content.",
+   "exact_tokens stays null: no exact tokenizer count was made. estimated_tokens are the SDK's own sentinel-inclusive estimates, not provider token counts.",
+   "context_usage and billing stay null: no model-context share, provider bill or monetary saving was measured.",
+   "network_boundary is reported by the worker for its own process; it does not establish account-wide network isolation.",
+   "Native Claude or Codex interception, MCP registration, proxy and wrapper modes were not activated or tested.",
+   "compression_latency_ms is one sample on a shared host, not a latency percentile.",
+   "Answer or task equivalence after compression was not measured; the full original was retrieved and its SHA-256 checked."
+  ],
+  "status": "ran-here"
+ },
+ "engines": [
+  {
+   "engine": "security-governor",
+   "action": "validate-grant",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke security-governor validate-grant --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "2a9589024eba759ee02d07e932084c522a3b3615b065ab30d49f27ac6d16aa87",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.11,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "af3fa8dbb54afa94f00d6768e6c904a7099a10997f78bc3b9c87fb9018d3a083",
+   "digest": "0543a269bdc72ceeb7475e399a297432d078ed70756d73a5760179bf4f48bc9a",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "valid": true,
+    "reason": "grant matches the shared contract"
+   }
+  },
+  {
+   "engine": "security-governor",
+   "action": "check",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke security-governor check --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "30d35dd33172d098f363bdb4c8940473634ca327d4371d0c64a8b5f69a96bfb1",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.13,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "94ed013cad523c75c03d50fe6007eca6fa1299e0dae7a109b99f0b2036d0e2e3",
+   "digest": "0543a269bdc72ceeb7475e399a297432d078ed70756d73a5760179bf4f48bc9a",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "allowed": false,
+    "reason": "side-effect-exceeds-grant",
+    "dry_run": true
+   }
+  },
+  {
+   "engine": "context-intelligence",
+   "action": "status",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke context-intelligence status --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.12,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "98f8049e527327765380834fad09aeeebb5521818e3ae0f5731514fcba3053e3",
+   "digest": "e6c3d03899ec168456da08a0f2def04e0c397002e4c9c757e70a07c85d3f1a63",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "required_sdk_version": "0.45.0",
+    "installed_sdk_version": null,
+    "sdk_imported": false,
+    "linux_isolation_required": true,
+    "platform_supported": true,
+    "optimization_candidate": false,
+    "context_usage": null
+   }
+  },
+  {
+   "engine": "context-intelligence",
+   "action": "view",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke context-intelligence view --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "b52c9e643616a139811529b358e3fa9f81a59e5bfd880cb290aae4f09fb03a33",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.13,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "d65e739fd8a6fa277f310b4f766c2e513a2005e523bba90dad56968776682f16",
+   "digest": "e6c3d03899ec168456da08a0f2def04e0c397002e4c9c757e70a07c85d3f1a63",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "view": "ok\nok\n… 97 lines not shown …\nok\nValueError: boom",
+    "kept_error_lines#len": 0,
+    "input_chars": 316,
+    "output_chars": 48,
+    "method": "plain head/tail view plus every error line verbatim; no SDK, no tokenizer"
+   }
+  },
+  {
+   "engine": "master-router",
+   "action": "route",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-router route --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "87c303346934bf1e60e2681ec98afee371a0162f9125217d4f6a5daf9e99b77f",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.12,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "db3a3692c0997e781bd5cca47574d24dc53463737db5b266b57b68e22583f58e",
+   "digest": "19c2ce2601410f40ce9c1788cc1ec1fa17d3ce01b05b7cae0265aee1e9e8ab6d",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "route_version": 2,
+    "status": "routed",
+    "command": "audit wow-bus",
+    "language": "en",
+    "intent": "audit",
+    "verb": "audit",
+    "engine": "AUDIT"
+   }
+  },
+  {
+   "engine": "master-router",
+   "action": "route",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-router route --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "24fe3a58883990af899659be971d2fc3d9140aea394e8175c3d932d581cf38fa",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.1,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "a2262023e62f502f1b818f810ecf6eb3f1199d91e4c69d50ec8b95985dfa17b9",
+   "digest": "19c2ce2601410f40ce9c1788cc1ec1fa17d3ce01b05b7cae0265aee1e9e8ab6d",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "route_version": 2,
+    "status": "routed",
+    "command": "افحص سديد",
+    "language": "ar",
+    "intent": "audit",
+    "verb": "audit",
+    "engine": "AUDIT"
+   }
+  },
+  {
+   "engine": "master-router",
+   "action": "projects",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-router projects --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.12,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "506e782c66b5bb252403ea34560295013094f38bdeac9bcaea495cb81802b871",
+   "digest": "19c2ce2601410f40ce9c1788cc1ec1fa17d3ce01b05b7cae0265aee1e9e8ab6d",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "count": 7,
+    "rows#len": 7
+   }
+  },
+  {
+   "engine": "agent-swarm",
+   "action": "simulate",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke agent-swarm simulate --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "f105850a9b7283bc5f08b2c07c65ad4c8e4ff733ba716d079bcbd738103b9f4a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.12,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "c89972c2a814aaa78e1d9939be45b371e93939b0d7599ed38f579366f6c0787d",
+   "digest": "14c57e33626d22775c7e3ccfe8b76200d4407c0715e05ec82f5aded75a515b4d",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "kind": "simulation: no agent was started and no model was called",
+    "registered_agents": 8,
+    "tasks_submitted": 13,
+    "tasks_scheduled": 8,
+    "duplicates_dropped": 5,
+    "waves": 2,
+    "largest_wave": 4,
+    "limit": 4
+   }
+  },
+  {
+   "engine": "adaptive-scheduler",
+   "action": "next-wave",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke adaptive-scheduler next-wave --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "fd8e872b7f77c0d0a79c290d2acfc9e33469edd0fdc75fdeac1b4c2e4f4f2086",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.12,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "fcfd913d17a65758fbc1d7c22bc6799f671009f85c819d5fc6ff4a77199a6030",
+   "digest": "d2f36218f757fcc73ccf9d8e38919235fc284ba2d99900a5b943b065236655bd",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "agents": 4,
+    "batch": 1,
+    "reason": "No wave has run yet, so start with 4 agents and a batch of 1."
+   }
+  },
+  {
+   "engine": "capability-registry",
+   "action": "search",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke capability-registry search --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "0119b41b705b900c6cb5bd5eee4595f20cdf3858a10fff25d94fb2a83d20144b",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.13,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "7b693444fedcc2574c510640fae07f5f855a43adc34a5436d853bd78352224ae",
+   "digest": "256e625fb6d5ad9a2a191d317fb179575021fa921fa1735adce99c4cccf931b4",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "count": 2,
+    "rows#len": 2
+   }
+  },
+  {
+   "engine": "capability-registry",
+   "action": "recommend",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke capability-registry recommend --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "dbb0ef8bfe22cab87bbafb116f2af9a9406417669dc2a657a531f9a5cf84e4f7",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.1,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "442f8d44e8e5d2edb68e035b640ba7b1ef7f28b6c906ce945a5797d9577e60b4",
+   "digest": "256e625fb6d5ad9a2a191d317fb179575021fa921fa1735adce99c4cccf931b4",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "count": 0,
+    "rows#len": 0
+   }
+  },
+  {
+   "engine": "layers",
+   "action": "status",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke layers status --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "a2eeb57f691c300202e9fa2d4f3406e528f7f48c659f9c2884633336b02bac82",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.11,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "2980f09476bba74ce8e56d11f252fb900a483dcd71c2a75863da371d42ec6569",
+   "digest": "81c3af8e2ed1519dee05defb656a8fe54e2c7b6513dc19f369082c8944c3b976",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "count": 1,
+    "rows#len": 1
+   }
+  },
+  {
+   "engine": "master-upgrade",
+   "action": "spec",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-upgrade spec --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "e872b1fbb15578db28d3910774429244ab88ee9676091acc382f0fc7b3965727",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.11,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "6799c012cf505e0d657bff6738f75799aad4f2a9291983ecb1cc1678b2320c59",
+   "digest": "f811949142121e7030ad15af6b9f8a08ea60d51a9938247de4d28e55faa7668b",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "intent": "upgrade",
+    "engine": "MASTER_UPGRADE",
+    "skill": "gaie-upgrade",
+    "prompt": "prompts/MASTER_UPGRADE.md",
+    "scope": null,
+    "write": true,
+    "workstreams#len": 13,
+    "hub_commands#len": 7
+   }
+  },
+  {
+   "engine": "master-upgrade",
+   "action": "plan",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-upgrade plan --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "ee45800be81f3596c3fa2dcdaf4e4ccb685d22fd64ac7f9ab1b4cf858d96fa8c",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.11,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "0c69fa930529f413a42fc7607ef2db5d2e3d685cb4f1820e8822e153562be7f7",
+   "digest": "f811949142121e7030ad15af6b9f8a08ea60d51a9938247de4d28e55faa7668b",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "request#len": 5,
+    "request_sha256": "ccf1ae706b48ca77f313a1315957c83ce0079b4c47da66856f6c34776c435ab2",
+    "stages#len": 7,
+    "provider_calls": 0,
+    "deployment_authorized": false,
+    "boundary": "Local artifact verification; evaluator assertions require independent trust.",
+    "plan_sha256": "767be03c09e48c9453d046040c17c21b350e8d78ea321818e1a7998a95683729"
+   }
+  },
+  {
+   "engine": "motion-sdk",
+   "action": "catalog",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke motion-sdk catalog --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "07841e224309331cfd6aab1386e001890eaf37c0a3d1b3460e00482ece6ae41c",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.11,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "ce2adedd9c35206b5ba0ad9001a371a3f583e7f6ec98ac9f572a43732272b281",
+   "digest": "9f1f5589f6e990f620770ac9a2689a777c413ee20802905d6a0401a10b09008f",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "count": 3,
+    "rows#len": 3
+   }
+  },
+  {
+   "engine": "motion-sdk",
+   "action": "runtime",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke motion-sdk runtime --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.17,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "918ce704250a5fd87fe1690f2ecea8a72708928305e0119b803d5607971da4ee",
+   "digest": "9f1f5589f6e990f620770ac9a2689a777c413ee20802905d6a0401a10b09008f",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "legacy#len": 2,
+    "expansion#len": 15
+   }
+  },
+  {
+   "engine": "quality-assurance",
+   "action": "contracts",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke quality-assurance contracts --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.26,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "e4aaed19d26d48568a06f9a148c1225fe5f2b0027419380b2242ac286cbe73b7",
+   "digest": "0543a269bdc72ceeb7475e399a297432d078ed70756d73a5760179bf4f48bc9a",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "engines#len": 2,
+    "layers#len": 3,
+    "passed": true
+   }
+  },
+  {
+   "engine": "quality-assurance",
+   "action": "run-tests",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke quality-assurance run-tests --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "3bbf1c06e2e29d1e387f45d807d3a6ac5d08d7873b1d88f0353b9c4a09940348",
+   "grant_side_effect": "workspace-write",
+   "exit": 0,
+   "duration_s": 0.48,
+   "ok": true,
+   "receipt_side_effect": "workspace-write",
+   "result_sha256": "e3178c439eadaa3c1bc32c82609cbed5404ff833c5cf2b7907c2cc572850a560",
+   "digest": "0543a269bdc72ceeb7475e399a297432d078ed70756d73a5760179bf4f48bc9a",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "modules#len": 1,
+    "returncode": 0,
+    "passed": true,
+    "tests_ran": 4,
+    "summary": "OK",
+    "network_isolated": true,
+    "fs_isolated": true,
+    "limit": null
+   }
+  },
+  {
+   "engine": "master-release",
+   "action": "spec",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-release spec --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.12,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "dc1efe991f258e4c6212eb11e9fe5cb286ea23dd9e48d939b90a36b1ae341b11",
+   "digest": "54b5f04b1665195a05ac465875308416344ef6c587332e1c33aff968719d62c3",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "intent": "release",
+    "engine": "RELEASE",
+    "skill": "gaie-release",
+    "prompt": null,
+    "scope": null,
+    "write": true,
+    "workstreams#len": 2,
+    "hub_commands#len": 2
+   }
+  },
+  {
+   "engine": "master-audit",
+   "action": "spec",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-audit spec --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.11,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "1211b50e27476be0ace484f19d766e513803774e0bf691ca8cbc3e76889089e5",
+   "digest": "1ed143428157899687cf4ba337937dc412b382b0d285bd9d66c505ee7effe97b",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "intent": "audit",
+    "engine": "AUDIT",
+    "skill": "gaie-audit",
+    "prompt": null,
+    "scope": null,
+    "write": false,
+    "workstreams#len": 4,
+    "hub_commands#len": 5
+   }
+  },
+  {
+   "engine": "master-audit",
+   "action": "inventory",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-audit inventory --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "2d0cae5986eab0776e4aba778ead4236cee83c871ebb7bbe58668a9e8efa0cc7",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.14,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "843fd7471f48676d23f58d080d383d09b1c98ad823738644a5bb62727fa4186a",
+   "digest": "1ed143428157899687cf4ba337937dc412b382b0d285bd9d66c505ee7effe97b",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "files_scanned": 6,
+    "truncated": false,
+    "file_kinds#len": 8,
+    "surfaces#len": 9,
+    "media_bytes#len": 4,
+    "large_media#len": 0,
+    "manifests#len": 1
+   }
+  },
+  {
+   "engine": "master-audit",
+   "action": "health",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-audit health --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.21,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "d4a4c430580b8873123e2cbe22a6a17caa5392a9ea792e311e68aabcc4db3020",
+   "digest": "1ed143428157899687cf4ba337937dc412b382b0d285bd9d66c505ee7effe97b",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "scope": "hub",
+    "status": "evidence-required",
+    "findings#len": 4,
+    "external_runtime_installations_claimed": 0
+   }
+  },
+  {
+   "engine": "master-audit",
+   "action": "hub-audit",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-audit hub-audit --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.23,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "4cacedd0f2a569d05df02756a17f62144b4e9412ca1f3529a5021d76cf219738",
+   "digest": "1ed143428157899687cf4ba337937dc412b382b0d285bd9d66c505ee7effe97b",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "catalog_entries": 129,
+    "local_skills": 22,
+    "motion_lab_components": 30,
+    "integrations_indexed": 22,
+    "integrations_probed": 22,
+    "integrations_available": 12,
+    "registered_public_projects": 3,
+    "scoped_tools_tested": 1
+   }
+  },
+  {
+   "engine": "reasoning",
+   "action": "root-causes",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke reasoning root-causes --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "3bd5299f6ba40c24e68c185420f3e4d473bb293b3e297b6aa96590576b2afabf",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.13,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "f03f9b1ba4bfe5d3c84d6d0a85578d68a9aebe157c14345b0e36cc40942417e1",
+   "digest": "5d9ef5526c888505ecba112d64723b927224461ee999c8a3abaf6c89e31419e7",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "candidate_roots#len": 1,
+    "affected#len": 1,
+    "uncertain_nodes#len": 0,
+    "causality_proven": false,
+    "method": "Observed failures traced through caller-declared dependency edges.",
+    "mode": "deterministic",
+    "operation": "root-causes",
+    "provider_calls": 0
+   }
+  },
+  {
+   "engine": "memory",
+   "action": "put",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke memory put --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "34c2d7b165ea31aec0d21edc1c5bb1b8eb51f3fc3c0c70022882c2cb53d01a44",
+   "grant_side_effect": "state-write",
+   "exit": 0,
+   "duration_s": 0.17,
+   "ok": true,
+   "receipt_side_effect": "state-write",
+   "result_sha256": "55cdd0a0da69963de686ac501686d07bc8a3d75e9ae366633cc4e68b35f1031b",
+   "digest": "a481ab2824ba04a3b99946310dd91b7685d04e25f4d049d078c08895bf0c4b35",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "id": "418b951cc643ec0b7ae7f0d642f6aa57d3015c897b37f67e6feaac109be32759",
+    "deduplicated": false,
+    "merged": false,
+    "revision": 1
+   }
+  },
+  {
+   "engine": "memory",
+   "action": "search",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke memory search --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "55c77c2f75722c7d0adfc435354552f279f0fe02f0be5970e5ca4166585f3fc5",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.17,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "2eba037cc7bd3d4fd9968a2c792f87ab3901661fe466c6f9018731c979aef8d3",
+   "digest": "a481ab2824ba04a3b99946310dd91b7685d04e25f4d049d078c08895bf0c4b35",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "count": 1,
+    "rows#len": 1
+   }
+  },
+  {
+   "engine": "memory",
+   "action": "graph",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke memory graph --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "cc24919b180cfc1063fc7aea7c4afcf5d7b3b00e3d0e4137221fdde857264fd9",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.18,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "2a6fe7929357811b706d087d2da8727121c5f710f0f795efe1c921a1a1d4cdff",
+   "digest": "a481ab2824ba04a3b99946310dd91b7685d04e25f4d049d078c08895bf0c4b35",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "project": "activation-proj",
+    "nodes#len": 1,
+    "edges#len": 0
+   }
+  },
+  {
+   "engine": "master-build",
+   "action": "spec",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-build spec --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.16,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "f51df6674f0c6a2a39c6dbd3367f6d8b19cb7c6f008f41b4764c089c577dba8d",
+   "digest": "c34620b9d78a8d112f54065aaf51b2c4a23ff773f5289ca1cb8b1723865a6b59",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "intent": "build",
+    "engine": "MASTER_BUILD",
+    "skill": "gaie-build",
+    "prompt": "prompts/MASTER_BUILD.md",
+    "scope": null,
+    "write": true,
+    "workstreams#len": 10,
+    "hub_commands#len": 6
+   }
+  },
+  {
+   "engine": "master-build",
+   "action": "plan",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-build plan --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "ee45800be81f3596c3fa2dcdaf4e4ccb685d22fd64ac7f9ab1b4cf858d96fa8c",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.15,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "0c69fa930529f413a42fc7607ef2db5d2e3d685cb4f1820e8822e153562be7f7",
+   "digest": "c34620b9d78a8d112f54065aaf51b2c4a23ff773f5289ca1cb8b1723865a6b59",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "request#len": 5,
+    "request_sha256": "ccf1ae706b48ca77f313a1315957c83ce0079b4c47da66856f6c34776c435ab2",
+    "stages#len": 7,
+    "provider_calls": 0,
+    "deployment_authorized": false,
+    "boundary": "Local artifact verification; evaluator assertions require independent trust.",
+    "plan_sha256": "767be03c09e48c9453d046040c17c21b350e8d78ea321818e1a7998a95683729"
+   }
+  },
+  {
+   "engine": "self-healing",
+   "action": "analyze",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke self-healing analyze --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "423b20d068230a4f599e9d166dd66f71f071f058412070a08edad353dcea2243",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.21,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "9368a91bb6260a5996c9a59f4368aa593a6a4dac8a7410a1194d23a26a2fc22e",
+   "digest": "91ea5cc3a66ba223d860f2e11e46d1872056166baa9b3687dcab0c62dc8ece72",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "project": "synthetic",
+    "source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "baseline_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "request_sha256": "950b4732ec63fd3f987f3c4ca441333a31321b07aed0df1e2feb555a823048ec",
+    "evidence_sha256": "f1ea57b6fd7a61a99bb182a09464688db6950f466a98921f5804d29d467739e3",
+    "regressions#len": 2,
+    "new_failures#len": 1
+   }
+  },
+  {
+   "engine": "master-cinematic",
+   "action": "spec",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-cinematic spec --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.1,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "330a69602bf3c35f9d578246382040d367c6188f043697d40ba7f0ca0adfad32",
+   "digest": "85bb57f68b961778b30ccdcde0eb3f7adb923c41bcdabd7beb1354d8585df693",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "intent": "cinematic",
+    "engine": "CINEMATIC",
+    "skill": "gaie-cinematic",
+    "prompt": "prompts/MASTER_UPGRADE.md",
+    "scope": "media",
+    "write": true,
+    "workstreams#len": 4,
+    "hub_commands#len": 3
+   }
+  },
+  {
+   "engine": "master-cinematic",
+   "action": "audit",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-cinematic audit --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.11,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "9e02b26c307e4b5fcdb49ceac663427abcbda84e3dd09272f3f65af0dc0f99d6",
+   "digest": "85bb57f68b961778b30ccdcde0eb3f7adb923c41bcdabd7beb1354d8585df693",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "schema_version": 1,
+    "brief_count": 200,
+    "historical_pr16_source_count": 34,
+    "local_implemented_count": 3,
+    "not_implemented_in_either_inspected_source_count": 163,
+    "required_browsers#len": 3,
+    "verified_browser_receipts#len": 1,
+    "withdrawn_browser_claims#len": 2
+   }
+  },
+  {
+   "engine": "economics",
+   "action": "ledger",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke economics ledger --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "payload_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "grant_side_effect": "none",
+   "exit": 0,
+   "duration_s": 0.15,
+   "ok": true,
+   "receipt_side_effect": "none",
+   "result_sha256": "e5251864ab6c30440cc698ca8eda9d54c3821b073030fa73dc80088e62b841ad",
+   "digest": "5d80bd5b9b9c094c7dffb1e63c00c6ee6ba9dffb8f96a14591b556ede3333941",
+   "digest_of": "engine source files (control-plane receipt source_sha256)",
+   "status": "ran-here",
+   "observed": {
+    "count": 32,
+    "rows#len": 32,
+    "invocations_by_action#len": 31,
+    "model_calls": 0
+   }
+  }
+ ],
+ "refusals": [
+  {
+   "engine": "memory",
+   "action": "put",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke memory put --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "expected_exit": 3,
+   "expected_reason": "action-not-granted",
+   "exit": 3,
+   "reason": "action-not-granted",
+   "duration_s": 0.12,
+   "digest": "fce1ca0466c7c8434dd79ca44ca8b191032f019443dce52b33a4d955aae6ed10",
+   "digest_of": [
+    "engineering_os/control_plane.py",
+    "engineering_os/governor.py"
+   ],
+   "status": "ran-here"
+  },
+  {
+   "engine": "master-audit",
+   "action": "inventory",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke master-audit inventory --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "expected_exit": 3,
+   "expected_reason": "path-outside-grant",
+   "exit": 3,
+   "reason": "path-outside-grant",
+   "duration_s": 0.13,
+   "digest": "fce1ca0466c7c8434dd79ca44ca8b191032f019443dce52b33a4d955aae6ed10",
+   "digest_of": [
+    "engineering_os/control_plane.py",
+    "engineering_os/governor.py"
+   ],
+   "status": "ran-here"
+  },
+  {
+   "engine": "quality-assurance",
+   "action": "run-tests",
+   "via": "hub.py invoke",
+   "command": "python3 hub.py invoke quality-assurance run-tests --payload <payload> --grant <grant> --state <private state> --host claude-code",
+   "expected_exit": 3,
+   "expected_reason": "side-effect-exceeds-grant",
+   "exit": 3,
+   "reason": "side-effect-exceeds-grant",
+   "duration_s": 0.09,
+   "digest": "fce1ca0466c7c8434dd79ca44ca8b191032f019443dce52b33a4d955aae6ed10",
+   "digest_of": [
+    "engineering_os/control_plane.py",
+    "engineering_os/governor.py"
+   ],
+   "status": "ran-here"
+  }
+ ],
+ "registered_engines": [
+  "security-governor",
+  "context-intelligence",
+  "master-router",
+  "agent-swarm",
+  "adaptive-scheduler",
+  "capability-registry",
+  "layers",
+  "master-upgrade",
+  "motion-sdk",
+  "quality-assurance",
+  "master-release",
+  "master-audit",
+  "reasoning",
+  "memory",
+  "master-build",
+  "self-healing",
+  "master-cinematic",
+  "economics"
+ ],
+ "wave2": [
+  {
+   "engine": "requirements",
+   "action": "parse",
+   "via": "module CLI",
+   "command": "python3 -m engineering_os.requirements parse \"Build a new CRM system for a small sales team\"",
+   "exit": 0,
+   "duration_s": 0.1,
+   "digest": "9a4cdadccf9d83edcebc5bd055e1ef874ef45d6c4e9c869f95acda4e2d594abe",
+   "digest_of": "engineering_os/requirements.py",
+   "governed": false,
+   "observed": {
+    "schema": "gaie.spec/1",
+    "slug": "crm",
+    "intent": "new-system",
+    "features": 11,
+    "open_questions": 0
+   },
+   "status": "ran-here"
+  },
+  {
+   "engine": "build_engine",
+   "action": "plan",
+   "via": "module CLI",
+   "command": "python3 -m engineering_os.build_engine plan --spec <spec from requirements parse>",
+   "exit": 0,
+   "duration_s": 0.09,
+   "digest": "c44fad71fec3dc6bebadafaa01fd5a5e90df1af69c4951c95bda881d2092877f",
+   "digest_of": "engineering_os/build_engine.py",
+   "governed": false,
+   "observed": {
+    "project": "crm",
+    "ready": true,
+    "entities#len": 4,
+    "collections#len": 4,
+    "factory_stages#len": 10,
+    "expected_tests#len": 2,
+    "acceptance#len": 2,
+    "unmapped_criteria#len": 8
+   },
+   "status": "ran-here"
+  },
+  {
+   "engine": "orchestrator",
+   "action": "plan",
+   "via": "module CLI",
+   "command": "python3 -m engineering_os.orchestrator plan activation-receipt --now <generation time> --summary",
+   "exit": 0,
+   "duration_s": 0.16,
+   "digest": "aa2b0320d06b1f64745f46b303e58165008630981e6904412f67c3b37b271afa",
+   "digest_of": "engineering_os/orchestrator.py",
+   "governed": false,
+   "observed": {
+    "checks#len": 7,
+    "critical_path#len": 4,
+    "plan_sha256": "1b1bb811f48e3b34b2375f7b963423ad1c6252c1412d94033aaa26202ea15cdb",
+    "tasks": 20,
+    "waves#len": 4
+   },
+   "status": "ran-here"
+  },
+  {
+   "engine": "video_pipeline",
+   "action": "validate",
+   "via": "module CLI",
+   "command": "python3 -m engineering_os.video_pipeline validate sample",
+   "exit": 0,
+   "duration_s": 0.14,
+   "digest": "30a6723625f3905ba585aedbb25b7b6807952908cbb46ae7d7a35b54232532e8",
+   "digest_of": "engineering_os/video_pipeline.py",
+   "governed": false,
+   "observed": {
+    "valid": true,
+    "storyboard_sha256": "c2dcbedae3f28c262f88711985746928c942134b3dbce188aa0b51cf208bd4b5",
+    "frames": 420
+   },
+   "status": "ran-here"
+  },
+  {
+   "engine": "upgrade_engine",
+   "action": "audit",
+   "via": "Python import (the module has no command line)",
+   "command": "upgrade_engine.engine(\"audit\", {target: <copy of tests/fixtures/upgrade/taskapp>, command: \"افحص نظام إدارة المهام\", workdir: <scratch>})",
+   "exit": 0,
+   "duration_s": 0.28,
+   "digest": "85e2b128ca55921554a9a307ff32b3127a13cdad72996a7465e3921693904d3a",
+   "digest_of": "engineering_os/upgrade_engine.py",
+   "governed": false,
+   "observed": {
+    "status": "audited",
+    "mode": "audit",
+    "language": "ar",
+    "changes_made": false,
+    "report_sha256": "55883b3fca313018570741bd111e50bdb10dea2605e5b3b3425d3feecc709ea4"
+   },
+   "fixture": "tests/fixtures/upgrade/taskapp",
+   "fixture_unchanged": true,
+   "status": "ran-here"
+  },
+  {
+   "engine": "healing",
+   "action": "heal",
+   "via": "Python import (the module has no command line)",
+   "command": "healing.heal(<copy of tests/fixtures/healing/webapp>, workdir=<scratch>, tests={start: suite, pattern: case_*.py})",
+   "exit": 0,
+   "duration_s": 2.91,
+   "digest": "4c8405ae22ec4bd0e3442ae3eaa052167486cdd6edae042238c0771b952b03ba",
+   "digest_of": "engineering_os/healing.py",
+   "governed": false,
+   "observed": {
+    "status": "repaired",
+    "findings": 4,
+    "kinds#len": 4,
+    "receipt_chain_valid": true,
+    "report_sha256": "0d8a4b5187ad19b0aac3c4d7a794b42ab2780dd72f152f59aff51fb93b8ade83"
+   },
+   "fixture": "tests/fixtures/healing/webapp",
+   "fixture_unchanged": true,
+   "status": "ran-here"
+  }
+ ],
+ "skills": [
+  {
+   "skill": "gaie-audit",
+   "file": "skills/gaie-audit/SKILL.md",
+   "file_sha256": "456c76fe24992fab3b205f05b6ffbe02f94cb42043e9a96dc26e96d5c9e8fe51",
+   "native_skill_load": "not tested: loading a skill needs an agent host session, which this generator does not start",
+   "status": "catalog-only",
+   "command": null,
+   "exit": null,
+   "digest": null,
+   "reason": "instructions for an agent host; the engines and commands it names are run in the engines and wave2 sections, not through the skill"
+  },
+  {
+   "skill": "gaie-build",
+   "file": "skills/gaie-build/SKILL.md",
+   "file_sha256": "951ba38089b2844fe308afd77db9325d172ea05fc6ba679b8b97e99d3ffd4533",
+   "native_skill_load": "not tested: loading a skill needs an agent host session, which this generator does not start",
+   "status": "catalog-only",
+   "command": null,
+   "exit": null,
+   "digest": null,
+   "reason": "instructions for an agent host; the engines and commands it names are run in the engines and wave2 sections, not through the skill"
+  },
+  {
+   "skill": "gaie-cinematic",
+   "file": "skills/gaie-cinematic/SKILL.md",
+   "file_sha256": "bd192c033d371a87fcc48d26f207c8ffbfe0d33a88048d56daa81a763b2a30a9",
+   "native_skill_load": "not tested: loading a skill needs an agent host session, which this generator does not start",
+   "status": "catalog-only",
+   "command": null,
+   "exit": null,
+   "digest": null,
+   "reason": "instructions for an agent host; the engines and commands it names are run in the engines and wave2 sections, not through the skill"
+  },
+  {
+   "skill": "gaie-master-router",
+   "file": "skills/gaie-master-router/SKILL.md",
+   "file_sha256": "e8004dc75a22e6a705f2bc0a2dcca6595153e3392a12e4514e010f58ccb558bc",
+   "native_skill_load": "not tested: loading a skill needs an agent host session, which this generator does not start",
+   "status": "ran-here",
+   "command": "python3 hub.py route \"افحص سديد\"",
+   "scope": "the first command the skill names, run alone",
+   "exit": 0,
+   "duration_s": 0.11,
+   "digest": "cd8859945ad4dd7ecef212556e7e747e88e7d7f43f0263077b8986e45b305b56",
+   "digest_of": "engineering_os/gaie_router.py",
+   "observed": {
+    "status": "routed",
+    "engine": "AUDIT",
+    "engine_id": "master-audit",
+    "skill": "gaie-audit",
+    "language": "ar"
+   }
+  },
+  {
+   "skill": "gaie-release",
+   "file": "skills/gaie-release/SKILL.md",
+   "file_sha256": "a2f92b95c03f888b1aedd50d0a9c334033f6cc2a8ba5f96886b5bf37bcfd76b3",
+   "native_skill_load": "not tested: loading a skill needs an agent host session, which this generator does not start",
+   "status": "catalog-only",
+   "command": null,
+   "exit": null,
+   "digest": null,
+   "reason": "instructions for an agent host; the engines and commands it names are run in the engines and wave2 sections, not through the skill"
+  },
+  {
+   "skill": "gaie-upgrade",
+   "file": "skills/gaie-upgrade/SKILL.md",
+   "file_sha256": "4d44a70f3c8e03bd6410c937e9a34ba48d1857951f1a3ac41d0e0f4d4aed78c1",
+   "native_skill_load": "not tested: loading a skill needs an agent host session, which this generator does not start",
+   "status": "catalog-only",
+   "command": null,
+   "exit": null,
+   "digest": null,
+   "reason": "instructions for an agent host; the engines and commands it names are run in the engines and wave2 sections, not through the skill"
+  }
+ ],
+ "catalogue_values": "`hub.py capabilities` and `hub.py motions` print recorded catalogue values (for example installed:true, operational:true, runtime_verified, live_recheck_performed:false); they are not host detection and this receipt never cites them as evidence that something runs here.",
+ "observed_note": "engines[].observed and wave2[].observed hold a few scalar fields of each result, to show what came back; counts in them are what an engine read from the repository, not host detection, and fields that repeat catalogue values are left out.",
+ "history": [
+  {
+   "path": "docs/evidence/capability-activation-2026-11-28.json",
+   "status": "dated history",
+   "note": "The priority-tool run of an earlier session on 2026-11-28, on another host. Its content is kept as measured. Current host results are the tools section of this receipt.",
+   "sha256": "7fa2ffdf036bd1a43bf0240783cbd6d366140b33f8326a6abc232585b2eec58a"
+  },
+  {
+   "path": "docs/evidence/2026-11-28-operational-capability-validation.json",
+   "status": "dated history",
+   "note": "Validation recorded for release tag engineering-os-v0.1.3 in an earlier session. Several tool versions it names match neither the committed locks nor this host; it is kept as measured and is not current state.",
+   "sha256": "907ac749db39e2d2356000071cbf67af44a120d9d259ee0481846e9915897660"
+  }
+ ],
+ "not_proven": [
+  "attachment of the MCP servers to an agent host session (they are driven by a stdio probe)",
+  "any call to a real model provider; the tests use scripted, mock or echo models",
+  "native Claude or Codex skill loading; only the first command of the router skill is run",
+  "governance of the wave-2 engines: they run through their own entry points with no grant or control-plane receipt",
+  "Firefox or WebKit; only the browser builds listed under host.browsers are present"
+ ],
+ "summary": {
+  "tools": {
+   "not-installed": 1,
+   "ran-here": 5
+  },
+  "headroom": "ran-here",
+  "engine_calls": {
+   "ran-here": 33
+  },
+  "engines_covered": 18,
+  "refusals": {
+   "ran-here": 3
+  },
+  "wave2": {
+   "ran-here": 6
+  },
+  "skills": {
+   "catalog-only": 5,
+   "ran-here": 1
+  }
+ }
+}
