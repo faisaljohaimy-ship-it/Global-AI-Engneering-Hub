@@ -4,7 +4,7 @@ This page is the pick-up point for the last stretch of the twenty-layer work. It
 hand-written and updated at the end of every stage, then pushed. A new session resumes
 from this page and the branch, not from any conversation.
 
-Last updated: 2026-11-28, stage 1.
+Last updated: 2026-11-28, stage 2 (team at work).
 
 ## Where the work lives
 
@@ -41,6 +41,59 @@ branch. Split of work:
 - Everything else listed under "Open items" is done here.
 - Each new head of `claude/gaie-20-layer-integration` is merged into this branch. Check
   with `git fetch origin claude/gaie-20-layer-integration && git log --oneline HEAD..FETCH_HEAD`.
+
+## Team at work (stage 2)
+
+Each lane is one specialist role from `governance/agent-roles.json`, working in its own
+git worktree on a local branch `gaie/r-<lane>` cut from the working base (this branch
+plus the resolved #30 merge). A lane edits only the paths it owns; anything else goes
+through a written request to the owner of that file. Lanes are merged here one at a
+time after the gate (owned paths, secret scan, tests, `hub.py audit`), then pushed.
+Local lane branches are not on GitHub until they are merged, so a lane that is not
+listed as `done` below must be re-run from its brief if the machine is lost.
+
+| Lane | Role | Scope |
+|---|---|---|
+| reg-engines | control-plane-integration-engineer | wave-2 engines reachable through `control_plane.invoke`, path fields, role grants |
+| reg-layers | twenty-layer-architecture-engineer | wave-2 interfaces and tests appended to the layer registry, scenarios bound |
+| assurance | independent-assurance-engineer | `engineering_os/assurance.py`, review receipts, the gate |
+| scenario-g | github-integration-release-engineer | release engine, Scenario G test and evidence, the hub's own release record |
+| release-prep | github-integration-release-engineer | changelog backfill, release gate list, SDK label, release checklist |
+| sec-isolation | agent-isolation-security-engineer | SEC-07, SEC-12, measured isolation evidence |
+| sec-findings | enterprise-security-privacy-engineer | SEC-10, private-mode finding, behavioural audit probes |
+| agents-20 | adaptive-agent-orchestration-engineer | standing team policy, loader, specialist agent definition |
+| master-docs | master-build-engine-engineer | manifest, loader and drift test for the two MASTER documents |
+| motion-policy | motion-sdk-animation-engineer | purposeful-motion policy, validator, registry build rule |
+| install | claude-code-integration-engineer | vendored pack, Scenario I test and evidence |
+| ci | testing-self-healing-engineer | time limits, node tests in no workflow, positive isolation job, coverage guard |
+| activation | knowledge-intelligence-integration-engineer | approved tools installed from their locks and run, regenerable receipt |
+
+Independent reviewers (read-only, never the producer of what they review): three on the
+#30 merge (authorization, isolation, merge quality) and two on the wave-2 engines
+(build, upgrade, requirements; memory, healing, orchestration, reasoning).
+
+Still to start: the port of motions from earlier branches (waits for the motion-policy
+lane), the wiring pass (router, skills, prompts, `hub.py`), status documents, the final
+review and the report.
+
+Host limits that shape the run: 4 CPUs. The workflow runner allows two agents at once
+on this host, so lanes run as direct background agents; each runs only its own targeted
+tests, and the full suite runs once at the gate.
+
+## What the mapping stage established
+
+- No central team policy, MASTER manifest or motion-purpose policy exists on any branch.
+- The wave-2 engines run for real through their own entry points but are not registered
+  in the control plane, so those runs carry no grant, audit row or receipt.
+- In GitHub CI the sandbox tier is `plain`: the sandbox, cage and wall tests are skipped
+  there. Positive enforcement has been measured only on a host with user namespaces.
+- `detectors.Sandbox` (SEC-07) was measured reading and writing outside its copy; only
+  its environment scrub holds. `layers.verify` (SEC-12) runs tests with the caller's
+  environment.
+- None of the six priority tools is installed on a fresh machine; their dated receipts
+  describe an earlier host.
+- A release tag is created only when the owner publishes a GitHub Release whose target
+  is the merge commit. Until then the truthful wording is "recorded, tag pending".
 
 ## Acceptance scenarios
 
