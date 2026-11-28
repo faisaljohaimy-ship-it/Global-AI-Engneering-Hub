@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import hublink  # noqa: E402
@@ -21,6 +22,11 @@ class EngineMotionLink(unittest.TestCase):
         cls.revision = hublink.head()
 
     def setUp(self):
+        # The suite exercises the commit under test before it is merged. Production
+        # callers do not get this patch: register and verify still require main ancestry.
+        patcher = mock.patch("hublink.on_main", return_value=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.target = pathlib.Path(tempfile.mkdtemp(prefix="hub-engine-motion-"))
         self.addCleanup(shutil.rmtree, self.target, True)
 
@@ -42,14 +48,19 @@ class EngineMotionLink(unittest.TestCase):
         motions = sorted(path.rsplit("/", 1)[1] for path in self.paths(SEQUENCE) if "/motions/quantum/" in path)
         self.assertEqual(motions, ["energy-collapse.mjs", "light-tunnel.mjs", "orbital-matrix.mjs", "probability-cloud.mjs", "singularity-reveal.mjs"])
 
+    def test_an_unmerged_commit_cannot_provide_engine_motions(self):
+        with mock.patch("hublink.on_main", return_value=False):
+            with self.assertRaises(ValueError):
+                hublink.register(self.target, self.revision, capabilities=[LIGHT], apply=True)
+        self.assertFalse((self.target / hublink.ENGINE_DIR).exists())
+
     def test_unknown_or_malformed_ids_are_refused(self):
         for bad in ("engine-motion:quantum-no-such-motion", "engine-motion:nomodule", "engine-motion:../../hub", "engine-motion:quantum-"):
             with self.assertRaises(ValueError, msg=bad):
                 hublink.resolve(self.revision, bad)
 
     def test_two_motions_register_together_verify_and_run_from_the_installed_copy(self):
-        result = hublink.register(self.target, self.revision, capabilities=[LIGHT, BUTTON], apply=True)
-        self.assertNotIn("error", result)
+        hublink.register(self.target, self.revision, capabilities=[LIGHT, BUTTON], apply=True)
         manifest = json.loads((self.target / hublink.MANIFEST).read_text(encoding="utf-8"))
         self.assertEqual([row["id"] for row in manifest["capabilities"]], [LIGHT, BUTTON])
         report = hublink.verify(self.target)

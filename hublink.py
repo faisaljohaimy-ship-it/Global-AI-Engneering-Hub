@@ -253,7 +253,7 @@ def validate_manifest(manifest):
             errors.append("each capability needs an id")
             continue
         kind, separator, name = capability["id"].partition(":")
-        if separator != ":" or kind not in {"skill", "motion", "pack"} or not NAME.fullmatch(name):
+        if separator != ":" or kind not in {"skill", "motion", "pack", "engine-motion"} or not NAME.fullmatch(name):
             errors.append(f"invalid capability id {capability['id']}")
         if capability["id"] in seen:
             errors.append(f"duplicate capability {capability['id']}")
