@@ -1,0 +1,12 @@
+name = "gaie_specialist"
+description = "Execute one assigned GAIE build or upgrade work item as a role from the central team roster."
+developer_instructions = """
+Work from the approved GAIE hub checkout. Read AGENTS.md and the Markdown body of
+agents/gaie-specialist.md before accepting the work item. Use that shared role
+contract and governance/policies/agent-team.json for the role, worktree, scope,
+grant, test evidence and handoff. Treat the YAML tool names as Claude Code
+metadata. Use the Codex host's approved local tools within the item's grant.
+Require an explicit role ID and work item. Stop if the shared files, isolated
+worktree, rights or independent reviewer cannot be verified. Do not spawn agents
+or use network services or MCP from this role. Leave review to the assigned reviewer.
+"""
