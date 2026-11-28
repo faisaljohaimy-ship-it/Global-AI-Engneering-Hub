@@ -791,9 +791,7 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
     cwd must lie inside allowed_paths (after realpath). With the full sandbox (see
     isolation_probe) the command sees a read-only minimal root (system directories, read_paths)
     where only allowed_paths are writable, has no capabilities, its own pid namespace, and no
-    network unless network=True. stdout/stderr are capped by file_mb, and only the last
-    OUTPUT_TAIL_BYTES of each are read back. allowed_paths may grow by disk_mb at most (default
-    DISK_FACTOR * file_mb): past it the run is killed and its limit is "disk".
+    network unless network=True. stdout/stderr are capped by file_mb.
 
     Use require_fs_isolation for governed execution. It refuses the plain tier, network
     and inherited environment, and permits writes only to one private workspace.
@@ -805,7 +803,11 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
     one sandbox. The host's loopback and every other host address stay unreachable. It is meant
     for untrusted code, so /etc is hidden as in the strict profiles (name the interpreter file
     itself: a link through /etc/alternatives dangles). It is refused where the full sandbox cannot
-    be built; the default is unchanged (no interface is up, /etc stays readable)."""
+    be built; the default is unchanged (no interface is up, /etc stays readable).
+
+    Only the last OUTPUT_TAIL_BYTES of stdout and of stderr are read back. allowed_paths may grow
+    by disk_mb at most (default DISK_FACTOR * file_mb): past it the run is killed and its limit is
+    "disk"."""
     if isinstance(cmd, (str, bytes)) or not isinstance(cmd, (list, tuple)) or not cmd or not all(
             isinstance(a, str) and "\0" not in a for a in cmd) or not cmd[0]:
         raise GovernorDenied("invalid-command", "argv list of text, no shell string")
