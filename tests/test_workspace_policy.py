@@ -192,7 +192,9 @@ class WorkspacePolicyTests(unittest.TestCase):
             "        continue\n"
             "    raise AssertionError('unexpected workspace write')\n"
         )
-        command = ["/usr/bin/python3", "-I", "-S", "-c", program, str(peer_file)]
+        # Strict mode hides /etc. Name the interpreter file itself, because /usr/bin/python3 is a
+        # Debian alternatives link through /etc on some hosts and would dangle inside the sandbox.
+        command = [os.path.realpath("/usr/bin/python3"), "-I", "-S", "-c", program, str(peer_file)]
         if governor.isolation_probe()["tier"] == "full":
             result = supervisor.run("developer", command, timeout=10)
             self.assertEqual(result["returncode"], 0, result["stderr"])
