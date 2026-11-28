@@ -77,6 +77,14 @@ python3 hub.py workspace-run --assignments /private/assignments.json \
   --agent build-fixture --timeout 20 -- python3 -c 'print("workspace ready")'
 ```
 
+Each call validates the selected agent in full: identity, Git metadata, links
+and, on a first launch, an empty build directory or a clean worktree. Add
+`--relaunch` once that agent's workspace holds its own work; every check except
+emptiness or cleanliness still applies. The other assignments are checked only
+for canonical, private roots that do not overlap the selected one, so one
+agent's writes never lock out its own relaunch or another agent
+(`tests/test_isolation_fixes_relaunch.py`).
+
 This starts a single local work unit. It never creates a remote repository or
 publishes a project. The control-plane `master-build` and `master-upgrade`
 engines remain plan and artifact-evaluation functions. The deterministic

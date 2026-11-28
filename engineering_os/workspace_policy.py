@@ -291,6 +291,38 @@ def _writable_tree(scope):
     return identity.st_dev, identity.st_ino
 
 
+def _relaunch_scope(settings):
+    """The full identity check of a workspace that already holds its agent's own work."""
+    if settings["intent"] != "build":
+        return validate_workspace(**{**settings, "require_clean": False})
+    try:
+        return _new_workspace(_plain_path(settings["path"]), initial=False)
+    except WorkspacePolicyError:
+        raise
+    except (OSError, UnicodeError, ValueError) as error:
+        raise WorkspacePolicyError("Workspace or Git identity could not be verified.") from error
+
+
+def _peer_scope(settings):
+    """Canonical private roots of an assignment that is not launched now: no Git and no content walk."""
+    try:
+        path = _plain_path(settings["path"])
+        if settings["intent"] == "build":
+            return WorkspaceScope(path, None, path), _owned(path, private=True)
+        if settings["intent"] not in REPO_INTENTS:
+            raise WorkspacePolicyError("This command does not have a workspace write scope.")
+        _owned(path)
+        marker = path / ".git"
+        if marker.is_symlink() or not marker.is_file():
+            raise WorkspacePolicyError("Use the exact root of a dedicated linked Git worktree.")
+        root = _registry_scope(path, settings.get("registered_path"))
+        return WorkspaceScope(root, None, path), _owned(root, private=True)
+    except WorkspacePolicyError:
+        raise
+    except (OSError, UnicodeError, ValueError) as error:
+        raise WorkspacePolicyError("Workspace or Git identity could not be verified.") from error
+
+
 class WorkspaceSupervisor:
     """Give an authenticated local dispatcher one isolated write root per assigned agent.
 
@@ -298,12 +330,23 @@ class WorkspaceSupervisor:
     supplies the caller's agent ID. Use a single active assignment registry per
     dispatcher. The checker neither authenticates host sessions nor coordinates
     assignments made by other processes.
+
+    By default every assignment is validated as fresh (empty build directory, clean
+    worktree). With `selected`, only that agent is validated in full and can run:
+    fresh, or with relaunch=True as a workspace that already holds its own work. The
+    other assignments are checked only for canonical, private and independent roots,
+    so one agent's writes never lock out another.
     """
 
-    def __init__(self, assignments):
+    def __init__(self, assignments, *, selected=None, relaunch=False):
         if not isinstance(assignments, Mapping) or not 1 <= len(assignments) <= 20:
             raise WorkspacePolicyError("Supply one to twenty explicit agent workspace assignments.")
+        if type(relaunch) is not bool or (relaunch and selected is None):
+            raise WorkspacePolicyError("A relaunch names exactly one selected agent.")
+        if selected is not None and (not isinstance(selected, str) or selected not in assignments):
+            raise WorkspacePolicyError("The agent has no assigned write workspace.")
         self._assignments = {}
+        seen = []
         for agent, settings in assignments.items():
             if not isinstance(agent, str) or not AGENT_ID.fullmatch(agent):
                 raise WorkspacePolicyError("An assigned agent needs a valid local ID.")
@@ -311,14 +354,20 @@ class WorkspaceSupervisor:
                     or not settings.keys() <= ASSIGNMENT_KEYS):
                 raise WorkspacePolicyError("Assignments require path and intent and can include the registered target.")
             settings = dict(settings)
-            scope = validate_workspace(**settings)
-            identity = _writable_tree(scope)
-            for other, other_identity, _ in self._assignments.values():
+            if selected is None or agent == selected:
+                scope = _relaunch_scope(settings) if relaunch else validate_workspace(**settings)
+                identity = _writable_tree(scope)
+            else:
+                scope, info = _peer_scope(settings)
+                identity = info.st_dev, info.st_ino
+            for other, other_identity in seen:
                 if (identity == other_identity or scope.checkout == other.checkout or scope.root.is_relative_to(other.root)
                         or other.root.is_relative_to(scope.root)):
                     raise WorkspacePolicyError("An agent workspace must be independent of all other assignments.")
-            settings["path"] = scope.checkout
-            self._assignments[agent] = (scope, identity, settings)
+            seen.append((scope, identity))
+            if selected is None or agent == selected:
+                settings["path"] = scope.checkout
+                self._assignments[agent] = (scope, identity, settings)
 
     def run(self, agent, cmd, *, timeout):
         from . import governor
