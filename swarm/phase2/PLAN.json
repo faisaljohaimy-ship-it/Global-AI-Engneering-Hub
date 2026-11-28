@@ -1,0 +1,60 @@
+{
+ "about": "The plan of the second phase, written before its first agent ran. Stages run in this order. A stage is skipped when its projected cost would pass the limit; everything ends on a usage or rate limit, a security finding, a breach of the worker's contract, a machine limit, or a stage where under 60% of the tasks verify. A stage that brings no gain in throughput does not end the experiment in this phase: the owner asked for the research to go on, with the result recorded.",
+ "seed": 20261129,
+ "caps": {
+  "cumulative_input_tokens": 150000000,
+  "spent_before_phase2": 36168638,
+  "preflight_input_tokens": 2219321,
+  "preflight_note": "spent_before_phase2 is the first phase's total. preflight_input_tokens is what the agents used that were started in the authoring session to try this phase's worker command before the plan ran; evidence/preflight.json has their record. Both count against the limit.",
+  "phase2_agent_runs": 600,
+  "phase2_output_tokens": 3000000
+ },
+ "stops": {
+  "min_verified_rate_to_continue": 60.0,
+  "note_verified_rate_below": 90.0,
+  "max_security_findings": 0,
+  "max_stage_wall_seconds": 1500,
+  "min_memory_available_mb": 1500,
+  "max_host_process_rss_mb": 9000,
+  "margin_without_projection": 5000000
+ },
+ "cost_weights": {
+  "about": "Cost units weigh each kind of token against one uncached input token. The weights are the ratios of the published API prices (a cache read costs a tenth, a five-minute cache write a quarter more, a one-hour write double, an output token five times). They are an assumption for comparing configurations. They are not a measure of subscription allowance, which the host does not show.",
+  "cache_read": 0.1,
+  "cache_write_5m": 1.25,
+  "cache_write_1h": 2.0,
+  "output": 5.0
+ },
+ "stages": [
+  {"id": "p1", "kind": "probe", "agents": 2, "agent_type": "swarm-probe", "model": "haiku", "effort": "low",
+   "prompts": ["cat /etc/hostname", "swk status"], "note": "Is the gate in front of a worker's shell enforced by the host? One command it must refuse, one it must allow."},
+  {"id": "c1", "kind": "task", "size": "small", "agents": 1, "tasks": 1, "first": 1, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id",
+   "note": "One lean worker, cold. The baseline for speed-up and the first projection."},
+  {"id": "c2", "kind": "task", "size": "small", "agents": 5, "tasks": 5, "first": 2, "agent_type": "swarm-light-2", "model": "haiku", "effort": "low", "delivery": "id",
+   "note": "Variant: the worker is stopped by a turn limit after handing in, instead of spending a reply on the word DONE."},
+  {"id": "c3", "kind": "task", "size": "small", "agents": 5, "tasks": 5, "first": 7, "agent_type": "swarm-light-inline", "model": "haiku", "effort": "low", "delivery": "inline",
+   "note": "Variant: the task text is in the prompt, so the worker needs no call to read it."},
+  {"id": "s10", "kind": "task", "size": "small", "agents": 10, "tasks": 10, "first": 21, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "s20", "kind": "task", "size": "small", "agents": 20, "tasks": 20, "first": 31, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "s25", "kind": "task", "size": "small", "agents": 25, "tasks": 25, "first": 51, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "s50", "kind": "task", "size": "small", "agents": 50, "tasks": 50, "first": 101, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "s75", "kind": "task", "size": "small", "agents": 75, "tasks": 75, "first": 151, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "s100", "kind": "task", "size": "small", "agents": 100, "tasks": 100, "first": 301, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "g10", "kind": "task", "size": "small", "agents": 10, "tasks": 10, "first": 401, "agent_type": "general-purpose", "model": "haiku", "effort": "low", "delivery": "general",
+   "note": "The host's general agent on the same work in the same clean session: what the lean definition saves beyond what the clean session saves."},
+  {"id": "m1", "kind": "task", "size": "medium", "agents": 1, "tasks": 1, "first": 1, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "m10h", "kind": "task", "size": "medium", "agents": 10, "tasks": 10, "first": 11, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"},
+  {"id": "m10s", "kind": "task", "size": "medium", "agents": 10, "tasks": 10, "first": 21, "agent_type": "swarm-light", "model": "sonnet", "effort": "low", "delivery": "id"},
+  {"id": "m25", "kind": "task", "size": "medium", "agents": 25, "tasks": 25, "first": 31, "agent_type": "swarm-light",
+   "model": {"after": "m10h", "at_least": 90.0, "light": "haiku", "otherwise": "sonnet"}, "effort": "low", "delivery": "id"},
+  {"id": "m50", "kind": "task", "size": "medium", "agents": 50, "tasks": 50, "first": 61, "agent_type": "swarm-light",
+   "model": {"after": "m10h", "at_least": 90.0, "light": "haiku", "otherwise": "sonnet"}, "effort": "low", "delivery": "id"},
+  {"id": "l1", "kind": "task", "size": "large", "agents": 1, "tasks": 1, "first": 1, "agent_type": "swarm-large", "model": "sonnet", "effort": "medium", "delivery": "id", "mode": "lean"},
+  {"id": "l5r", "kind": "task", "size": "large", "agents": 5, "tasks": 5, "first": 11, "agent_type": "swarm-large", "model": "sonnet", "effort": "medium", "delivery": "id", "mode": "raw",
+   "note": "Plain commands only: full test output, whole files, text search."},
+  {"id": "l5l", "kind": "task", "size": "large", "agents": 5, "tasks": 5, "first": 21, "agent_type": "swarm-large", "model": "sonnet", "effort": "medium", "delivery": "id", "mode": "lean",
+   "note": "The same kind of work with shortened test output, the shared index and the record filter."},
+  {"id": "l10", "kind": "task", "size": "large", "agents": 10, "tasks": 10, "first": 31, "agent_type": "swarm-large", "model": "sonnet", "effort": "medium", "delivery": "id", "mode": "lean"},
+  {"id": "l25", "kind": "task", "size": "large", "agents": 25, "tasks": 25, "first": 41, "agent_type": "swarm-large", "model": "sonnet", "effort": "medium", "delivery": "id", "mode": "lean"}
+ ]
+}

@@ -1,0 +1,466 @@
+{
+ "about": "Development agents of the third phase: each built one part of the system in its own worktree. They are not agents of the measured experiment. Counts, times and tool names from the host's records; no record content.",
+ "kind": "development agents",
+ "lanes": [
+  {
+   "lane": "H1",
+   "group": "security",
+   "title": "Attack the session gate",
+   "files_changed": [
+    "swarm/phase3/hook.py",
+    "swarm/phase3/reviews/gate-attack.md",
+    "tests/test_p3_hook_attack.py"
+   ],
+   "lines_added": 255,
+   "lines_removed": 15,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 11,
+   "state": "joined",
+   "agent": {
+    "replies": 8,
+    "tool_calls": 9,
+    "seconds": 143.35,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 282311,
+    "output_tokens": 12863,
+    "cost_units": 147205,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H2",
+   "group": "security",
+   "title": "A cage for worker-written code at hand-in",
+   "files_changed": [
+    "swarm/phase3/handin.py",
+    "tests/test_p3_handin.py"
+   ],
+   "lines_added": 429,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 19,
+   "state": "joined",
+   "agent": {
+    "replies": 7,
+    "tool_calls": 11,
+    "seconds": 110.03,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 223269,
+    "output_tokens": 12062,
+    "cost_units": 133500,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H3",
+   "group": "engine",
+   "title": "A ticket for every claimed task",
+   "files_changed": [
+    ".claude/agents/swarm-queue-1.md",
+    ".claude/agents/swarm-queue.md",
+    "swarm/phase3/kit3.py",
+    "tests/test_p3_kit3.py",
+    "tests/test_p3_tickets.py"
+   ],
+   "lines_added": 239,
+   "lines_removed": 27,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 12,
+   "state": "joined",
+   "agent": {
+    "replies": 10,
+    "tool_calls": 10,
+    "seconds": 83.12,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 342406,
+    "output_tokens": 10816,
+    "cost_units": 141083,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H4",
+   "group": "scale",
+   "title": "Capacity study by deterministic simulation, to 100,000 agents",
+   "files_changed": [
+    "swarm/phase3/capacity.py",
+    "tests/test_p3_capacity.py"
+   ],
+   "lines_added": 230,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 6,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 7,
+    "seconds": 43.78,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 172533,
+    "output_tokens": 6354,
+    "cost_units": 92464,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H5",
+   "group": "scale",
+   "title": "The coordinator's own parts at 100,000 tasks, measured",
+   "files_changed": [
+    "swarm/phase3/coordinator_scale.py",
+    "swarm/phase3/evidence/coordinator-scale.json",
+    "tests/test_p3_coordinator_scale.py"
+   ],
+   "lines_added": 320,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 0,
+   "state": "joined later, as it is, for the setting session to repair; before that: rejected: it changed paths outside its lane",
+   "outside": [
+    "swarm/phase3/evidence/coordinator-scale.json"
+   ],
+   "agent": {
+    "replies": 8,
+    "tool_calls": 8,
+    "seconds": 405.85,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 256535,
+    "output_tokens": 6684,
+    "cost_units": 148404,
+    "refused_calls": 0,
+    "final_reply": "DONE.",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H6",
+   "group": "quality",
+   "title": "The ledger at its edges",
+   "files_changed": [
+    "swarm/phase3/ledger.py",
+    "tests/test_p3_ledger_edges.py"
+   ],
+   "lines_added": 262,
+   "lines_removed": 26,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 15,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 7,
+    "seconds": 68.4,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 190722,
+    "output_tokens": 10909,
+    "cost_units": 122735,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H7",
+   "group": "quality",
+   "title": "Isolation between stages, workers and homes",
+   "files_changed": [
+    "swarm/phase3/reviews/isolation.md",
+    "tests/test_p3_isolation.py"
+   ],
+   "lines_added": 425,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 20,
+   "state": "joined later, as it is, for the setting session to repair; before that: not joined: its own tests fail here",
+   "agent": {
+    "replies": 10,
+    "tool_calls": 12,
+    "seconds": 214.71,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 420591,
+    "output_tokens": 17024,
+    "cost_units": 194030,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H8",
+   "group": "architecture",
+   "title": "The evidence schema of the gated run",
+   "files_changed": [
+    "swarm/phase3/schema.py",
+    "tests/test_p3_schema.py"
+   ],
+   "lines_added": 136,
+   "lines_removed": 1,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 16,
+   "state": "joined",
+   "agent": {
+    "replies": 7,
+    "tool_calls": 8,
+    "seconds": 38.45,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 227750,
+    "output_tokens": 5634,
+    "cost_units": 99331,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H9",
+   "group": "architecture",
+   "title": "Freeze",
+   "files_changed": [
+    "swarm/phase3/freeze.py",
+    "tests/test_p3_freeze.py"
+   ],
+   "lines_added": 317,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 20,
+   "state": "joined",
+   "agent": {
+    "replies": 4,
+    "tool_calls": 4,
+    "seconds": 38.64,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 97176,
+    "output_tokens": 5891,
+    "cost_units": 75332,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H10",
+   "group": "architecture",
+   "title": "One command that checks the whole experiment",
+   "files_changed": [
+    "swarm/phase3/closure.py",
+    "tests/test_p3_closure.py"
+   ],
+   "lines_added": 332,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 8,
+   "state": "joined",
+   "agent": {
+    "replies": 11,
+    "tool_calls": 10,
+    "seconds": 63.47,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 361506,
+    "output_tokens": 9580,
+    "cost_units": 132306,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H11",
+   "group": "security",
+   "title": "Independent security review of the worker's path",
+   "files_changed": [
+    "swarm/phase3/reviews/security-review.md",
+    "tests/test_p3_review_security.py"
+   ],
+   "lines_added": 327,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 24,
+   "state": "joined later, as it is, for the setting session to repair; before that: not joined: its own tests fail here",
+   "agent": {
+    "replies": 16,
+    "tool_calls": 18,
+    "seconds": 268.96,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 908760,
+    "output_tokens": 34849,
+    "cost_units": 354176,
+    "refused_calls": 0,
+    "final_reply": "DONE.",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H12",
+   "group": "quality",
+   "title": "Independent review of the measurements",
+   "files_changed": [
+    "swarm/phase3/reviews/measurement-review.md",
+    "tests/test_p3_review_measurement.py"
+   ],
+   "lines_added": 609,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 43,
+   "state": "joined",
+   "agent": {
+    "replies": 16,
+    "tool_calls": 20,
+    "seconds": 276.24,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 1139298,
+    "output_tokens": 38251,
+    "cost_units": 427583,
+    "refused_calls": 0,
+    "final_reply": "DONE.",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H13",
+   "group": "integration",
+   "title": "Handover for the reviewer, final state",
+   "files_changed": [
+    "swarm/phase3/HANDOVER.md",
+    "swarm/phase3/handover.py",
+    "tests/test_p3_handover.py"
+   ],
+   "lines_added": 235,
+   "lines_removed": 10,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 9,
+   "state": "joined",
+   "agent": {
+    "replies": 8,
+    "tool_calls": 8,
+    "seconds": 36.7,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 248610,
+    "output_tokens": 5079,
+    "cost_units": 96728,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H14",
+   "group": "economics",
+   "title": "What a task, a feature and a system cost",
+   "files_changed": [
+    "swarm/phase3/economics.py",
+    "tests/test_p3_economics.py"
+   ],
+   "lines_added": 130,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 14,
+   "state": "joined",
+   "agent": {
+    "replies": 9,
+    "tool_calls": 9,
+    "seconds": 46.45,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 290202,
+    "output_tokens": 6317,
+    "cost_units": 106664,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H15",
+   "group": "economics",
+   "title": "The threat model, checked against the tests",
+   "files_changed": [
+    "swarm/phase3/SECURITY.md",
+    "swarm/phase3/security_doc.py",
+    "tests/test_p3_security_doc.py"
+   ],
+   "lines_added": 504,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 5,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 8,
+    "seconds": 59.45,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 203940,
+    "output_tokens": 8729,
+    "cost_units": 122766,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "H16",
+   "group": "economics",
+   "title": "The final report, built from the evidence",
+   "files_changed": [
+    "swarm/phase3/report3.py",
+    "tests/test_p3_report3.py"
+   ],
+   "lines_added": 341,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 3,
+   "state": "joined",
+   "agent": {
+    "replies": 8,
+    "tool_calls": 8,
+    "seconds": 68.8,
+    "model": "sonnet",
+    "first_request_context": 9045,
+    "input_tokens": 271095,
+    "output_tokens": 10476,
+    "cost_units": 134629,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  }
+ ],
+ "totals": {
+  "lanes": 16,
+  "agents_started": 16,
+  "ran_at_once": 16,
+  "wall_seconds": 405.9,
+  "joined": 16,
+  "input_tokens": 5636704,
+  "output_tokens": 201518,
+  "cost_units": 2528936,
+  "agents_that_met_a_limit": 0,
+  "lines_added_joined": 4019,
+  "tests_added_joined": 181
+ },
+ "suite_after_joining": {
+  "tests": 577,
+  "passed": false
+ },
+ "recounted": "Each lane's use was read again from the host's records after the lane pattern was corrected to take the whole lane number."
+}

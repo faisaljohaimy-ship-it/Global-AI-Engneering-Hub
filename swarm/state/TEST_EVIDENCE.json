@@ -1,0 +1,144 @@
+{
+ "hidden_tests": [
+  {
+   "label": "s01",
+   "tasks": 5,
+   "verified_tasks": 5,
+   "hidden_tests_passed": 69,
+   "hidden_tests_total": 69,
+   "security_findings": 0,
+   "files_outside_contract": 0
+  },
+  {
+   "label": "s05",
+   "tasks": 5,
+   "verified_tasks": 5,
+   "hidden_tests_passed": 72,
+   "hidden_tests_total": 72,
+   "security_findings": 0,
+   "files_outside_contract": 0
+  },
+  {
+   "label": "s10",
+   "tasks": 10,
+   "verified_tasks": 10,
+   "hidden_tests_passed": 141,
+   "hidden_tests_total": 141,
+   "security_findings": 0,
+   "files_outside_contract": 0
+  },
+  {
+   "label": "s20",
+   "tasks": 20,
+   "verified_tasks": 20,
+   "hidden_tests_passed": 282,
+   "hidden_tests_total": 282,
+   "security_findings": 0,
+   "files_outside_contract": 0
+  }
+ ],
+ "benchmark_checks": {
+  "A": {
+   "tests_pass": true,
+   "files_changed": [
+    "inv/m0.py"
+   ],
+   "lines_added": 1,
+   "lines_removed": 1,
+   "only_the_broken_module_changed": true,
+   "answer_fields_correct": {
+    "fixed_function": true,
+    "direct_callers": true,
+    "failed_event_ids": true,
+    "build_error_code": true
+   },
+   "score": 5,
+   "out_of": 5
+  },
+  "D": {
+   "tests_pass": true,
+   "files_changed": [
+    "inv/m0.py"
+   ],
+   "lines_added": 1,
+   "lines_removed": 1,
+   "only_the_broken_module_changed": true,
+   "answer_fields_correct": {
+    "fixed_function": true,
+    "direct_callers": true,
+    "failed_event_ids": true,
+    "build_error_code": true
+   },
+   "score": 5,
+   "out_of": 5
+  }
+ },
+ "scheduling_simulation": {
+  "100": {
+   "kind": "simulation: no agent was started and no model was called",
+   "registered_agents": 100,
+   "tasks_submitted": 105,
+   "tasks_scheduled": 100,
+   "duplicates_dropped": 5,
+   "waves": 3,
+   "largest_wave": 85,
+   "limit": 100,
+   "agents_used": 100,
+   "checks": {
+    "every_distinct_task_once": true,
+    "dependencies_first": true,
+    "no_agent_twice_in_a_wave": true,
+    "no_shared_write_path_in_a_wave": true,
+    "no_wave_above_limit": true,
+    "duplicates_dropped": true
+   },
+   "passed": true
+  },
+  "16": {
+   "kind": "simulation: no agent was started and no model was called",
+   "registered_agents": 100,
+   "tasks_submitted": 105,
+   "tasks_scheduled": 100,
+   "duplicates_dropped": 5,
+   "waves": 7,
+   "largest_wave": 16,
+   "limit": 16,
+   "agents_used": 100,
+   "checks": {
+    "every_distinct_task_once": true,
+    "dependencies_first": true,
+    "no_agent_twice_in_a_wave": true,
+    "no_shared_write_path_in_a_wave": true,
+    "no_wave_above_limit": true,
+    "duplicates_dropped": true
+   },
+   "passed": true
+  },
+  "2": {
+   "kind": "simulation: no agent was started and no model was called",
+   "registered_agents": 100,
+   "tasks_submitted": 105,
+   "tasks_scheduled": 100,
+   "duplicates_dropped": 5,
+   "waves": 50,
+   "largest_wave": 2,
+   "limit": 2,
+   "agents_used": 100,
+   "checks": {
+    "every_distinct_task_once": true,
+    "dependencies_first": true,
+    "no_agent_twice_in_a_wave": true,
+    "no_shared_write_path_in_a_wave": true,
+    "no_wave_above_limit": true,
+    "duplicates_dropped": true
+   },
+   "passed": true
+  }
+ },
+ "checkpoint_restore": {
+  "revision": 160,
+  "state_sha256": "001bea6b8ff7da705d24020e04919271b54f1bf4e09ad3fd9b6d79c70be5b81d",
+  "restored_sha256": "001bea6b8ff7da705d24020e04919271b54f1bf4e09ad3fd9b6d79c70be5b81d",
+  "restore_matches": true
+ }
+}

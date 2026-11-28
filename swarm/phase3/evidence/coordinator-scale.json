@@ -1,0 +1,83 @@
+{
+ "about": "The coordinator's own parts only: the queue, the gate and the ledger. No agent and no model ran.",
+ "machine": {
+  "cores": 4,
+  "memory_total_bytes": 16868675584
+ },
+ "measured": {
+  "queue_by_size": [
+   {
+    "tasks": 1000,
+    "create_seconds": 0.248,
+    "files_on_disk": 1001,
+    "bytes_on_disk": 30,
+    "claim_processes": 20,
+    "claim_wall_seconds": 0.582,
+    "claimed": 1000,
+    "claims_per_second": 1717.1,
+    "every_id_claimed_exactly_once": true,
+    "no_id_claimed_twice": true,
+    "finished_within_budget": true,
+    "status_seconds": 0.019,
+    "status_claimed": 1000,
+    "status_waiting": 0
+   },
+   {
+    "tasks": 10000,
+    "create_seconds": 1.895,
+    "files_on_disk": 10001,
+    "bytes_on_disk": 32,
+    "claim_processes": 20,
+    "claim_wall_seconds": 3.763,
+    "claimed": 10000,
+    "claims_per_second": 2657.8,
+    "every_id_claimed_exactly_once": true,
+    "no_id_claimed_twice": true,
+    "finished_within_budget": true,
+    "status_seconds": 0.183,
+    "status_claimed": 10000,
+    "status_waiting": 0
+   },
+   {
+    "tasks": 100000,
+    "create_seconds": 2.12,
+    "files_on_disk": 100001,
+    "bytes_on_disk": 34,
+    "claim_processes": 20,
+    "claim_wall_seconds": 49.591,
+    "claimed": 100000,
+    "claims_per_second": 2016.5,
+    "every_id_claimed_exactly_once": true,
+    "no_id_claimed_twice": true,
+    "finished_within_budget": true,
+    "status_seconds": 1.901,
+    "status_claimed": 100000,
+    "status_waiting": 0
+   }
+  ],
+  "gate": {
+   "hook_decide_per_second_one_process": 390665,
+   "installed_gate_calls": 200,
+   "installed_gate_seconds_per_call": 0.0478,
+   "installed_gate_exit_codes_seen": [
+    0
+   ],
+   "record_line_bytes": 169
+  },
+  "ledger_build": {
+   "records": 2000,
+   "tool_calls_counted": 4000,
+   "seconds": 0.724,
+   "peak_memory_bytes_tracemalloc": 162441
+  },
+  "source": "timed on this machine in one run with time.perf_counter; memory from tracemalloc (Python allocations only)"
+ },
+ "estimated": {
+  "gate_record_bytes_for_100000_agents_two_calls_each": 33800000,
+  "gate_record_arithmetic": "169 bytes per line x 100000 agents x 2 calls = 33800000 bytes",
+  "ledger_build_seconds_for_100000_records": 36.2,
+  "ledger_build_peak_bytes_for_100000_records": 8122050,
+  "ledger_arithmetic": "measured value for 2000 records x 50, assuming cost grows in step with the number of records",
+  "label": "estimate, not measured"
+ }
+}

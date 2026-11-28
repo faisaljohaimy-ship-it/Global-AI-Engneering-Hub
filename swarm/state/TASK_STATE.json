@@ -1,0 +1,27 @@
+{
+ "experiment": "swarm-100x100",
+ "branch": "claude/swarm-100x100",
+ "updated": "2026-11-28",
+ "done": [
+  "registries of 100 capabilities and 100 roles",
+  "scheduling simulation for 100 agents",
+  "ladder stages s01 s05 s10 s20 with real agents",
+  "scripted comparison of configurations A to D",
+  "one real agent each for A and D",
+  "task-store checkpoint and restore",
+  "independent review by four agents; its twelve findings addressed"
+ ],
+ "not_done": [
+  "stages s25 s50 s75 s100 (stopped by the limits)",
+  "real agents for configurations B and C",
+  "more than one sample for A and D",
+  "98 of the 100 roles run by a real agent",
+  "any run from Codex"
+ ],
+ "task_store": {
+  "revision": 160,
+  "state_sha256": "001bea6b8ff7da705d24020e04919271b54f1bf4e09ad3fd9b6d79c70be5b81d",
+  "tasks_awaiting_two_more_reviews": 40
+ },
+ "to_resume": "Stage s25 would be: python3 swarm/ladder.py prep s25 25 41, start 25 agents with the printed prompts, then python3 swarm/ladder.py finish s25 50. Do not start it unless protect.py says GO."
+}

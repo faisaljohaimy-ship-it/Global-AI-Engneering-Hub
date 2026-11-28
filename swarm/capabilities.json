@@ -1,0 +1,1326 @@
+{
+ "schema_version": 1,
+ "note": "The hundred capabilities are the owner's list, in the owner's order. They are not a\nhundred packages: each row says what kind of thing it is (an outside tool, something the\nagent host does, a local script, a hub component or a working rule) and how far it got\nhere. The status words are:",
+ "capabilities": [
+  {
+   "id": "C001",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Headroom Compression",
+   "kind": "tool",
+   "implementation": "Headroom through hr (0.44.0) and the hub tool tools/headroom_context.py (0.45.0)",
+   "invoke": "hr run -- CMD",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json",
+    "search"
+   ]
+  },
+  {
+   "id": "C002",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Reversible Context Compression",
+   "kind": "script",
+   "implementation": "hr keeps every original by SHA-256 and returns it on request",
+   "invoke": "hr get REF --all",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json",
+    "search"
+   ]
+  },
+  {
+   "id": "C003",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "JSON Structural Compression",
+   "kind": "tool",
+   "implementation": "Headroom's JSON transform: arrays become a table with every row",
+   "invoke": "hr put --kind json FILE",
+   "status": "TESTED",
+   "task_classes": [
+    "json"
+   ]
+  },
+  {
+   "id": "C004",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Repetitive Log Compression",
+   "kind": "tool",
+   "implementation": "Headroom's log transform, called directly by hr",
+   "invoke": "hr run -- TESTCMD",
+   "status": "USED",
+   "task_classes": [
+    "log"
+   ]
+  },
+  {
+   "id": "C005",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Tool Output Compression",
+   "kind": "script",
+   "implementation": "hr wraps a command and prints a view of its output",
+   "invoke": "hr run -- CMD",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json",
+    "search"
+   ]
+  },
+  {
+   "id": "C006",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Selective Context Retrieval",
+   "kind": "script",
+   "implementation": "hr get by line range or pattern; Read with offset and limit",
+   "invoke": "hr get REF --grep RE",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json",
+    "search",
+    "code"
+   ]
+  },
+  {
+   "id": "C007",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Context Fidelity Verification",
+   "kind": "script",
+   "implementation": "hr appends every error line a view lost; hr verify rechecks the checksum",
+   "invoke": "hr verify REF",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json"
+   ]
+  },
+  {
+   "id": "C008",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Context Deduplication",
+   "kind": "script",
+   "implementation": "hr never compresses a view twice; the store is content-addressed",
+   "invoke": "automatic in hr",
+   "status": "TESTED",
+   "task_classes": [
+    "log",
+    "json"
+   ]
+  },
+  {
+   "id": "C009",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Context Budget Management",
+   "kind": "script",
+   "implementation": "bands in the skill; swarm/protect.py holds the experiment's limits",
+   "invoke": "python3 swarm/protect.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C010",
+   "group": "A",
+   "group_name": "Context compression",
+   "name": "Adaptive Compression Routing",
+   "kind": "script",
+   "implementation": "hr picks the transform from the command and the shape of the text",
+   "invoke": "automatic in hr",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json",
+    "search"
+   ]
+  },
+  {
+   "id": "C011",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Context Mode",
+   "kind": "tool",
+   "implementation": "context-mode 2.1.10 as a standalone stdio server on its own Node 24",
+   "invoke": "context-mode-server via mcp_probe.py",
+   "status": "TESTED",
+   "task_classes": [
+    "docs"
+   ]
+  },
+  {
+   "id": "C012",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Local Output Indexing",
+   "kind": "tool",
+   "implementation": "Context Mode ctx_index (full-text index per project)",
+   "invoke": "ctx_index",
+   "status": "TESTED",
+   "task_classes": [
+    "docs"
+   ]
+  },
+  {
+   "id": "C013",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Selective Log Retrieval",
+   "kind": "script",
+   "implementation": "hr get --grep and --lines on the stored original",
+   "invoke": "hr get REF --lines A:B",
+   "status": "USED",
+   "task_classes": [
+    "log"
+   ]
+  },
+  {
+   "id": "C014",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "External Context Storage",
+   "kind": "script",
+   "implementation": "~/.gaie-store per session and log files outside the conversation",
+   "invoke": "automatic in hr",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json"
+   ]
+  },
+  {
+   "id": "C015",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Search-based Context Recovery",
+   "kind": "script",
+   "implementation": "hr get --grep; Context Mode ctx_search where it is installed",
+   "invoke": "hr get REF --grep RE",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "docs"
+   ]
+  },
+  {
+   "id": "C016",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Scoped Document Retrieval",
+   "kind": "host",
+   "implementation": "Read with offset and limit; search with a result limit",
+   "invoke": "Read, Grep",
+   "status": "USED",
+   "task_classes": [
+    "code",
+    "docs"
+   ]
+  },
+  {
+   "id": "C017",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Native Context Compaction",
+   "kind": "host",
+   "implementation": "the host compacts the conversation by itself; observed twice in the recorded session",
+   "invoke": "none: host decides",
+   "status": "HOST",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C018",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Deferred Context Loading",
+   "kind": "host",
+   "implementation": "tool definitions are loaded only when asked for",
+   "invoke": "ToolSearch",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C019",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Progressive Disclosure",
+   "kind": "rule",
+   "implementation": "a short SKILL.md with references read on demand",
+   "invoke": "read references/ when needed",
+   "status": "USED",
+   "task_classes": [
+    "docs"
+   ]
+  },
+  {
+   "id": "C020",
+   "group": "B",
+   "group_name": "Context isolation",
+   "name": "Context Lifecycle Management",
+   "kind": "rule",
+   "implementation": "the bands in the skill; compaction and clearing are user commands",
+   "invoke": null,
+   "status": "RULE",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C021",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "Serena",
+   "kind": "tool",
+   "implementation": "serena-agent 2.1.0, one question per run through sym",
+   "invoke": "sym overview FILE",
+   "status": "USED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C022",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "TypeScript LSP",
+   "kind": "tool",
+   "implementation": "typescript-language-server, started by Serena",
+   "invoke": "sym def NAME FILE.ts",
+   "status": "TESTED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C023",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "Python LSP",
+   "kind": "tool",
+   "implementation": "pyright, started by Serena; pyright CLI is also on the machine",
+   "invoke": "sym refs NAME FILE.py",
+   "status": "USED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C024",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "JavaScript Language Intelligence",
+   "kind": "tool",
+   "implementation": "the TypeScript server reading .mjs modules through Serena",
+   "invoke": "sym overview FILE.mjs",
+   "status": "TESTED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C025",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "ast-grep",
+   "kind": "tool",
+   "implementation": "ast-grep 0.51.2",
+   "invoke": "ast-grep run -p PATTERN -l LANG",
+   "status": "USED",
+   "task_classes": [
+    "code",
+    "search"
+   ]
+  },
+  {
+   "id": "C026",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "Tree-sitter",
+   "kind": "tool",
+   "implementation": "inside ast-grep and Repomix; the Python binding 0.26.1 parsed one module and counted its 33 functions, the same as Python's own parser",
+   "invoke": "python -c 'import tree_sitter'",
+   "status": "TESTED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C027",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "Ripgrep",
+   "kind": "tool",
+   "implementation": "ripgrep 14.1.0 and the host's search tool",
+   "invoke": "rg -n PATTERN",
+   "status": "USED",
+   "task_classes": [
+    "search",
+    "code"
+   ]
+  },
+  {
+   "id": "C028",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "Symbol-level Retrieval",
+   "kind": "tool",
+   "implementation": "sym def returns one definition instead of a file",
+   "invoke": "sym def NAME FILE",
+   "status": "USED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C029",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "Reference Graph Analysis",
+   "kind": "script",
+   "implementation": "sym refs; swarm/bench.py writes a call index for its project",
+   "invoke": "sym refs NAME FILE",
+   "status": "USED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C030",
+   "group": "C",
+   "group_name": "Semantic code intelligence",
+   "name": "Dependency-aware Code Retrieval",
+   "kind": "script",
+   "implementation": "the hub copies a motion with exactly the modules it imports (PR #16)",
+   "invoke": "python3 hub.py register PROJECT --capability engine-motion:ID",
+   "status": "TESTED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C031",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Context7",
+   "kind": "tool",
+   "implementation": "not installed: its hosts are refused by the session's network policy",
+   "invoke": null,
+   "status": "BLOCKED",
+   "task_classes": [
+    "docs"
+   ]
+  },
+  {
+   "id": "C032",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Version-specific Documentation Retrieval",
+   "kind": "script",
+   "implementation": "read the pinned version from the lock, then inspect the installed package",
+   "invoke": "python -c 'import inspect, PKG'",
+   "status": "USED",
+   "task_classes": [
+    "docs"
+   ]
+  },
+  {
+   "id": "C033",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Selective API Documentation",
+   "kind": "script",
+   "implementation": "print one signature or one help section, not a manual",
+   "invoke": "python -c inspect.signature",
+   "status": "USED",
+   "task_classes": [
+    "docs"
+   ]
+  },
+  {
+   "id": "C034",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Repomix Scoped Analysis",
+   "kind": "tool",
+   "implementation": "repomix 1.19.0 with --include and --compress",
+   "invoke": "repomix --include GLOB --compress",
+   "status": "TESTED",
+   "task_classes": [
+    "code",
+    "review"
+   ]
+  },
+  {
+   "id": "C035",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Local Knowledge Indexing",
+   "kind": "script",
+   "implementation": "a per-project call index given to an agent as INDEX.json; Context Mode's index",
+   "invoke": "python3 swarm/bench.py build DIR",
+   "status": "USED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C036",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Verified Documentation Cache",
+   "kind": "none",
+   "implementation": "nothing here caches outside documentation",
+   "invoke": null,
+   "status": "NOT IMPLEMENTED",
+   "task_classes": [
+    "docs"
+   ]
+  },
+  {
+   "id": "C037",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Architecture Knowledge Retrieval",
+   "kind": "hub",
+   "implementation": "hub.py architecture and ARCHITECTURE.md",
+   "invoke": "python3 hub.py architecture",
+   "status": "AVAILABLE",
+   "task_classes": [
+    "architecture"
+   ]
+  },
+  {
+   "id": "C038",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Skill Discovery",
+   "kind": "hub",
+   "implementation": "hub.py recommend scans skills/*/SKILL.md",
+   "invoke": "python3 hub.py recommend QUERY",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C039",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "On-demand Skill Activation",
+   "kind": "host",
+   "implementation": "a skill's text is loaded when it is invoked",
+   "invoke": "Skill tool",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C040",
+   "group": "D",
+   "group_name": "Knowledge intelligence",
+   "name": "Shared Knowledge References",
+   "kind": "script",
+   "implementation": "agent packets name shared files by path instead of copying them",
+   "invoke": "packet field shared",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C041",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Prompt Caching",
+   "kind": "host",
+   "implementation": "done by the host; read and write counts are in every agent's record",
+   "invoke": "none: measured by swarm/measure.py",
+   "status": "HOST",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C042",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Stable Context Prefixes",
+   "kind": "rule",
+   "implementation": "every worker got the same instructions first; even so the host wrote a fresh cache of about 182,000 tokens for each agent",
+   "invoke": "packet layout",
+   "status": "RULE",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C043",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Content Fingerprinting",
+   "kind": "script",
+   "implementation": "SHA-256 of originals, of motion sources and of tasks",
+   "invoke": "automatic",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C044",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Git Blob-based Reuse",
+   "kind": "script",
+   "implementation": "the hub reads files at a revision from Git objects",
+   "invoke": "hublink.read(revision, path)",
+   "status": "TESTED",
+   "task_classes": [
+    "code"
+   ]
+  },
+  {
+   "id": "C045",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "File Checksum Verification",
+   "kind": "hub",
+   "implementation": "hub.py verify --strict and hr verify",
+   "invoke": "python3 hub.py verify --strict",
+   "status": "USED",
+   "task_classes": [
+    "release"
+   ]
+  },
+  {
+   "id": "C046",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Dependency Lockfile Caching",
+   "kind": "script",
+   "implementation": "bootstrap skips a tool whose lock has not changed; uv reuses downloads",
+   "invoke": "skills/ultra-context-optimization/scripts/bootstrap.sh",
+   "status": "USED",
+   "task_classes": [
+    "setup"
+   ]
+  },
+  {
+   "id": "C047",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Build Cache Optimization",
+   "kind": "none",
+   "implementation": "the hub has no build step to cache",
+   "invoke": null,
+   "status": "NOT IMPLEMENTED",
+   "task_classes": [
+    "build"
+   ]
+  },
+  {
+   "id": "C048",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Test Result Reuse",
+   "kind": "script",
+   "implementation": "motion evidence is bound to source hashes, so unchanged motions are not re-run (the motion package, PR #16)",
+   "invoke": "node packages/motion-engines/verify/browser.mjs --module KEY",
+   "status": "USED",
+   "task_classes": [
+    "test"
+   ]
+  },
+  {
+   "id": "C049",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Cache Invalidation",
+   "kind": "script",
+   "implementation": "evidence is void when its source or the core changes; lock stamps",
+   "invoke": "automatic",
+   "status": "TESTED",
+   "task_classes": [
+    "test"
+   ]
+  },
+  {
+   "id": "C050",
+   "group": "E",
+   "group_name": "Cache and reuse",
+   "name": "Shared Artifact Reuse",
+   "kind": "script",
+   "implementation": "one tool install under ~/.gaie-tools serves every agent",
+   "invoke": "GAIE_TOOLS",
+   "status": "USED",
+   "task_classes": [
+    "setup"
+   ]
+  },
+  {
+   "id": "C051",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Programmatic Tool Calling",
+   "kind": "host",
+   "implementation": "the host exposed no native programmatic tool calling; local scripts stand in",
+   "invoke": null,
+   "status": "BLOCKED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C052",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Deterministic Local Scripts",
+   "kind": "script",
+   "implementation": "measuring, checking, generating and scheduling are scripts, not model calls",
+   "invoke": "python3 swarm/*.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C053",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Batched Tool Execution",
+   "kind": "host",
+   "implementation": "several tool calls in one message and several steps in one command",
+   "invoke": "parallel tool calls",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C054",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Tool Search",
+   "kind": "host",
+   "implementation": "the host's on-demand tool lookup",
+   "invoke": "ToolSearch",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C055",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Deferred MCP Loading",
+   "kind": "host",
+   "implementation": "connector tool definitions stay unloaded until needed",
+   "invoke": "ToolSearch",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C056",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Intelligent Output Filtering",
+   "kind": "script",
+   "implementation": "commands print the answer, not the raw output",
+   "invoke": "pipe to a filter or hr",
+   "status": "USED",
+   "task_classes": [
+    "log",
+    "json"
+   ]
+  },
+  {
+   "id": "C057",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Adaptive Tool Routing",
+   "kind": "script",
+   "implementation": "the table in the skill; swarm/route.py picks capabilities for a task class",
+   "invoke": "python3 swarm/route.py CLASS",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C058",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Tool Call Deduplication",
+   "kind": "script",
+   "implementation": "the scheduler drops duplicate tasks; measure.py counts repeated reads",
+   "invoke": "python3 swarm/scheduler.py simulate",
+   "status": "TESTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C059",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Structured Result Extraction",
+   "kind": "script",
+   "implementation": "agents answer in a fixed JSON file that a checker reads",
+   "invoke": "ANSWER.json",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C060",
+   "group": "F",
+   "group_name": "Tool execution",
+   "name": "Minimal Tool Response Policy",
+   "kind": "rule",
+   "implementation": "an agent's final reply is one word; its work is in files",
+   "invoke": "packet rule",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C061",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Adaptive Model Selection",
+   "kind": "host",
+   "implementation": "a model can be named for each agent",
+   "invoke": "agent model option",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C062",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Adaptive Reasoning Allocation",
+   "kind": "host",
+   "implementation": "a reasoning effort can be named for each agent",
+   "invoke": "agent effort option",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C063",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Complexity-aware Routing",
+   "kind": "script",
+   "implementation": "swarm/route.py maps a task class to a model tier and an effort",
+   "invoke": "python3 swarm/route.py CLASS",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C064",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Task Classification",
+   "kind": "script",
+   "implementation": "swarm/route.py classes: routine, investigate, design, security, review",
+   "invoke": "python3 swarm/route.py CLASS",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C065",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Resource-aware Model Routing",
+   "kind": "hub",
+   "implementation": "engineering_os/model_router.py; it needs evaluator receipts that do not exist yet",
+   "invoke": "python3 -m engineering_os.model_router",
+   "status": "AVAILABLE",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C066",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Usage-aware Scheduling",
+   "kind": "script",
+   "implementation": "swarm/protect.py decides between stages whether to go on",
+   "invoke": "python3 swarm/protect.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C067",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Inference Loop Optimization",
+   "kind": "rule",
+   "implementation": "a packet holds everything a worker needs, so it asks for nothing",
+   "invoke": "packet layout",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C068",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Model Roundtrip Reduction",
+   "kind": "rule",
+   "implementation": "the same; roundtrips per task are measured",
+   "invoke": "measured by swarm/measure.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C069",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Cost-aware Task Allocation",
+   "kind": "script",
+   "implementation": "swarm/route.py gives routine work the lightest tier",
+   "invoke": "python3 swarm/route.py routine",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C070",
+   "group": "G",
+   "group_name": "Model and reasoning",
+   "name": "Performance-based Model Selection",
+   "kind": "none",
+   "implementation": "no comparison of models on the same tasks was kept as a selection rule",
+   "invoke": null,
+   "status": "NOT IMPLEMENTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C071",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Adaptive Agent Scheduling",
+   "kind": "script",
+   "implementation": "swarm/scheduler.py plans waves from the task graph",
+   "invoke": "python3 swarm/scheduler.py simulate",
+   "status": "TESTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C072",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Dynamic Concurrency",
+   "kind": "script",
+   "implementation": "the scheduler plans to any limit; the real stages used the fixed sizes of the ladder",
+   "invoke": "scheduler --limit N",
+   "status": "TESTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C073",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Task Ownership",
+   "kind": "hub",
+   "implementation": "engineering_os.orchestration: claim with a lease, one owner per task",
+   "invoke": "TaskStore.claim",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C074",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Task Deduplication",
+   "kind": "script",
+   "implementation": "tasks with the same fingerprint are scheduled once",
+   "invoke": "scheduler dedup",
+   "status": "TESTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C075",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Dependency-aware Task Graph",
+   "kind": "script",
+   "implementation": "tasks run only after the tasks they depend on",
+   "invoke": "scheduler waves",
+   "status": "TESTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C076",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Git Worktree Isolation",
+   "kind": "host",
+   "implementation": "each line of work, and each benchmark agent, has its own worktree",
+   "invoke": "git worktree add",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C077",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Shared Context References",
+   "kind": "script",
+   "implementation": "packets point at shared files and indexes by path",
+   "invoke": "packet field shared",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C078",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Specialized Agent Routing",
+   "kind": "script",
+   "implementation": "the scheduler gives a task to an agent of the matching team and role",
+   "invoke": "scheduler assign",
+   "status": "TESTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C079",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Cross-Agent Handover",
+   "kind": "hub",
+   "implementation": "TaskStore handover and submit with receipts; pull-request descriptions",
+   "invoke": "TaskStore.handover",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C080",
+   "group": "H",
+   "group_name": "Multi-agent",
+   "name": "Conflict Prevention",
+   "kind": "hub",
+   "implementation": "one active task per branch; every agent writes only in its own folder",
+   "invoke": "TaskStore.claim",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C081",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Incremental Testing",
+   "kind": "rule",
+   "implementation": "run the test for what changed first, the full suite before a merge",
+   "invoke": "unittest -p, --module KEY",
+   "status": "USED",
+   "task_classes": [
+    "test"
+   ]
+  },
+  {
+   "id": "C082",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Affected-module Detection",
+   "kind": "none",
+   "implementation": "nothing here maps a change to the tests it affects",
+   "invoke": null,
+   "status": "NOT IMPLEMENTED",
+   "task_classes": [
+    "test"
+   ]
+  },
+  {
+   "id": "C083",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Dependency-aware Testing",
+   "kind": "none",
+   "implementation": "the same gap",
+   "invoke": null,
+   "status": "NOT IMPLEMENTED",
+   "task_classes": [
+    "test"
+   ]
+  },
+  {
+   "id": "C084",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Change-aware Builds",
+   "kind": "none",
+   "implementation": "the hub has no build step",
+   "invoke": null,
+   "status": "NOT IMPLEMENTED",
+   "task_classes": [
+    "build"
+   ]
+  },
+  {
+   "id": "C085",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Selective Regression Testing",
+   "kind": "script",
+   "implementation": "the browser harness runs one module or one motion (the motion package, PR #16)",
+   "invoke": "node packages/motion-engines/verify/browser.mjs --id ID",
+   "status": "USED",
+   "task_classes": [
+    "test"
+   ]
+  },
+  {
+   "id": "C086",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Reproducible Build Artifacts",
+   "kind": "script",
+   "implementation": "hash-checked locks and seeded generators give the same files again",
+   "invoke": "locks/, --seed",
+   "status": "USED",
+   "task_classes": [
+    "setup"
+   ]
+  },
+  {
+   "id": "C087",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Deterministic Quality Gates",
+   "kind": "hub",
+   "implementation": "unit tests, the secret scan, the dependency scan and the harness",
+   "invoke": "scripts/security_scan.py scan",
+   "status": "USED",
+   "task_classes": [
+    "release"
+   ]
+  },
+  {
+   "id": "C088",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Parallel Independent Testing",
+   "kind": "script",
+   "implementation": "the checker runs each agent's hidden tests in its own process",
+   "invoke": "python3 swarm/workload.py check",
+   "status": "USED",
+   "task_classes": [
+    "test"
+   ]
+  },
+  {
+   "id": "C089",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Incremental Static Analysis",
+   "kind": "script",
+   "implementation": "the checker parses each solution and rejects imports outside a short list",
+   "invoke": "python3 swarm/workload.py check",
+   "status": "USED",
+   "task_classes": [
+    "security"
+   ]
+  },
+  {
+   "id": "C090",
+   "group": "I",
+   "group_name": "Incremental engineering",
+   "name": "Root-cause Debugging",
+   "kind": "rule",
+   "implementation": "reproduce, isolate, fix, add a regression test",
+   "invoke": null,
+   "status": "RULE",
+   "task_classes": [
+    "debug"
+   ]
+  },
+  {
+   "id": "C091",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Persistent Task State",
+   "kind": "script",
+   "implementation": "swarm/state/TASK_STATE.json and the TaskStore file",
+   "invoke": "swarm/state/",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C092",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Engineering Checkpoints",
+   "kind": "hub",
+   "implementation": "TaskStore.checkpoint and one commit per finished stage",
+   "invoke": "TaskStore.checkpoint",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C093",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Architecture Decision Records",
+   "kind": "rule",
+   "implementation": "decisions are written in swarm/state/ENGINEERING_HANDOVER.md",
+   "invoke": "swarm/state/",
+   "status": "USED",
+   "task_classes": [
+    "architecture"
+   ]
+  },
+  {
+   "id": "C094",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Session Recovery",
+   "kind": "hub",
+   "implementation": "TaskStore.restore into an empty store reproduces the state",
+   "invoke": "TaskStore.restore",
+   "status": "TESTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C095",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Lightweight Lifecycle Hooks",
+   "kind": "none",
+   "implementation": "none installed: a hook on every tool call costs more than calling hr when needed",
+   "invoke": null,
+   "status": "NOT IMPLEMENTED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C096",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Token Measurement",
+   "kind": "script",
+   "implementation": "swarm/measure.py sums the usage the API reported for every agent",
+   "invoke": "python3 swarm/measure.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C097",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Cache Efficiency Measurement",
+   "kind": "script",
+   "implementation": "cache reads as a share of all input, from the same records",
+   "invoke": "python3 swarm/measure.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C098",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Agent Resource Monitoring",
+   "kind": "script",
+   "implementation": "a sampler records load, memory and the host process during a stage",
+   "invoke": "python3 swarm/measure.py sample",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C099",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Net Efficiency Benchmarking",
+   "kind": "script",
+   "implementation": "speedup, efficiency and tokens per verified task",
+   "invoke": "python3 swarm/measure.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  },
+  {
+   "id": "C100",
+   "group": "J",
+   "group_name": "Memory and resource governance",
+   "name": "Automatic Budget Protection",
+   "kind": "script",
+   "implementation": "swarm/protect.py stops the ladder when a limit is reached",
+   "invoke": "python3 swarm/protect.py",
+   "status": "USED",
+   "task_classes": [
+    "orchestration"
+   ]
+  }
+ ]
+}

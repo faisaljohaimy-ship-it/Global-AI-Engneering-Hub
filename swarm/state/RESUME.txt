@@ -1,0 +1,7 @@
+Swarm experiment, branch claude/swarm-100x100 (on top of claude/ultra-context-optimization).
+Done: registries (100 capabilities, 100 roles), scheduling simulation, real stages of 1, 5, 10 and 20 agents,
+scripted A-D comparison, one real agent each for A and D, task-store checkpoint and restore.
+Stopped: after 20 agents, by the limits in swarm/protect.py. Stages 25, 50, 75 and 100 were not run.
+Read first: swarm/README.md, then swarm/state/TASK_STATE.json.
+Check: python3 -m unittest tests.test_swarm ; python3 swarm/build_registries.py --check
+Do not start a larger stage unless `python3 swarm/protect.py RESULTS.json N` prints GO.

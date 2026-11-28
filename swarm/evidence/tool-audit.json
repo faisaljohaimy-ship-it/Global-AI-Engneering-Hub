@@ -1,0 +1,42 @@
+{
+ "agents": 38,
+ "tool_calls_by_name": {
+  "Bash": 54,
+  "Read": 40,
+  "Write": 40,
+  "SubagentHandback": 38,
+  "send_message": 3,
+  "interrupt_session": 1
+ },
+ "calls_outside_the_task_contract": 4,
+ "of_which_refused_by_the_host": 4,
+ "agents_making_them": 4,
+ "detail": [
+  {
+   "task": "T-0009",
+   "tool": "interrupt_session",
+   "refused": true
+  },
+  {
+   "task": "T-0029",
+   "tool": "send_message",
+   "refused": true
+  },
+  {
+   "task": "T-0017",
+   "tool": "send_message",
+   "refused": true
+  },
+  {
+   "task": "T-0032",
+   "tool": "send_message",
+   "refused": true
+  }
+ ],
+ "first_request_context_tokens": {
+  "median": 222067,
+  "min": 221822,
+  "max": 222192
+ },
+ "cache_written_per_agent_tokens_median": 182023
+}

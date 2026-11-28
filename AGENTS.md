@@ -22,5 +22,6 @@ speed up, audit, fix or release a project, or to upgrade its videos, run
 ask; never guess a project or repository. A route is a plan, not execution evidence.
 
 Before a large task, and whenever a command prints a lot or code must be explored, read
-`skills/ultra-context-optimization/SKILL.md`: compress output with the original kept
-retrievable, query code by symbol, one measured tool per kind of content.
+`skills/ultra-context-optimization/SKILL.md`: which tool to use for which kind of content,
+symbol queries, and a command wrapper that keeps originals retrievable. That wrapper is a
+front end to the Headroom capability above: one store, one pinned version, one boundary.
