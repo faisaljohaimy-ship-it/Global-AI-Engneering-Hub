@@ -438,11 +438,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
             raise ApiError(403, "forbidden", "you can only change your own records")
         return stored
 
+    def _identity_unchanged(self, entity, account, stored, values):
+        """The principal record's e-mail decides which signed-in account it identifies (and so
+        which scoped records that account sees): once set, only a '*' role may change it."""
+        principal = self.schema.auth.get("principal")
+        if not principal or entity.name != principal["entity"] or "*" in self.schema.permissions(account["role"]):
+            return
+        field = principal["email_field"]
+        if values.get(field) != stored.get(field):
+            raise ApiError(403, "forbidden", f"only an administrator can change {field}: it identifies an account",
+                           fields={field: "read_only"})
+
     def _update(self, entity, record_id, account, scope, mode, partial):
         payload = self._body()
         with db.session(self.app.db_path) as connection:
             stored = self._owned(connection, entity, record_id, account, scope, mode)
         values = self._validated(entity, payload, base=stored if partial else None)
+        self._identity_unchanged(entity, account, stored, values)
         try:
             with db.session(self.app.db_path) as connection:
                 db.check_references(connection, self.schema, entity, values, scope)

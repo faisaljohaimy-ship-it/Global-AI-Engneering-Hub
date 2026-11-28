@@ -423,6 +423,20 @@ class ApiTests(unittest.TestCase):
             self.assertIn(visible["id"], ids)
             self.assertNotIn(hidden["id"], ids)
             self.assertEqual(self.call("GET", self.path(child, hidden["id"]), session=session)[0], 404)
+        # the principal e-mail identifies the account: a role without '*' cannot re-point it
+        field = SCHEMA.auth["principal"]["email_field"]
+        other = self.server.create(principal, 2)
+        self.assertEqual(self.call("POST", f"{self.path(scoped, theirs['id'])}/{link['segment']}",
+                                   {link["target_key"]: other["id"]})[0], 201)
+        for record, value in ((member, f"spare.{time.time_ns()}@example.invalid"), (other, email)):
+            status, _, reply = self.call("PATCH", self.path(principal, record["id"]), {field: value}, session=session)
+            self.assertEqual(status, 403, reply)
+        status, _, page = self.call("GET", self.path(scoped) + f"?limit={LIMITS['max_page_size']}", session=session)
+        self.assertEqual((status, {row["id"] for row in page["items"]}), (200, {mine["id"]}))
+        self.assertEqual(self.call("PATCH", self.path(principal, member["id"]),
+                                   {field: f"moved.{time.time_ns()}@example.invalid"})[0], 200, "an administrator may")
+        status, _, page = self.call("GET", self.path(scoped) + f"?limit={LIMITS['max_page_size']}", session=session)
+        self.assertEqual((status, page["items"]), (200, []))
         self.assertEqual(self.call("GET", self.path(scoped, mine["id"]), role=ADMIN)[0], 200)
         self.assertEqual(self.call("GET", self.path(scoped, theirs["id"]), role=ADMIN)[0], 200)
 

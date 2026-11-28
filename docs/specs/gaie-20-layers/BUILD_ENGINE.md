@@ -117,6 +117,9 @@ and records whose references lead to them, directly or through other entities (a
 on a task of a visible project): at least one such reference must be set and every one
 that is set must point to a visible record. A model in which one entity reaches the
 scoped entity through more than 32 reference chains is refused (`UnsupportedSpec`).
+An account is identified with the principal record whose e-mail equals the account's
+(immutable) e-mail; once set, that e-mail field can be changed only by a `*` role (403
+`read_only` otherwise), so a scoped role cannot re-point its own or another identity.
 CSP `default-src 'self'`,
 `frame-ancestors 'none'`, nosniff, DENY, no-referrer, COOP/CORP; body limit 64 KiB;
 loopback bind unless `--allow-network`; no default account.

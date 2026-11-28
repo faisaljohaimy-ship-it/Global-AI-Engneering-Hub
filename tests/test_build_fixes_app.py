@@ -205,7 +205,41 @@ class ReadOwnSubResourceTests(GeneratedApp):
         self.assertEqual(result["own_members"], [200, []], "the member record was created by the admin, not by bob")
 
 
-COMMENTS_COMMAND = "ابنِ نظامًا جديدًا لإدارة المشاريع مع تعليقات على المهام"
+class PrincipalBindingTests(GeneratedApp):
+    """W2-BU-04: a scoped role cannot re-point which principal record identifies an account."""
+
+    def test_manager_cannot_take_over_another_members_projects(self):
+        result = self.scenario("""
+            mgr = server.login("manager", email="mgr@example.invalid")
+            mine, secret = new("Project", 1), new("Project", 2)
+            me = new("Member", 1, email="mgr@example.invalid")
+            alice = new("Member", 2, email="alice@example.invalid")
+            assert status("POST", "/api/projects/%d/members" % mine["id"], {"member_id": me["id"]}) == 201
+            assert status("POST", "/api/projects/%d/members" % secret["id"], {"member_id": alice["id"]}) == 201
+            result["before"] = ids("GET", "/api/projects", mgr)
+            result["move_own_email"] = refusal("PATCH", "/api/members/%d" % me["id"], {"email": "spare@example.invalid"}, mgr)
+            result["take_alice_email"] = refusal("PATCH", "/api/members/%d" % alice["id"], {"email": "mgr@example.invalid"}, mgr)
+            body = sample(SCHEMA.by_name["Member"], 3, email="mgr@example.invalid")
+            result["put_alice_email"] = refusal("PUT", "/api/members/%d" % alice["id"], body, mgr)
+            result["rename_alice"] = status("PATCH", "/api/members/%d" % alice["id"], {"name": "Alice A."}, mgr)
+            result["put_keeping_email"] = status("PUT", "/api/members/%d" % alice["id"],
+                                                 sample(SCHEMA.by_name["Member"], 4, email="alice@example.invalid"), mgr)
+            result["after"] = ids("GET", "/api/projects", mgr)
+            result["admin_moves_email"] = status("PATCH", "/api/members/%d" % me["id"], {"email": "moved@example.invalid"})
+            result["after_admin"] = ids("GET", "/api/projects", mgr)
+            result["want"] = mine["id"]
+        """)
+        self.assertEqual(result["before"], [200, [result["want"]]])
+        self.assertEqual(result["move_own_email"], [403, "forbidden"])
+        self.assertEqual(result["take_alice_email"], [403, "forbidden"])
+        self.assertEqual(result["put_alice_email"], [403, "forbidden"])
+        self.assertEqual((result["rename_alice"], result["put_keeping_email"]), (200, 200), "other fields stay writable")
+        self.assertEqual(result["after"], [200, [result["want"]]])
+        self.assertEqual(result["admin_moves_email"], 200, "an administrator may re-point an identity")
+        self.assertEqual(result["after_admin"], [200, []])
+
+
+COMMENTS_COMMAND ="ابنِ نظامًا جديدًا لإدارة المشاريع مع تعليقات على المهام"
 
 
 class TransitiveScopingTests(GeneratedApp):
