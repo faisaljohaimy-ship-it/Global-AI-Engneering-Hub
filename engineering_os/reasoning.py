@@ -258,16 +258,17 @@ def review_decision(planned, reviews, verification, *, now=None):
         blockers.append('insufficient_distinct_model_reviews')
     verified = set()
     for row in _rows(verification, maximum=128):
-        _shape(row, {'id', 'status', 'source_sha256', 'at', 'sha256'})
+        _shape(row, {'id', 'status', 'source_sha256', 'plan_sha256', 'at', 'sha256'})
         key = _id(row['id'])
         if key in verified:
             raise ReasoningError("Duplicate verification check")
         verified.add(key)
         _digest(row['source_sha256'])
+        _digest(row['plan_sha256'])
         _digest(row['sha256'])
         if row['status'] not in {'passed', 'failed'}:
             raise ReasoningError("Invalid verification status")
-        if row['status'] != 'passed' or row['source_sha256'] != planned['source_sha256'] or not _fresh(row['at'], now) or row['at'] < planned['planned_at']:
+        if row['status'] != 'passed' or row['plan_sha256'] != planned['plan_sha256'] or row['source_sha256'] != planned['source_sha256'] or not _fresh(row['at'], now) or row['at'] < planned['planned_at']:
             blockers.append('verification_failed_or_unbound')
     if not set(planned['review_requirements']['required_checks']) <= verified:
         blockers.append('missing_required_verification')

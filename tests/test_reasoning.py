@@ -39,8 +39,8 @@ def reviews(planned):
              'evidence_sha256': str(i) * 64, 'at': NOW} for i in [1, 2]]
 
 
-def verification():
-    return [{'id': name, 'status': 'passed', 'source_sha256': SOURCE,
+def verification(planned):
+    return [{'id': name, 'status': 'passed', 'source_sha256': SOURCE, 'plan_sha256': planned['plan_sha256'],
              'at': NOW, 'sha256': str(i) * 64}
             for i, name in enumerate(['security', 'tests'], 3)]
 
@@ -183,7 +183,7 @@ class ReasoningTests(unittest.TestCase):
     def test_two_independent_reviews_and_all_checks_allow_metadata_acceptance(self):
         p = self.planned()
         original = copy.deepcopy(p)
-        result = review_decision(p, reviews(p), verification(), now=NOW)
+        result = review_decision(p, reviews(p), verification(p), now=NOW)
         self.assertEqual(result['decision'], 'accepted')
         self.assertEqual(result['provider_calls'], 0)
         self.assertEqual(p, original)
@@ -193,7 +193,7 @@ class ReasoningTests(unittest.TestCase):
         result = review_decision(p, [], [], now=NOW)
         self.assertIn('insufficient_distinct_model_reviews', result['blockers'])
         self.assertIn('missing_required_verification', result['blockers'])
-        result = review_decision(p, reviews(p), verification()[:1], now=NOW)
+        result = review_decision(p, reviews(p), verification(p)[:1], now=NOW)
         self.assertEqual(result['decision'], 'blocked')
 
     def test_duplicate_models_or_reviewer_cannot_count_twice(self):
@@ -202,14 +202,14 @@ class ReasoningTests(unittest.TestCase):
             r = reviews(p)
             r[1][field] = r[0][field]
             with self.subTest(field=field), self.assertRaises(ReasoningError):
-                review_decision(p, r, verification(), now=NOW)
+                review_decision(p, r, verification(p), now=NOW)
 
     def test_unpinned_model_review_is_refused(self):
         p = self.planned()
         r = reviews(p)
         r[0]['revision'] = 'latest'
         with self.assertRaises(ReasoningError):
-            review_decision(p, r, verification(), now=NOW)
+            review_decision(p, r, verification(p), now=NOW)
 
     def test_review_rejection_and_wrong_plan_or_source_block(self):
         p = self.planned()
@@ -218,18 +218,18 @@ class ReasoningTests(unittest.TestCase):
             r = reviews(p)
             r[0][field] = value
             with self.subTest(field=field):
-                self.assertEqual(review_decision(p, r, verification(), now=NOW)['decision'], 'blocked')
+                self.assertEqual(review_decision(p, r, verification(p), now=NOW)['decision'], 'blocked')
 
     def test_changed_expired_and_infeasible_plans_do_not_pass_gate(self):
         p = self.planned()
         p['selected'] = 'distributed'
         with self.assertRaises(ReasoningError):
-            review_decision(p, reviews(p), verification(), now=NOW)
+            review_decision(p, reviews(p), verification(p), now=NOW)
         p = self.planned()
-        self.assertIn('plan_expired', review_decision(p, reviews(p), verification(), now=NOW + 86401)['blockers'])
+        self.assertIn('plan_expired', review_decision(p, reviews(p), verification(p), now=NOW + 86401)['blockers'])
         self.request['constraints']['max_minutes'] = 1
         p = self.planned()
-        self.assertIn('plan_not_provisional', review_decision(p, reviews(p), verification(), now=NOW)['blockers'])
+        self.assertIn('plan_not_provisional', review_decision(p, reviews(p), verification(p), now=NOW)['blockers'])
 
     def test_rehashed_plan_cannot_relax_checks_models_or_selection(self):
         for change in ['checks', 'models', 'selection', 'blockers']:
@@ -244,16 +244,16 @@ class ReasoningTests(unittest.TestCase):
                 p['blockers'] = ['invented-blocker']
             p['plan_sha256'] = sha({key: value for key, value in p.items() if key != 'plan_sha256'})
             with self.subTest(change=change), self.assertRaises(ReasoningError):
-                review_decision(p, reviews(p), verification(), now=NOW)
+                review_decision(p, reviews(p), verification(p), now=NOW)
 
     def test_failed_unbound_or_old_verification_blocks(self):
         p = self.planned()
-        for field, value in [('status', 'failed'), ('source_sha256', 'c' * 64), ('at', NOW - 1), ('at', NOW + 1)]:
-            v = verification()
+        for field, value in [('status', 'failed'), ('source_sha256', 'c' * 64), ('plan_sha256', 'c' * 64), ('at', NOW - 1), ('at', NOW + 1)]:
+            v = verification(p)
             v[0][field] = value
             with self.subTest(field=field):
                 self.assertEqual(review_decision(p, reviews(p), v, now=NOW)['decision'], 'blocked')
-        v = verification()
+        v = verification(p)
         v.append(copy.deepcopy(v[0]))
         with self.assertRaises(ReasoningError):
             review_decision(p, reviews(p), v, now=NOW)
