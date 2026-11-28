@@ -172,6 +172,35 @@
     "micro-liquid-button": "no stated purpose: a wave wobbles an arrow button's outline; a decorative effect",
     "micro-cursor-distortion": "no stated purpose: a dot lattice bends around the pointer; a decorative effect"
    }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-symbols.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "da3af05ef5cb6f43cb21242c73f49a9162f4bb05",
+   "from_blob": "7e8e911320f104b57a833b312495d2426d160705",
+   "ids": [
+    "icons-multi-state"
+   ],
+   "left_out": {
+    "typography-kinetic-assembly": "no stated purpose: the letters GAIE fly into place; a title effect with no digital service shown",
+    "typography-letter-materialization": "no stated purpose: the word FLOW is traced letter by letter; a title effect",
+    "typography-depth-extrusion": "no stated purpose: the letters GAIE gain depth slices; a title effect",
+    "typography-word-morph": "no stated purpose: the word FLOW morphs into GAIE; a title effect",
+    "typography-variable-font": "no stated purpose: the word FLOW changes stroke weight and width; a type effect",
+    "typography-particle-dissolve": "no stated purpose: the letters GAIE scatter into dots; a title effect",
+    "typography-calligraphy-path": "no stated purpose: the Arabic word نور is traced as a stroke; a lettering effect",
+    "typography-perspective-projection": "no stated purpose: the word FLOW turns on a plane with a reflection; a title effect",
+    "typography-fluid-reformation": "no stated purpose: the letters GAIE ripple and settle; a title effect",
+    "icons-extrusion": "no stated purpose: a shield outline gains depth; a decorative icon effect",
+    "icons-reactive-rotation": "no stated purpose: a lightning badge tilts with the pointer; a decorative icon effect",
+    "icons-particle-reconstruction": "no stated purpose: dots gather into an icon outline; a decorative icon effect",
+    "icons-metallic": "no stated purpose: a highlight sweeps a diamond; a decorative icon effect",
+    "icons-spatial-expansion": "no stated purpose: small diamonds spread out from an octagon; a decorative icon effect",
+    "icons-object-transformation": "no stated purpose: a flat panel unfolds into a box; a decorative icon effect",
+    "icons-physics-bounce": "no stated purpose: a lightning icon bounces; a decorative icon effect",
+    "icons-volumetric-illumination": "no stated purpose: light beams fall on a shield; a decorative lighting effect",
+    "icons-morphing": "no stated purpose: a circle morphs into a star; a decorative icon effect"
+   }
   }
  ],
  "not_ported": {

@@ -2734,6 +2734,134 @@
    "real_devices_verified": false,
    "gpu_runtime_verified": false
   },
+  "motion-library/expansion/nextgen-motion-symbols.mjs": {
+   "status": "passed",
+   "recorded_at_utc": "2026-11-28T09:31:25.825Z",
+   "browser": "chromium",
+   "browser_version": "158.0.8127.36",
+   "playwright_version": "1.63.0",
+   "reviewed_playwright_pin": "1.65.1",
+   "toolchain_matches_reviewed_pin": false,
+   "platform": "linux",
+   "source_sha256": "b0f0bc5668b0bd29f762bbf5314b02b451369ea19464bf8b7c6fe4ddfa4e0940",
+   "inputs": {
+    "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+    "tests/test_ported_motions_browser.mjs": "c36ce62d480c3c46af140ec5b53a7c4af693601d586a07898c2189a84023dd3a",
+    "motion-library/verify/serve.mjs": "a13b9eff1a7e34ad8240eb5f5cb73aab74c91e815f9163ad75099915566eba0d"
+   },
+   "motions": [
+    {
+     "id": "icons-multi-state",
+     "name_en": "Multi-state 3D Icon Transition",
+     "name_ar": "انتقال أيقونة ثلاثية الأبعاد بين الحالات",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "A request's status badge: it shows pending, then confirmed, then needs review, and a dot marks the current state.",
+      "ar": "شارة حالة الطلب: تُظهر قيد الانتظار ثم مؤكَّد ثم يحتاج إلى مراجعة، وتحدد نقطةٌ الحالة الحالية."
+     }
+    }
+   ],
+   "cases": [
+    {
+     "id": "icons-multi-state",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "3be60fd7141d9caa13d7358ac4f2379b0512e4124211d3d72fd05dccb2c52f45",
+       "drawn_pixels": 40234
+      },
+      {
+       "sha256": "0f5eca0164d4074031a9a280a07c3580c674feb29bcafaebad753f3c57e1992f",
+       "drawn_pixels": 47083
+      },
+      {
+       "sha256": "af0af3faf8f77cac85dc204888d4f246b48cb7a401c858f8c837a72333932df8",
+       "drawn_pixels": 40227
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999962747097,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 0.7000000001862645,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "icons-multi-state",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "ca030f8b115612c1c2572ae962af063f4ced6ecf75121093383bfe0f91a4679f",
+       "drawn_pixels": 112205
+      },
+      {
+       "sha256": "283bc528c070128609dea616f5da53d736505aa02458b158777c9fdb5919857e",
+       "drawn_pixels": 131764
+      },
+      {
+       "sha256": "7dfda8dc9aef5cf60308e0f4e8554e3ecf7508c184a81f775086224683d3b950",
+       "drawn_pixels": 112210
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.19999999972060323,
+      "max_ms": 0.599999999627471,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    }
+   ],
+   "failures": [],
+   "page_errors": 0,
+   "external_requests": 0,
+   "production_fps_verified": false,
+   "real_devices_verified": false,
+   "gpu_runtime_verified": false
+  },
   "motion-library/expansion/nextgen-motion-systems.mjs": {
    "status": "passed",
    "recorded_at_utc": "2026-11-28T09:20:17.610Z",
