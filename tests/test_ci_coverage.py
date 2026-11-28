@@ -24,8 +24,15 @@ from scripts.verify_release import WORKFLOWS as RELEASE_WORKFLOWS
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-# Node test files that no workflow runs, each with the reason. Empty: every file runs today.
-EXEMPT_NODE_TESTS = {}
+# Node test files that no workflow runs, each with the reason. A file leaves this list when it runs.
+EXEMPT_NODE_TESTS = {
+    "tests/test_native_motions_browser.mjs": (
+        "Host-bound: it compares pixel hashes with frame signatures recorded on the development host "
+        "(Playwright 1.63.0, Chromium 158.0.8127.36, that host's system fonts; the DOM sample draws text). "
+        "The locked CI Playwright 1.65.1 installs Chromium 159.0.8154.6 on a runner with other fonts, so "
+        "the hashes are not expected to match there. It passes on the recording host. Wire it in once the "
+        "evidence is recorded with the locked Playwright on the runner."),
+}
 
 NODE_TEST_GLOBS = ("tests/*.mjs", "packages/*/test/*.mjs", "motion-library/*/*.test.mjs")
 FULL_SUITE = ["python3", "-m", "unittest", "discover", "-s", "tests"]
