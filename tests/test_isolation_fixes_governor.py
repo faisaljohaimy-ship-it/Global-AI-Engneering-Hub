@@ -5,12 +5,16 @@ executed (so /etc/alternatives links cannot dangle), and the install prefixes of
 sandbox's own interpreter (pid 1 imports C modules such as resource after pivot_root) are mounted
 read-only in both tiers. A whole top-level directory such as /opt is never mounted.
 
+F6: a strict child cannot create a nested user namespace (which held a full capability set inside it):
+unshare and clone with CLONE_NEWUSER are refused and clone3 reports ENOSYS so libc falls back to clone.
+
 F7: every audit-log ownership check compares with the effective uid, the owner of files the process creates.
 """
 
 import json
 import os
 import pathlib
+import platform
 import shutil
 import sys
 import tempfile
@@ -111,6 +115,50 @@ class StrictProgramTests(Workspace):
         tool.chmod(0o755)
         with self.assertRaisesRegex(GovernorDenied, "overlap a program prefix"):
             self.strict([str(tool)])
+
+
+NESTED = {
+    "unshare": "import ctypes;l=ctypes.CDLL(None,use_errno=True);rc=l.unshare(0x10000000);"
+               "print('ok' if rc==0 else ctypes.get_errno(),"
+               "[x.split()[1] for x in open('/proc/self/status') if x.startswith('CapEff')][0])",
+    "clone": "import ctypes,os\nl=ctypes.CDLL(None,use_errno=True);l.syscall.restype=ctypes.c_long\n"
+             "rc=l.syscall(56,ctypes.c_ulong(0x10000000|17),0,0,0,0)\nif rc==0: os._exit(0)\n"
+             "print('child' if rc>0 else ctypes.get_errno())\nif rc>0: os.waitpid(rc,0)",
+    "clone3": "import ctypes;l=ctypes.CDLL(None,use_errno=True);l.syscall.restype=ctypes.c_long;"
+              "l.syscall(435,0,0);print(ctypes.get_errno())",
+    "fork_exec_thread": "import subprocess,threading;o=[];t=threading.Thread(target=lambda:o.append('thread'));"
+                        "t.start();t.join();print(subprocess.run(['sh','-c','echo exec'],capture_output=True,"
+                        "text=True).stdout.strip(),o[0])",
+}
+
+
+@unittest.skipUnless(FULL, "needs the full namespace sandbox")
+class NestedNamespaceTests(Workspace):
+    """Measured on this host before the fix: unshare 'ok 000001ffffffffff', clone 'child', clone3 22 (EINVAL),
+    `unshare -U true` exit 0. After: 1 (EPERM) with CapEff 0, 1, 38 (ENOSYS), exit 1."""
+
+    def child(self, code, **kwargs):
+        if platform.machine() != "x86_64" and code is not NESTED["unshare"]:
+            self.skipTest("raw clone/clone3 numbers in this test are x86_64")
+        return self.strict([os.path.realpath(sys.executable), "-I", "-S", "-c", code], **kwargs)
+
+    def test_nested_user_namespaces_are_refused_in_strict_mode(self):
+        ran = self.child(NESTED["unshare"])
+        self.assertEqual(ran["stdout"].split(), ["1", "0000000000000000"], ran["stderr"])
+        self.assertEqual(self.child(NESTED["clone"])["stdout"].strip(), "1")
+        self.assertEqual(self.child(NESTED["clone3"])["stdout"].strip(), "38")
+        binary = self.strict(["unshare", "-U", "true"])
+        self.assertNotEqual(binary["returncode"], 0)
+        self.assertIn("Operation not permitted", binary["stderr"])
+
+    def test_fork_exec_and_threads_still_work(self):
+        ran = self.child(NESTED["fork_exec_thread"])
+        self.assertEqual((ran["returncode"], ran["stdout"].strip()), (0, "exec thread"), ran["stderr"])
+
+    def test_the_remaining_surface_is_stated(self):
+        text = " ".join(governor.isolation_report()["not_enforced"])
+        self.assertIn("clone with CLONE_NEWUSER", text)
+        self.assertIn("legacy calls install no seccomp filter", text)
 
 
 class AuditOwnerTests(Workspace):

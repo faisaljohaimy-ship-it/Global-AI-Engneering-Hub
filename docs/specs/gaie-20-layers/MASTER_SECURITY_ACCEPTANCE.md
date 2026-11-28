@@ -57,6 +57,13 @@ A trusted operator separately approves and dispatches a scoped write.
   writable workspace. A strict program that cannot be resolved is refused
   (`program-not-visible`) instead of exiting 127
   (`tests/test_isolation_fixes_governor.py`).
+- The strict seccomp filter also refuses `unshare` and `clone` with
+  `CLONE_NEWUSER`, and answers `clone3` with `ENOSYS` so the C library falls
+  back to `clone`. Measured before: a strict child created a nested user
+  namespace with a full capability set inside it (the mount walls held). After:
+  `EPERM`, `CapEff` 0, `unshare -U` fails, while fork, exec and threads work.
+  Other kernel interfaces (keyctl, bpf, perf_event_open, userfaultfd) are not
+  filtered, and legacy calls install no filter; `isolation_report()` states both.
 - A Claude Code audit forks into the verifier's Read/Grep/Glob-only tool scope.
   Native host settings and hooks determine path and tool enforcement. Treat a
   validated plugin as artifact evidence and use the governed static audit when

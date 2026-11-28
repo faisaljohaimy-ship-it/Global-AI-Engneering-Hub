@@ -758,14 +758,27 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
 
 # ------------------------------------------------- inside the sandbox (pid 1 of the new pid ns)
 
+class _ArgCmp(ctypes.Structure):  # libseccomp struct scmp_arg_cmp
+    _fields_ = [("arg", ctypes.c_uint), ("op", ctypes.c_int), ("datum_a", ctypes.c_uint64),
+                ("datum_b", ctypes.c_uint64)]
+
+
+CLONE_NEWUSER = 0x10000000
+SCMP_CMP_MASKED_EQ = 7
+
+
 def _disable_socket_creation():
-    """Deny network and pathname socket creation for strict children, including io_uring."""
+    """Deny network and pathname socket creation for strict children, including io_uring, and nested
+    user namespaces: unshare is refused, clone with CLONE_NEWUSER is refused, and clone3 (whose flags
+    seccomp cannot read) reports ENOSYS so the C library falls back to clone, where the flag is checked."""
     try:
         library = ctypes.CDLL("libseccomp.so.2")
         library.seccomp_init.argtypes = [ctypes.c_uint32]
         library.seccomp_init.restype = ctypes.c_void_p
         library.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
         library.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint]
+        library.seccomp_rule_add_array.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint,
+                                                   ctypes.POINTER(_ArgCmp)]
         library.seccomp_load.argtypes = [ctypes.c_void_p]
         library.seccomp_release.argtypes = [ctypes.c_void_p]
         library.seccomp_release.restype = None
@@ -776,11 +789,18 @@ def _disable_socket_creation():
         raise OSError(errno.ENOMEM, "seccomp initialization failed")
     try:
         deny = 0x00050000 | errno.EPERM  # SCMP_ACT_ERRNO(EPERM)
-        for name in (b"socket", b"io_uring_setup"):
+        flags = _ArgCmp(1 if platform.machine().startswith("s390") else 0, SCMP_CMP_MASKED_EQ,
+                        CLONE_NEWUSER, CLONE_NEWUSER)  # s390 passes clone's flags second
+        for name, action, condition in ((b"socket", deny, None), (b"io_uring_setup", deny, None),
+                                        (b"unshare", deny, None), (b"clone", deny, flags),
+                                        (b"clone3", 0x00050000 | errno.ENOSYS, None)):
             number = library.seccomp_syscall_resolve_name(name)
             if number < 0:
                 raise OSError(errno.ENOSYS, "unsupported system call table")
-            result = library.seccomp_rule_add(context, deny, number, 0)
+            if condition is None:
+                result = library.seccomp_rule_add(context, action, number, 0)
+            else:
+                result = library.seccomp_rule_add_array(context, action, number, 1, ctypes.byref(condition))
             if result < 0:
                 raise OSError(-result, "seccomp rule could not be installed")
         result = library.seccomp_load(context)
@@ -1066,6 +1086,10 @@ def isolation_report():
             "the base probe does not measure strict profile socket, filesystem or environment restrictions",
             "legacy calls can reach visible unix sockets and opt into the host network",
             "system runtime directories are read-only; legacy calls can also read host /etc",
+            "strict runs filter only socket, io_uring_setup, unshare, clone with CLONE_NEWUSER and clone3; "
+            "other kernel interfaces (keyctl, bpf, perf_event_open, userfaultfd) are not filtered",
+            "legacy calls install no seccomp filter: a child can create a nested user namespace and hold a "
+            "full capability set inside it (the mount walls are locked, measured in pr30-isolation F6)",
         ],
     }
 
