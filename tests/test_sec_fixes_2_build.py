@@ -51,7 +51,10 @@ class WriteFilesTests(unittest.TestCase):
         target = self.tmp / "foreign-root"
         target.mkdir()
         target.chmod(0o777)
-        os.chown(target, 65534, 65534)
+        try:
+            os.chown(target, 65534, 65534)
+        except OSError as error:  # a user namespace that maps only the caller (the layer sandbox): EINVAL
+            raise unittest.SkipTest(f"cannot give the target to another uid here: {error}")
         with self.assertRaises(build_engine.WorkspaceError):
             build_engine._write_files(target, FILES)
         self.assertEqual(list(target.iterdir()), [])
