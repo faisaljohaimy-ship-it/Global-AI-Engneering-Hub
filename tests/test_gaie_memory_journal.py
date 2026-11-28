@@ -409,6 +409,7 @@ class VendoredAloneTests(JournalBase):
         self.assertEqual((refused.returncode, json.loads(refused.stdout)["status"]), (1, "error"))
         self.assertEqual(self.memory.journal.read_bytes(), before)
         self.assertNotIn(PortableSecretTests.AWS.encode(), self.memory.journal.read_bytes())
+        self.assertFalse((engine / "__pycache__").exists(), "run as a script, the vendored copy writes no bytecode")
 
     def test_the_vendored_journal_cli_refuses_a_hard_link(self):
         engine = self.vendor()

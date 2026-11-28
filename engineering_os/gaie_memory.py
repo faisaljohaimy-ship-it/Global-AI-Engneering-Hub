@@ -32,6 +32,9 @@ import stat
 import sys
 import unicodedata
 
+if __name__ == "__main__":  # run as a script from an install: no __pycache__ beside the installed files
+    sys.dont_write_bytecode = True
+
 try:
     from . import gaie_router as router
 except ImportError:  # vendored beside the router

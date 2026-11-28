@@ -516,7 +516,6 @@ class VendoredSetTests(Base):
                              text=True, cwd=project, env=env)
         self.assertIn("public-catalog", {row["source"] for row in json.loads(run.stdout)}, "project registry, not the legacy loader")
         self.assertFalse((engine / "__pycache__").exists(), "the router writes no bytecode beside itself")
-        env["PYTHONDONTWRITEBYTECODE"] = "1"  # gaie_memory.py as a script does not set it itself
         probe = (
             "import json, pathlib, sys\n"
             "engine = pathlib.Path(sys.argv[1]).resolve()\n"
@@ -531,7 +530,8 @@ class VendoredSetTests(Base):
             "print(json.dumps({'modules': names, 'hub_modules': outside, 'package': 'engineering_os' in sys.modules,\n"
             "                  'registry': modules['gaie_router']._registry_module() is not None,\n"
             "                  'backend': memory.backend, 'engine_file': pathlib.Path(modules['gaie_memory'].ENGINE.__file__).name}))\n")
-        run = subprocess.run([sys.executable, "-s", "-c", probe, str(engine), str(ROOT)], capture_output=True, text=True,
+        # -B: the import probe is test scaffolding; the installed CLIs below must stay byte-clean on their own.
+        run = subprocess.run([sys.executable, "-s", "-B", "-c", probe, str(engine), str(ROOT)], capture_output=True, text=True,
                              cwd=project, env=env, timeout=120)
         self.assertEqual(run.returncode, 0, run.stderr)
         result = json.loads(run.stdout)
