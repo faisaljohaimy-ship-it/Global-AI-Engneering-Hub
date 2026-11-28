@@ -112,12 +112,13 @@ class UpgradeStops(unittest.TestCase):
 
     def test_the_regression_check_is_false_for_any_unsettled_request(self):
         with mock.patch.object(engine, "UNSETTLED", ()):  # bypass the stop: the report itself must not claim the request met
-            result = upgrade(FIXTURE, command="Upgrade the task management system and get rid of the Arabic locale",
+            # a wording the lexicon does not apply (since build-fixes-2 "get rid of the Arabic locale" is a breaking removal)
+            result = upgrade(FIXTURE, command="Upgrade the task management system and erase the Arabic locale",
                              workdir=self.base / "bypassed", now=NOW, environ=self.environ)
         self.assertFalse(result["regression"]["checks"]["requested-changes-met"])
         self.assertEqual(result["status"], "partially-upgraded")
-        self.assertEqual(result["unmet_requests"], ["not accounted for: get rid of the arabic locale"])
-        self.assertIn("Requested but NOT implemented: not accounted for: get rid of the arabic locale", result["summary"]["en"])
+        self.assertEqual(result["unmet_requests"], ["not accounted for: erase the arabic locale"])
+        self.assertIn("Requested but NOT implemented: not accounted for: erase the arabic locale", result["summary"]["en"])
         self.assertIn("requested-changes-met: contradicted", result["decision"]["warnings"])
 
 

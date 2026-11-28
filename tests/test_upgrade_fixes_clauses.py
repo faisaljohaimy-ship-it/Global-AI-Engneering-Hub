@@ -52,6 +52,10 @@ BYPASSES = (
     "Upgrade the task management system minus the Arabic locale",
     "Upgrade the task management system and rem0ve the Arabic locale",
 )
+# Applied by the requirements lexicon since build-fixes-2 (recheck-build 4): these two wordings remove the Arabic locale,
+# so they stop as a breaking change instead of as an unaccounted clause. Either way nothing is copied.
+LOCALE_REMOVED = {BYPASSES[0], BYPASSES[6]}
+BREAKING_LOCALE = [{"kind": "locale-removed", "locales": ["ar"]}]
 SETTLED = {
     "Upgrade the task management system completely": ("ok", []),
     "طور نظام إدارة المهام بالكامل": ("ok", []),
@@ -76,10 +80,13 @@ class Accounting(unittest.TestCase):
         for command in BYPASSES:
             with self.subTest(command=command):
                 requested = engine.requested_changes(command, SPEC)
+                if command in LOCALE_REMOVED:
+                    self.assertEqual((requested["status"], requested["breaking"]), ("refused-breaking", BREAKING_LOCALE))
+                    continue
                 self.assertEqual(requested["status"], "unsettled")
                 self.assertTrue(requested["unmet"], "the unaccounted wording is named")
-        self.assertEqual(engine.requested_changes(BYPASSES[0], SPEC)["unmet"], ["not accounted for: get rid of the arabic locale"])
-        self.assertEqual(engine.requested_changes(BYPASSES[6], SPEC)["unmet"], ["not accounted for: وامسح اللغه العربيه"])
+        self.assertEqual(engine.requested_changes(BYPASSES[7], SPEC)["unmet"], ["not accounted for: erase the arabic locale"])
+        self.assertEqual(engine.requested_changes(BYPASSES[1], SPEC)["unmet"], ["not accounted for: وتخلص من اللغه العربيه"])
 
     def test_settled_commands_keep_their_status(self):
         for command, expected in SETTLED.items():
@@ -141,8 +148,12 @@ class UpgradeStops(_Run):
             with self.subTest(command=command):
                 with self.assertRaises(UpgradeError) as caught:
                     self.run_upgrade(command, f"wd-{number}")
-                self.assertIn("Requested change not settled (unsettled", str(caught.exception))
-                self.assertIn("Nothing was copied or changed", str(caught.exception))
+                if command in LOCALE_REMOVED:
+                    self.assertIn("Requested change refused: it would remove data or functions (locale-removed)",
+                                  str(caught.exception))
+                else:
+                    self.assertIn("Requested change not settled (unsettled", str(caught.exception))
+                    self.assertIn("Nothing was copied or changed", str(caught.exception))
                 self.assertFalse((self.base / f"wd-{number}").exists())
 
 
