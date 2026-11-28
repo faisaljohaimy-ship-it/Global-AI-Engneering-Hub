@@ -1,0 +1,92 @@
+name: Next generation intelligence
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nextgen-intelligence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  original-motion-runtime:
+    name: Original motions in ${{ matrix.browser }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      MOTION_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Prepare local runtime and evidence paths
+        run: |
+          printf 'PLAYWRIGHT_BROWSERS_PATH=%s/nextgen-browsers\nNEXTGEN_CAMERA_RECEIPT=%s/nextgen-evidence/originals-%s.json\nNEXTGEN_WEBGL_RECEIPT=%s/nextgen-evidence/webgl-%s.json\n' \
+            "$RUNNER_TEMP" "$RUNNER_TEMP" "$MOTION_BROWSER" "$RUNNER_TEMP" "$MOTION_BROWSER" >> "$GITHUB_ENV"
+      - name: Check original mechanisms and existing SDK compatibility
+        run: |
+          suites=(tests/test_universal_motion_sdk.mjs tests/test_nextgen_camera.mjs tests/test_nextgen_originals.mjs tests/test_nextgen_motion_*.mjs)
+          node --test "${suites[@]}"
+      - name: Install the existing reviewed exact browser lock
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --prefix motion-library/chromium-stack
+          if [[ "$MOTION_BROWSER" == chromium ]]; then
+            motion-library/chromium-stack/node_modules/.bin/playwright install --with-deps chromium --only-shell
+          else
+            motion-library/chromium-stack/node_modules/.bin/playwright install --with-deps "$MOTION_BROWSER"
+          fi
+      - name: Require fresh real renders in desktop and mobile viewports
+        run: node tests/test_nextgen_originals_browser.mjs
+      - name: Require real WebGL2 shader and particle rendering
+        run: |
+          set -euo pipefail
+          if [[ "$MOTION_BROWSER" == firefox ]]; then
+            LIBGL_ALWAYS_SOFTWARE=1 MOTION_WEBGL_HEADED=1 xvfb-run -a node tests/test_nextgen_webgl_browser.mjs
+          else
+            node tests/test_nextgen_webgl_browser.mjs
+          fi
+      - name: Preserve this run's source-bound proof without promoting registry claims
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nextgen-originals-${{ matrix.browser }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/nextgen-evidence/
+          if-no-files-found: warn
+          retention-days: 7
+
+  architecture-acceptance:
+    name: Twenty layer acceptance suites
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Run the fixed layer contracts without skips
+        run: python3 -m engineering_os.layer_checks > "$RUNNER_TEMP/layer-acceptance.json"
+      - name: Publish the measured outcomes and source hashes
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: layer-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/layer-acceptance.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -72,27 +72,37 @@ export function drawScene(context, input, {pixelRatio = 1} = {}) {
   const scene = validateScene(input);
   finite(pixelRatio, 'pixel ratio', 0.25, 2);
   if (!context) fail('Canvas2D context required');
+  return drawValidatedScene(context, scene, pixelRatio);
+}
+
+// The renderer validates sampled frames and options before reaching this path.
+function drawValidatedScene(context, scene, pixelRatio) {
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   context.clearRect(0, 0, scene.width, scene.height);
-  const background = color(scene.background, '#08111f');
-  if (!['none','transparent'].includes(background)) {
+  const background = scene.background ?? '#08111f';
+  if (background !== 'none' && background !== 'transparent') {
     context.fillStyle = background; context.fillRect(0, 0, scene.width, scene.height);
   }
   for (const item of scene.primitives) {
     context.save();
     context.globalAlpha = item.opacity ?? 1;
-    context.fillStyle = color(item.fill, 'transparent');
-    context.strokeStyle = color(item.stroke, 'transparent');
-    context.lineWidth = item.lineWidth ?? 1;
-    context.lineCap = 'round'; context.lineJoin = 'round';
     const fill = item.fill && item.fill !== 'none' && item.fill !== 'transparent';
     const stroke = item.stroke && item.stroke !== 'none' && item.stroke !== 'transparent';
+    if (fill) context.fillStyle = item.fill;
+    if (stroke) {
+      context.strokeStyle = item.stroke;
+      context.lineWidth = item.lineWidth ?? 1;
+      context.lineCap = 'round'; context.lineJoin = 'round';
+    }
     context.beginPath();
     if (item.type === 'circle') context.arc(item.x, item.y, item.r, 0, Math.PI * 2);
     if (item.type === 'line') { context.moveTo(item.x1, item.y1); context.lineTo(item.x2, item.y2); }
     if (item.type === 'polyline') {
       context.moveTo(item.points[0].x, item.points[0].y);
-      for (const point of item.points.slice(1)) context.lineTo(point.x, point.y);
+      for (let i = 1; i < item.points.length; i++) {
+        const point = item.points[i];
+        context.lineTo(point.x, point.y);
+      }
       if (item.closed) context.closePath();
     }
     if (item.type === 'rect') {
@@ -212,7 +222,7 @@ export function createMotionSystem() {
     const now = input.now ?? clock;
     const sampler = input.sampler ?? samplers.get(definition.id);
     if (engine === 'canvas2d' && typeof sampler !== 'function') fail('Register a reviewed catalog or provide a local sampler');
-    let canvas = input.canvas, owned = false, context, waapi, frame, lastTime, scene;
+    let canvas = input.canvas, owned = false, context, waapi, frame, lastTime;
     let state = 'idle', progress = 0, direction = 1;
     let previousCanvas;
     if (engine === 'canvas2d') {
@@ -236,32 +246,37 @@ export function createMotionSystem() {
 
     const alive = () => { if (state === 'destroyed') fail('Motion was destroyed'); };
     const unschedule = () => { if (frame != null && cancel) cancel(frame); frame = undefined; };
-    function render(value = progress) {
+    function paint(value = progress) {
       alive(); finite(value, 'progress'); progress = clamp(value);
       const useReduced = reduced(options, view);
       if (engine === 'waapi') {
         waapi.currentTime = (useReduced ? 1 : progress) * options.duration_ms;
-        scene = {meta: {id: definition.id, engine, progress, reducedMotion: useReduced}, keyframes: copy(definition.keyframes ?? input.keyframes)};
-      } else {
-        scene = validateScene(sampler(definition, useReduced ? 1 : progress, {...options, reducedMotion: useReduced}));
-        if (canvas) {
-          const width = Math.round(options.width * options.pixelRatio), height = Math.round(options.height * options.pixelRatio);
-          if (canvas.width !== width) canvas.width = width;
-          if (canvas.height !== height) canvas.height = height;
-          if (canvas.style) { canvas.style.width = `${options.width}px`; canvas.style.height = `${options.height}px`; }
-          drawScene(context, scene, {pixelRatio: options.pixelRatio});
-        }
+        return {meta: {id: definition.id, engine, progress, reducedMotion: useReduced}, keyframes: definition.keyframes ?? input.keyframes};
       }
-      return copy(scene);
+      const scene = validateScene(sampler(definition, useReduced ? 1 : progress, {...options, reducedMotion: useReduced}));
+      if (canvas) {
+        const width = Math.round(options.width * options.pixelRatio), height = Math.round(options.height * options.pixelRatio);
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+        if (canvas.style) {
+          const cssWidth = `${options.width}px`, cssHeight = `${options.height}px`;
+          if (canvas.style.width !== cssWidth) canvas.style.width = cssWidth;
+          if (canvas.style.height !== cssHeight) canvas.style.height = cssHeight;
+        }
+        drawValidatedScene(context, scene, options.pixelRatio);
+      }
+      return scene;
     }
+    // Public snapshots remain detached; playback and timing need only the draw.
+    function render(value = progress) { return copy(paint(value)); }
     function tick(timestamp) {
       if (state !== 'playing') return;
       frame = undefined;
       const next = progress + Math.max(0, timestamp - lastTime) / options.duration_ms * direction;
       lastTime = timestamp;
-      render(next);
+      paint(next);
       if ((direction > 0 && next >= 1) || (direction < 0 && next <= 0)) {
-        if (input.loop === true && !reduced(options, view)) render(direction > 0 ? 0 : 1);
+        if (input.loop === true && !reduced(options, view)) paint(direction > 0 ? 0 : 1);
         else { state = 'finished'; return; }
       }
       if (reduced(options, view)) { state = 'finished'; return; }
@@ -269,8 +284,8 @@ export function createMotionSystem() {
     }
     function play() {
       alive(); if (state === 'playing') return api;
-      if (state === 'finished') render(direction > 0 ? 0 : 1);
-      if (reduced(options, view)) { render(1); state = 'finished'; return api; }
+      if (state === 'finished') paint(direction > 0 ? 0 : 1);
+      if (reduced(options, view)) { paint(1); state = 'finished'; return api; }
       if (!request || !cancel) fail('Animation scheduling is unavailable; use render(progress)');
       state = 'playing'; lastTime = now(); frame = request(tick); return api;
     }
@@ -278,10 +293,10 @@ export function createMotionSystem() {
     function resume() { alive(); return play(); }
     function reverse() {
       alive(); direction *= -1;
-      if ((state === 'idle' || state === 'finished') && progress === 0 && direction < 0) render(1);
+      if ((state === 'idle' || state === 'finished') && progress === 0 && direction < 0) paint(1);
       lastTime = now(); return api;
     }
-    function stop() { alive(); unschedule(); state = 'idle'; direction = 1; render(0); return api; }
+    function stop() { alive(); unschedule(); state = 'idle'; direction = 1; paint(0); return api; }
     function destroy() {
       if (state === 'destroyed') return;
       unschedule(); waapi?.cancel();
@@ -305,14 +320,14 @@ export function createMotionSystem() {
       alive(); if (!['mobile', 'balanced', 'quality'].includes(profile)) fail('Unknown rendering profile');
       const detail = {mobile: 6, balanced: 12, quality: 24}[profile];
       options = validOptions({...options, detail, pixelRatio: profile === 'mobile' ? 1 : options.pixelRatio}, definition);
-      render(); return {profile, detail, pixelRatio: options.pixelRatio, width: options.width, height: options.height};
+      paint(); return {profile, detail, pixelRatio: options.pixelRatio, width: options.width, height: options.height};
     }
     function configure(parameters) {
       alive();
       if (!parameters || typeof parameters !== 'object' || Object.keys(parameters).some((key) => !['width','height','duration_ms','pixelRatio','intensity','detail','seed','interaction','rtl','reducedMotion'].includes(key))) fail('Unknown configuration parameter');
       const previous = options;
       options = validOptions({...options, ...parameters}, definition);
-      try { render(); } catch (error) { options = previous; render(); throw error; }
+      try { paint(); } catch (error) { options = previous; paint(); throw error; }
       if (engine === 'waapi') waapi.effect?.updateTiming?.({duration: options.duration_ms});
       lastTime = now(); return api;
     }
@@ -320,8 +335,8 @@ export function createMotionSystem() {
       alive(); finite(frames, 'frames', 2, 2000); finite(budget_ms, 'budget_ms', 0.1, 1000);
       if (!Number.isInteger(frames)) fail('frames must be an integer');
       const previous = progress, times = [];
-      for (let i = 0; i < frames; i++) { const start = now(); render(i / (frames - 1)); times.push(Math.max(0, now() - start)); }
-      render(previous); times.sort((a, b) => a - b);
+      for (let i = 0; i < frames; i++) { const start = now(); paint(i / (frames - 1)); times.push(Math.max(0, now() - start)); }
+      paint(previous); times.sort((a, b) => a - b);
       const p95 = times[Math.ceil(times.length * .95) - 1];
       return {kind: 'synchronous-sampling-and-draw', frames, median_ms: times[Math.floor(times.length / 2)], p95_ms: p95,
               max_ms: times.at(-1), budget_ms, within_cpu_budget: p95 <= budget_ms,
@@ -331,7 +346,7 @@ export function createMotionSystem() {
     const api = {definition, canvas, play, pause, resume, reverse, stop, destroy, render,
       export: exportMotion, preview: render, optimize, configure, benchmark, getCapabilities,
       get state() { return state; }, get progress() { return progress; }, get direction() { return direction; }};
-    try { render(0); } catch (error) { destroy(); throw error; }
+    try { paint(0); } catch (error) { destroy(); throw error; }
     instances.add(api); return api;
   }
 

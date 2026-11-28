@@ -1,0 +1,30 @@
+{
+  "additional_provider_cost": 0,
+  "autonomous_model_selection_verified": false,
+  "hosted_model_calls": 0,
+  "hub_audit": "passed",
+  "locked_dependency_audit": "passed",
+  "native_claude_sessions": 4,
+  "native_mcp_results": 6,
+  "passed_local_layers": 20,
+  "previous_pr25_head": "c4e9c85998b95b98a060af78c49904fcb22e3d1b",
+  "production_modified": false,
+  "python_failures": 0,
+  "python_skips": 0,
+  "python_tests": 376,
+  "recorded_at_utc": "2026-11-28T06:02:46.131347+00:00",
+  "schema_version": 1,
+  "security_scan": "passed",
+  "source_bound_reports": {
+    "docs/evidence/nextgen-browser-mcp-proof.json": "3c0345e22b1fb2562735f35c7e273b512d4476f933fe5924326977cd8661209c",
+    "docs/evidence/nextgen-master-claude-native.json": "d8e747b37514a966be99d716b1d6268da4019f229024529641c3e5db09d8b878",
+    "docs/evidence/nextgen-master-layer-acceptance.json": "d4c234ff72c125d5c435c53ecf7c9a661f9ca8acbe2935e094c4d8dc227c0677"
+  },
+  "stable_release_verification": "prepared; exact merged main and reviewed tag required",
+  "upstream_master": {
+    "approved_production_binding": false,
+    "inspected_revision": "d0c0419a3f6d22389ad235bc8b9057fffb8d6fa3",
+    "pr": 26,
+    "state_at_inspection": "draft-unmerged"
+  }
+}

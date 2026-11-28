@@ -1,0 +1,40 @@
+{
+  "after_raw_sha256": "a0c01b22d861244ad3ed970bd2a9a2c01cf5f78d6ec68e60d6922817988cb2c5",
+  "before_raw_sha256": "ab98d52633b9cc85169410499d3a46c12c1ef29240d813e50b166a1f6d4893e8",
+  "before_revision": "9789272a817a794868775e939634e939498ca858",
+  "profiles": [
+    {
+      "after_budget_failures": 0,
+      "after_max_recipe_p95_ms": 13.799999999813735,
+      "before_budget_failure_ids": [],
+      "before_max_recipe_p95_ms": 5.800000000279397,
+      "identical_frames": 1200,
+      "viewport": {
+        "height": 844,
+        "width": 390
+      }
+    },
+    {
+      "after_budget_failures": 0,
+      "after_max_recipe_p95_ms": 7.399999999906868,
+      "before_budget_failure_ids": [
+        "os-transitions-a10"
+      ],
+      "before_max_recipe_p95_ms": 27.200000000186265,
+      "identical_frames": 1200,
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    }
+  ],
+  "runtime": {
+    "browser": "159.0.8154.6",
+    "playwright": "1.65.1"
+  },
+  "schema_version": 1,
+  "scope": "Lab samples on one host. The baseline diagnostic completed all samples after recording budget failures; the optimized run passed the unchanged real gate.",
+  "sdk_after_sha256": "4f6a83553484973fbbc06f0fa5609af304bf8c0b7a283654ed628704eccdc0d0",
+  "sdk_before_sha256": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+  "unchanged_budget_ms": 16.666666666666668
+}

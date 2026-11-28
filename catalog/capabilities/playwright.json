@@ -30,7 +30,7 @@
     "all Playwright APIs",
     "automatic project activation"
   ],
-  "motion_runtime_receipt": "docs/evidence/playwright-1.65.1-motion-chromium-2026-11-28.json",
+  "motion_runtime_receipt": "docs/evidence/motion-studio-optimized-chromium.json",
   "npm_integrities": {
     "playwright": "sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==",
     "playwright-core": "sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw=="
@@ -60,7 +60,7 @@
       "quality_package_lock_sha256": "1313878eccd78bb94eb18e2f2c838fdbaee3009cc2bfdf3f9b0a19638e529c87"
     }
   ],
-  "motion_runtime_receipt_sha256": "1bdb4b7088242f1cb98ec3e35e4f103901c4ce1e41f223c6f567ebaad5e23fb6",
+  "motion_runtime_receipt_sha256": "fecb488449d11de744034a758dee6266bacd89b75c257c9591072a48a1bda895",
   "runtime_receipt_sha256": "a97db6ef257ea5faa6fa4807a2fc250fec8259024baaeb3c48c63e95704aac7a",
   "runtime_raw_receipt": {
     "path": "docs/evidence/playwright-1.65.1-native-raw-2026-11-28.json",
@@ -68,24 +68,45 @@
   },
   "motion_cross_browser_receipts": {
     "chromium": {
-      "path": "docs/evidence/playwright-1.65.1-motion-chromium-2026-11-28.json",
-      "sha256": "1bdb4b7088242f1cb98ec3e35e4f103901c4ce1e41f223c6f567ebaad5e23fb6"
+      "path": "docs/evidence/motion-studio-optimized-chromium.json",
+      "sha256": "fecb488449d11de744034a758dee6266bacd89b75c257c9591072a48a1bda895"
     },
     "firefox": {
-      "path": "docs/evidence/playwright-1.65.1-motion-firefox-2026-11-28.json",
-      "sha256": "34e3d1674ac11ba56b07c97e71ddaa5051cdde935c9e839bf05a34876ae159d5"
+      "path": "docs/evidence/motion-studio-optimized-firefox.json",
+      "sha256": "3538e5cf1d4b0059162ad38d86685a57bf681ea3dc341cfb740f1e986c44ae96"
     },
     "webkit": {
-      "path": "docs/evidence/playwright-1.65.1-motion-webkit-2026-11-28.json",
-      "sha256": "988e2f098f7b89511d9cfdec1b32dc1c771947d607e3e60790390ae3f5bacfb7"
+      "path": "docs/evidence/motion-studio-optimized-webkit.json",
+      "sha256": "36738ad96c7b992c04d26d216969980253e06e6b73a08cf7cbd6d014db41f3a1"
     }
   },
   "quality_receipt": {
-    "path": "docs/evidence/playwright-1.65.1-quality-2026-11-28.json",
-    "sha256": "bfd6763474285f533856a8e064d39db7403709f8c9c40c990558e9549f745606"
+    "path": "docs/evidence/motion-studio-optimized-quality.json",
+    "sha256": "1376ee22aeebbbc6abfb312dfce08b03ed87af0cb2527ff11ad4a5b525082fb7"
   },
   "provenance_manifest": {
-    "path": "docs/evidence/playwright-1.65.1-provenance-2026-11-28.json",
-    "sha256": "9474947436fd88d56b4e0b1b126b147da9b7de5922a09e66fdfc8aac2ee37306"
+    "path": "docs/evidence/motion-studio-optimized-provenance.json",
+    "sha256": "a3a5f461c2362359ce8cc8577088acc63108f18852da0f855a28f99b00456300"
+  },
+  "previous_runtime_evidence": {
+    "source_revision": "9789272a817a794868775e939634e939498ca858",
+    "motion_cross_browser_receipts": {
+      "chromium": {
+        "path": "docs/evidence/motion-studio-optimized-chromium.json",
+        "sha256": "fecb488449d11de744034a758dee6266bacd89b75c257c9591072a48a1bda895"
+      },
+      "firefox": {
+        "path": "docs/evidence/motion-studio-optimized-firefox.json",
+        "sha256": "3538e5cf1d4b0059162ad38d86685a57bf681ea3dc341cfb740f1e986c44ae96"
+      },
+      "webkit": {
+        "path": "docs/evidence/motion-studio-optimized-webkit.json",
+        "sha256": "36738ad96c7b992c04d26d216969980253e06e6b73a08cf7cbd6d014db41f3a1"
+      }
+    },
+    "quality_receipt": {
+      "path": "docs/evidence/playwright-1.65.1-quality-2026-11-28.json",
+      "sha256": "bfd6763474285f533856a8e064d39db7403709f8c9c40c990558e9549f745606"
+    }
   }
 }

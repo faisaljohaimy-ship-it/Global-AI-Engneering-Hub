@@ -1,0 +1,55 @@
+{
+  "baseline_main": "6d6501566b61ea9a01137c93c2811c9c10522943",
+  "dependency_audit": "passed",
+  "hub_audit": "passed",
+  "mandatory_gate": {
+    "name": "existing Motion Studio CPU drawing budget",
+    "reproduced_on_unchanged_main": true,
+    "status": "failed",
+    "threshold_modified": false
+  },
+  "new_camera_runtime": {
+    "browser": "chromium159.0.8154.6",
+    "cases": 6,
+    "frames": 18,
+    "receipt": "docs/evidence/nextgen-camera-chromium.json",
+    "receipt_sha256": "74f651227883ac0083c695d83f736c670d41de5cef8fac0f90b68a83b137e186"
+  },
+  "python": {
+    "failed": 0,
+    "optional_headroom_enabled": true,
+    "skipped": 0,
+    "tests": 303
+  },
+  "recorded_at_utc": "2026-11-28T05:06:33.291629+00:00",
+  "release_authorized": false,
+  "remote_ci": "Initial security/dependency jobs passed; initial new-workflow startup failed; job-level runner context corrected; final-head runs required.",
+  "schema_version": 1,
+  "scope": "local integrated increment; not release approval",
+  "security_scan": "passed",
+  "session_cost_usd": null,
+  "session_tokens": null,
+  "source_sha256": {
+    ".github/workflows/nextgen-intelligence.yml": "723c78c452e30bfa0c51592034001528288727a8e97e77e959db49569705a7bf",
+    "engineering_os/cinematic.py": "bce75087cc844f68e2edba5d0ad713fb1f6e8ac55a22fdb9439e98eaaf11cb70",
+    "engineering_os/economics.py": "a3097c7ee8b21453bc805e61a75c396a0cf09d2735cad8e4a57284db35cfc20d",
+    "engineering_os/factory.py": "0eced32b2487bb630083ebb1453ac840e22e220207ec952d46d3212b6cf77a86",
+    "engineering_os/healing.py": "078ae9190912ec250674c27648d97eed0fdd64c123a5c7213dbe909fc2677744",
+    "engineering_os/intelligence.py": "60bb05e921c5fedf31e9d62c1caddaa576a0785432649ccf47e4c6c15ee9ebd7",
+    "engineering_os/memory.py": "c021adb964ab899c2be0e7423492c4902e71109f0cb1445f90ed86a9f021f5e8",
+    "engineering_os/orchestration.py": "e1378e3aaaaf8b249522f945daab451acf42b14f2af03205df9bf5ec124587c1",
+    "engineering_os/reasoning.py": "76bdbad7388fd0d132d5d5054d809cdbc65a9b77f367660e995587ea546b7b9d",
+    "motion-library/expansion/nextgen-camera.mjs": "30c5c65698392c1694cd477e86820c7bb4c436aa1636775b5b3b07cfac80f0d0",
+    "tests/test_cinematic_intelligence.py": "435186de9ffce0abc37894e54d313d95728241195b4cbe120927b63852ca002d",
+    "tests/test_economics.py": "44f8d4793f8eaa3d6542717eff969dcaa484ecbc1295677e773e4fae1802dfc7",
+    "tests/test_engineering_memory.py": "45484b048438f9bfb9232080047de70db8cc22c1b29205e531a0c9411629e988",
+    "tests/test_factory.py": "5310ef62274af5a856bfc519e91cffa4edee2283f55241a5dbea4bbf7bd8ba78",
+    "tests/test_healing.py": "e9be60b9188037080aff46ef2db67711f9a06726c5c8a1182cc9df5baa36f6da",
+    "tests/test_intelligence.py": "78ef9a9127dd082628610c0c68a91f0fedcabf24aa38caa049d33d3a6d5516a3",
+    "tests/test_nextgen_camera.mjs": "41115a141a45e6c92fbfced419b1fa3fac989f12bdcc1da87d6d77af3808941d",
+    "tests/test_nextgen_camera_browser.mjs": "1e048e5132c7a43a109b2806baa400ea44c55e3f2e1f7d66d5e92ca30de4b700",
+    "tests/test_os_orchestration.py": "67fc734d295f088632b22d8c090adc7b07eef4b953a1102ab60f9cd1c8ad2e6e",
+    "tests/test_reasoning.py": "c7126a9e017916047b3969e7c6c2c7fac073f6b1722ac00f9a2c591aff780e61"
+  },
+  "usage_note": "No host usage export; do not infer subscription allowance or actual bill."
+}

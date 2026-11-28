@@ -1,0 +1,100 @@
+{
+  "dependency_audit": "passed-all-three-existing-locks",
+  "hub_audit": "passed",
+  "layers": {
+    "checked": 20,
+    "passed": 20,
+    "path": "docs/evidence/nextgen-layer-acceptance.json",
+    "sha256": "c2d31c2079950d16cc825f32cb6ca4918ece86772457b67eec2695d8fd0fe756"
+  },
+  "native_claude": {
+    "local_mcp_connection": "passed",
+    "native_model_calls": 0,
+    "tool_discovery": "passed",
+    "version": "2.1.332"
+  },
+  "node": {
+    "adapter_tests": 5,
+    "failures": 0,
+    "main_regression_tests": 128,
+    "skips": 0
+  },
+  "original_brief": {
+    "canvas2d": {
+      "chromium": {
+        "browser": "chromium",
+        "cases": 308,
+        "maximum_p95_ms": 2.6000000000931323,
+        "playwright": "1.65.1",
+        "receipt_sha256": "9d2d71ea508598c6c1b832c2a6a57e6fffb29dba4bfea72ffcab984834fb5565",
+        "source_bound": true,
+        "version": "159.0.8154.6"
+      },
+      "firefox": {
+        "browser": "firefox",
+        "cases": 308,
+        "maximum_p95_ms": 7,
+        "playwright": "1.65.1",
+        "receipt_sha256": "7649722f9ea66f22e9ef36b6aa74a39042145b9faa94b6c8ccf121bd8817aa1a",
+        "source_bound": true,
+        "version": "159.0"
+      },
+      "webkit": {
+        "browser": "webkit",
+        "cases": 308,
+        "maximum_p95_ms": 8,
+        "playwright": "1.65.1",
+        "receipt_sha256": "2d1b89f8f7a11382e9c3f27016591fe6c0f68012256bfab7f1fe587b55a7f2c2",
+        "source_bound": true,
+        "version": "27.2"
+      }
+    },
+    "cases": 996,
+    "historic_pr16": 34,
+    "identities": 200,
+    "local_verified": 166,
+    "new_local": 163,
+    "previous_local": 3,
+    "webgl2": {
+      "chromium": {
+        "browser": "chromium",
+        "cases": 24,
+        "maximum_p95_ms": 2.2000000001862645,
+        "playwright": "1.65.1",
+        "receipt_sha256": "d9c7e57d34d044aab2eb8da0dcf1f081a7b5071f2cedda5e5f81fabf6556a3fb",
+        "source_bound": true,
+        "version": "159.0.8154.6"
+      },
+      "firefox": {
+        "browser": "firefox",
+        "cases": 24,
+        "maximum_p95_ms": 7,
+        "playwright": "1.65.1",
+        "receipt_sha256": "ede4c28302684b0b785417178b2bb46829208d59ed08d86a267a27205073c9d6",
+        "source_bound": true,
+        "version": "159.0"
+      },
+      "webkit": {
+        "browser": "webkit",
+        "cases": 24,
+        "maximum_p95_ms": 3,
+        "playwright": "1.65.1",
+        "receipt_sha256": "ff0bf9467faf65b25df4a6c28f615ee48aae7aa6afac03468650c815d86d9d37",
+        "source_bound": true,
+        "version": "27.2"
+      }
+    }
+  },
+  "previous_pr_head": "9789272a817a794868775e939634e939498ca858",
+  "production_release_authorized": false,
+  "python": {
+    "failures": 0,
+    "locked_optional_headroom_enabled": true,
+    "skips": 0,
+    "tests": 336
+  },
+  "recorded_at_utc": "2026-11-28T05:43:12.040592+00:00",
+  "remote_ci": "Check PR 25 for current revision workflow conclusions.",
+  "schema_version": 1,
+  "security_scan": "passed"
+}

@@ -19,9 +19,11 @@ REQUIRED_SOURCES = {
 }
 
 
-def summarize(report):
-    if report.get('status') != 'passed' or report.get('engine') != 'chromium-canvas2d':
-        raise ValueError('A successful real Chromium run is required')
+def summarize(report, browser='chromium'):
+    if browser not in {'chromium', 'firefox', 'webkit'}:
+        raise ValueError('Unknown browser engine')
+    if report.get('status') != 'passed' or report.get('engine') != f'{browser}-canvas2d':
+        raise ValueError('A successful run in the selected browser is required')
     if set(report['source_sha256']) != REQUIRED_SOURCES:
         raise ValueError('Incomplete source closure')
     for name, digest in report['source_sha256'].items():
@@ -72,7 +74,7 @@ def summarize(report):
             'scope':'Recorded source-bound Canvas2D reference behavior, desktop and emulated mobile. CPU sampling/draw timings are not presentation FPS or production Web Vitals.',
             'limitations':['No actual quantum simulation, live digital twin, hardware GPU, physical mobile or Safari proof.',
                           '3D/shader/lighting categories are illustrative 2D analytic scenes, not third-party engine integrations.',
-                          'Native WebKit launch was blocked by missing host libraries; Firefox was not installed.'],
+                          'This receipt covers only its named browser and measured viewport profiles.'],
             'profiles':profiles}
 
 
@@ -80,10 +82,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('receipt',type=pathlib.Path)
     parser.add_argument('--output',required=True,type=pathlib.Path)
+    parser.add_argument('--browser', choices=('chromium', 'firefox', 'webkit'), default='chromium')
     args=parser.parse_args()
     raw=args.receipt.read_bytes()
     if len(raw)>8*1024*1024:raise ValueError('Oversized browser receipt')
-    result=summarize(read(args.receipt))
+    result=summarize(read(args.receipt), browser=args.browser)
     result['raw_receipt_sha256']=hashlib.sha256(raw).hexdigest()
     with args.output.open('x',encoding='utf-8') as stream:
         json.dump(result,stream,indent=2,ensure_ascii=False);stream.write('\n')

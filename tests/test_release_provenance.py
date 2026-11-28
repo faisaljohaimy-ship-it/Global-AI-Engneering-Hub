@@ -18,6 +18,15 @@ class ReleaseProvenanceTests(unittest.TestCase):
         result=approved_runs(self.runs,self.sha,self.repo)
         self.assertEqual(set(result),set(WORKFLOWS))
 
+    def test_stable_release_requires_nextgen_browser_and_layer_jobs(self):
+        path = '.github/workflows/nextgen-intelligence.yml'
+        self.assertEqual(WORKFLOWS[path], {'Original motions in chromium',
+            'Original motions in firefox', 'Original motions in webkit', 'Twenty layer acceptance suites'})
+        data = copy.deepcopy(self.runs)
+        data['workflow_runs'] = [row for row in data['workflow_runs'] if row['path'] != path]
+        with self.assertRaises(ValueError):
+            approved_runs(data, self.sha, self.repo, self.now)
+
     def test_spoofed_same_name_workflow_pull_request_fork_and_wrong_commit_cannot_substitute(self):
         for field,value in [('path','.github/workflows/imposter.yml'),('event','pull_request'),
                             ('head_branch','feature'),('head_sha','b'*40),('head_repository',{'full_name':'fork/public-hub'})]:

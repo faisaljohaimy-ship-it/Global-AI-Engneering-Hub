@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "gaie": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["-m", "engineering_os.claude_bridge", "--project", "gaie"]
+    }
+  }
+}

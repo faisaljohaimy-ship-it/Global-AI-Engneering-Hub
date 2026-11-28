@@ -1,0 +1,128 @@
+{
+  "files": [
+    {
+      "bytes": 10101,
+      "kind": "previous-recorded-provenance",
+      "path": "docs/evidence/playwright-1.65.1-provenance-2026-11-28.json",
+      "sha256": "9474947436fd88d56b4e0b1b126b147da9b7de5922a09e66fdfc8aac2ee37306"
+    },
+    {
+      "bytes": 10205,
+      "kind": "exact-native-raw",
+      "path": "docs/evidence/playwright-1.65.1-native-raw-2026-11-28.json",
+      "sha256": "7b8f8485d3f7e250906b5f6700d40912443eb31b7deb847a1e730f1b7c4dbca5"
+    },
+    {
+      "bytes": 7435,
+      "kind": "native-curated-drop-only-intervals",
+      "path": "docs/evidence/playwright-1.65.1-native-2026-11-28.json",
+      "sha256": "a97db6ef257ea5faa6fa4807a2fc250fec8259024baaeb3c48c63e95704aac7a"
+    },
+    {
+      "bytes": 268827,
+      "kind": "optimized-studio-chromium",
+      "path": "docs/evidence/motion-studio-optimized-chromium.json",
+      "sha256": "fecb488449d11de744034a758dee6266bacd89b75c257c9591072a48a1bda895"
+    },
+    {
+      "bytes": 255590,
+      "kind": "optimized-studio-firefox",
+      "path": "docs/evidence/motion-studio-optimized-firefox.json",
+      "sha256": "3538e5cf1d4b0059162ad38d86685a57bf681ea3dc341cfb740f1e986c44ae96"
+    },
+    {
+      "bytes": 255605,
+      "kind": "optimized-studio-webkit",
+      "path": "docs/evidence/motion-studio-optimized-webkit.json",
+      "sha256": "36738ad96c7b992c04d26d216969980253e06e6b73a08cf7cbd6d014db41f3a1"
+    },
+    {
+      "bytes": 5189,
+      "kind": "optimized-lighthouse-and-axe",
+      "path": "docs/evidence/motion-studio-optimized-quality.json",
+      "sha256": "1376ee22aeebbbc6abfb312dfce08b03ed87af0cb2527ff11ad4a5b525082fb7"
+    }
+  ],
+  "motion_curation": {
+    "chromium": {
+      "browser_version": "159.0.8154.6",
+      "frame_samples": 2400,
+      "raw_receipt_sha256": "a0c01b22d861244ad3ed970bd2a9a2c01cf5f78d6ec68e60d6922817988cb2c5"
+    },
+    "firefox": {
+      "browser_version": "159.0",
+      "frame_samples": 2400,
+      "raw_receipt_sha256": "11d4f2a7b95415d52febc677958747e486d1053e65fd182cfbd99f9bf8eda0c6"
+    },
+    "webkit": {
+      "browser_version": "27.2",
+      "frame_samples": 2400,
+      "raw_receipt_sha256": "03df27752dfd8fdc421da95960c37d0533e8a02831119abe4d1d980679281a10"
+    }
+  },
+  "native_curation": {
+    "all_retained_values_identical": true,
+    "archive_sha256": "b8bf5e0785b27012b93c9d14acd392cdbe84e69af23245632b3edc11155dabde",
+    "artifact_id": 15243931322,
+    "artifact_member": "chromium/report.json",
+    "case_p95_interval_ms": {
+      "desktop-ltr": 16.799999999999955,
+      "mobile-reduced-rtl": 16.700000000000045,
+      "mobile-rtl": 16.700000000000045
+    },
+    "configured_frame_budget_ms": 20,
+    "curated": "docs/evidence/playwright-1.65.1-native-2026-11-28.json",
+    "generator_provenance_scope": "The native generator provenance object is static recovered-module metadata, not account-wide Claude handover recovery status.",
+    "job_id": 140830578109,
+    "only_removed_json_paths": [
+      "cases/0/benchmark/intervals_ms",
+      "cases/1/benchmark/intervals_ms",
+      "cases/2/benchmark/intervals_ms"
+    ],
+    "raw": "docs/evidence/playwright-1.65.1-native-raw-2026-11-28.json",
+    "raw_interval_samples_retained": 90,
+    "run_id": 46096974293,
+    "statistics_recomputed_from_raw_and_matching": true
+  },
+  "playwright_version": "1.65.1",
+  "previous_sdk_sha256": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+  "quality_curation": {
+    "profiles": [
+      "desktop",
+      "mobile"
+    ],
+    "raw_summary_sha256": {
+      "desktop": "806a809a3ad81b2dc8a2ca906c62709aeb4928029cb9a4c385d5b83b388f3afe",
+      "mobile": "e140c7f606623511677b5eeb7cfd1a155d4d8a15e93fcba29c5fa42fad981209"
+    }
+  },
+  "recorded_at_utc": "2026-11-28T05:42:11.550201+00:00",
+  "schema_version": 1,
+  "scope": "Original native receipt with unchanged native sources, plus fresh optimized Studio and quality evidence",
+  "source_sha256": {
+    "motion-library/chromium-stack/harness.html": "1ab65f6d93ac1c13d5459df0fa1fd036a52ea28fd310b2c2fa03d57f264cfd9c",
+    "motion-library/chromium-stack/native-probes.mjs": "fe07b47a73658ed5d2772ed5c906fc0f3d2a117ba6d826df24fe3bfdc172c436",
+    "motion-library/chromium-stack/options.mjs": "da805dae3dfdd1a948b0d77516ec2da8dcc24ed00f721a81cd5b9038ab1b214e",
+    "motion-library/chromium-stack/package-lock.json": "d9707412b1d264ae7aa625d6192170228e61a1f2a7ec777c2f001cae3ab24d3c",
+    "motion-library/chromium-stack/package.json": "1c5d01b838ff9f5a18cc73ebc5befa6f25063721e429be3feebaba0593311557",
+    "motion-library/chromium-stack/smoke.mjs": "82ae20eff583d02b3230578dfb6342e5a608d5063318fbb748dab9b305709ce0",
+    "motion-library/expansion/catalog.mjs": "2af27634e1f9416912854b5e6c9cb5740e3a2ee8275989f6ae02dc1f66c31f9c",
+    "motion-library/expansion/definitions.json": "2c61fede11d5199c11e7eae23d4ca6e39256ad9051f94b29317b0c0d5609dbd9",
+    "motion-library/expansion/families.mjs": "753a7d0e81df964ae557dd66ad54a586a9c2db679db1f87f500773b9c24877c1",
+    "motion-library/expansion/geometry.mjs": "653b44b798500481f49fa853f1458ad8b2941567bed4e4a736ff34e73e9db57b",
+    "motion-library/expansion/systems.mjs": "5e7f36610c28b950d538a38a37810242839b1ab95da21b38e21a0e169d5796aa",
+    "motion-library/quality/audit.mjs": "07460f7f6c5908358dc99d0db59b93dea431ea1ca71f30267faafe3bfab3893d",
+    "motion-library/quality/budgets.mjs": "2d42fd4c376efeacbdbbf55552441d9cf852460cca04b3ef9793bc07c414d7c1",
+    "motion-library/quality/package-lock.json": "5ec4328e1200f321dcb6bbbb9275717a25989e9881a789f79fbd96e6dc846764",
+    "motion-library/quality/package.json": "c417fbbeaef6c64470047e4306bdafa9518a4cec9777da72ed277920c035feee",
+    "motion-library/quality/server.mjs": "456e0b49723c6f08333e6a53ddd5d17680bc55ca4339cad422bdd99cb4da0140",
+    "motion-library/verify/package-lock.json": "48c111a32cbaa68ca30ad73a9c724cf9660f232568123416ef8d85c4bc441a99",
+    "motion-library/verify/package.json": "dde1ee994f248105456b67f577820381a7dd30150af03cbd702816345be659ff",
+    "motion-studio/index.html": "f2c3f307027f5ef19dc23faf6a05408eace11418eab56994ce11973970c217f7",
+    "motion-studio/studio.mjs": "34854afd382644b0fd35ee69df7ad00a5cb3c6833fe34b02217ae5510bacd6f3",
+    "motion-studio/styles.css": "518bad690ec5c016587d885a8c9b610889f7981fd03d4b0c301e5d9862d16d01",
+    "packages/motion-sdk/index.mjs": "4f6a83553484973fbbc06f0fa5609af304bf8c0b7a283654ed628704eccdc0d0",
+    "tests/test_motion_studio_browser.mjs": "1a781a7d49bdaa7e0213511a3cacce1e0ec31c39098e157fa5b3030f6dd12c65"
+  },
+  "status": "passed-recorded-source-bound-developer-QA"
+}

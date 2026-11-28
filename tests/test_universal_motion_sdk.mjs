@@ -144,6 +144,32 @@ test('frame export and bounded benchmark distinguish measurements from productio
   instance.destroy();
 });
 
+test('playback and benchmark draw every sample without serializing discarded frames', () => {
+  const sdk = createMotionSystem(), surface = canvas(), time = scheduler();
+  const sampled = [];
+  let serialized = 0;
+  sdk.registerCatalog({definitions: [definition], sampleMotion: (motion, progress, options) => {
+    sampled.push(progress);
+    const scene = sampleMotion(motion, progress, options);
+    const metadata = scene.meta;
+    scene.meta = {toJSON() { serialized++; return metadata; }};
+    return scene;
+  }});
+  const clip = sdk.create(definition.id, {canvas: surface, ...time});
+  clip.play(); time.advance(250); clip.pause();
+  assert.equal(serialized, 0);
+  sampled.length = 0;
+  surface.context.calls.length = 0;
+  assert.equal(clip.benchmark({frames: 5}).frames, 5);
+  assert.deepEqual(sampled, [0, .25, .5, .75, 1, .25]);
+  assert.equal(surface.context.calls.filter(([method]) => method === 'arc').length, 6);
+  assert.equal(clip.progress, .25);
+  assert.equal(serialized, 0);
+  assert.equal(clip.render(.75).meta.progress, .75);
+  assert.equal(serialized, 1);
+  clip.destroy();
+});
+
 test('WAAPI uses an explicit real-host adapter contract and the same lifecycle', () => {
   const sdk = createMotionSystem(), time = scheduler();
   const animation = {pause() { this.paused = true; }, cancel() { this.cancelled = true; }, currentTime: null};
