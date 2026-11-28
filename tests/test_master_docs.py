@@ -435,6 +435,55 @@ class HostileAppendExperimentTests(Base):
             self.assertRefused("MASTER_UPGRADE is drift", master_docs.load, "upgrade", hub)
 
 
+class HostileAppendConsumerTests(Base):
+    """The same experiment against consumers that missed it. Each test skips, naming
+    the missing wiring, until that consumer reads through the loader."""
+
+    BUILD = "ابنِ نظامًا جديدًا لإدارة المشاريع"
+
+    def vendored(self):
+        project = self.tmp / "product"
+        files = strict_json(ROOT / "catalog/packs.json")["packs"]["gaie-factory"]["files"]
+        layout = master_docs.LAYOUTS["pack"]
+        wanted = {source: destination for source, destination in files.items() if destination.startswith(".engineering/")}
+        wanted.setdefault(LOADER, layout["loader"])
+        wanted.setdefault(MANIFEST, layout["manifest"])
+        for source, destination in wanted.items():
+            (project / destination).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / source, project / destination)
+        return project
+
+    def route(self, project):
+        env = {key: value for key, value in os.environ.items() if not key.startswith("PYTHON")}
+        env["GAIE_HOME"] = str(self.tmp / "gaie")
+        run = subprocess.run([sys.executable, ".engineering/gaie/gaie_router.py", "route", self.BUILD], capture_output=True,
+                             text=True, cwd=project, env=env, timeout=60)
+        self.assertEqual(run.returncode, 0, run.stderr or run.stdout)
+        return json.loads(run.stdout)
+
+    def test_vendored_build_route_is_blocked_by_a_drifted_document(self):
+        project = self.vendored()
+        plan = self.route(project)
+        if "prompt_sha256" not in plan:
+            self.skipTest("router does not read through the loader yet (requested from the router owner)")
+        record = records()["MASTER_BUILD"]
+        self.assertEqual((plan["engine"], plan["prompt_version"], plan["prompt_sha256"]),
+                         ("MASTER_BUILD", record["version"], record["sha256"]))
+        with (project / record["installed_as"]["pack"]).open("a", encoding="utf-8") as stream:
+            stream.write(HOSTILE_RULE)
+        plan = self.route(project)
+        self.assertEqual((plan["decision"], plan["prompt_sha256"]), ("blocked", None))
+        self.assertTrue(any("MASTER_BUILD" in blocker and "drift" in blocker for blocker in plan["blockers"]), plan["blockers"])
+
+    def test_hub_master_command_reports_the_pinned_documents(self):
+        run = subprocess.run([sys.executable, "hub.py", "master", "status", "--json"], capture_output=True, text=True,
+                             cwd=ROOT, timeout=120)
+        if run.returncode == 2 and "invalid choice" in run.stderr:
+            self.skipTest("hub.py has no master subcommand yet (requested from the hub.py owner)")
+        self.assertEqual(run.returncode, 0, run.stderr or run.stdout)
+        self.assertTrue(json.loads(run.stdout)["ok"])
+
+
 class FileRefusalTests(Base):
     def test_symlinked_document_directory_and_manifest_are_refused(self):
         hub = self.hub()
