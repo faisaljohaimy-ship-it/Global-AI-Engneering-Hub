@@ -29,6 +29,7 @@ import importlib.util
 import json
 import os
 import re
+import signal
 import sys
 from pathlib import Path
 
@@ -98,6 +99,18 @@ def need_large(state: Path, lean: bool = False) -> dict:
     return kit
 
 
+def read_input(limit: int) -> str:
+    """Standard input, but never more than one character past LIMIT: a huge input is refused, not held in memory."""
+    return sys.stdin.read(limit + 1)
+
+
+SEARCH_SECONDS = 5
+
+
+def stopped(signum, frame):
+    raise Refused("that search took too long; use a simpler regular expression")
+
+
 def capped(text: str, limit: int, hint: str) -> str:
     return text if len(text) <= limit else f"{text[:limit]}\n[{len(text) - limit} more characters not shown: {hint}]"
 
@@ -137,7 +150,7 @@ def submit(ident: str) -> None:
     if kit["attempts"] >= ATTEMPTS:
         emit(state, "submit", "No attempts are left. Reply FAILED.")
         return
-    source = sys.stdin.read()
+    source = read_input(40000)
     if len(source) > 40000:
         raise Refused("the file is too long")
     kit["attempts"] += 1
@@ -201,13 +214,19 @@ def grep(ident: str, pattern: str, name: str = "") -> None:
     except re.error as problem:
         raise Refused(f"not a regular expression: {problem}") from None
     root = inside(folder, name) if name else folder
+    whole = folder.resolve()
     files = [root] if root.is_file() else sorted(p for sub in ("inv", "tests", "data", "logs") for p in (folder / sub).glob("*") if p.is_file()
-                                                 and (root == folder or root in p.parents))
+                                                 and (root == folder or root in p.parents) and whole in p.resolve().parents)
     hits = []
-    for path in files:
-        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if wanted.search(line):
-                hits.append(f"{path.relative_to(folder)}:{number}:{line}")
+    signal.signal(signal.SIGALRM, stopped)
+    signal.setitimer(signal.ITIMER_REAL, SEARCH_SECONDS)
+    try:
+        for path in files:
+            for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                if wanted.search(line):
+                    hits.append(f"{path.relative_to(folder)}:{number}:{line}")
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
     limit = LEAN_CAP if kit["mode"] == "lean" else RAW_CAP
     emit(state, "grep", capped("\n".join(hits) or "no line matches", limit, f"{len(hits)} lines matched; narrow the search"))
 
@@ -250,7 +269,7 @@ def setline(ident: str, name: str, number: str) -> None:
     need_large(state)
     if not re.fullmatch(r"inv/m\d+\.py", name):
         raise Refused("only a module of the package may be changed")
-    text = sys.stdin.read().rstrip("\n")
+    text = read_input(401).rstrip("\n")
     if "\n" in text or len(text) > 400:
         raise Refused("give exactly one line")
     path = inside(folder, name)
@@ -271,7 +290,7 @@ def answer(ident: str) -> None:
     folder, state = locate(ident)
     need_large(state)
     try:
-        given = json.loads(sys.stdin.read())
+        given = json.loads(read_input(20000))
     except ValueError:
         raise Refused("that is not JSON") from None
     if not isinstance(given, dict) or sorted(given) != sorted(FACTS):
