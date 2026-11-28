@@ -26,7 +26,7 @@ ROLES = frozenset({"orchestrator", "architecture", "development", "database",
 ENGINES = frozenset({"codex", "claude-code"})
 SLUG = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}")
 DIGEST = re.compile(r"[a-f0-9]{64}")
-SECRET = re.compile(r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|\bgh[pousr]_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{40,}|\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|\bAKIA[0-9A-Z]{16}\b|\bsb_secret_[A-Za-z0-9_-]{20,}|\bxox[baprs]-[A-Za-z0-9-]{10,}|\b(?:sk|rk)_live_[A-Za-z0-9]{20,}|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}")
+SECRET = re.compile(r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|(?<![A-Za-z0-9])gh[pousr]_[A-Za-z0-9]{30,}|(?<![A-Za-z0-9])github_pat_[A-Za-z0-9_]{40,}|(?<![A-Za-z0-9])sk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])sb_secret_[A-Za-z0-9_-]{20,}|(?<![A-Za-z0-9])xox[baprs]-[A-Za-z0-9-]{10,}|(?<![A-Za-z0-9])(?:sk|rk)_live_[A-Za-z0-9]{20,}|(?<![A-Za-z0-9])eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}")
 MAX_BYTES = 8 * 1024 * 1024
 
 

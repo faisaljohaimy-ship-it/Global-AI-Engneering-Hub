@@ -18,6 +18,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -352,14 +353,65 @@ class ConcurrentAppendTests(JournalBase):
         self.assertFalse(self.memory.journal.exists())
 
 
+class PortableSecretTests(JournalBase):
+    """The portable journal refuses the credential shapes the engine refuses, Arabic-touching ones included."""
+    AWS = "AK" + "IA" + "IOSFODNN7EXAMPLE"
+
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.object(gaie_memory, "ENGINE", None)  # as when the file is vendored alone
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_keys_touching_arabic_letters_or_underscores_are_refused(self):
+        for body in ["و" + self.AWS, self.AWS + "هنا", "aws_" + self.AWS, "رمز" + "gh" + "p_" + "a" * 36,
+                     "مفتاح" + "sk_" + "live_" + "a" * 24, "رمز" + "ey" + "J" + "a" * 12 + "." + "b" * 24 + "." + "c" * 24,
+                     "كلمة المرور: " + "Sup3rS3cretValue", "كَلِمَةُ الْمُرُورِ: " + "Sup3rS3cretValue"]:
+            with self.subTest(body=body[:6]):
+                with self.assertRaises(gaie_memory.MemoryError_) as caught:
+                    self.memory.add("lesson", "Key", body, now=NOW)
+                self.assertIn("credential", str(caught.exception))
+        self.assertFalse(self.memory.journal.exists())
+
+    def test_ascii_words_and_arabic_prose_stay_storable(self):
+        for body in ["disk-usage-monitoring-dashboard-panel-view", "risk_live_dashboard_metrics_view_extra",
+                     "X" + self.AWS + "YZ", "كلمة المرور يجب أن تكون طويلة"]:
+            with self.subTest(body=body):
+                self.assertEqual(self.memory.add("lesson", body[:20], body, now=NOW)["status"], "stored")
+
+    def test_engine_and_portable_patterns_are_identical(self):
+        from engineering_os import memory as engine
+        self.assertEqual(gaie_memory.SECRET.pattern, engine.BROAD_SECRET.pattern)
+        self.assertEqual(gaie_memory.SECRET.flags, engine.BROAD_SECRET.flags)
+        self.assertEqual(gaie_memory._ARABIC_MARKS.pattern, engine._ARABIC_MARKS.pattern)
+
+
 class VendoredAloneTests(JournalBase):
-    def test_the_vendored_journal_cli_refuses_a_hard_link(self):
+    def vendor(self):
         engine = self.tmp / "engine"
         engine.mkdir()
         for source, name in {"engineering_os/gaie_memory.py": "gaie_memory.py", "engineering_os/gaie_router.py": "gaie_router.py",
                              "governance/policies/gaie-routes.json": "gaie-routes.json", "projects/registry.json": "projects.json",
                              "projects/aliases.json": "aliases.json"}.items():
             shutil.copyfile(ROOT / source, engine / name)
+        return engine
+
+    def test_the_vendored_journal_cli_refuses_an_arabic_touching_key(self):
+        engine = self.vendor()
+        env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "GAIE_HOME": str(self.home), "LANG": "C.UTF-8"}
+        base = [sys.executable, str(engine / "gaie_memory.py"), "--project", "demo", "add", "--kind", "lesson", "--title"]
+        first = subprocess.run(base + ["Portable", "--body", "Vendored alone"], capture_output=True, text=True, env=env,
+                               cwd=self.tmp, timeout=60)
+        self.assertEqual((first.returncode, json.loads(first.stdout)["status"]), (0, "stored"), first.stderr)
+        before = self.memory.journal.read_bytes()
+        refused = subprocess.run(base + ["Key", "--body", "و" + PortableSecretTests.AWS], capture_output=True, text=True,
+                                 env=env, cwd=self.tmp, timeout=60)
+        self.assertEqual((refused.returncode, json.loads(refused.stdout)["status"]), (1, "error"))
+        self.assertEqual(self.memory.journal.read_bytes(), before)
+        self.assertNotIn(PortableSecretTests.AWS.encode(), self.memory.journal.read_bytes())
+
+    def test_the_vendored_journal_cli_refuses_a_hard_link(self):
+        engine = self.vendor()
         env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "GAIE_HOME": str(self.home), "LANG": "C.UTF-8"}
         cli = [sys.executable, str(engine / "gaie_memory.py"), "--project", "demo", "add", "--kind", "lesson",
                "--title", "Portable", "--body", "Vendored alone"]

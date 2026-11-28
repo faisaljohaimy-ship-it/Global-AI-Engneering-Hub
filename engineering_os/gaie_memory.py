@@ -67,15 +67,30 @@ JOURNAL = "entries.jsonl"
 JOURNAL_LOCK = "entries.lock"
 FIELDS = ("project", "kind", "title", "body", "tags", "evidence", "links", "previous", "created")
 MAX_BODY, MAX_ENTRIES, MAX_BYTES = 4000, 5000, 8 * 1024 * 1024
+# Token edges are ASCII-aware: `\b` treats an Arabic letter, a digit or "_" as part of the word, so
+# "وAKIA…" (the conjunction wa- attached to a key) or "aws_AKIA…" slipped past it.
+_L, _R = r"(?<![A-Za-z0-9])", r"(?![A-Za-z0-9])"
+# Arabic labels for a password, a secret number, an access key or code and the loanwords توكن / باسورد, at parity
+# with the English rule below (recheck-authz M2): any suffix on the label, then ":", "=" or the prose "هي"/"هو"
+# ("is") and a value, with up to three words of the same line between label and separator; ة or ه and ي or ى
+# spellings. Harakat and tatweel are removed from a scanned copy (_ARABIC_MARKS). Without such a separator the
+# label is prose ("كلمة المرور يجب أن تكون طويلة") and stays storable.
+_ARABIC_SECRET_LABEL = (r"(?:كلم[ةه]\s+(?:ال)?(?:مرور|سر)|(?:ال)?رقم\s+(?:ال)?سر[يى]"
+                        r"|رمز\s+(?:ال)?(?:مرور|دخول|وصول|تحقق|سر[يى])|مفتاح\s+(?:ال)?\s*(?:api|واجهة|وصول|سر[يى]|خاص)"
+                        r"|(?:ال)?(?:توكن|باسورد|باسوورد))\w*"
+                        r"(?:[ \t]+[^\s:=\"'«»,،؛.]+){0,3}?(?:\s*[:=]\s*|\s+(?:هي|هو|هى)\s+)[\"'«]?\S{4,}")
+_ARABIC_MARKS = re.compile("[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]")  # harakat, Quranic marks, tatweel
+# The engine's BROAD_SECRET (engineering_os/memory.py), kept identical for a vendored copy without the engine.
 SECRET = re.compile(
-    r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|\bgh[pousr]_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}|\bglpat-[A-Za-z0-9_-]{16,}"
-    r"|\bnpm_[A-Za-z0-9]{20,}|\bwhsec_[A-Za-z0-9]{16,}|\bsbp_[A-Za-z0-9]{20,}|\bya29\.[A-Za-z0-9_-]{16,}"
-    r"|\bsk-(?:proj-|ant-|svcacct-|admin-)?[A-Za-z0-9_-]{24,}|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\bAIza[A-Za-z0-9_-]{35}\b"
-    r"|\bsb_secret_[A-Za-z0-9_-]{20,}|\bxox[baprs]-[A-Za-z0-9-]{10,}|\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{20,}"
-    r"|\bsk_[a-f0-9]{48}\b|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}"
-    r"|\b(?:Bearer|Basic)\s+[A-Za-z0-9_./+=-]{12,}|://[^\s/@]+:[^\s@]+@|hooks\.slack\.com/services/"
+    rf"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|{_L}gh[pousr]_[A-Za-z0-9]{{20,}}|{_L}github_pat_[A-Za-z0-9_]{{20,}}"
+    rf"|{_L}glpat-[A-Za-z0-9_-]{{16,}}|{_L}npm_[A-Za-z0-9]{{20,}}|{_L}whsec_[A-Za-z0-9]{{16,}}|{_L}sbp_[A-Za-z0-9]{{20,}}"
+    rf"|{_L}ya29\.[A-Za-z0-9_-]{{16,}}|{_L}sk-(?:proj-|ant-|svcacct-|admin-)?[A-Za-z0-9_-]{{24,}}"
+    rf"|{_L}(?:AKIA|ASIA)[0-9A-Z]{{16}}{_R}|{_L}AIza[A-Za-z0-9_-]{{35}}{_R}|{_L}sb_secret_[A-Za-z0-9_-]{{20,}}"
+    rf"|{_L}xox[baprs]-[A-Za-z0-9-]{{10,}}|{_L}(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{{20,}}|{_L}sk_[a-f0-9]{{48}}{_R}"
+    rf"|{_L}eyJ[A-Za-z0-9_-]{{10,}}\.[A-Za-z0-9_-]{{20,}}\.[A-Za-z0-9_-]{{20,}}"
+    rf"|{_L}(?:Bearer|Basic)\s+[A-Za-z0-9_./+=-]{{12,}}|://[^\s/@]+:[^\s@]+@|hooks\.slack\.com/services/"
     r"|(?:password|passwd|pwd|secret|api[\s_-]?key|token|private[\s_-]?key|access[\s_-]?key|role[\s_-]?key|credential)\w*"
-    r"[\"']?\s*(?:[:=]|\bis\b)\s*[\"']?\S{4,}", re.I)
+    rf"[\"']?\s*(?:[:=]|{_L}is{_R})\s*[\"']?\S{{4,}}|{_ARABIC_SECRET_LABEL}", re.I)
 
 
 SPLIT = re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|sk-(?:proj-|ant-)[A-Za-z0-9_-]{24,}|xox[baprs]-[A-Za-z0-9-]{20,}")
@@ -100,7 +115,8 @@ def _text(value, limit, name):
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
         raise MemoryError_(f"{name} must be 1-{limit} characters")
     value = unicodedata.normalize("NFKC", value)
-    if SECRET.search(value) or SPLIT.search(re.sub(r"\s+", "", value)):  # SPLIT: a token broken across lines
+    if any(SECRET.search(text) or SPLIT.search(re.sub(r"\s+", "", text))  # SPLIT: a token broken across lines
+           for text in (value, _ARABIC_MARKS.sub("", value))):
         raise MemoryError_(f"{name} looks like it contains a credential; refused")
     if any((ord(char) < 32 and char not in "\n\t") or unicodedata.category(char) in ("Cf", "Zl", "Zp") for char in value):
         raise MemoryError_(f"{name} contains control characters")
