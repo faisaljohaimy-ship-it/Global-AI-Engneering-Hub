@@ -134,7 +134,7 @@ Responsibilities:
 - **Agents:** `chief-engineering-architect`, `twenty-layer-architecture-engineer`, `enterprise-security-privacy-engineer`
 - **Tests:** `tests/test_contracts.py`, `tests/test_layers.py`, `tests/test_hub.py`
 - **Evidence boundary:** Local policy/receipt validators; provider administration is separate
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 3/3 test files, 40 test cases passed; 31 sources bound (`source_sha256` dee7e0287e909838…).
 
 ### L02 AI Intelligence & Model Routing — الذكاء الاصطناعي وتوجيه النماذج
 
@@ -153,7 +153,7 @@ Responsibilities:
 - **Agents:** `context-token-economics-engineer`, `claude-code-integration-engineer`
 - **Tests:** `tests/test_model_router.py`
 - **Evidence boundary:** Deterministic policy routing; actual model access must be evidenced
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 1/1 test files, 15 test cases passed; 4 sources bound (`source_sha256` 8418dd6424beca3d…).
 
 ### L03 Adaptive Agent Orchestration — التنسيق التكيّفي للوكلاء
 
@@ -172,7 +172,7 @@ Responsibilities:
 - **Agents:** `adaptive-agent-orchestration-engineer`, `agent-isolation-security-engineer`
 - **Tests:** `tests/test_os_orchestration.py`, `tests/test_swarm.py`
 - **Evidence boundary:** Explicit invocations/file-state coordination; no continuous daemon claim
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 2/2 test files, 35 test cases passed; 10 sources bound (`source_sha256` 6a39d1caa8ba8951…).
 
 ### L04 Engineering Control Plane — مستوى التحكم الهندسي
 
@@ -191,7 +191,7 @@ Responsibilities:
 - **Agents:** `chief-engineering-architect`, `twenty-layer-architecture-engineer`, `control-plane-integration-engineer`
 - **Tests:** `tests/test_os_control.py`, `tests/test_hub.py`, `tests/test_intelligence.py`, `tests/test_layers.py`
 - **Evidence boundary:** Existing CLI, checksummed SDK and additive operational commands
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 4/4 test files, 58 test cases passed; 32 sources bound (`source_sha256` 6efe3fe4735ba764…).
 
 ### L05 Universal Integration Intelligence — ذكاء التكامل الشامل
 
@@ -210,7 +210,7 @@ Responsibilities:
 - **Agents:** `control-plane-integration-engineer`, `claude-code-integration-engineer`
 - **Tests:** `tests/test_sdk.py`, `tests/test_os_control.py`, `tests/test_engine_motion_link.py`
 - **Evidence boundary:** Local MCP/CLI implemented; other protocols remain per-adapter candidates
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 3/3 test files, 33 test cases passed; 7 sources bound (`source_sha256` 5cb63e33df818e8d…).
 
 ### L06 Software Engineering — هندسة البرمجيات
 
@@ -229,7 +229,7 @@ Responsibilities:
 - **Agents:** `master-build-engine-engineer`, `master-upgrade-engine-engineer`
 - **Tests:** `tests/test_gaie_factory.py`, `tests/test_hub.py`
 - **Evidence boundary:** Existing shared skills; project implementations remain private
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 2/2 test files, 31 test cases passed; 10 sources bound (`source_sha256` 652b34ee0d5da2d6…).
 
 ### L07 Data & Knowledge Intelligence — ذكاء البيانات والمعرفة
 
@@ -248,7 +248,7 @@ Responsibilities:
 - **Agents:** `knowledge-intelligence-integration-engineer`
 - **Tests:** `tests/test_intelligence.py`, `tests/test_sdk.py`, `tests/test_hub.py`
 - **Evidence boundary:** No shared production database provisioned; project-level verification required
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 3/3 test files, 31 test cases passed; 19 sources bound (`source_sha256` b2bd032a122ade37…).
 
 ### L08 Cinematic, Motion & GPU — السينما والحركة ومعالجة الرسوميات
 
@@ -267,7 +267,7 @@ Responsibilities:
 - **Agents:** `motion-sdk-animation-engineer`, `gpu-3d-digital-twin-engineer`, `cinematic-production-engineer`
 - **Tests:** `tests/test_os_control.py`, `tests/test_hub.py`, `tests/test_motion_catalog.py`, `tests/test_motion.py`, `tests/test_motion_runtime.mjs`, `tests/test_universal_motion_sdk.mjs`, `tests/test_motion_expansion.mjs`, `tests/test_chromium_stack_options.mjs`
 - **Evidence boundary:** Preserve verified CSS/WAAPI/WebGL; new engines need their own runtime proof
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 8/8 test files, 69 test cases passed; 29 sources bound (`source_sha256` 5b326f5bd7298f50…).
 
 ### L09 Security & Quality Intelligence — ذكاء الأمن والجودة
 
@@ -287,7 +287,7 @@ Responsibilities:
 - **Agents:** `agent-isolation-security-engineer`, `enterprise-security-privacy-engineer`, `testing-self-healing-engineer`
 - **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`
 - **Evidence boundary:** SHA-pinned CI and test/audit evidence; no blanket compliance claim
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 5/5 test files, 76 test cases passed; 20 sources bound (`source_sha256` 9bd2347c86ee4556…).
 
 ### L10 Independent Product Ecosystem — منظومة المنتجات المستقلة
 
@@ -306,7 +306,7 @@ Responsibilities:
 - **Agents:** `nl-router-project-registry-engineer`, `github-integration-release-engineer`
 - **Tests:** `tests/test_link.py`, `tests/test_engine_motion_link.py`
 - **Evidence boundary:** Private registry outside public Git; local preparation differs from remote completion
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 2/2 test files, 24 test cases passed; 3 sources bound (`source_sha256` 5496063896ca0977…).
 
 ### L11 Cloud & Deployment Intelligence — ذكاء السحابة والنشر
 
@@ -325,7 +325,7 @@ Responsibilities:
 - **Agents:** `github-integration-release-engineer`
 - **Tests:** `tests/test_release_provenance.py`, `tests/test_sdk.py`
 - **Evidence boundary:** Existing provider projects preserved; incomplete permissions block relinking
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 2/2 test files, 18 test cases passed; 5 sources bound (`source_sha256` f8eb811cf9f523a0…).
 
 ### L12 Continuous Technology Intelligence — الذكاء التقني المستمر
 
@@ -344,7 +344,7 @@ Responsibilities:
 - **Agents:** `knowledge-intelligence-integration-engineer`
 - **Tests:** `tests/test_technology_discovery.py`, `tests/test_os_control.py`
 - **Evidence boundary:** Read-only discovery and reviewed update proposals; no automatic execution
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 2/2 test files, 18 test cases passed; 6 sources bound (`source_sha256` 5cc07e2f902498d1…).
 
 ### L13 Advanced Engineering Reasoning — الاستدلال الهندسي المتقدم
 
@@ -364,7 +364,7 @@ Responsibilities:
 - **Agents:** `engineering-reasoning-engineer`
 - **Tests:** `tests/test_reasoning.py`
 - **Evidence boundary:** Deterministic ranking of supplied alternatives and schedules; no model reasoning or inferred causality
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 1/1 test files, 24 test cases passed; 4 sources bound (`source_sha256` 989d4bd4fcc1514a…).
 
 ### L14 Persistent Engineering Memory — الذاكرة الهندسية الدائمة
 
@@ -383,7 +383,7 @@ Responsibilities:
 - **Agents:** `persistent-memory-engineer`
 - **Tests:** `tests/test_engineering_memory.py`, `tests/test_gaie_factory.py`
 - **Evidence boundary:** Private file-backed memory outside Git; lexical retrieval, not embeddings; checksums detect corruption only
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 2/2 test files, 32 test cases passed; 11 sources bound (`source_sha256` 183ed52eda42e8d3…).
 
 ### L15 Requirements & Specification Intelligence — ذكاء المتطلبات والمواصفات
 
@@ -402,7 +402,7 @@ Responsibilities:
 - **Agents:** `nl-router-project-registry-engineer`, `engineering-reasoning-engineer`
 - **Tests:** `tests/test_gaie_router.py`, `tests/test_intelligence.py`, `tests/test_factory.py`
 - **Evidence boundary:** Deterministic command parsing and bounded request validation; engineering_os/requirements.py is wave 2
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 3/3 test files, 46 test cases passed; 14 sources bound (`source_sha256` beb7640f35569374…).
 
 ### L16 Autonomous Software Factory — مصنع البرمجيات الذاتي
 
@@ -422,7 +422,7 @@ Responsibilities:
 - **Agents:** `master-build-engine-engineer`, `master-upgrade-engine-engineer`, `nl-router-project-registry-engineer`
 - **Tests:** `tests/test_factory.py`, `tests/test_gaie_router.py`, `tests/test_gaie_factory.py`
 - **Evidence boundary:** Plans and checks artifacts against supplied receipts; generates no complete application and deploys nothing
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 3/3 test files, 58 test cases passed; 11 sources bound (`source_sha256` 6d94ffa8b4120899…).
 
 ### L17 Self-Healing & Recovery Intelligence — ذكاء الإصلاح الذاتي والتعافي
 
@@ -441,7 +441,7 @@ Responsibilities:
 - **Agents:** `testing-self-healing-engineer`
 - **Tests:** `tests/test_healing.py`
 - **Evidence boundary:** Repair proposals and fixed declarative checks; candidate code is never executed
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 1/1 test files, 23 test cases passed; 5 sources bound (`source_sha256` 4aece7ba3972e38b…).
 
 ### L18 Advanced Cinematic Intelligence — الذكاء السينمائي المتقدم
 
@@ -460,7 +460,7 @@ Responsibilities:
 - **Agents:** `cinematic-production-engineer`, `gpu-3d-digital-twin-engineer`
 - **Tests:** `tests/test_cinematic_intelligence.py`, `tests/test_engine_motion_link.py`, `tests/test_nextgen_camera.mjs`
 - **Evidence boundary:** Source-bound inventory and engine-motion resolution; every render needs its own browser receipt
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 3/3 test files, 20 test cases passed; 9 sources bound (`source_sha256` f15ece1a34b24132…).
 
 ### L19 Engineering Economics & Resource Intelligence — اقتصاديات الهندسة وذكاء الموارد
 
@@ -479,7 +479,7 @@ Responsibilities:
 - **Agents:** `context-token-economics-engineer`
 - **Tests:** `tests/test_economics.py`, `tests/test_p3_context_budget.py`
 - **Evidence boundary:** Offline accounting over supplied ledgers; tokens, cost and subscription quota stay separate
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 2/2 test files, 20 test cases passed; 7 sources bound (`source_sha256` a54fb84492653c79…).
 
 ### L20 Independent Engineering Assurance — الضمان الهندسي المستقل
 
@@ -499,8 +499,41 @@ Responsibilities:
 - **Agents:** `independent-assurance-engineer`, `twenty-layer-architecture-engineer`
 - **Tests:** `tests/test_layers.py`, `tests/test_os_control.py`, `tests/test_reasoning.py`, `tests/test_release_provenance.py`
 - **Evidence boundary:** Source-bound test receipts; engineering_os/assurance.py is wave 2; hashes do not authenticate reviewers
-- **Evidence status:** UNVERIFIED until `python3 hub.py layers --verify` writes a current receipt.
+- **Evidence status:** VERIFIED — 4/4 test files, 69 test cases passed; 32 sources bound (`source_sha256` d913281e6bf5f917…).
 
 ## Evidence status
 
-No receipt has been produced for this text yet: every layer is UNVERIFIED here.
+Produced by `python3 hub.py layers --verify` on branch `gaie/w1-layers` at commit `abf2ed6`
+(2026-11-28, Python 3.13.18, node v22.23.5).
+The receipts are private state, not part of the repository; this table is a copy for
+review and becomes outdated the moment a bound source changes — `python3 hub.py layers`
+is the authority. Deterministic test execution only; no model reasoning is involved.
+
+| Layer | Status | Test files passed | Test cases passed | Skipped cases | Sources bound | source_sha256 |
+|---|---|---|---|---|---|---|
+| L01 | VERIFIED | 3/3 | 40 | 0 | 31 | `dee7e0287e909838…` |
+| L02 | VERIFIED | 1/1 | 15 | 0 | 4 | `8418dd6424beca3d…` |
+| L03 | VERIFIED | 2/2 | 35 | 0 | 10 | `6a39d1caa8ba8951…` |
+| L04 | VERIFIED | 4/4 | 58 | 0 | 32 | `6efe3fe4735ba764…` |
+| L05 | VERIFIED | 3/3 | 33 | 0 | 7 | `5cb63e33df818e8d…` |
+| L06 | VERIFIED | 2/2 | 31 | 0 | 10 | `652b34ee0d5da2d6…` |
+| L07 | VERIFIED | 3/3 | 31 | 0 | 19 | `b2bd032a122ade37…` |
+| L08 | VERIFIED | 8/8 | 69 | 0 | 29 | `5b326f5bd7298f50…` |
+| L09 | VERIFIED | 5/5 | 76 | 0 | 20 | `9bd2347c86ee4556…` |
+| L10 | VERIFIED | 2/2 | 24 | 0 | 3 | `5496063896ca0977…` |
+| L11 | VERIFIED | 2/2 | 18 | 0 | 5 | `f8eb811cf9f523a0…` |
+| L12 | VERIFIED | 2/2 | 18 | 0 | 6 | `5cc07e2f902498d1…` |
+| L13 | VERIFIED | 1/1 | 24 | 0 | 4 | `989d4bd4fcc1514a…` |
+| L14 | VERIFIED | 2/2 | 32 | 0 | 11 | `183ed52eda42e8d3…` |
+| L15 | VERIFIED | 3/3 | 46 | 0 | 14 | `beb7640f35569374…` |
+| L16 | VERIFIED | 3/3 | 58 | 0 | 11 | `6d94ffa8b4120899…` |
+| L17 | VERIFIED | 1/1 | 23 | 0 | 5 | `4aece7ba3972e38b…` |
+| L18 | VERIFIED | 3/3 | 20 | 0 | 9 | `f15ece1a34b24132…` |
+| L19 | VERIFIED | 2/2 | 20 | 0 | 7 | `a54fb84492653c79…` |
+| L20 | VERIFIED | 4/4 | 69 | 0 | 32 | `d913281e6bf5f917…` |
+
+Honest note on L09: in the first full run, under a load average near 20 on four shared CPUs
+(other agents' suites running), `tests/test_p3_cage.py` failed 2 of 9 cases and L09 was
+recorded `FAILED`. The same cases also fail on an untouched export of the base commit under that
+load (the cage's per-user process and timing limits are machine-wide), so this is environmental.
+L09 was re-verified once the load fell below 5 and passed; the table shows that later receipt.
