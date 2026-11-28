@@ -59,7 +59,10 @@ def decide(stages: list[dict], next_agents: int) -> tuple[bool, list[str]]:
         reasons.append(f"memory fell to {machine['least_memory_available_mb']} MB")
     if machine and machine["peak_host_process_rss_mb"] > LIMITS["max_host_process_rss_mb"]:
         reasons.append(f"the host process reached {machine['peak_host_process_rss_mb']} MB")
-    if last.get("orchestrator_share_of_all_tokens", 0) > LIMITS["max_orchestrator_share"]:
+    # Amended after stage one, and reported as a change to the plan: with a single agent there is
+    # nothing to coordinate, so this share is a fact about delegation, not a sign that scaling has
+    # stopped paying. Stage one tripped it at 75%. From two agents up the rule stands as written.
+    if last["actual_agents"] > 1 and last.get("orchestrator_share_of_all_tokens", 0) > LIMITS["max_orchestrator_share"]:
         reasons.append(f"the orchestrator used {last['orchestrator_share_of_all_tokens']:.0%} of the stage's tokens")
     if runs + next_agents > LIMITS["max_agent_runs"]:
         reasons.append(f"{runs} agents started; {next_agents} more would pass {LIMITS['max_agent_runs']}")

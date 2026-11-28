@@ -61,23 +61,23 @@ TypeScript LSP|tool|typescript-language-server, started by Serena|sym def NAME F
 Python LSP|tool|pyright, started by Serena; pyright CLI is also on the machine|sym refs NAME FILE.py|USED|code
 JavaScript Language Intelligence|tool|the TypeScript server reading .mjs modules through Serena|sym overview FILE.mjs|TESTED|code
 ast-grep|tool|ast-grep 0.51.2|ast-grep run -p PATTERN -l LANG|USED|code,search
-Tree-sitter|tool|inside ast-grep and Repomix; the Python binding was run directly once|python -c 'import tree_sitter'|TESTED|code
+Tree-sitter|tool|inside ast-grep and Repomix; the Python binding 0.26.1 parsed one module and counted its 33 functions, the same as Python's own parser|python -c 'import tree_sitter'|TESTED|code
 Ripgrep|tool|ripgrep 14.1.0 and the host's search tool|rg -n PATTERN|USED|search,code
 Symbol-level Retrieval|tool|sym def returns one definition instead of a file|sym def NAME FILE|USED|code
-Reference Graph Analysis|script|sym refs; swarm/workload.py builds a call index for a project|sym refs NAME FILE|USED|code
+Reference Graph Analysis|script|sym refs; swarm/bench.py writes a call index for its project|sym refs NAME FILE|USED|code
 Dependency-aware Code Retrieval|script|the hub copies a motion with exactly the modules it imports|hub.py register ... engine-motion:ID|TESTED|code
 Context7|tool|not installed: its hosts are refused by the session's network policy|none|BLOCKED|docs
 Version-specific Documentation Retrieval|script|read the pinned version from the lock, then inspect the installed package|python -c 'import inspect, PKG'|USED|docs
 Selective API Documentation|script|print one signature or one help section, not a manual|python -c inspect.signature|USED|docs
 Repomix Scoped Analysis|tool|repomix 1.19.0 with --include and --compress|repomix --include GLOB --compress|TESTED|code,review
-Local Knowledge Indexing|script|a per-project call index shared by every agent; Context Mode's index|swarm/workload.py index|USED|code
+Local Knowledge Indexing|script|a per-project call index given to an agent as INDEX.json; Context Mode's index|python3 swarm/bench.py build DIR|USED|code
 Verified Documentation Cache|none|nothing here caches outside documentation|none|NOT IMPLEMENTED|docs
 Architecture Knowledge Retrieval|hub|hub.py architecture and ARCHITECTURE.md|python3 hub.py architecture|AVAILABLE|architecture
 Skill Discovery|hub|hub.py recommend scans skills/*/SKILL.md|python3 hub.py recommend QUERY|USED|orchestration
 On-demand Skill Activation|host|a skill's text is loaded when it is invoked|Skill tool|USED|orchestration
 Shared Knowledge References|script|agent packets name shared files by path instead of copying them|packet field shared|USED|orchestration
 Prompt Caching|host|done by the host; read and write counts are in every agent's record|none: measured by swarm/measure.py|HOST|orchestration
-Stable Context Prefixes|rule|every worker gets the same instructions first and its own task last|packet layout|USED|orchestration
+Stable Context Prefixes|rule|every worker got the same instructions first; even so the host wrote a fresh cache of about 182,000 tokens for each agent|packet layout|RULE|orchestration
 Content Fingerprinting|script|SHA-256 of originals, of motion sources and of tasks|automatic|USED|orchestration
 Git Blob-based Reuse|script|the hub reads files at a revision from Git objects|hublink.read(revision, path)|TESTED|code
 File Checksum Verification|hub|hub.py verify --strict and hr verify|python3 hub.py verify --strict|USED|release
@@ -107,7 +107,7 @@ Model Roundtrip Reduction|rule|the same; roundtrips per task are measured|measur
 Cost-aware Task Allocation|script|swarm/route.py gives routine work the lightest tier|python3 swarm/route.py routine|USED|orchestration
 Performance-based Model Selection|none|no comparison of models on the same tasks was kept as a selection rule|none|NOT IMPLEMENTED|orchestration
 Adaptive Agent Scheduling|script|swarm/scheduler.py plans waves from the task graph|python3 swarm/scheduler.py simulate|TESTED|orchestration
-Dynamic Concurrency|script|the scheduler's limit comes from the host's cap and from protect.py|scheduler limit|USED|orchestration
+Dynamic Concurrency|script|the scheduler plans to any limit; the real stages used the fixed sizes of the ladder|scheduler --limit N|TESTED|orchestration
 Task Ownership|hub|engineering_os.orchestration: claim with a lease, one owner per task|TaskStore.claim|USED|orchestration
 Task Deduplication|script|tasks with the same fingerprint are scheduled once|scheduler dedup|TESTED|orchestration
 Dependency-aware Task Graph|script|tasks run only after the tasks they depend on|scheduler waves|TESTED|orchestration

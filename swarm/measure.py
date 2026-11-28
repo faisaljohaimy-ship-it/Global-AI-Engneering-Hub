@@ -84,6 +84,8 @@ def read(path: Path, start: float | None = None, end: float | None = None) -> di
                     elif block.get("type") == "tool_use":
                         tools[block.get("name")] = tools.get(block.get("name"), 0) + 1
                         given = block.get("input") or {}
+                        if block.get("name") == "SubagentHandback":  # the host's way of returning an agent's last words
+                            final_text = next((v for v in given.values() if isinstance(v, str)), final_text)
                         if block.get("name") == "Bash":
                             for name, pattern in HELPERS.items():
                                 helpers[name] += bool(re.search(pattern, given.get("command", "")))
@@ -104,7 +106,8 @@ def read(path: Path, start: float | None = None, end: float | None = None) -> di
 
 def peak(rows: list[dict]) -> int:
     """The largest number of agents whose first-to-last activity overlapped."""
-    edges = sorted([(r["start"], 1) for r in rows if r["start"]] + [(r["end"], -1) for r in rows if r["end"]])
+    timed = [r for r in rows if r["start"] is not None and r["end"] is not None]
+    edges = sorted([(r["start"], 1) for r in timed] + [(r["end"], -1) for r in timed])
     best = now = 0
     for _, step in edges:
         now += step

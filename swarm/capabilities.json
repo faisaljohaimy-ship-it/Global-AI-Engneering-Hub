@@ -350,7 +350,7 @@
    "group_name": "Semantic code intelligence",
    "name": "Tree-sitter",
    "kind": "tool",
-   "implementation": "inside ast-grep and Repomix; the Python binding was run directly once",
+   "implementation": "inside ast-grep and Repomix; the Python binding 0.26.1 parsed one module and counted its 33 functions, the same as Python's own parser",
    "invoke": "python -c 'import tree_sitter'",
    "status": "TESTED",
    "task_classes": [
@@ -390,7 +390,7 @@
    "group_name": "Semantic code intelligence",
    "name": "Reference Graph Analysis",
    "kind": "script",
-   "implementation": "sym refs; swarm/workload.py builds a call index for a project",
+   "implementation": "sym refs; swarm/bench.py writes a call index for its project",
    "invoke": "sym refs NAME FILE",
    "status": "USED",
    "task_classes": [
@@ -469,8 +469,8 @@
    "group_name": "Knowledge intelligence",
    "name": "Local Knowledge Indexing",
    "kind": "script",
-   "implementation": "a per-project call index shared by every agent; Context Mode's index",
-   "invoke": "swarm/workload.py index",
+   "implementation": "a per-project call index given to an agent as INDEX.json; Context Mode's index",
+   "invoke": "python3 swarm/bench.py build DIR",
    "status": "USED",
    "task_classes": [
     "code"
@@ -560,9 +560,9 @@
    "group_name": "Cache and reuse",
    "name": "Stable Context Prefixes",
    "kind": "rule",
-   "implementation": "every worker gets the same instructions first and its own task last",
+   "implementation": "every worker got the same instructions first; even so the host wrote a fresh cache of about 182,000 tokens for each agent",
    "invoke": "packet layout",
-   "status": "USED",
+   "status": "RULE",
    "task_classes": [
     "orchestration"
    ]
@@ -951,9 +951,9 @@
    "group_name": "Multi-agent",
    "name": "Dynamic Concurrency",
    "kind": "script",
-   "implementation": "the scheduler's limit comes from the host's cap and from protect.py",
-   "invoke": "scheduler limit",
-   "status": "USED",
+   "implementation": "the scheduler plans to any limit; the real stages used the fixed sizes of the ladder",
+   "invoke": "scheduler --limit N",
+   "status": "TESTED",
    "task_classes": [
     "orchestration"
    ]

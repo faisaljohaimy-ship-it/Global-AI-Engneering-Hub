@@ -1,0 +1,121 @@
+{
+ "recorded": "2026-11-28",
+ "capabilities": {
+  "registered": 100,
+  "by_status": {
+   "USED": 66,
+   "TESTED": 18,
+   "HOST": 2,
+   "RULE": 3,
+   "BLOCKED": 2,
+   "NOT IMPLEMENTED": 7,
+   "AVAILABLE": 2
+  },
+  "outside_tools_that_ran": 14,
+  "working": 84,
+  "used_for_real": 66
+ },
+ "agents": {
+  "registered_roles": 100,
+  "simulated_agents": 100,
+  "queued_agents": 0,
+  "actual_ai_agents_started": 38,
+  "peak_concurrent_ai_agents": 20,
+  "completed_agents": 38,
+  "failed_agents": 0,
+  "stages_run": [
+   "s01",
+   "s05",
+   "s10",
+   "s20"
+  ],
+  "stages_not_run": [
+   "s25",
+   "s50",
+   "s75",
+   "s100"
+  ]
+ },
+ "why_the_ladder_stopped": "Stage s25 was not started. After s20 two limits written before the first run said stop: throughput was 29.64 tasks a minute against 29.46 at ten agents, under the required 10% gain; and the next stage was projected to pass the limit of 40,000,000 input tokens.",
+ "tokens": {
+  "all_experiment_agents_input": 32580784,
+  "all_experiment_agents_output": 73477,
+  "orchestrator_inside_stage_windows": 6538319,
+  "limit_input": 40000000,
+  "note": "Usage as returned by the API with each reply. Cache reads are included in input. Not a measure of subscription allowance."
+ },
+ "tasks": {
+  "ladder_verified": 40,
+  "ladder_total": 40,
+  "hidden_tests_passed": 564,
+  "hidden_tests_total": 564,
+  "benchmark_A_score": "5/5",
+  "benchmark_D_score": "5/5"
+ },
+ "scheduling_simulation": {
+  "100": {
+   "tasks_scheduled": 100,
+   "duplicates_dropped": 5,
+   "waves": 3,
+   "largest_wave": 85,
+   "passed": true
+  },
+  "16": {
+   "tasks_scheduled": 100,
+   "duplicates_dropped": 5,
+   "waves": 7,
+   "largest_wave": 16,
+   "passed": true
+  },
+  "2": {
+   "tasks_scheduled": 100,
+   "duplicates_dropped": 5,
+   "waves": 50,
+   "largest_wave": 2,
+   "passed": true
+  }
+ },
+ "checkpoint": {
+  "revision": 160,
+  "state_sha256": "001bea6b8ff7da705d24020e04919271b54f1bf4e09ad3fd9b6d79c70be5b81d",
+  "restored_sha256": "001bea6b8ff7da705d24020e04919271b54f1bf4e09ad3fd9b6d79c70be5b81d",
+  "restore_matches": true
+ },
+ "tool_audit": {
+  "calls_outside_the_task_contract": 4,
+  "of_which_refused_by_the_host": 4,
+  "agents_making_them": 4,
+  "first_request_context_tokens": {
+   "median": 222067,
+   "min": 221822,
+   "max": 222192
+  },
+  "cache_written_per_agent_tokens_median": 182023
+ },
+ "configuration_trace_totals": {
+  "A": {
+   "chars": 83424,
+   "tokens": 33437,
+   "answers_present": 4
+  },
+  "B": {
+   "chars": 29537,
+   "tokens": 16393,
+   "answers_present": 4,
+   "tokens_saved_against_A_percent": 51.0
+  },
+  "C": {
+   "chars": 30370,
+   "tokens": 16739,
+   "answers_present": 5,
+   "tokens_saved_against_A_percent": 49.9
+  },
+  "D": {
+   "chars": 6497,
+   "tokens": 2210,
+   "answers_present": 5,
+   "tokens_saved_against_A_percent": 93.4
+  }
+ },
+ "amendment": "The orchestrator-share stop rule was restricted to stages with more than one agent after stage one tripped it at 75%. No other limit was changed."
+}
