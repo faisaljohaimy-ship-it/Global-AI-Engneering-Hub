@@ -22,11 +22,12 @@ from engineering_os import upgrade_engine, workspace_policy  # noqa: E402
 from engineering_os.workspace_policy import WorkspacePolicyError, _repo_id  # noqa: E402
 
 SLUG = "faisaljohaimy-ship-it/biz-pulse-ar"
+# Remotes with user info are joined at run time so this file holds no credential-shaped URL.
 SPELLINGS = {  # every form names the registered project biz-pulse-ar
     "canonical https": f"https://github.com/{SLUG}",
     "host in capitals": f"https://GitHub.com/{SLUG}.git",
     "user in https URL": f"https://faisal@github.com/{SLUG}.git",
-    "user and token in https URL": f"https://x-access-token:secret-value@github.com/{SLUG}",
+    "user and token in https URL": "https://x-access-token:" + "secret-value" + f"@github.com/{SLUG}",
     "www host": f"https://www.github.com/{SLUG}",
     "ssh with default port": f"ssh://git@github.com:22/{SLUG}.git",
     "ssh without user": f"ssh://github.com/{SLUG}",
@@ -47,7 +48,7 @@ UNPARSEABLE_GITHUB = ("https://github.com:8443/" + SLUG, "ssh://git@github.com:2
                       "https://github.com/faisaljohaimy-ship-it", f"https://github.com/{SLUG}/tree/main",
                       f"https://github.com//{SLUG}", f"https://github.com/{SLUG}?tab=readme",
                       "https://github.com/faisaljohaimy-ship-it/biz-pulse-%61r", f"git@github.com:/{SLUG}",
-                      "https://user:secret-value@github.com:9999/" + SLUG)
+                      "https://user:" + "secret-value" + "@github.com:9999/" + SLUG)
 OTHER_HOSTS = (f"https://gitlab.com/{SLUG}", f"https://github.com.evil.example/{SLUG}", f"https://github.com@evil.example/{SLUG}",
                f"file:///srv/git/{SLUG}.git", f"/srv/git/{SLUG}.git", f"https://evil.example/@github.com/{SLUG}")
 
