@@ -8,16 +8,20 @@ and the SDK the release engine calls).
 - Repeatable audit: `python3 -m engineering_os.security_audit` (code: `engineering_os/security_audit.py`).
 - Evidence: `docs/evidence/gaie-20-layers/security-findings.json`, written by
   `python3 -m engineering_os.security_audit --out docs/evidence/gaie-20-layers/security-findings.json`.
-- Tests: `python3 -m unittest tests.test_security_enterprise` (73 tests: a regression test for each
+- Tests: `python3 -m unittest tests.test_security_enterprise` (77 tests: a regression test for each
   fixed finding, the audit's positive and negative cases, behavioural probe tests, and a live run checked against the
-  evidence, and the `exec:sandbox` contract) and `python3 -m unittest tests.test_gaie_memory_journal` (25 tests, SEC-10
+  evidence, and the `exec:sandbox` contract), `tests/test_sec_fixes_2_*.py` (recheck-security items 1-5) and `python3 -m unittest tests.test_gaie_memory_journal` (25 tests, SEC-10
   and the portable journal).
 - Re-measured after the MASTER security hardening (`MASTER_SECURITY_ACCEPTANCE.md`) was merged: SEC-03 and
   SEC-05 keep their status under the stricter descriptor-based checks. Later reviews (pr30-authz, pr30-isolation,
   pr30-merge-quality) reopened SEC-09 and sharpened the SEC-09, SEC-11 and SEC-13 probes; SEC-10 and the build
   engine's `private-mode` hit were fixed; SEC-16 and SEC-17 were registered. On the final integration branch the
   governor sandbox for target code (sec-isolation) fixed SEC-07 and SEC-12, and the offline Git preflight
-  (pr30-isolation F1) fixed SEC-09. The evidence file was rewritten by the command above after each change.
+  (pr30-isolation F1) fixed SEC-09. The security re-check (recheck-security) then found the exception list of
+  `layers.verify` keyed by path only: SEC-12 now reads mitigated (section 4), the SEC-07 probe also measures the
+  network wall, the governor reads back only the tail of a run's output and caps the growth of its writable
+  directories, process-only helpers are reaped without the environment marker, and an existing empty build target is
+  made private. The evidence file was rewritten by the command above after each change.
 
 The audit makes no network request and no model call, and it reads no clock. Each status in the evidence
 comes from a probe that re-runs the exploit in a private temporary directory, or checks the control, on
@@ -65,8 +69,11 @@ Each cell names the control and says whether it is enforced in code (**code**) o
 | master-router, project registry (L03/L15) | T/I: a private registry that others can swap or read. T: `git remote` in a workspace | code: `GAIE_HOME` outside Git, 0600 file through `mkstemp`, home must be caller-owned and not writable by group or others (SEC-04 fixed); the router launches no Git itself: `workspace_policy._git` checks a `--workspace` with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited `GIT_*`, no index writes, and a write scope refuses filter, hook-path, include and URL-rewrite settings. SEC-09 fixed (pr30-isolation F1): `workspace_policy._git` runs offline (`protocol.allow=never`, an empty `GIT_ALLOW_PROTOCOL`, `GIT_NO_LAZY_FETCH=1`), and a write scope also refuses `core.sshCommand`/`gitProxy`, `protocol.*`, promisor and `partialCloneFilter` remotes, remote upload/receive-pack and vcs programs, and extensions other than `worktreeConfig` and `objectFormat`, before any object lookup |
 | memory, gaie_memory (L14) | I: secrets or private data in memory. T: an edited store or checkpoint. D: unbounded stores | code: secret guard, 0600/0700, locked atomic writes, owner/mode/link checks (`_open_private`), sealed checkpoints that restore only into an empty store (SEC-14 held), size bounds. The frozen portable journal opens its file the same way (SEC-10 fixed): regular, caller-owned, one link, mode 0600, in caller-owned 0700 directories; a journal that fails is refused with the fix command, never repaired |
 | reasoning, requirements, economics (L13/L15/L19) | E: text treated as instructions. D: large inputs | code: pure deterministic functions over bounded JSON; no eval/exec, no subprocess, no network (static rules, 0 hits). `economics --out` writes where the owner points it (proc.) |
-| self-healing, detectors (L17) | E/I: target repository code runs (tests, servers, timing probes) | code: a disposable copy, fixed driver (no shell); every run in `governor.sandbox_run` (full tier, loopback profile: own user, mount, pid and network namespaces, no capabilities, a private loopback, `/etc` hidden, the copy read-only, one fresh writable directory per run, an exact environment set with `env -i`, output capped at 32 MiB, nothing survives the run); HTTP probes are sent from inside the sandbox; where the full tier is missing every run is refused and executes nothing; `isolation="process-only"` is an explicit opt-in recorded in every result and in the governor audit log. **Fixed (SEC-07)**; measured per property in `docs/evidence/gaie-20-layers/isolation.json` |
-| layers (L04/L20) | E: a repository test runs | code: every probe and test gets exactly PATH, a private HOME and TMPDIR and LANG (all hosts); where the full tier exists it runs in the strict governor profile (repository read-only, one private workspace per run, no network, socket() denied); the measured `layers.PROCESS_ONLY_TESTS` and every test on a host without the full tier run as a scrubbed subprocess; each test row and the receipt's `execution` record the profile, tier and reason. **Fixed (SEC-12)** |
+| self-healing, detectors (L17) | E/I: target repository code runs (tests, servers, timing probes) | code: a disposable copy, fixed driver (no shell); every run in `governor.sandbox_run` (full tier, loopback profile: own user, mount, pid and network namespaces, no capabilities, a private loopback, `/etc` hidden, the copy read-only, one fresh writable directory per run, an exact environment set with `env -i`, output capped at 32 MiB per file and read back as its last 1 MiB, the run directory's growth capped at 256 MiB,
+nothing survives the run); HTTP probes are sent from inside the sandbox; where the full tier is missing every run is refused and executes nothing; `isolation="process-only"` is an explicit opt-in recorded in every result and in the governor audit log, run under a
+child subreaper that ends every helper the run leaves. **Fixed (SEC-07)**; the probe also connects from a child to host
+TCP listeners; measured per property in `docs/evidence/gaie-20-layers/isolation.json` |
+| layers (L04/L20) | E: a repository test runs | code: every probe and test gets exactly PATH, a private HOME and TMPDIR and LANG (all hosts); where the full tier exists it runs in the strict governor profile (repository read-only, one private workspace per run, no network, socket() denied); no whole install prefix is shown to a strict test (a tool adds its bin directory only, from a root-controlled place outside every home directory); every test on a host without the full tier runs as a scrubbed subprocess; the seven measured `layers.PROCESS_ONLY_TESTS` files do too, but only while their bytes and the fixture trees they execute match the SHA-256 digests recorded at review (an edited one runs strict; a matching one runs from the hashed bytes under `python -I` with `tests/` off `sys.path`); each test row and the receipt's `execution` record the profile, tier and reason. **Mitigated (SEC-12)**: the reviewed exception files and the repository modules they import still run outside the sandbox |
 | factory, master-build/upgrade (L16/L06) | T: an artifact root reached through a symlink. E: the generated application's tests run | code: every component opened with `O_NOFOLLOW`; the generated application is created 0700 with 0600 files. **Open (SEC-16, low):** `build_engine.run_suites` runs the generated tests with a reduced environment but no OS sandbox (measured: a planted test read and wrote outside the application) and its timeout kills the direct child only |
 | cinematic, video pipeline (L18) | T/I: media written into the repository, or into a directory others can read | code: the output path is validated first (real path outside the repository, no symbolic link in the path), then created with mode 0700 and re-checked (SEC-08 held); voice and music inputs inside the repository are refused. **Open (SEC-17, low):** ffmpeg, ffprobe and the node renderer start with the caller's whole environment (measured: a caller variable reached all four children) and without an OS sandbox |
 | context-intelligence (L02) | T: a retrieval id that climbs out of the store | code: ids are SHA-256 hex only; the store lives under private state |
@@ -100,7 +107,7 @@ Full machine-readable list: `security-findings.json` (registered findings with a
 static hits with path:line and rule, never a value).
 
 Counts in the committed evidence (`sandbox_tier` full): 24 findings, 17 registered and 7 static. By status: open 2
-(SEC-16, SEC-17), fixed 10, held 4, mitigated 1, accepted 7 (all static). By severity: high 4,
+(SEC-16, SEC-17), fixed 9, held 4, mitigated 2 (SEC-06, SEC-12), accepted 7 (all static). By severity: high 4,
 medium 8, low 9, info 3. Open critical or high: none, so the audit exits 0.
 
 | ID | Sev. | Status | Finding | Where | Proof |
@@ -111,12 +118,12 @@ medium 8, low 9, info 3. Open critical or high: none, so the audit exits 0.
 | SEC-04 | medium | fixed | the private project registry was written into a `GAIE_HOME` that another user owned or could write | `engineering_os/project_registry.py` `_write` | `RegistryHomeTests` |
 | SEC-05 | medium | fixed | a state directory open to others was refused only after the engine had written state | `engineering_os/control_plane.py` `_context` | `StateDirectoryTests` |
 | SEC-06 | low | mitigated | the hash chain cannot see records removed from its end, or the whole log removed | `governor.verify_audit` | `AnchorTests` (anchor helper in `security_audit`) |
-| SEC-07 | medium | **fixed** | self-healing ran target code without an OS sandbox | `engineering_os/detectors.py` `Sandbox` | behavioural probe; tests/test_isolation_enforcement.py::Sec07Tests; isolation.json |
+| SEC-07 | medium | **fixed** | self-healing ran target code without an OS sandbox | `engineering_os/detectors.py` `Sandbox` | behavioural probe (reads, writes, the caller's environment, and since recheck-security item 2 a child's TCP connect to listeners on the host's loopback and address: a host-network stub now reads open); tests/test_isolation_enforcement.py::Sec07Tests; isolation.json |
 | SEC-08 | low | held | video output directory was created (umask mode) before the "outside the repository" check; now validated first and created 0700 | `engineering_os/video_pipeline.py` `_outside_repository` | probe, `tests/test_video_pipeline.py` `OutputDirectoryTests` |
 | SEC-09 | low | **fixed** | `route --workspace` ran Git in a worktree an agent may have prepared: fsmonitor, index hooks, inherited `GIT_*`, the router's own `git remote get-url` (removed), and a partial clone's promisor remote whose upload-pack or `core.sshCommand` ran during a lazy fetch (pr30-isolation F1). Now `workspace_policy._git` runs offline (`protocol.allow=never`, an empty `GIT_ALLOW_PROTOCOL`, `GIT_NO_LAZY_FETCH=1`) and a write scope refuses promisor, protocol, remote-program and unknown extension settings before any object lookup. The probe drives the router's own `_verified_write_scope` (pr30-merge-quality F1) and `_git` directly | `engineering_os/workspace_policy.py` `_git` | probe (fsmonitor, index hook, `GIT_TRACE`, promisor upload-pack, promisor ssh command, promisor upload-pack with `protocol.file.allow=always`); `WorkspaceGitTests` (10 tests, the exploit premise shown on plain Git first); tests/test_isolation_fixes_git.py |
 | SEC-10 | low | fixed | frozen gaie_memory journal was appended without an owner, mode or link check (measured: an append through a hard link wrote into the other file); now an `O_NOFOLLOW` and `O_NONBLOCK` open, then `fstat` of the descriptor, for reads and appends | `engineering_os/gaie_memory.py` `_journal_add` | probe (hard link, mode 0644), `tests/test_gaie_memory_journal.py` |
 | SEC-11 | low | fixed | SDK `verify` accepted a FIFO or device named in the manifest and would block on it; `verify` now reads every manifest file through `read_audit_file` (directory descriptors, `O_NOFOLLOW`, a regular file with one link, `O_NONBLOCK`, rechecked by `fstat`) | `sdk/engineering_sdk.py` `read_audit_file` | probe (runs `verify` on a manifest-named FIFO with a timeout), `test_fifo_capability_file_is_refused_without_blocking` |
-| SEC-12 | medium | **fixed** | `layers.verify` declared `exec:sandbox`/`secrets:none` but ran repository tests unsandboxed with the caller's environment | `engineering_os/layers.py` `_run` | behavioural probe; tests/test_isolation_enforcement.py::Sec12Tests |
+| SEC-12 | medium | **mitigated** | `layers.verify` declared `exec:sandbox`/`secrets:none` but ran repository tests unsandboxed with the caller's environment. Every test now runs strict on the full tier except `layers.PROCESS_ONLY_TESTS` (seven files whose subject builds its own sandbox, or the frozen cage test). Those were keyed by path, so an edited `tests/test_healing.py` ran outside the sandbox (recheck-security: it read a planted secret and `/etc/shadow` and reached host listeners); they are now keyed by path and the SHA-256 of the reviewed bytes and fixture trees, run from those bytes with `tests/` off `sys.path`, and an edited one runs strict. Mitigated, not fixed, while the list is non-empty: the reviewed files and the repository modules they import still run as a scrubbed subprocess outside the sandbox | `engineering_os/layers.py` `_run`, `PROCESS_ONLY_TESTS` | behavioural probe (an unlisted test, an edited file at a listed path, and a pinned test with a shadowing module and bytecode beside it); tests/test_isolation_enforcement.py::Sec12Tests; tests/test_sec_fixes_2_layers.py |
 | SEC-13 | info | held | authority smuggled in a payload (token, grant, instruction) grants nothing | `control_plane.invoke` | probe (open if the engine started, which surfaces as `EngineFailure`, or the audit log records an allow), `InjectionTests`, test_control_plane INJECTION |
 | SEC-14 | info | held | memory checkpoints are 0600 and sealed; a tampered one does not restore | `memory.checkpoint`/`restore` | `BackupTests` |
 | SEC-15 | info | held | oversized payloads are refused before authorization | `control_plane.invoke` | `PayloadSecretTests` |
@@ -133,7 +140,7 @@ revision; each acceptance still holds:
   plane authorizes only from its own `grant` argument and `ctx["approval_token"]` (SEC-13 probe). Residual (info): the
   dry run resolves the payload's `paths` with `realpath`, so its answer shows where a path resolves relative to the
   payload grant's roots; it reads no file content.
-- `private-mode` in `governor._sandbox_init`, `engineering_os/governor.py:921` and `:939`: device nodes and bind-mount
+- `private-mode` in `governor._sandbox_init`, `engineering_os/governor.py:998` and `:1016`: device nodes and bind-mount
   targets inside the sandbox's private tmpfs root, in a mount namespace with private propagation that is read-only
   after `pivot_root`; not state files.
 - `private-mode` in `master_docs._write` (`engineering_os/master_docs.py:390`): `pin` rewrites the tracked manifest
@@ -156,8 +163,10 @@ application directory with mode 0755. It now creates that directory and every di
 executable (Git mode 100755) and that bit is part of the committed tree. Measured: the Git modes and every blob of the
 source commit are unchanged apart from `.gaie/link.json`, which binds the engine's own source digest
 (`tests/test_build_engine.py` `GeneratedFileModeTests`, run with umask 0; Scenario A passes). An empty directory the
-operator created keeps its mode. Files the later build steps add (Git metadata, `.gaie/factory/`) sit inside the
-0700 directory.
+operator created (which `check_target` accepts) used to keep its mode (measured: 0777); `_write_files` now sets it to
+0700 through a descriptor opened without following links, or refuses it when another user owns it
+(`tests/test_sec_fixes_2_build.py`). Files the later build steps add (Git metadata, `.gaie/factory/`) follow the
+caller's umask and sit inside the 0700 directory.
 
 Read-only cross-check with `swarm/phase3/SECURITY.md` and its reviews:
 - Links written through: kit faults 1/2. Same class here is SEC-03 (audit log).
@@ -170,8 +179,11 @@ The swarm itself was not changed.
 
 ## 5. Residual risks
 
-- **R1. Isolation of target code depends on the host tier** (SEC-07 and SEC-12 fixed). With the full tier, healing,
-  upgrade and layer runs are OS-sandboxed (measured per property in `isolation.json`, on this host only); system
+- **R1. Isolation of target code depends on the host tier** (SEC-07 fixed, SEC-12 mitigated). With the full tier,
+  healing, upgrade and layer runs are OS-sandboxed (measured per property in `isolation.json`, on this host only),
+  except the reviewed `layers.PROCESS_ONLY_TESTS` files, which run as scrubbed subprocesses while their digests
+  match (a concurrent writer that swaps an executed fixture between the check and the run is detected after the run
+  and reported as an error, not prevented); system
   directories stay readable, the loopback profile has no seccomp filter and process count is not capped. Without the
   full tier healing and upgrade runs are refused unless the process-only mode is chosen explicitly, and layer tests run
   as scrubbed subprocesses, recorded in each receipt. Positive enforcement has not yet been observed in CI (plain tier

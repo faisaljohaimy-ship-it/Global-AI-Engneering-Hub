@@ -1013,8 +1013,9 @@ FINDINGS = (
     ("SEC-07", "medium", "Self-healing ran target repository code through detectors.Sandbox, a Python-level guard "
      "without the governor's OS sandbox: files the user can read stayed readable and writable",
      "engineering_os/detectors.py:Sandbox", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_healing_sandbox,
-     "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a "
-     "caller variable); tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
+     "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it, looks for a "
+     "caller variable and, from a child process, connects to TCP listeners on the host's loopback and address); "
+     "tests/test_isolation_enforcement.py::Sec07Tests; docs/evidence/gaie-20-layers/isolation.json",
      "every run in governor.sandbox_run (full tier, loopback profile: own namespaces, no capabilities, private "
      "loopback, /etc hidden, the copy read-only, one writable directory per run, exact environment via env -i); "
      "where the full tier is missing every run is refused and executes nothing; isolation=\"process-only\" is an "
