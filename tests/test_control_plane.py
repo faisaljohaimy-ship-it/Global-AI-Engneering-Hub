@@ -30,8 +30,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 REAL_GOVERNOR = (ROOT / "engineering_os/governor.py").is_file()
 EXPECTED = {
     "security-governor": "L01", "context-intelligence": "L02", "master-router": "L03", "agent-swarm": "L03",
-    "adaptive-scheduler": "L03", "capability-registry": "L04", "master-upgrade": "L06", "motion-sdk": "L08",
-    "quality-assurance": "L09", "master-release": "L11", "master-audit": "L12", "reasoning": "L13",
+    "adaptive-scheduler": "L03", "capability-registry": "L04", "layers": "L04", "master-upgrade": "L06",
+    "motion-sdk": "L08", "quality-assurance": "L09", "master-release": "L11", "master-audit": "L12", "reasoning": "L13",
     "memory": "L14", "master-build": "L16", "self-healing": "L17", "master-cinematic": "L18", "economics": "L19",
 }
 GOVERNOR_DEPENDENT = {"security-governor", "quality-assurance"}

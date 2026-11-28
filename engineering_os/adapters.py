@@ -52,6 +52,8 @@ SOURCES = {
     "self-healing": ("engineering_os/healing.py",),
     "economics": ("engineering_os/economics.py", "engineering_os/model_router.py"),
     "capability-registry": ("engineering_os/control.py", "hub.py", "catalog/registry.json"),
+    "layers": ("engineering_os/layers.py", "engineering_os/contracts.py", "governance/layers.json",
+               "governance/agent-roles.json"),
     "motion-sdk": ("engineering_os/control.py", "hub.py", "motion-library/MOTION_CATALOG.json",
                    "packages/motion-sdk/index.mjs"),
     "context-intelligence": ("tools/headroom_context.py", "tools/headroom_worker.py",
@@ -587,6 +589,39 @@ def capability_registry_health():
         import hub
         rows = hub.registry()
         return f"{len(rows)} catalog entries validated; skills and lifecycle projection available"
+    return _healthy(check)
+
+
+# ---------------------------------------------------------------- L04 layers
+
+def _layer_ids(payload):
+    ids = payload.get("layers")
+    if ids is None:
+        return None
+    if not isinstance(ids, list) or not 1 <= len(ids) <= 20 or not all(isinstance(i, str) for i in ids):
+        raise AdapterError("layers: list of 1-20 layer ids")
+    return ids
+
+
+def layers(action, payload, ctx):
+    """Twenty-layer registry. Receipts live under the control plane's private state dir, in layers/."""
+    from . import layers as module
+    if action == "status":
+        _fields(payload, (), ("layers",))
+        return _rows(module.status(_layer_ids(payload), state_dir=_state(ctx) / "layers"))
+    if action == "verify":
+        _fields(payload, (), ("layers",))
+        return module.verify(_layer_ids(payload), state_dir=_state(ctx) / "layers")
+    return _unknown("layers", action)
+
+
+def layers_health():
+    def check():
+        from . import layers as module
+        records = module.load_layers()
+        if [record["id"] for record in records] != [f"L{n:02d}" for n in range(1, 21)]:
+            raise AdapterError("layer registry is not L01..L20")
+        return "twenty-layer registry validates (contract and repository checks); status reads receipts only"
     return _healthy(check)
 
 
