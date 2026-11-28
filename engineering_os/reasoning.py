@@ -799,6 +799,11 @@ LOG_ODDS_SCALE = 3.0
 STRUCTURE = {'observed_root': 1.0, 'unobserved_upstream_of_root': .5, 'downstream_of_failure': -1.0,
              'observed_passing': -2.0, 'not_upstream_of_failure': -1.0}
 LEADING_SCORE, LEADING_MARGIN = .7, .2
+# Net evidence (support - refutation, in log-odds units) a hypothesis needs before it can lead:
+# one fully reliable row of weight 0.1 (3 * 0.1). Structure alone can reach LEADING_SCORE (an
+# observed root at prior 0.5 scores 0.731), so without this a row of negligible weight
+# (1e-9, score unchanged) would turn insufficient_evidence into a confident 'leading'.
+MIN_SUPPORT = .3
 
 
 def _log_line(value):
@@ -821,7 +826,10 @@ def analyze_root_causes(request):
     Score = logistic(logit(prior) + structural term + sum of evidence terms); each
     evidence term is +/- 3 * weight * reliability. Log rules are literal substring
     matches (no regular expressions), counted once per rule. Log text is never echoed.
-    Scores are evidence weights for ranking, not calibrated probabilities.
+    Scores are evidence weights for ranking, not calibrated probabilities. Each
+    hypothesis also reports ``structural_score`` (prior and structure only) and
+    ``net_support``; a hypothesis leads only with ``net_support >= MIN_SUPPORT``, so the
+    leading score is always lifted by evidence, never by structure alone.
     """
     _schema(request, {'schema_version', 'dependencies', 'observations', 'hypotheses', 'logs', 'rules', 'evidence'})
     structural = root_causes(request['observations'], request['dependencies'])
@@ -895,8 +903,10 @@ def analyze_root_causes(request):
         direct = contributions[key]
         support = _r(sum(item['delta'] for item in direct if item['delta'] > 0))
         refute = _r(-sum(item['delta'] for item in direct if item['delta'] < 0))
-        log_odds = math.log(row['prior'] / (1 - row['prior'])) + STRUCTURE[position] + sum(item['delta'] for item in direct)
+        base = math.log(row['prior'] / (1 - row['prior'])) + STRUCTURE[position]
+        log_odds = base + sum(item['delta'] for item in direct)
         score = 1 / (1 + math.exp(-max(-50, min(50, log_odds))))
+        structural_score = 1 / (1 + math.exp(-max(-50, min(50, base))))
         # Status follows the evidence weight, not the presence of rows: no weight either way is
         # unsupported, equal weight both ways is conflicting, and only more support than
         # refutation is supported (so a refuting or weightless row never reads as support).
@@ -905,8 +915,9 @@ def analyze_root_causes(request):
                   else 'refuted' if refute > support else 'supported')
         ranked.append({'id': key, 'node': node, 'node_status': state, 'prior': row['prior'],
                        'structure': {'position': position, 'delta': STRUCTURE[position]},
-                       'contributions': direct, 'support': support, 'refutation': refute,
-                       'log_odds': round(log_odds, 6) + 0.0, 'score': round(score, 6) + 0.0, 'status': status})
+                       'contributions': direct, 'support': support, 'refutation': refute, 'net_support': _r(support - refute),
+                       'log_odds': round(log_odds, 6) + 0.0, 'score': round(score, 6) + 0.0,
+                       'structural_score': round(structural_score, 6) + 0.0, 'status': status})
     ranked.sort(key=lambda row: (-row['score'], row['id']))
     scale = sum(row['score'] for row in ranked)
     for row in ranked:
@@ -915,7 +926,8 @@ def analyze_root_causes(request):
     second = ranked[1] if len(ranked) > 1 else None
     margin = round(top['score'] - (second['score'] if second else 0), 6) + 0.0
     competing = [row['id'] for row in ranked if top['score'] - row['score'] < LEADING_MARGIN and row['status'] != 'refuted']
-    if top['status'] == 'supported' and top['score'] >= LEADING_SCORE and margin >= LEADING_MARGIN:
+    if (top['status'] == 'supported' and top['net_support'] >= MIN_SUPPORT and top['score'] >= LEADING_SCORE
+            and margin >= LEADING_MARGIN):
         conclusion = 'leading'
     elif len(competing) > 1:
         conclusion = 'contested'
@@ -931,7 +943,9 @@ def analyze_root_causes(request):
                               'request': f"observe {row['node']} directly"})
     if conclusion == 'insufficient_evidence':
         needs.append({'reason': 'weak_support', 'hypothesis': top['id'],
-                      'request': f"leading score {top['score']:.3f} needs >= {LEADING_SCORE} with a {LEADING_MARGIN} margin"})
+                      'request': (f"leading needs net evidence support >= {MIN_SUPPORT} (has {top['net_support']}), "
+                                  f"score >= {LEADING_SCORE} (has {top['score']:.3f}; structure alone {top['structural_score']:.3f}) "
+                                  f"and a {LEADING_MARGIN} margin (has {margin})")})
     for row in ranked:
         if row['status'] == 'conflicting':
             needs.append({'reason': 'conflicting_signals', 'hypothesis': row['id'],
@@ -941,7 +955,8 @@ def analyze_root_causes(request):
             'hypotheses': ranked, 'candidate_roots': roots, 'affected': structural['affected'],
             'uncertain_nodes': structural['uncertain_nodes'], 'unmatched_rules': unmatched,
             'needs_evidence': needs, 'causality_proven': False,
-            'method': 'logit(prior) + structural position + sum(+/-3 * weight * reliability); literal log rules'}
+            'method': ('logit(prior) + structural position + sum(+/-3 * weight * reliability); literal log rules; '
+                       f'leading needs net support >= {MIN_SUPPORT}, score >= {LEADING_SCORE}, margin >= {LEADING_MARGIN}')}
     return _seal('rca', request, body)
 
 
