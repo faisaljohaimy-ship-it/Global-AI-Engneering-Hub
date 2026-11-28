@@ -1,12 +1,60 @@
 import json
 import hashlib
+import math
 import pathlib
+import shlex
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
+def native_smoke_budget(workflow):
+    """Read the executed smoke CLI, not comments or an unrelated test budget."""
+    commands = []
+    for line in workflow.splitlines():
+        if line.strip().startswith('node '):
+            command = shlex.split(line.strip(), comments=True)
+            if command[:2] == ['node', 'motion-library/chromium-stack/smoke.mjs']:
+                commands.append(command)
+    if len(commands) != 1:
+        raise ValueError('Exactly one actual native smoke command required')
+    command = commands[0]
+    values = {}
+    for option in ('--frame-budget-ms', '--frames'):
+        if command.count(option) != 1:
+            raise ValueError('Exactly one explicit native option required')
+        index = command.index(option)
+        if index + 1 >= len(command):
+            raise ValueError('Native option value required')
+        values[option] = command[index + 1]
+    budget = float(values['--frame-budget-ms'])
+    frames = int(values['--frames'])
+    if not math.isfinite(budget) or not 0 < budget <= 20 or not 30 <= frames <= 600:
+        raise ValueError('Native receipt policy requires a positive budget <=20ms and 30..600 frames')
+    return budget
+
+
 class EvidenceTests(unittest.TestCase):
+    def test_actual_ci_native_smoke_budget_satisfies_strict_receipt_policy(self):
+        workflow = (ROOT / '.github/workflows/operating-system.yml').read_text()
+        self.assertLessEqual(native_smoke_budget(workflow), 20)
+
+    def test_native_ci_budget_guard_rejects_relaxed_missing_or_ambiguous_options(self):
+        # Synthetic command fixtures exercise policy checks only, not rendering.
+        command = 'node motion-library/chromium-stack/smoke.mjs --frames 30 --frame-budget-ms 20 --out "$CHROMIUM_EVIDENCE_DIR"'
+        self.assertEqual(native_smoke_budget(command), 20)
+        for value in ('100', '20.01', '0', '-1', 'NaN', 'Infinity'):
+            with self.subTest(budget=value), self.assertRaises(ValueError):
+                native_smoke_budget(command.replace('--frame-budget-ms 20', '--frame-budget-ms ' + value))
+        invalid = [command.replace('--frame-budget-ms 20', ''),
+                   command + ' --frame-budget-ms 100',
+                   command.replace('--frames 30', '--frames 12'),
+                   '# ' + command,
+                   command + '\n' + command]
+        for value in invalid:
+            with self.subTest(command=value), self.assertRaises(ValueError):
+                native_smoke_budget(value)
+
     def test_studio_quality_snapshot_matches_sources_and_measured_budgets(self):
         policy=json.loads((ROOT/'catalog/capabilities/playwright.json').read_text())
         history=policy['historical_reviews'][0]

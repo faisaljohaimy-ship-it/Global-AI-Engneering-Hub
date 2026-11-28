@@ -98,7 +98,7 @@ jobs:
           set -euo pipefail
           node tests/test_chromium_stack_runtime.mjs
           # A bounded CI lab budget is not a production FPS or GPU claim.
-          node motion-library/chromium-stack/smoke.mjs --frames 30 --frame-budget-ms 100 --out "$CHROMIUM_EVIDENCE_DIR" > "$OS_EVIDENCE_ROOT/chromium-console.json"
+          node motion-library/chromium-stack/smoke.mjs --frames 30 --frame-budget-ms 20 --out "$CHROMIUM_EVIDENCE_DIR" > "$OS_EVIDENCE_ROOT/chromium-console.json"
       - name: Render every Motion Studio recipe in desktop and mobile Chromium
         run: node tests/test_motion_studio_browser.mjs
       - name: Measure real Studio Lighthouse and axe budgets
