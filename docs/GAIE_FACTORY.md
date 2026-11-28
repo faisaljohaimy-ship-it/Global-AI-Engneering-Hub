@@ -61,6 +61,21 @@ and `motions` at run time.
   another project's alias.
 - `repository_verified` is always false in a plan: reachability is checked by the
   agent in its environment.
+- Route version 2 also gives the control-plane `engine_id`, the agent `roles`,
+  `capabilities`, a least-privilege `grant_template`, the `execution_scope`, the
+  `tests` and `evidence` to save, and the registry's `repository_check`. A route is
+  never executable by itself (`executable_by_route: false`).
+- Hard rules enforced in code: audit is read-only (`max_side_effect: none`). Speed-up,
+  repair, upgrade and cinematic work is capped at `repo-write` on an isolated branch.
+  A new system gets `workspace-write`, and creating its repository is a separate
+  `external-write` step that needs approval. A release is always `needs-approval`
+  with a `production` ceiling.
+- A project the catalog knows by name (BILTIX, KPI, Security Lab, the portfolio) but
+  without a registered repository returns `needs-clarification` with a `register`
+  next step. Register it with `python3 -m engineering_os.project_registry register
+  … --apply`; the record goes to `$GAIE_HOME/projects.json`, outside Git.
+- Full route table, rules, examples and limitations:
+  `docs/specs/gaie-20-layers/ROUTER.md`.
 
 ## Private state
 

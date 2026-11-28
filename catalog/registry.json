@@ -1230,5 +1230,65 @@
     "security_review": "approved",
     "commercial_review": "approved",
     "approval_scope": "Headroom 0.45.0 optional offline Python SDK for isolated non-sensitive tool JSON/log preparation; no model, proxy, native-host or production activation. See catalog/capabilities/headroom.json."
+  },
+  {
+    "id": "astral-sh/uv",
+    "source": "https://github.com/astral-sh/uv",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "duckdb/duckdb",
+    "source": "https://github.com/duckdb/duckdb",
+    "category": "enterprise",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "open-policy-agent/opa",
+    "source": "https://github.com/open-policy-agent/opa",
+    "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "ggml-org/whisper.cpp",
+    "source": "https://github.com/ggml-org/whisper.cpp",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "motiondivision/motion",
+    "source": "https://github.com/motiondivision/motion",
+    "category": "cinema",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "QwenLM/Qwen3.8",
+    "source": "https://github.com/QwenLM/Qwen3.8",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
   }
 ]

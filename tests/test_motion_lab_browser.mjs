@@ -7,6 +7,8 @@ import { serve } from '../motion-library/verify/serve.mjs';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const components = JSON.parse(readFileSync(resolve(repository, 'motion-library/components.json'), 'utf8')).components;
+// The lab must list every catalog entry: compare with the catalog file instead of a frozen count.
+const catalogEntries = JSON.parse(readFileSync(resolve(repository, 'motion-library/MOTION_CATALOG.json'), 'utf8')).entries.length;
 const playwright = createRequire(new URL('../motion-library/verify/package.json', import.meta.url))('playwright');
 const executablePath = process.env.MOTION_CHROMIUM_EXECUTABLE;
 const server = await serve(repository);
@@ -27,11 +29,11 @@ try {
   await page.waitForFunction(() => document.documentElement.dataset.labReady === 'true');
 
   const listed = await page.locator('#motionList .catalog-button').count();
-  assert.equal(listed, 142);
+  assert.equal(listed, catalogEntries);
   const initial = await page.evaluate(() => structuredClone(window.__motionLabReport));
   assert.deepEqual(
     { indexed: initial.indexed, implemented: initial.implemented, tested: initial.tested, used: initial.used },
-    { indexed: 142, implemented: 30, tested: 30, used: 30 },
+    { indexed: catalogEntries, implemented: 30, tested: 30, used: 30 },
   );
 
   for (const component of components) {

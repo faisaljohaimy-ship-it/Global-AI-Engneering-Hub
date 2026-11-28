@@ -4,6 +4,7 @@ import math
 import unittest
 from unittest import mock
 
+from engineering_os import reasoning
 from engineering_os.orchestration import sha
 from engineering_os.reasoning import ReasoningError, plan, review_decision, root_causes
 
@@ -286,6 +287,80 @@ class ReasoningTests(unittest.TestCase):
             root_causes([{'id': 'missing', 'status': 'failed', 'evidence_sha256': SOURCE}], {'a': []})
         with self.assertRaises(ReasoningError):
             root_causes([], {'a': ['missing']})
+
+
+class DeterministicReceiptTests(unittest.TestCase):
+    """L13 sealing of the original planner outputs; all fixtures remain synthetic."""
+
+    def setUp(self):
+        self.request = request()
+
+    def test_plan_review_and_root_outputs_carry_mode_and_bound_receipts(self):
+        p = plan(self.request, now=NOW)
+        self.assertEqual(p['mode'], 'deterministic')
+        self.assertEqual(p['receipt']['input_sha256'], p['request_sha256'])
+        self.assertEqual(p['plan_sha256'], sha({key: value for key, value in p.items() if key != 'plan_sha256'}))
+        self.assertTrue(reasoning.verify_receipt(p, self.request))
+        result = review_decision(p, reviews(p), verification(p), now=NOW)
+        self.assertEqual(result['mode'], 'deterministic')
+        self.assertEqual(result['evaluated_at'], NOW)
+        payload = {'plan': p, 'reviews': reviews(p), 'verification': verification(p)}
+        self.assertTrue(reasoning.verify_receipt(result, payload))
+        edges = {'storage': [], 'api': ['storage']}
+        observations = [{'id': 'storage', 'status': 'failed', 'evidence_sha256': SOURCE}]
+        roots = root_causes(observations, edges)
+        self.assertTrue(reasoning.verify_receipt(roots, {'observations': observations, 'dependencies': edges}))
+
+    def test_tampered_outputs_or_different_inputs_fail_receipt_verification(self):
+        p = plan(self.request, now=NOW)
+        for change in ['output', 'input', 'receipt-field', 'mode', 'plan-digest']:
+            output, payload = copy.deepcopy(p), copy.deepcopy(self.request)
+            if change == 'output':
+                output['selected'] = 'distributed'
+            elif change == 'input':
+                payload['task'] = 'other'
+            elif change == 'receipt-field':
+                output['receipt']['layer'] = 'L99'
+            elif change == 'mode':
+                output['mode'] = 'model'
+            else:
+                output['plan_sha256'] = 'c' * 64
+            with self.subTest(change=change), self.assertRaises(ReasoningError):
+                reasoning.verify_receipt(output, payload)
+
+    def test_replay_recomputes_identical_outputs_at_the_recorded_clock(self):
+        p = plan(self.request, now=NOW)
+        self.assertTrue(reasoning.replay('plan', self.request, p))
+        payload = {'plan': p, 'reviews': reviews(p), 'verification': verification(p)}
+        accepted = review_decision(p, reviews(p), verification(p), now=NOW)
+        self.assertTrue(reasoning.replay('review', payload, accepted))
+        with self.assertRaises(ReasoningError):
+            reasoning.replay('strategy', self.request, p)
+
+    def test_engine_entrypoint_matches_direct_calls_and_refuses_unknown_actions(self):
+        self.assertEqual(reasoning.engine('plan', self.request, {'now': NOW}), plan(self.request, now=NOW))
+        edges = {'a': [], 'b': ['a']}
+        observations = [{'id': 'b', 'status': 'failed', 'evidence_sha256': SOURCE}]
+        self.assertEqual(reasoning.engine('root-causes', {'observations': observations, 'dependencies': edges}),
+                         root_causes(observations, edges))
+        for action, payload, ctx in [('deploy', {}, None), ('plan', self.request, 'now'),
+                                     ('root-causes', {'observations': []}, None)]:
+            with self.subTest(action=action), self.assertRaises(ReasoningError):
+                reasoning.engine(action, payload, ctx)
+
+    def test_engine_record_satisfies_the_shared_contract_and_health_is_pure(self):
+        from engineering_os import contracts
+        record = copy.deepcopy(reasoning.ENGINE_RECORD)
+        self.assertIs(contracts.validate_engine(record, check_imports=True), record)
+        self.assertEqual(record['layer'], 'L13')
+        self.assertTrue(all(spec['side_effect'] == 'none' for spec in record['actions'].values()))
+        with mock.patch('socket.socket', side_effect=AssertionError('no network')):
+            self.assertTrue(reasoning.health()['ok'])
+
+    def test_secret_shaped_identifiers_raise_the_reasoning_error_class(self):
+        self.request['project'] = 'sk-' + 'a' * 30
+        with self.assertRaises(ReasoningError):
+            plan(self.request, now=NOW)
 
 
 if __name__ == '__main__':
