@@ -5335,6 +5335,542 @@
    "production_fps_verified": false,
    "real_devices_verified": false,
    "gpu_runtime_verified": false
+  },
+  "motion-library/expansion/nextgen-originals.mjs": {
+   "status": "passed",
+   "recorded_at_utc": "2026-11-28T09:29:44.873Z",
+   "browser": "chromium",
+   "browser_version": "158.0.8127.36",
+   "playwright_version": "1.63.0",
+   "reviewed_playwright_pin": "1.65.1",
+   "toolchain_matches_reviewed_pin": false,
+   "platform": "linux",
+   "source_sha256": "c41c4b4568e07b9e62a7ee5a8f8494ce84b5728fde156b4342fb978ae2b6714c",
+   "inputs": {
+    "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+    "tests/test_ported_motions_browser.mjs": "c36ce62d480c3c46af140ec5b53a7c4af693601d586a07898c2189a84023dd3a",
+    "motion-library/verify/serve.mjs": "a13b9eff1a7e34ad8240eb5f5cb73aab74c91e815f9163ad75099915566eba0d"
+   },
+   "motions": [
+    {
+     "id": "micro-button-compression",
+     "name_en": "Button Compression",
+     "name_ar": "انضغاط الزر",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Starting a job: the Run button sinks toward its base when pressed and springs back, confirming that the command was received.",
+      "ar": "بدء مهمة: ينخفض زر التشغيل نحو قاعدته عند الضغط ثم يرتد، مؤكدًا استلام الأمر."
+     }
+    },
+    {
+     "id": "micro-hover-elevation",
+     "name_en": "Hover Elevation",
+     "name_ar": "ارتفاع عند التحويم",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Hovering over a service card: the card lifts off its shadow and tilts toward the pointer to show that it can be opened.",
+      "ar": "التمرير فوق بطاقة خدمة: ترتفع البطاقة عن ظلها وتميل نحو المؤشر لتبيّن أنها قابلة للفتح."
+     }
+    },
+    {
+     "id": "micro-input-focus",
+     "name_en": "Input Focus",
+     "name_ar": "تركيز حقل الإدخال",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Filling in an email field on a digital form: on focus the label moves up, the underline extends and a caret waits for typing.",
+      "ar": "تعبئة حقل البريد الإلكتروني في نموذج رقمي: عند التركيز يرتفع العنوان ويمتد الخط السفلي ويظهر مؤشر الكتابة."
+     }
+    },
+    {
+     "id": "micro-elastic-selection",
+     "name_en": "Elastic Selection",
+     "name_ar": "اختيار مرن",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Choosing an option in a segmented control: the highlight stretches from the current choice to the next one.",
+      "ar": "اختيار خيار في عنصر تحكم مقسّم: يمتد التظليل من الخيار الحالي إلى الخيار التالي."
+     }
+    },
+    {
+     "id": "micro-navigation-morph",
+     "name_en": "Navigation Morph",
+     "name_ar": "تحول قائمة التنقل",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Opening an app's menu: the three-bar menu icon turns into a close button while the menu items slide in.",
+      "ar": "فتح قائمة التطبيق: تتحول أيقونة القائمة ذات الخطوط الثلاثة إلى زر إغلاق بينما تنزلق عناصر القائمة."
+     }
+    }
+   ],
+   "cases": [
+    {
+     "id": "micro-button-compression",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "b72de64ce974b38379066cd3a3014c3cd3e1ee8559691eefe3c43db8ea5ce577",
+       "drawn_pixels": 9039
+      },
+      {
+       "sha256": "fc7145e1d586a642f0324c47671993783f6e2ca5fbbb45001c8a6a5fc9651da8",
+       "drawn_pixels": 7396
+      },
+      {
+       "sha256": "75a48b45704990fc1e2f131098c25db4ef6c9e67bcc37be049ceef955bdfd03b",
+       "drawn_pixels": 8686
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.10000000009313226,
+      "max_ms": 0.2999999998137355,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-hover-elevation",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "380994aaa22a240be12982cf0d7c06e4210cc68a95511efa50363f58e8fbce27",
+       "drawn_pixels": 15552
+      },
+      {
+       "sha256": "5a249641117fb0ab596f18259ec666d515cafdcda8d655b74c6c5c824f9cb1a0",
+       "drawn_pixels": 16854
+      },
+      {
+       "sha256": "8ec489395515dada1b2e3b401887671d09dbe8b5619414ef882b3385bbdf0d75",
+       "drawn_pixels": 18789
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.10000000009313226,
+      "max_ms": 0.6000000000931323,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-input-focus",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "f74ffb439df705ef09b3a640d483377517c9eda17db952051fcc887839b472c4",
+       "drawn_pixels": 14266
+      },
+      {
+       "sha256": "a17e34e271e24d5ca55d65d5064d4d81d8524c1ab6d94710f44ad84e36901394",
+       "drawn_pixels": 14266
+      },
+      {
+       "sha256": "2828c827fd49dee1a76fa29fbb9415e46062c64b00bde1e5d0143c93ce57e4b8",
+       "drawn_pixels": 14377
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.2999999998137355,
+      "p95_ms": 0.8000000002793968,
+      "max_ms": 2.8999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-elastic-selection",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "ba4a0af97ba9bed0d52014a396a3219c2cfd519047eb0fb641e0ec854854794e",
+       "drawn_pixels": 14105
+      },
+      {
+       "sha256": "1e338b090b1d72cb7cba77595095da040e50739b9a8db8dfa4526dea0eda8d58",
+       "drawn_pixels": 14103
+      },
+      {
+       "sha256": "44a8f63466c452617920b37c4e3bd7f7101fc4a674d6acbdbf82dff4dd66d9cd",
+       "drawn_pixels": 14083
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.10000000009313226,
+      "max_ms": 1.6000000000931323,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-navigation-morph",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "9f172ca27fbe2873a272f313d0d50bd054d288a5f1a78ed33797461018a0b1b4",
+       "drawn_pixels": 2687
+      },
+      {
+       "sha256": "5ff08361b7c4817c4c7d2dd944381346af8c465cf8308d0a944feb1037e2594e",
+       "drawn_pixels": 5433
+      },
+      {
+       "sha256": "c05c172dde0c634b7d7a5dc68392fdf1822a1a2cd54bd8e2ca37a69c2d83b093",
+       "drawn_pixels": 8032
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.10000000009313226,
+      "max_ms": 1.6999999997206032,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-button-compression",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "e8d71cae48737ba6f54b508d3024ad5bf380abde794d07f0fe3b41d970c65816",
+       "drawn_pixels": 63584
+      },
+      {
+       "sha256": "cae394057849124d4f42b80e16c055068feb1434f863f8e01d6e88f4911b824e",
+       "drawn_pixels": 51077
+      },
+      {
+       "sha256": "d225b0746aa8efe0097db3925d79e61cbed5a48665be8b224e8a4e3053002c9e",
+       "drawn_pixels": 60839
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.10000000009313226,
+      "max_ms": 0.3000000002793968,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-hover-elevation",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "f72599967cbfafc4069cd6d22f74f39babac345f7d87f31f900126f907c478ad",
+       "drawn_pixels": 108977
+      },
+      {
+       "sha256": "11bd02e561da9e75d2b4e951e888654210868b4da756011424ce39ff30a47f3a",
+       "drawn_pixels": 119244
+      },
+      {
+       "sha256": "969b0d686f02b695742917926fd25f50dbbafd3da47b7ddd894a0dc842392014",
+       "drawn_pixels": 132319
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 0.6000000000931323,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-input-focus",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "1804f2e3efb4153af7a00895774cff55db786e60eff6c3dd47e0a74270b68520",
+       "drawn_pixels": 99079
+      },
+      {
+       "sha256": "c74003ecf92b52f9be7f9b626d8f584e6e4fffec030ad707eeb0fa41d171b120",
+       "drawn_pixels": 99079
+      },
+      {
+       "sha256": "9b6296edc7a2e24a7981d80ad577db30d18669302e2e92cfb965a9e72f949c83",
+       "drawn_pixels": 99756
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.20000000018626451,
+      "p95_ms": 0.6000000000931323,
+      "max_ms": 2.3999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-elastic-selection",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "4090e4b5ee2150fea3b0d62b3db6f0dce3332e29cb679af45852f0a5b0d1bba7",
+       "drawn_pixels": 99254
+      },
+      {
+       "sha256": "3a6f6c93d894ce8976a090c62cbc879fa5eeb5d2aa1342997c290fab828639a6",
+       "drawn_pixels": 99305
+      },
+      {
+       "sha256": "781ce27f7fed8ef80cc811cec7cd7b183c295062a729c32ac029e7b855b8593b",
+       "drawn_pixels": 99073
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.8999999999068677,
+      "max_ms": 6.100000000093132,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "micro-navigation-morph",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "1b2585fcd4e417b8e5249f6dddf9162f11af44923fbfd96ca60c32aad2f52d06",
+       "drawn_pixels": 18691
+      },
+      {
+       "sha256": "5f871355a11774f4f11fd1b557b96b6a2c5c286dee1fb1c27ba2b0cb7bcd5712",
+       "drawn_pixels": 37376
+      },
+      {
+       "sha256": "cac1912a78c92e6c5aae940829d245c16cd46e63d3d8848ded771f7cfcd6cd32",
+       "drawn_pixels": 55326
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.10000000009313226,
+      "max_ms": 1.7000000001862645,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    }
+   ],
+   "failures": [],
+   "page_errors": 0,
+   "external_requests": 0,
+   "production_fps_verified": false,
+   "real_devices_verified": false,
+   "gpu_runtime_verified": false
   }
  }
 }

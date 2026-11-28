@@ -146,6 +146,32 @@
     "compositions-adaptive-universe": "no stated purpose: a starfield thins or fills with the viewport and detail setting; no digital service is shown",
     "compositions-scene-assembly": "no stated purpose: unlabelled planes slide together into a stack; no digital service is shown"
    }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-originals.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "e3fda12927588247430b28a9713cc0a0cac35291",
+   "from_blob": "578e5856d6bfe57abdd00283739e12c839cb37d6",
+   "ids": [
+    "micro-button-compression",
+    "micro-hover-elevation",
+    "micro-input-focus",
+    "micro-elastic-selection",
+    "micro-navigation-morph"
+   ],
+   "left_out": {
+    "camera-dolly-in": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/dolly-in.mjs)",
+    "camera-dolly-out": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/dolly-out.mjs)",
+    "camera-focus-pull": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/focus-pull.mjs)",
+    "camera-parallax-tracking": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/parallax-tracking.mjs)",
+    "camera-spatial-roll": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/spatial-roll.mjs)",
+    "micro-toggle-transformation": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/micro/toggle-transformation.mjs)",
+    "micro-success-feedback": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/micro/success-feedback.mjs)",
+    "camera-orbital-sweep": "no stated purpose: a camera circles wireframe boxes on a grid; no digital service is shown",
+    "camera-crane-reveal": "no stated purpose: a camera rises over a wall to a crystal marker; no digital service is shown",
+    "micro-liquid-button": "no stated purpose: a wave wobbles an arrow button's outline; a decorative effect",
+    "micro-cursor-distortion": "no stated purpose: a dot lattice bends around the pointer; a decorative effect"
+   }
   }
  ],
  "not_ported": {
