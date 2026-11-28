@@ -257,10 +257,40 @@ def missing_section(root):
     return out
 
 
+def attempts_section(root):
+    """Attempts of the gated run that ended early. Their evidence and their plan are kept beside the final run's."""
+    out = ["## 10. Earlier attempts of the gated run", ""]
+    found = sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("run-*.json"))
+    if not found:
+        return out + ["none: no file `swarm/phase3/evidence/run-*.json` is in the repository"]
+    for path in found:
+        rel = str(path.relative_to(root))
+        doc = load(root, rel) or {}
+        plan_rel = f"swarm/phase3/PLAN3-{path.stem}.json"
+        plan = load(root, plan_rel) or {}
+        stages = ran(doc)
+        rows = []
+        for s in stages:
+            gate_of = s.get("security_gate")
+            rows.append([s.get("label"), s.get("kind"), num(s.get("actual_agents")), f"{num(s.get('verified_tasks'))} of {num(s.get('tasks'))}" if s.get("kind") == "task" else "-",
+                         ("passed" if gate_of.get("passed") else "not passed") if gate_of else "-", num(input_of(s))])
+        out += [f"`{rel}`, run by the plan `{plan_rel}`:", ""] + table(["stage", "kind", "real agents", "tasks verified", "security gate", "input tokens"], rows)
+        last = stages[-1] if stages else {}
+        least = (plan.get("stops") or {}).get("min_verified_rate_to_continue")
+        if last.get("kind") == "task" and least is not None and isinstance(last.get("verified_success_rate"), (int, float)) and last["verified_success_rate"] < least:
+            out += ["", f"It ended after stage {last.get('label')}: {last['verified_success_rate']}% of that stage's tasks verified, and its plan ends a run under {least}%."]
+        planned = [s.get("id") for s in plan.get("stages", [])]
+        left = [name for name in planned if name not in {s.get("label") for s in doc.get("stages", [])}]
+        if left:
+            out += ["", "Stages of its plan that never started: " + ", ".join(left) + "."]
+        out.append("")
+    return out
+
+
 def build(root=ROOT):
     parts = [["# Final report of the swarm experiment", "", "Made only from the evidence files named in each section. No figure here was measured by this script."],
              phases(root), kinds(root), gate(root), ledger_section(root), ladder_section(root), capacity_section(root),
-             limits_section(root), counted_section(root), missing_section(root)]
+             limits_section(root), counted_section(root), missing_section(root), attempts_section(root)]
     return "\n\n".join("\n".join(p) for p in parts) + "\n"
 
 

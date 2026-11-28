@@ -186,6 +186,20 @@ def check(root) -> dict:
                 dirty.append(str(f.relative_to(root)))
         rows.append(_row("no evidence file holds a path, session id or model identifier", not dirty,
                          f"{len(files)} files clean" if not dirty else "in " + ", ".join(dirty)))
+    for attempt in sorted((root / "swarm" / "phase3" / "evidence").glob("run-*.json")):  # attempts of the run that ended early, kept with the plan each ran
+        name = f"the earlier attempt {attempt.stem} validates and names the plan it ran"
+        kept_plan = root / "swarm" / "phase3" / f"PLAN3-{attempt.stem}.json"
+        try:
+            document = json.loads(attempt.read_text())
+        except ValueError:
+            rows.append(_row(name, False, "not JSON"))
+            continue
+        problems = schema.validate(document)
+        if not kept_plan.is_file():
+            problems.append(f"its plan {kept_plan.name} is not in the repository")
+        elif document.get("plan_sha256") != hashlib.sha256(kept_plan.read_bytes()).hexdigest():
+            problems.append(f"plan_sha256 is not the hash of {kept_plan.name}")
+        rows.append(_row(name, not problems, "sound" if not problems else "; ".join(problems[:3])))
     rows.append(_freeze(root))
     return {"rows": rows, "failed": sum(r["passed"] is False for r in rows),
             "unavailable": sum(r["passed"] is None for r in rows)}
