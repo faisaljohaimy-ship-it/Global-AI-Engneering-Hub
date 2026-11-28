@@ -261,6 +261,16 @@ class ScenarioB(_Temp):
         self.assertIn("rollback.patch", notes)
         self.assertIn("backup/static/old-banner.png", notes)
 
+    def test_requirements_drive_the_plan_and_every_nfr_is_traced(self):
+        requested = self.result["audit"]["requirements"]
+        self.assertEqual((requested["status"], requested["breaking"], requested["unmet"]), ("ok", [], []))
+        self.assertEqual(self.result["unmet_requests"], [])
+        trace = {row["requirement"]: row["status"] for row in self.result["plan"]["requirements_trace"]}
+        for requirement in ("input validation on every write endpoint", "filtered list queries use an index", "labels on form fields", "ar rtl"):
+            self.assertEqual(trace[requirement], "addressed-by-step", requirement)
+        self.assertEqual(trace["no secrets in the repository"], "verified-by-detector")
+        self.assertEqual(trace["keyboard navigable"], "not-addressed-by-a-deterministic-generator")
+
 
 class AuditOnly(_Temp):
     def test_arabic_audit_changes_nothing_and_writes_nothing(self):
@@ -410,6 +420,16 @@ class FocusedAndHealing(_Temp):
         self.assertIn("+    return a + b", result["patch"])
         self.assertEqual(tree_digest(target), before)
 
+    def test_requested_additions_without_a_generator_are_reported_as_unmet(self):
+        result = self.run_upgrade("طور نظام إدارة المهام وأضف تاريخ الاستحقاق للمهام", "unmet")
+        self.assertEqual(result["status"], "partially-upgraded")
+        self.assertEqual(result["unmet_requests"], ["field Task.due_date"])
+        self.assertEqual(result["decision"]["status"], "validated")
+        self.assertIn("requested-changes-met: contradicted", result["decision"]["warnings"])
+        self.assertIn("field Task.due_date", result["summary"]["en"])
+        self.assertNotIn("due_date", (pathlib.Path(result["upgraded_copy"]) / "validation.py").read_text(encoding="utf-8"))
+        self.assertIn("field Task.due_date", (pathlib.Path(result["upgraded_copy"]) / "UPGRADE.md").read_text(encoding="utf-8"))
+
     def test_a_target_without_tests_is_blocked_and_unchanged(self):
         target = make_target(self.base / "untested", {"tool.py": "def run():\n    return 1\n"})
         result = upgrade(target, command="Upgrade the tool", workdir=self.base / "untested-run", now=NOW, environ=self.environ)
@@ -440,6 +460,10 @@ class Refusals(_Temp):
         empty.mkdir()
         self.refused("never builds from scratch", target=empty)
         self.refused("existing system directory", target=self.base / "missing")
+
+    def test_a_requested_change_that_would_drop_data_is_refused_before_any_copy(self):
+        error = self.refused("Requested change refused", command="Upgrade the task management system and remove priority from tasks")
+        self.assertIn("field-removed Task.priority", str(error))
 
     def test_network_deploy_and_in_place_policies_are_refused(self):
         self.refused("Network access refused", policy={"network": True})
@@ -541,6 +565,14 @@ class Units(unittest.TestCase):
         self.assertEqual(engine.fix_html(fixed, None)[0].count("<label"), 2)
         kinds = {row["kind"] for row in changes}
         self.assertEqual(kinds, {"html-lang-dir", "label-added", "viewport-added"})
+
+    def test_fragments_only_get_labels_and_generated_tests_compile(self):
+        fixed, changes = engine.fix_html('<form>\n  <input name="query">\n</form>\n', None)
+        self.assertEqual(fixed, '<form>\n  <label for="query">Query</label>\n  <input name="query" id="query">\n</form>\n')
+        self.assertEqual([row["kind"] for row in changes], ["label-added"])
+        source = engine._ui_tests("ui-accessibility-rtl", ["templates/a.html", "templates/part.html"], None, None)
+        compile(source, "case_upgrade_ui.py", "exec")
+        self.assertIn("RTL = ('ar', 'fa', 'he', 'ur')", source)
 
     def test_asset_reference_proofs(self):
         with tempfile.TemporaryDirectory() as scratch:

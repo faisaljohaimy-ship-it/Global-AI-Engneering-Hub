@@ -84,6 +84,10 @@ MIGRATION_REFUSED = (
     (re.compile(r"^PRAGMA\b", re.I), "only PRAGMA user_version may change"),
     (re.compile(r"^CREATE\s+(?:TEMP\w*\s+)?TRIGGER\b", re.I), "a trigger changes future writes"),
 )
+RTL_LANGUAGES = ("ar", "fa", "he", "ur")
+NFR_TRACE = (("input validation", "step", "security-input-validation"), ("index", "step", "performance-query-indexes"),
+             ("label", "step", "ui-accessibility-rtl"), ("rtl", "step", "ui-accessibility-rtl"), ("ltr", "step", "ui-accessibility-rtl"),
+             ("secret", "detector", "security"))
 _ARABIC = re.compile("[ء-ي]")
 _LATIN = re.compile("[A-Za-z]")
 _ZERO = "0" * 64
@@ -91,7 +95,7 @@ _NO_SANDBOX = object()  # passed to detectors.run_all with runtime=False: no san
 
 
 class UpgradeError(ValueError):
-    """The upgrade was refused before any work, or its declared inputs are malformed; nothing was changed."""
+    """The upgrade was refused or its declared inputs are malformed; the target was never changed."""
 
 
 class _NotApplicable(Exception):
@@ -226,7 +230,6 @@ def _workdir(workdir, root):
         raise UpgradeError("workdir path required") from None
     resolved = path.resolve()
     _need(resolved != root and root not in resolved.parents, "workdir inside the target would upgrade it in place; refused")
-    _need(resolved not in root.parents, "workdir must not contain the target")
     _outside_git(resolved)
     return resolved
 
@@ -289,6 +292,37 @@ def _load_spec(root, manifest):
         raise UpgradeError(f"Invalid specification {rel}: {error}") from None
     _need(not spec["open_questions"], f"Specification {rel} still has open questions")
     return rel, spec
+
+
+def requested_changes(command, spec):
+    """What the command asks to change in the existing specification (requirements.parse with base= and diff_specs).
+
+    ``status`` is ``refused-breaking`` when the change would remove an entity, field, relation,
+    feature, role or locale or tighten a field (data or function loss); ``unmet`` lists the
+    non-breaking structural additions, which the deterministic generators do not implement.
+    """
+    if spec is None:
+        return {"status": "no-specification", "unmet": [],
+                "detail": "no gaie-spec.json: requested changes cannot be derived; only audit findings drive the plan"}
+    try:
+        target = requirements.parse(command, base=spec)
+    except requirements.SpecError as error:
+        return {"status": "unparsed", "errors": error.errors, "unmet": []}
+    if target["open_questions"]:
+        return {"status": "open-questions", "open_questions": [q["id"] for q in target["open_questions"]], "unmet": [],
+                "detail": "the requested change is not settled; nothing structural is generated"}
+    diff = requirements.diff_specs(spec, target)
+    unmet = [f"entity {name}" for name in diff["entities"]["added"]]
+    unmet += [f"field {change['name']}.{field}" for change in diff["entities"]["changed"] for field in change["fields"]["added"]]
+    unmet += [f"feature {fid}" for fid in diff["features"]["added"]] + [f"role {rid}" for rid in diff["roles"]["added"]]
+    unmet += [f"relation {row['from']}->{row['to']}" for row in diff["relations"]["added"]]
+    unmet += [f"integration {iid}" for iid in diff["integrations"]["added"]]
+    structural = {key: diff[key] for key in ("entities", "relations", "features", "roles", "integrations")}
+    return {"status": "refused-breaking" if diff["breaking"] else "ok", "breaking": diff["breaking"], "summary": diff["summary"],
+            "structural": structural, "spec_sha256": diff["new_sha256"], "unmet": [] if diff["breaking"] else unmet,
+            "detail": ("breaking changes would lose data or functions; they need an owner-designed migration and approval" if diff["breaking"] else
+                       "structural additions are reported as unmet: their application code is outside the deterministic generators" if unmet else
+                       "non-structural: the upgrade raises quality against the existing specification")}
 
 
 def _extra_steps(steps):
@@ -644,7 +678,7 @@ def fix_html(text, spec):
                 extra.append(("lang", lang))
             if not attrs.get("dir"):
                 effective = (attrs.get("lang") or lang).split("-")[0].casefold()
-                extra.append(("dir", "rtl" if effective in ("ar", "fa", "he", "ur") else "ltr"))
+                extra.append(("dir", "rtl" if effective in RTL_LANGUAGES else "ltr"))
             if extra:
                 changes.append({"kind": "html-lang-dir", "added": dict(extra)})
         elif _control(tag):
@@ -996,6 +1030,7 @@ import pathlib
 import unittest
 
 TEMPLATES = {templates}
+RTL = {rtl}
 CONTROLS = {{"input", "select", "textarea"}}
 UNLABELLED = {{"hidden", "submit", "button", "reset", "image"}}
 
@@ -1029,11 +1064,11 @@ class UpgradeAccessibilityTests(unittest.TestCase):
     def check(self, text):
         markup = parse(text)
         roots = [values for tag, values, _ in markup.tags if tag == "html"]
-        self.assertTrue(roots, "no <html> element")
-        lang, direction = roots[0].get("lang"), roots[0].get("dir")
-        self.assertTrue(lang and direction, "html needs lang and dir")
-        self.assertEqual(direction, "rtl" if lang.split("-")[0] == "ar" else "ltr")
-        self.assertTrue(any(tag == "meta" and (values.get("name") or "").lower() == "viewport" for tag, values, _ in markup.tags))
+        if roots:  # a full document; fragments only need labelled controls
+            lang, direction = roots[0].get("lang"), roots[0].get("dir")
+            self.assertTrue(lang and direction, "html needs lang and dir")
+            self.assertEqual(direction, "rtl" if lang.split("-")[0].lower() in RTL else "ltr")
+            self.assertTrue(any(tag == "meta" and (values.get("name") or "").lower() == "viewport" for tag, values, _ in markup.tags))
         for tag, values, in_label in markup.tags:
             if tag in CONTROLS and not (tag == "input" and (values.get("type") or "text").lower() in UNLABELLED):
                 self.assertTrue(in_label or values.get("aria-label") or values.get("aria-labelledby") or values.get("id") in markup.label_for,
@@ -1062,12 +1097,12 @@ def _ui_tests(step_id, templates, app, page):
                      f"        finally:\n            conn.close()\n"
                      f"        self.assertEqual(status, {page['status']})\n        self.check(body)\n")
     return _header(step_id, "the template audit and spec accessibility criteria") + \
-        UI_TEST_TEMPLATE.format(templates=repr(sorted(templates)), page_test=page_test)
+        UI_TEST_TEMPLATE.format(templates=repr(sorted(templates)), rtl=repr(RTL_LANGUAGES), page_test=page_test)
 
 
-def _performance_tests(step_id, schemas, databases, findings):
+def _performance_tests(step_id, schemas, findings):
     lines = [_header(step_id, "measured SQLite query plans"), "import pathlib\nimport sqlite3\nimport unittest\n\n",
-             f"SCHEMAS = {sorted(schemas)!r}\nDATABASES = {sorted(databases)!r}\n\n\n",
+             f"SCHEMAS = {list(schemas)!r}\n\n\n",
              "class UpgradeQueryPlanTests(unittest.TestCase):\n",
              "    def fresh(self):\n        conn = sqlite3.connect(':memory:')\n        for rel in SCHEMAS:\n"
              "            conn.executescript(pathlib.Path(rel).read_text(encoding='utf-8'))\n        return conn\n"]
@@ -1082,7 +1117,7 @@ def _performance_tests(step_id, schemas, databases, findings):
                      f"        self.assertFalse(any(detail.startswith('SCAN {table}') for detail in plan), plan)\n")
         if effect["sort_avoided"]:
             lines.append("        self.assertFalse(any('TEMP B-TREE' in detail for detail in plan), plan)\n")
-        lines.append(f"\n    def test_{number:02d}_{index}_exists_in_shipped_data(self):\n        for rel in DATABASES:\n"
+        lines.append(f"\n    def test_{number:02d}_{index}_exists_in_shipped_data(self):\n        for rel in {sorted(row['databases'])!r}:\n"
                      "            conn = sqlite3.connect('file:%s?mode=ro&immutable=1' % rel, uri=True)\n            try:\n"
                      "                names = {row[0] for row in conn.execute(\"SELECT name FROM sqlite_master WHERE type = 'index'\")}\n"
                      f"            finally:\n                conn.close()\n            self.assertIn({index!r}, names, rel)\n")
@@ -1102,7 +1137,7 @@ class _Run:
         self.durations, self.stage_seconds, self.test_runs, self.counter = [], {}, 0, 0
         self.passing, self.baseline_tests, self.flaky, self.blocked, self.security_baseline = [], {}, [], None, None
         self.patch = self.reverse = ""
-        self.changed, self.task_id = {}, None
+        self.changed, self.task_id, self.requested = {}, None, {"unmet": []}
         self.memory, self.memory_report, self.adr = None, {"written": False}, None
         self.run_dir = self.candidate = self.sandbox = None
         self.original = self._snapshot(root)
@@ -1198,7 +1233,12 @@ class _Run:
         tests_dir = self.tests["start"] if self.tests else None
         databases = self.manifest.get("databases") or sqlite_files(self.root, files, tests_dir)
         self.databases = [rel for rel in databases if rel in files]
-        self.data = {rel: data_manifest(self.root / rel) for rel in self.databases}
+        self.data = {}
+        for rel in self.databases:
+            try:
+                self.data[rel] = data_manifest(self.root / rel)
+            except sqlite3.Error as error:
+                raise UpgradeError(f"Database {rel} is unreadable ({type(error).__name__}); its data could not be protected") from None
         self.assets = {rel: self.original[rel] for rel in asset_files(self.root, files, self.manifest, tests_dir)}
         self.definitions = self.defs(self.root, files)
         self.route_entries = self.routes(self.root)
@@ -1290,7 +1330,6 @@ class _Run:
         for row in opportunities:
             row["id"] = f"{row['kind']}-{sha([row['path'], row['line'], row['symbol']])[:10]}"
         self.opportunities = opportunities
-        self.requested = self.requested_changes()
         self.inventory = inventory
         result = {"inventory": {key: inventory[key] for key in ("files_scanned", "file_kinds", "surfaces", "stack", "signals", "findings", "boundary")},
                   "coverage_matrix": inventory["coverage_matrix"],
@@ -1304,27 +1343,6 @@ class _Run:
         self.checkpoint("AUDIT", ["route", "baseline", "audit"], ["plan", "apply", "regression", "report"],
                         f"Audit: {len(self.defects)} defect(s), {len(opportunities)} upgrade opportunit(ies).")
         return result
-
-    def requested_changes(self):
-        if self.spec is None:
-            return {"status": "no-specification", "detail": "no gaie-spec.json: requested changes cannot be derived; only audit findings drive the plan"}
-        try:
-            target = requirements.parse(self.route_command, base=self.spec)
-        except requirements.SpecError as error:
-            return {"status": "unparsed", "errors": error.errors}
-        if target["open_questions"]:
-            self.target_spec = self.spec
-            return {"status": "open-questions", "open_questions": [q["id"] for q in target["open_questions"]],
-                    "detail": "the requested change is not settled; nothing structural is generated"}
-        diff = requirements.diff_specs(self.spec, target)
-        self.target_spec = target if not diff["breaking"] else self.spec
-        structural = {key: diff[key] for key in ("entities", "relations", "features", "roles", "integrations")}
-        return {"status": "refused-breaking" if diff["breaking"] else "ok", "breaking": diff["breaking"], "summary": diff["summary"],
-                "structural": structural, "spec_sha256": diff["new_sha256"],
-                "detail": ("breaking changes would lose data or functions; they need an owner-designed migration" if diff["breaking"] else
-                           "non-structural: the upgrade raises quality against the existing specification" if not any(
-                               diff["summary"][k] for k in ("added", "removed", "changed")) else
-                           "structural additions are listed; application code for them is outside the deterministic generators")}
 
     # ----- PLAN
     def plan(self, extra):
@@ -1370,9 +1388,22 @@ class _Run:
             areas[area] = {"selected": area in selected, "steps": [s["id"] for s in rows if s["status"] == "planned"],
                            "not_applicable": [{"step": s["id"], "reason": s["reason"]} for s in rows if s["status"] != "planned"]}
         areas["architecture"]["decision"] = self.adr
+        status = {s["id"]: s["status"] for s in candidates}
+        trace = []
+        for category, items in sorted(((self.spec or {}).get("nfr") or {}).items()):
+            for item in items:
+                kind, target = next(((k, t) for word, k, t in NFR_TRACE if word in item.casefold()), (None, None))
+                if kind == "step":
+                    state = "addressed-by-step" if status.get(target) == "planned" else f"step-{status.get(target, 'absent')}"
+                elif kind == "detector":
+                    clean = not any(f["kind"] == "hard-coded-secret" for f in self.audit_report["findings"])
+                    state = "verified-by-detector" if clean else "violated"
+                else:
+                    state = "not-addressed-by-a-deterministic-generator"
+                trace.append({"category": category, "requirement": item, "status": state, "by": target})
         areas["tests"]["rule"] = "every step with new tests must fail them before and pass them after; every baseline-passing test must keep passing"
         self.candidates = candidates
-        result = {"steps": [self.public(s) for s in candidates], "order": order, "areas": areas,
+        result = {"steps": [self.public(s) for s in candidates], "order": order, "areas": areas, "requirements_trace": trace,
                   "reasoning": {"decompose": None if decomposition is None else {"milestones": decomposition["milestones"],
                                                                                  "milestone_waves": decomposition["milestone_waves"],
                                                                                  "total_minutes": decomposition["total_minutes"],
@@ -1391,7 +1422,8 @@ class _Run:
                     "specification-derived validation module, versioned up/down migrations, templates fixed in place, "
                     "assets moved to a recoverable backup instead of deleted.")
         adr = {"title": f"Upgrade {self.project} by preserving and extending the existing system", "decision": decision,
-               "context": f"Existing system with {len(self.baseline_tests)} baseline tests and {len(self.databases)} database(s); "
+               "context": (f"Existing system with {len(self.baseline_tests)} baseline tests" if self.baseline_tests else
+                           "Existing system (test suite not executed in audit mode)") + f" and {len(self.databases)} database(s); "
                           f"{len(self.opportunities)} upgrade opportunities found by static audit.",
                "consequences": "Every step is applied in an isolated copy with a receipt and is rolled back unless all gates pass.",
                "steps": [s["id"] for s in active]}
@@ -1430,7 +1462,8 @@ class _Run:
     def gen_code(self, preview=False):
         failing = [t for t, o in self.baseline_tests.items() if not _passed(o) and o != "skipped" and t not in self.flaky]
         if not self.defects and not failing:
-            raise _NotApplicable("detectors found no medium-or-higher defect and every baseline test passes")
+            raise _NotApplicable("detectors found no medium-or-higher defect and " + (
+                "every baseline test passes" if self.baseline_tests else "no baseline test outcome is known (the suite is not run in audit mode)"))
         findings = [f["id"] for f in self.defects] + [f"test:{t}" for t in failing]
         if preview:
             return {"findings": findings, "summary": [{"op": "self-healing", "defects": len(self.defects), "failing_tests": len(failing)}]}
@@ -1546,11 +1579,14 @@ class _Run:
             raise _NotApplicable("no filtered query scans a whole table" if self.schemas else "no SQL schema declared or found")
         existing = [int(m[1]) for m in (re.match(r"migrations/(\d{4})_", rel) for rel in self.files()) if m]
         number = max(existing, default=0)
-        ops, summary, schema_add = [], [], []
+        ops, summary, schema_add = [], [], {}
         for row in rows:
             evidence = row["evidence"]
             index = f"idx_{evidence['table']}_{'_'.join(evidence['columns'])}"[:60]
             row["index"] = index
+            row["databases"] = [d for d in self.databases if evidence["table"] in self.data[d]["tables"]]
+            owner = re.compile(rf"\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[\"`\[]?{re.escape(evidence['table'])}\b", re.I)
+            schema = next((rel for rel in self.schemas if owner.search((self.read(rel) or b"").decode("utf-8", "replace"))), self.schemas[0])
             number += 1
             create = f"CREATE INDEX IF NOT EXISTS {index} ON {evidence['table']} ({', '.join(evidence['columns'])});"
             stem = f"migrations/{number:04d}_{index}"
@@ -1558,18 +1594,17 @@ class _Run:
                       f"-- Chosen by reasoning.trade_off ({evidence['chosen']}); schema only, no row is read, changed or removed.\n")
             ops.append({"op": "write", "path": f"{stem}.sql", "data": (header + create + "\n").encode("utf-8"), "create": True})
             ops.append({"op": "write", "path": f"{stem}.down.sql", "data": (f"-- Reverses migration {number:04d}.\nDROP INDEX IF EXISTS {index};\n").encode("utf-8"), "create": True})
-            schema_add.append(f"-- Added with migration {number:04d} (GAIE Master Upgrade Engine).\n{create}\n")
-            for database in self.databases:
-                if evidence["table"] in self.data[database]["tables"]:
-                    ops.append({"op": "migrate", "database": database, "id": f"{number:04d}_{index}", "up": create, "down": f"DROP INDEX IF EXISTS {index};"})
+            schema_add.setdefault(schema, []).append(f"-- Added with migration {number:04d} (GAIE Master Upgrade Engine).\n{create}\n")
+            for database in row["databases"]:
+                ops.append({"op": "migrate", "database": database, "id": f"{number:04d}_{index}", "up": create, "down": f"DROP INDEX IF EXISTS {index};"})
             summary.append({"op": "migration", "id": f"{number:04d}_{index}", "table": evidence["table"], "columns": evidence["columns"],
-                            "databases": [d for d in self.databases if evidence["table"] in self.data[d]["tables"]]})
-        schema = self.schemas[0]
-        current = (self.read(schema) or b"").decode("utf-8")
-        ops.append({"op": "write", "path": schema, "data": (current + ("" if current.endswith("\n") else "\n") + "".join(schema_add)).encode("utf-8")})
+                            "schema": schema, "databases": row["databases"]})
+        for schema, additions in sorted(schema_add.items()):
+            current = (self.read(schema) or b"").decode("utf-8")
+            ops.append({"op": "write", "path": schema, "data": (current + ("" if current.endswith("\n") else "\n") + "".join(additions)).encode("utf-8")})
         test_rel = f"{self.tests['start']}/{_test_module(self.tests['pattern'], 'performance')}" if self.tests else None
-        tests = {test_rel: _performance_tests("performance-query-indexes", self.schemas, self.databases, rows).encode("utf-8")} if test_rel else {}
-        return {"ops": ops, "tests": tests, "findings": [o["id"] for o in rows], "summary": summary + [{"op": "write", "path": schema}],
+        tests = {test_rel: _performance_tests("performance-query-indexes", self.schemas, rows).encode("utf-8")} if test_rel else {}
+        return {"ops": ops, "tests": tests, "findings": [o["id"] for o in rows], "summary": summary + [{"op": "write", "path": rel} for rel in sorted(schema_add)],
                 "evidence": {"indexes": [{"index": r["index"], "query_plan_before": r["evidence"]["plan_before"],
                                           "query_plan_after": r["evidence"]["effects"][r["evidence"]["chosen"]]["plan"]} for r in rows]}}
 
@@ -1632,6 +1667,9 @@ class _Run:
         if moved:
             lines.append("\n## Assets moved to the backup / أصول نُقلت إلى النسخة الاحتياطية\n\n")
             lines += [f"- `{row['path']}` (sha256 {row['sha256'][:16]}…): no internal reference; restore from `backup/{row['path']}`.\n" for row in moved]
+        if self.requested.get("unmet"):
+            lines.append("\n## Requested but not implemented / طُلب ولم يُنفَّذ\n\n")
+            lines += [f"- {item}: needs application code beyond the deterministic generators.\n" for item in self.requested["unmet"]]
         lines.append("\n## Rollback / التراجع\n\nApply `rollback.patch` and restore the files under `rollback/` of the upgrade run directory; "
                      "the original system was never modified. / طبّق rollback.patch واسترجع الملفات من rollback/؛ النظام الأصلي لم يُعدَّل.\n")
         return {"ops": [{"op": "write", "path": "UPGRADE.md", "data": ((current or "") + "".join(lines)).encode("utf-8")}], "tests": {},
@@ -1685,7 +1723,7 @@ class _Run:
                 return record
         try:
             migrations, backups = self.execute(step["id"], proposal["ops"], tests, undo)
-        except (UpgradeError, healing.HealingError) as error:
+        except (UpgradeError, healing.HealingError, OSError, sqlite3.Error, ValueError) as error:
             self.rollback(undo)
             verified = self.tree_sha() == pre_tree
             record.update(status="refused", reason=str(error), rollback_verified=verified)
@@ -1887,6 +1925,7 @@ class _Run:
             "patch-and-reverse-apply": patch_ok,
             "rollback-restores-original": rollback_ok,
             "not-blocked": self.blocked is None,
+            "requested-changes-met": not self.requested.get("unmet"),
         }
         regressions = sorted(t for t in self.passing if not _passed(outcomes.get(t)))
         fixed = sorted(t for t, o in self.baseline_tests.items() if not _passed(o) and o != "skipped" and _passed(outcomes.get(t)))
@@ -1913,8 +1952,9 @@ class _Run:
                    "functions-preserved": ("static-analysis", ["functions-preserved", "routes-preserved", "test-oracle-unchanged"]),
                    "original-unchanged": ("snapshot", ["original-unchanged", "isolated-copy"]),
                    "rollback-verified": ("rollback-check", ["patch-and-reverse-apply", "rollback-restores-original"]),
-                   "improvements-tested": ("test-run", ["new-tests-pass"])}
-        criteria = [{"id": key, "critical": key != "improvements-tested", "evidence_kinds": [kind], "max_age_seconds": 86400}
+                   "improvements-tested": ("test-run", ["new-tests-pass"]),
+                   "requested-changes-met": ("requirements-diff", ["requested-changes-met"])}
+        criteria = [{"id": key, "critical": key not in ("improvements-tested", "requested-changes-met"), "evidence_kinds": [kind], "max_age_seconds": 86400}
                     for key, (kind, _) in mapping.items()]
         evidence = []
         for key, (kind, names) in mapping.items():
@@ -2014,8 +2054,13 @@ def upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extr
     spec_tests = _test_spec(tests if tests is not None else manifest.get("tests"), root)
     spec_rel, spec = _load_spec(root, manifest)
     extra = _extra_steps(extra_steps)
+    requested = requested_changes(command, spec)
+    _need(route["mode"] == "audit" or requested["status"] != "refused-breaking",
+          "Requested change refused: it would remove data or functions (" + ", ".join(
+              f"{row['kind']} {row.get('entity', '')}{'.' + row['field'] if row.get('field') else ''}".strip()
+              for row in requested.get("breaking", [])) + "); a breaking change needs an owner-designed migration and approval")
     run = _Run(root, resolved_workdir, route, manifest, spec_tests, spec_rel, spec, policy, now, environ)
-    run.route_command, run.target_spec = command, spec
+    run.route_command, run.target_spec, run.requested = command, spec, requested
     if run.audit_only:
         return _audit_report(run, extra, started)
     run.prepare()
@@ -2069,8 +2114,11 @@ LIMITS = ("Generators are a bounded deterministic catalogue: spec-derived input 
 
 def _summary(run, status, applied):
     names = ", ".join(s["id"] for s in applied) or "none"
-    return {"en": f"{status}: {len(applied)} step(s) applied in an isolated copy ({names}); the original system is unchanged.",
-            "ar": f"الحالة {status}: طُبّقت {len(applied)} خطوة في نسخة معزولة ({names})؛ النظام الأصلي لم يتغير."}
+    unmet = run.requested.get("unmet") or []
+    return {"en": f"{status}: {len(applied)} step(s) applied in an isolated copy ({names}); the original system is unchanged."
+                  + (f" Requested but NOT implemented: {', '.join(unmet)}." if unmet else ""),
+            "ar": f"الحالة {status}: طُبّقت {len(applied)} خطوة في نسخة معزولة ({names})؛ النظام الأصلي لم يتغير."
+                  + (f" طُلب ولم يُنفَّذ: {', '.join(unmet)}." if unmet else "")}
 
 
 def _audit_report(run, extra, started):
@@ -2115,6 +2163,8 @@ def _final_report(run, started):
         status = "rejected"
     elif not applied:
         status = "no-change"
+    elif run.requested.get("unmet"):
+        status = "partially-upgraded"  # quality steps applied, but requested additions were not implemented
     else:
         status = "upgraded-with-rejections" if troubled else "upgraded"
     artifacts = {"upgraded_copy": str(run.candidate)}
@@ -2153,6 +2203,7 @@ def _final_report(run, started):
         "run_dir": str(run.run_dir), "upgraded_copy": str(run.candidate), "tests": run.tests, "policy": run.policy,
         "baseline": run.baseline_report, "audit": run.audit_report, "plan": run.plan_report, "steps": run.steps,
         "applied": [s["id"] for s in applied], "rejected": [s["id"] for s in troubled], "changes_made": bool(run.changed),
+        "unmet_requests": run.requested.get("unmet", []),
         "regression": regression, "decision": run.decision, "blocked": run.blocked,
         "patch": run.patch if keep else None, "rejected_patch": None if keep or not run.changed else run.patch,
         "patch_sha256": hashlib.sha256(run.patch.encode("utf-8")).hexdigest(), "rollback": rollback, "artifacts": artifacts,
