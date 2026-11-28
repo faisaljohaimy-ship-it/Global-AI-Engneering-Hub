@@ -7,7 +7,7 @@ import tempfile
 import time
 import unittest
 
-from engineering_os.orchestration import CoordinationError, TaskStore, canonical, sha, verify_state
+from engineering_os.orchestration import CoordinationError, TaskStore, canonical, sha, verify_state, _read_private
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LEAD = {"id": "lead", "engine": "codex", "role": "orchestrator"}
@@ -17,6 +17,13 @@ RECEIPTS = [{"kind": "unit-tests", "sha256": "a" * 64}]
 
 
 class OrchestrationTests(unittest.TestCase):
+    def test_private_fifo_is_rejected_without_blocking(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'fifo'
+            os.mkfifo(path, 0o600)
+            with self.assertRaises(CoordinationError):
+                _read_private(path)
+
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)

@@ -1,0 +1,490 @@
+{
+  "schema_version": 1,
+  "notes": "Deterministic Arabic/English labels for common entity, field and value names. A name missing here keeps its English label in Arabic and is reported as a translation gap; it is never machine-translated silently.",
+  "entities": {
+    "project": {
+      "en": [
+        "Project",
+        "Projects"
+      ],
+      "ar": [
+        "مشروع",
+        "المشاريع"
+      ]
+    },
+    "task": {
+      "en": [
+        "Task",
+        "Tasks"
+      ],
+      "ar": [
+        "مهمة",
+        "المهام"
+      ]
+    },
+    "milestone": {
+      "en": [
+        "Milestone",
+        "Milestones"
+      ],
+      "ar": [
+        "معلم رئيسي",
+        "المعالم الرئيسية"
+      ]
+    },
+    "member": {
+      "en": [
+        "Member",
+        "Members"
+      ],
+      "ar": [
+        "عضو",
+        "الأعضاء"
+      ]
+    },
+    "user": {
+      "en": [
+        "User",
+        "Users"
+      ],
+      "ar": [
+        "مستخدم",
+        "المستخدمون"
+      ]
+    },
+    "team": {
+      "en": [
+        "Team",
+        "Teams"
+      ],
+      "ar": [
+        "فريق",
+        "الفرق"
+      ]
+    },
+    "comment": {
+      "en": [
+        "Comment",
+        "Comments"
+      ],
+      "ar": [
+        "تعليق",
+        "التعليقات"
+      ]
+    },
+    "tag": {
+      "en": [
+        "Tag",
+        "Tags"
+      ],
+      "ar": [
+        "وسم",
+        "الوسوم"
+      ]
+    },
+    "label": {
+      "en": [
+        "Label",
+        "Labels"
+      ],
+      "ar": [
+        "تصنيف",
+        "التصنيفات"
+      ]
+    },
+    "category": {
+      "en": [
+        "Category",
+        "Categories"
+      ],
+      "ar": [
+        "فئة",
+        "الفئات"
+      ]
+    },
+    "client": {
+      "en": [
+        "Client",
+        "Clients"
+      ],
+      "ar": [
+        "عميل",
+        "العملاء"
+      ]
+    },
+    "customer": {
+      "en": [
+        "Customer",
+        "Customers"
+      ],
+      "ar": [
+        "عميل",
+        "العملاء"
+      ]
+    },
+    "contact": {
+      "en": [
+        "Contact",
+        "Contacts"
+      ],
+      "ar": [
+        "جهة اتصال",
+        "جهات الاتصال"
+      ]
+    },
+    "order": {
+      "en": [
+        "Order",
+        "Orders"
+      ],
+      "ar": [
+        "طلب",
+        "الطلبات"
+      ]
+    },
+    "product": {
+      "en": [
+        "Product",
+        "Products"
+      ],
+      "ar": [
+        "منتج",
+        "المنتجات"
+      ]
+    },
+    "invoice": {
+      "en": [
+        "Invoice",
+        "Invoices"
+      ],
+      "ar": [
+        "فاتورة",
+        "الفواتير"
+      ]
+    },
+    "document": {
+      "en": [
+        "Document",
+        "Documents"
+      ],
+      "ar": [
+        "مستند",
+        "المستندات"
+      ]
+    },
+    "event": {
+      "en": [
+        "Event",
+        "Events"
+      ],
+      "ar": [
+        "فعالية",
+        "الفعاليات"
+      ]
+    },
+    "ticket": {
+      "en": [
+        "Ticket",
+        "Tickets"
+      ],
+      "ar": [
+        "تذكرة",
+        "التذاكر"
+      ]
+    },
+    "employee": {
+      "en": [
+        "Employee",
+        "Employees"
+      ],
+      "ar": [
+        "موظف",
+        "الموظفون"
+      ]
+    },
+    "department": {
+      "en": [
+        "Department",
+        "Departments"
+      ],
+      "ar": [
+        "قسم",
+        "الأقسام"
+      ]
+    },
+    "sprint": {
+      "en": [
+        "Sprint",
+        "Sprints"
+      ],
+      "ar": [
+        "دورة عمل",
+        "دورات العمل"
+      ]
+    },
+    "risk": {
+      "en": [
+        "Risk",
+        "Risks"
+      ],
+      "ar": [
+        "خطر",
+        "المخاطر"
+      ]
+    },
+    "budget": {
+      "en": [
+        "Budget",
+        "Budgets"
+      ],
+      "ar": [
+        "ميزانية",
+        "الميزانيات"
+      ]
+    }
+  },
+  "fields": {
+    "title": {
+      "en": "Title",
+      "ar": "العنوان"
+    },
+    "name": {
+      "en": "Name",
+      "ar": "الاسم"
+    },
+    "description": {
+      "en": "Description",
+      "ar": "الوصف"
+    },
+    "notes": {
+      "en": "Notes",
+      "ar": "ملاحظات"
+    },
+    "status": {
+      "en": "Status",
+      "ar": "الحالة"
+    },
+    "priority": {
+      "en": "Priority",
+      "ar": "الأولوية"
+    },
+    "due_date": {
+      "en": "Due date",
+      "ar": "تاريخ الاستحقاق"
+    },
+    "start_date": {
+      "en": "Start date",
+      "ar": "تاريخ البدء"
+    },
+    "end_date": {
+      "en": "End date",
+      "ar": "تاريخ الانتهاء"
+    },
+    "done": {
+      "en": "Done",
+      "ar": "منجزة"
+    },
+    "completed": {
+      "en": "Completed",
+      "ar": "مكتمل"
+    },
+    "active": {
+      "en": "Active",
+      "ar": "نشط"
+    },
+    "email": {
+      "en": "Email",
+      "ar": "البريد الإلكتروني"
+    },
+    "phone": {
+      "en": "Phone",
+      "ar": "الهاتف"
+    },
+    "owner": {
+      "en": "Owner",
+      "ar": "المالك"
+    },
+    "assignee": {
+      "en": "Assignee",
+      "ar": "المكلَّف"
+    },
+    "estimate": {
+      "en": "Estimate",
+      "ar": "التقدير"
+    },
+    "estimate_hours": {
+      "en": "Estimated hours",
+      "ar": "الساعات المقدّرة"
+    },
+    "progress": {
+      "en": "Progress",
+      "ar": "نسبة الإنجاز"
+    },
+    "budget": {
+      "en": "Budget",
+      "ar": "الميزانية"
+    },
+    "amount": {
+      "en": "Amount",
+      "ar": "المبلغ"
+    },
+    "price": {
+      "en": "Price",
+      "ar": "السعر"
+    },
+    "quantity": {
+      "en": "Quantity",
+      "ar": "الكمية"
+    },
+    "code": {
+      "en": "Code",
+      "ar": "الرمز"
+    },
+    "role": {
+      "en": "Role",
+      "ar": "الدور"
+    },
+    "color": {
+      "en": "Colour",
+      "ar": "اللون"
+    },
+    "body": {
+      "en": "Text",
+      "ar": "النص"
+    },
+    "content": {
+      "en": "Content",
+      "ar": "المحتوى"
+    },
+    "date": {
+      "en": "Date",
+      "ar": "التاريخ"
+    },
+    "starts_at": {
+      "en": "Starts at",
+      "ar": "يبدأ في"
+    },
+    "ends_at": {
+      "en": "Ends at",
+      "ar": "ينتهي في"
+    },
+    "type": {
+      "en": "Type",
+      "ar": "النوع"
+    },
+    "summary": {
+      "en": "Summary",
+      "ar": "الملخص"
+    },
+    "milestone": {
+      "en": "Milestone",
+      "ar": "معلم رئيسي"
+    },
+    "project": {
+      "en": "Project",
+      "ar": "المشروع"
+    }
+  },
+  "values": {
+    "planned": {
+      "en": "Planned",
+      "ar": "مخطط"
+    },
+    "active": {
+      "en": "Active",
+      "ar": "نشط"
+    },
+    "done": {
+      "en": "Done",
+      "ar": "منجز"
+    },
+    "todo": {
+      "en": "To do",
+      "ar": "قيد الانتظار"
+    },
+    "in_progress": {
+      "en": "In progress",
+      "ar": "قيد التنفيذ"
+    },
+    "in-progress": {
+      "en": "In progress",
+      "ar": "قيد التنفيذ"
+    },
+    "blocked": {
+      "en": "Blocked",
+      "ar": "متوقف"
+    },
+    "on_hold": {
+      "en": "On hold",
+      "ar": "معلّق"
+    },
+    "cancelled": {
+      "en": "Cancelled",
+      "ar": "ملغى"
+    },
+    "completed": {
+      "en": "Completed",
+      "ar": "مكتمل"
+    },
+    "open": {
+      "en": "Open",
+      "ar": "مفتوح"
+    },
+    "closed": {
+      "en": "Closed",
+      "ar": "مغلق"
+    },
+    "draft": {
+      "en": "Draft",
+      "ar": "مسودة"
+    },
+    "low": {
+      "en": "Low",
+      "ar": "منخفضة"
+    },
+    "medium": {
+      "en": "Medium",
+      "ar": "متوسطة"
+    },
+    "high": {
+      "en": "High",
+      "ar": "عالية"
+    },
+    "critical": {
+      "en": "Critical",
+      "ar": "حرجة"
+    },
+    "new": {
+      "en": "New",
+      "ar": "جديد"
+    },
+    "pending": {
+      "en": "Pending",
+      "ar": "معلّق"
+    },
+    "approved": {
+      "en": "Approved",
+      "ar": "معتمد"
+    },
+    "rejected": {
+      "en": "Rejected",
+      "ar": "مرفوض"
+    },
+    "admin": {
+      "en": "Administrator",
+      "ar": "مسؤول"
+    },
+    "member": {
+      "en": "Member",
+      "ar": "عضو"
+    },
+    "reached": {
+      "en": "Reached",
+      "ar": "تم بلوغه"
+    },
+    "manager": {
+      "en": "Manager",
+      "ar": "مدير"
+    }
+  }
+}

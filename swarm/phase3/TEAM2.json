@@ -1,0 +1,186 @@
+{
+ "about": "The second round of development agents for the third phase: sixteen lanes, one agent each, working at once in separate worktrees. A lane owns the paths listed for it and may change no other. Development agents build and review parts of the system; they are not the agents of the measured experiment and are counted apart from them.",
+ "base_branch": "claude/swarm-phase-3",
+ "agent_type": "swarm-dev",
+ "model": "sonnet",
+ "effort": "medium",
+ "contract": "CONTRACT2.md",
+ "groups": {
+  "architecture": "architecture and coordination",
+  "context": "context and consumption",
+  "engine": "execution engines and scheduling",
+  "scale": "scale and performance testing",
+  "security": "security and isolation of permissions",
+  "quality": "quality assurance and independent tests",
+  "integration": "integration with Codex and GitHub",
+  "economics": "economics and documentation"
+ },
+ "lanes": [
+  {
+   "id": "H1",
+   "group": "security",
+   "title": "Attack the session gate",
+   "owns": [
+    "swarm/phase3/hook.py",
+    "tests/test_p3_hook_attack.py",
+    "swarm/phase3/reviews/gate-attack.md"
+   ],
+   "brief": "Read `swarm/phase3/hook.py` and the class `DecisionTests` in `tests/test_p3_gate.py`. Your job is to get a forbidden call past the gate, and to close every way you find. Attack `hook.decide` and the installed program (write it to a temporary file with `hook.wrapper(\"SWARM_HOME='...'\")` and run it with a call as JSON on standard input). Try at least: `agent_type` or `agent_id` as a list, number, empty or blank string, or with the two spellings disagreeing; an agent type that only contains a worker's name or differs in case; a JSON document with the same key twice; tool names that differ in case or carry spaces (`bash`, `Bash `); `tool_input` of the wrong shape; a command of one million characters; bytes that are not UTF-8 and NUL bytes on standard input; a hand-back tool name carrying a command; the record's path being a symbolic link or a folder; 200 processes recording at once (200 whole lines must result); a worker type calling `Agent`, `ToolSearch`, `SendMessage` or any `mcp__` tool. For every hole: fix `hook.py`, keeping every decision that `hook.CASES` and `tests/test_p3_gate.py` fix (those tests must still pass: run them), and add a test. Keep the record free of command text and content. Write `swarm/phase3/reviews/gate-attack.md`: a table of what was tried, whether it held, what was fixed; then what this gate cannot decide (for example: the orchestrator passes by design; what the host does when a gate runs out of time was not measured)."
+  },
+  {
+   "id": "H2",
+   "group": "security",
+   "title": "A cage for worker-written code at hand-in",
+   "owns": [
+    "swarm/phase3/handin.py",
+    "tests/test_p3_handin.py"
+   ],
+   "brief": "Worker-written code is run through `workload.isolated(command, cwd=None, timeout=20)`: by `tasks.run_suite` (the examples at hand-in and the withheld tests at the end; read it in `swarm/phase2/tasks.py`) and by `kit.test` in `swarm/phase2/kit.py` (a large task's own tests, with `cwd` the task folder). It runs with no network and no inherited environment, but as the same user: it can read the withheld tests beside its task folder (`../.hidden/ID.json`), other tasks and the private state, and write anywhere. Write `swarm/phase3/handin.py` on top of `cage.py` (read its docstring): `isolated(command, cwd=None, timeout=20) -> subprocess.CompletedProcess`, a drop-in replacement that makes a fresh workspace, copies `cwd` whole into it when given, copies every argument of `command` that is an existing file outside the Python installation and passes the copy instead, runs through `cage.run`, copies nothing back, always removes the workspace, and raises `subprocess.TimeoutExpired` as the original does; `install() -> callable` that sets `workload.isolated = isolated` and returns the previous one; `protect(stage_dir)` that leaves the stage folder, `.hidden`, `.kit` and `.queue` readable by their owner only; `selftest() -> list[str]`, which runs hostile samples and returns what got through (empty when all are contained): reading a marker file in a folder only the owner may read, reading `../.hidden` beside the solution, finding a marker in the environment, writing beside the original solution, writing under `SWARM_HOME`, opening a socket, starting 200 processes, taking 2 GB of memory, running past the time limit, leaving a process behind. Say in the result which walls need the caller to be root (`os.geteuid() == 0`), and report them as `not enforced here` when it is not: never as passed. Tests: every hostile sample is contained (skip, with the reason, those that need root when the test is not root); after `install()` the reference solution of `tasks.medium(1, 7)` still passes its suite through `tasks.run_suite`, and a large task's own tests still run with `cwd`; twenty hand-ins in a row, with the seconds printed as measured here."
+  },
+  {
+   "id": "H3",
+   "group": "engine",
+   "title": "A ticket for every claimed task",
+   "owns": [
+    "swarm/phase3/kit3.py",
+    ".claude/agents/swarm-queue.md",
+    ".claude/agents/swarm-queue-1.md",
+    "tests/test_p3_kit3.py",
+    "tests/test_p3_tickets.py"
+   ],
+   "brief": "Today any worker can hand in a solution for any task of the open stage: `swk submit ID` does not know who calls. Close that in `swarm/phase3/kit3.py` without changing `taskqueue.py`. `swk next` must print, as its first two lines, `worker NAME` and `ticket TICKET` (eight hexadecimal characters from `secrets`), then the task, and the task text must show the exact hand-in line `swk submit ID TICKET <<'PY'`. Keep only a SHA-256 of the ticket, in `STAGE/.queue/tickets/ID`, in a file only the owner can read. In a stage that has a queue, `swk submit ID TICKET` with a missing, wrong or used ticket is refused with exit status 2: nothing is written to the task folder, no attempt is counted, and one line is added to `STAGE/.queue/refused` (the time and the task id, never the ticket). A ticket ends when its task is released, so a hand-in cannot be replayed. Compare tickets with `hmac.compare_digest`. In a stage without a queue (`.queue` absent) `submit` behaves exactly as before. `swk next WORKER` for a further task must also carry the ticket of the task that worker handed in last (`swk next WORKER TICKET`), so a worker cannot draw on another worker's name; the reply after a hand-in must show that exact line. The command line must still pass `guard.allowed` (`swarm/phase2/guard.py`): test that with the real lines. Update `.claude/agents/swarm-queue.md` and `swarm-queue-1.md` so the worker copies the hand-in line the task shows; keep each under 1,800 characters with `tools: Bash` and the same `maxTurns`. Tests in `tests/test_p3_tickets.py` (and keep `tests/test_p3_kit3.py` passing, changing it where the ticket is now needed): the right ticket hands in; a wrong, missing, another task's or a used ticket is refused and leaves no trace in the task folder; 50 processes drawing at once get 50 different tasks and 50 different tickets; the ticket file holds no ticket in clear; a stage without a queue is unchanged."
+  },
+  {
+   "id": "H4",
+   "group": "scale",
+   "title": "Capacity study by deterministic simulation, to 100,000 agents",
+   "owns": [
+    "swarm/phase3/capacity.py",
+    "tests/test_p3_capacity.py"
+   ],
+   "brief": "Read `swarm/phase3/simulate.py`. Write `swarm/phase3/capacity.py`, which answers: with the rates measured on a real stage, what would 1,000 to 100,000 agents need? It is a simulation and every output must say so. `parameters_from(document, label) -> dict` takes a stages document (see `tests/fixtures/p3-stand-in-stages.json` for the shape) and one stage's label and derives: seconds per agent (`sum_of_agent_seconds / actual_agents`), agents per message (`queue.agent_calls_per_message`), seconds per message beyond the agents' own time (from `wall_seconds`), the share of tasks not verified, and input tokens per agent (`agent_tokens.input_total / actual_agents`); each with the fields it came from. `ladder(parameters, sizes=(1000, 2000, 5000, 10000, 20000, 50000, 100000), concurrencies=(20, 100, 500, 1000), seed=20261130) -> dict` runs `simulate.run` for every size at every concurrency, where 20 is the measured limit of one host session and the larger ones stand for several sessions side by side, which was not tested; for each row: wall time, tasks per minute, input tokens, how many sessions of 20 that is, and whether the tokens fit a given limit. The document carries `\"kind\": \"simulation\"`, an `about` that says no agent ran, the parameters with their source, and the rows. The same seed gives the same document, byte for byte. 100,000 agents must simulate in well under a minute: measure it and print the seconds as measured here; if `simulate.run` is too slow for that, say so in the document rather than change it. Command line: `python3 swarm/phase3/capacity.py --from EVIDENCE --stage LABEL [--limit TOKENS] [--save]`, where `--save` writes `swarm/phase3/evidence/capacity.json`. Tests: determinism; the arithmetic of `parameters_from` on a document built by hand; monotony (more agents never take less time at the same concurrency); the label `simulation` is present in every row's document; a stage with no verified task or no agents is refused with a message."
+  },
+  {
+   "id": "H5",
+   "group": "scale",
+   "title": "The coordinator's own parts at 100,000 tasks, measured",
+   "owns": [
+    "swarm/phase3/coordinator_scale.py",
+    "tests/test_p3_coordinator_scale.py"
+   ],
+   "brief": "The simulation in another lane covers the agents. You measure, for real and on this machine, whether the coordinator's own parts hold at that size. No agent runs. Write `swarm/phase3/coordinator_scale.py` with `measure(sizes=(1000, 10000, 100000), quick=False) -> dict`. For each size: `taskqueue.create` of that many task ids (seconds, files and bytes on disk); claiming all of them with 20 processes at once (claims per second, every id claimed exactly once), reusing `loadtest.run` if it fits; `taskqueue.status` (seconds). Once: `hook.decide` decisions per second in one process; the installed gate as a program (`hook.wrapper`, written to a temporary file) for 200 calls, as seconds per call; the bytes of one line of the gate's record, and from it the size of the record for 100,000 agents making two calls each (labelled an estimate, with the arithmetic); `ledger.build` over 2,000 agent records you generate (two tool calls each, in the form described in the contract), as seconds and peak memory with `tracemalloc`, and a linear estimate for 100,000 records, labelled an estimate. The document says what machine facts it saw (cores, memory total) without any path or host name, and that these are the coordinator's parts only. `--quick` uses sizes (200, 1000) so the tests are fast. `--save` writes `swarm/phase3/evidence/coordinator-scale.json`. Tests: with quick sizes, every id is claimed exactly once; the document has measured and estimated figures under different keys; nothing in it looks like a path."
+  },
+  {
+   "id": "H6",
+   "group": "quality",
+   "title": "The ledger at its edges",
+   "owns": [
+    "swarm/phase3/ledger.py",
+    "tests/test_p3_ledger_edges.py"
+   ],
+   "brief": "`swarm/phase3/ledger.py` puts every tool call of an agent record in one class and compares the calls with the gate's record. The second phase's evidence missed calls; this file must not. Read it and `LedgerTests` in `tests/test_p3_gate.py`, which must keep passing. Make it right, with a test each, for: a call with no result line (the agent was stopped mid-call): its own class, `no result recorded`; when the call is one the worker may make (a worker command or the hand-back) the ledger stays clean, and when it is anything else it counts as a call outside the contract that may have run, so the ledger is not clean; a result with no call; the same call id twice; several calls in one reply, some refused and some not; a record whose last line is cut off or is not JSON; a record with no `meta.json` beside it (agent type unknown: the ledger must say so and must not count it as a known worker); an empty record; a tool result whose content is a list of blocks, not a string; a refusal text of the gate that appears inside ordinary output of a command that ran (it must not be taken for a refusal unless the result is an error); gate lines with no time, with a time outside the stage, and lines that are not JSON. Every figure the ledger gives must add up: the classes sum to `tool_calls`, and `by_tool` sums to it too; add a test that checks this on every document you build. Do not change the names of existing keys: `stage3.py` and other lanes read them. New keys are allowed."
+  },
+  {
+   "id": "H7",
+   "group": "quality",
+   "title": "Isolation between stages, workers and homes",
+   "owns": [
+    "tests/test_p3_isolation.py",
+    "swarm/phase3/reviews/isolation.md"
+   ],
+   "brief": "Black-box tests of the worker's command, run as a subprocess (`swarm/phase3/kit3.py`), with stages you make with `tasks.make` and `taskqueue.create` under a temporary `SWARM_HOME` (read `tests/test_p3_kit3.py` for how a stage is laid out). You own no code: you prove what holds and what does not. Test: while stage B is open, no verb reaches a task of stage A (`show`, `read`, `grep`, `submit`, `test`); two different `SWARM_HOME` folders never see each other's tasks or queue; task ids and file names with path tricks (`../x`, `M-0001/../..`, an absolute path, a symbolic link out of the task folder, a name of 5,000 characters, a NUL byte, Unicode look-alikes) are refused with exit status 2 and create nothing outside the task folder; no verb shows a file under `.hidden`, `.kit` or `.queue`; a hand-in that is a symbolic link or a folder is refused; standard input of 5 MB is refused without filling the disk; the private state folder is not readable by others (mode); the output of every verb for one task never contains text of another task. Do not test who may hand in whose task: another lane is changing that now. For a fault you find: an `@unittest.expectedFailure` test with a comment line, and an entry in `swarm/phase3/reviews/isolation.md`, which lists every property tested, whether it holds, and the open faults with the file and function they are in."
+  },
+  {
+   "id": "H8",
+   "group": "architecture",
+   "title": "The evidence schema of the gated run",
+   "owns": [
+    "swarm/phase3/schema.py",
+    "tests/test_p3_schema.py"
+   ],
+   "brief": "`swarm/phase3/schema.py` validates the second phase's evidence. The gated run writes more; read `finish()`, `judge_gate()` and `save()` in `swarm/phase3/stage3.py`, `build()` in `ledger.py`, and `tests/fixtures/p3-stand-in-stages.json`, which has exactly the run's shape. Extend `validate(document)` so that it accepts both phases' documents (a document is of the third phase when it has the top-level key `counted_before_this_run`) and checks, for the third: the top-level `counted_before_this_run` (its `total` is the sum of its `parts`); for every stage that ran a `ledger` whose classes sum to `tool_calls` and whose `clean` is false whenever `calls_outside_the_contract_that_ran` is not empty; for a stage with `security_gate`: `passed` is true only if every probe has `held` true, and a probe that must be refused has no call outside the contract that ran; no task stage comes before a stage whose `security_gate.passed` is true; `guard_enforced` is not true on a stage whose ledger is not clean or not reconciled; for a stage with `queue`: `handed_in + given_up + left_waiting + claimed_and_not_handed_in == tasks`, and `agent_calls_per_message <= 20`; `verified_tasks <= tasks`; the cumulative figure never passes the limit in `caps`. Keep every check the file has now, and the rule that no string holds an absolute path, a session id or a model identifier. The second phase's real document `swarm/phase2/evidence/stages.json` must still validate, and so must the fixture. Tests: each new rule broken once in a copy of the fixture is reported once."
+  },
+  {
+   "id": "H9",
+   "group": "architecture",
+   "title": "Freeze",
+   "owns": [
+    "swarm/phase3/freeze.py",
+    "tests/test_p3_freeze.py"
+   ],
+   "brief": "When the experiment is closed, nothing in it may change unnoticed. Write `swarm/phase3/freeze.py` with `write(root) -> dict` and `check(root) -> list[str]`. `write` records in `swarm/phase3/FREEZE.json` the SHA-256 and size of every file of the experiment: everything under `swarm/` (code, plans, evidence, documents), `.claude/agents/swarm-*.md`, `.claude/settings.json`, and `tests/test_swarm*.py`, `tests/test_p3_*.py` and `tests/fixtures/p3-*`; not `__pycache__`, not `FREEZE.json` itself. Paths are relative to the repository and sorted, so two runs on the same tree write the same bytes. It also records the statement `The numerical scale-up phase is closed. No further scale stage is to be run on this branch.`, the number of files, and one hash over all the others. `check` returns every file changed, added or removed since, in plain words; the command `python3 swarm/phase3/freeze.py check` prints them and exits 1 if there are any, and says `frozen: N files unchanged` otherwise. Use `git ls-files` when the root is a git checkout so that untracked files are not frozen, and a plain walk when it is not; test both. Tests on temporary trees: unchanged tree; one byte changed; a file added; a file removed; a file renamed; the same tree twice gives the same `FREEZE.json`."
+  },
+  {
+   "id": "H10",
+   "group": "architecture",
+   "title": "One command that checks the whole experiment",
+   "owns": [
+    "swarm/phase3/closure.py",
+    "tests/test_p3_closure.py"
+   ],
+   "brief": "Write `swarm/phase3/closure.py` with `check(root) -> dict`: every verification the end of the experiment needs, in one place, each as a row with `check`, `passed` (true, false, or null when its input is absent) and `detail`. Rows: each evidence document validates (`schema.validate` on `swarm/phase2/evidence/stages.json` and on `swarm/phase3/evidence/stages.json`); the third phase's document names the plan it ran (`plan_sha256` equals the SHA-256 of `swarm/phase3/PLAN3.json`); its first stage that ran is a security gate that passed; every task stage after it has a ledger that is clean and reconciled, and `guard_enforced` true; every stage of the plan is in the document as run or skipped, or the document's last stage explains the end; the counted input tokens never pass the limit (`figures.input_tokens_counted <= caps.cumulative_input_tokens`); no stage reports an agent that met a usage limit; the real agents counted per stage are never more than registered; `swarm/phase3/evidence/capacity.json`, when present, is labelled a simulation; no evidence file under `swarm/` holds an absolute path, a session id or a model identifier; `FREEZE.json`, when present, still matches (call `freeze.check` if the module exists, and report null if it does not). `python3 swarm/phase3/closure.py` prints the table and exits 1 if any row is false; a row that is null is printed as `not available` with the file that is missing and does not fail. Tests: a temporary tree built from the fixture passes; each row is made to fail once; an absent run gives null rows, not passes."
+  },
+  {
+   "id": "H11",
+   "group": "security",
+   "title": "Independent security review of the worker's path",
+   "owns": [
+    "swarm/phase3/reviews/security-review.md",
+    "tests/test_p3_review_security.py"
+   ],
+   "brief": "You review; you change no code. Read, as an attacker who is a worker (it can only issue shell calls that pass `guard.allowed`): `swarm/phase2/guard.py`, `swarm/phase2/kit.py`, `swarm/phase3/kit3.py`, `swarm/phase3/taskqueue.py`, `swarm/phase3/compact.py`, and as an attacker who is a development agent: `swarm/phase3/lane_guard.py`. Do not review `hook.py` or `cage.py`: other lanes have them. Look for: a command line that passes the gate and makes `swk` read, write or run something outside its task (argument injection into `grep`, `def`, `callers`, `select`, `setline`, `answer`; options starting with `-`; regular expressions that take forever; here-document tricks; very long input); state a worker can corrupt for others (the queue's files, attempt counters, the event log `emit` writes); races between two workers; anything a worker can learn about the withheld tests through `swk` output, error messages or timing; shell commands a development agent can still run that `lane_guard.DENIED` should stop (network by another tool name, writing outside the lanes by redirection, `git` configuration tricks). For each finding write a proof test in `tests/test_p3_review_security.py`: a normal test when the control holds, an `@unittest.expectedFailure` test with a comment line when it does not. `swarm/phase3/reviews/security-review.md`: for each finding the file and function, the severity (high: a worker reads or changes what is not its own; medium: a worker can deny service or waste resources; low: hardening), how to reproduce it in one command, and the smallest fix. End with what you checked and found sound, and what you did not check."
+  },
+  {
+   "id": "H12",
+   "group": "quality",
+   "title": "Independent review of the measurements",
+   "owns": [
+    "swarm/phase3/reviews/measurement-review.md",
+    "tests/test_p3_review_measurement.py"
+   ],
+   "brief": "You review; you change no code. The question: can a number in the evidence be wrong, double counted or made up? Read `finish()` and `decide()` in `swarm/phase2/stage.py`, `read()` and `peak()` in `swarm/measure.py`, and `carried_over()`, `decide()`, `judge_gate()`, `finish()` and `save()` in `swarm/phase3/stage3.py`, with `swarm/phase3/PLAN3.json`. Recompute from `swarm/phase2/evidence/stages.json` in a test: the sum of the stages' agent input tokens, and that `carried_over()` adds the first phase, the trial, those stages and the development agents with no part counted twice and none left out; say what the total does not contain (for example what the orchestrating sessions read) and whether the document says so. Check: a reply written on several record lines is counted once; an agent of another type started during a stage cannot be counted into it or hidden from it; an agent that was started and wrote no record; a stage finished twice; records left from an earlier stage; the time window of the gate's record against clock differences; whether `judge_gate` can pass when a probe agent did nothing at all, or when a forbidden call was never attempted; whether a stage with zero verified tasks, zero agents or zero tokens divides by zero or prints a rate; whether the projection for the next stage can let the run pass the limit by one stage. For each fault a proof test in `tests/test_p3_review_measurement.py` (`@unittest.expectedFailure` with a comment line when it shows a fault; a normal test when the property holds). Use stand-in records in the form the contract describes; `tests/test_p3_gate.py` shows how to drive `stage3.py` with them. `swarm/phase3/reviews/measurement-review.md`: each finding with file and function, what number it can distort and by how much, and the smallest fix; then what you found sound."
+  },
+  {
+   "id": "H13",
+   "group": "integration",
+   "title": "Handover for the reviewer, final state",
+   "owns": [
+    "swarm/phase3/handover.py",
+    "swarm/phase3/HANDOVER.md",
+    "tests/test_p3_handover.py"
+   ],
+   "brief": "`swarm/phase3/handover.py` writes `HANDOVER.md` for the reviewer who owns the final review, the merge and the release. Bring it to the experiment's last state. Keep `receipts(root)` and `write(root)`. Add sections that are built only from files in the repository: the security gate (from `swarm/phase3/evidence/stages.json`: whether the gate stage passed, each probe and whether it held; when the file is absent, the sentence `The gated run has not been recorded on this branch.`); the run (stages run and skipped, real agents, tasks verified, the reason the run ended); the reviews (each file under `swarm/phase3/reviews/` with its first heading); the freeze (whether `swarm/phase3/FREEZE.json` exists and how many files it holds); what the reviewer must decide, as a fixed list: the order in which the three branches of the experiment stack (`claude/swarm-100x100`, then `claude/swarm-phase-2`, then `claude/swarm-phase-3`), that the author never merges, that `.claude/settings.json` sets a gate for every session started in this repository and what it does when the gate is not installed (read the file and say it), and that the worker definitions under `.claude/agents/` are for the experiment only. No number that is not read from a file; no path outside the repository. Tests: with the fixture copied in as the run's evidence the gate section names its probes; with no evidence the sentence above appears; every receipt hash matches its file; `write` twice gives the same text. Then run `write` on your worktree so `HANDOVER.md` is current."
+  },
+  {
+   "id": "H14",
+   "group": "economics",
+   "title": "What a task, a feature and a system cost",
+   "owns": [
+    "swarm/phase3/economics.py",
+    "tests/test_p3_economics.py"
+   ],
+   "brief": "`swarm/phase3/economics.py` gives the cost per verified task of the second phase's stages. The owner's question is what a task, a feature and a whole system cost in a software factory built this way. Extend it; keep `per_task`, `project` and `render` working as they do. `per_task` must also read the gated run's stages (shape: `tests/fixtures/p3-stand-in-stages.json`): a queue stage's tokens per verified task, with the orchestrator's share (`orchestrator_tokens`) shown beside the agents' and never mixed into it silently, and skipping the gate stage, which has no tasks. Add `factory(rows, recipe) -> dict`: given the measured rows and a recipe such as `{\"small\": 40, \"medium\": 12, \"large\": 3}` it takes, for each size, the cheapest measured configuration that verified at least 90% of its tasks and returns input tokens, output tokens, cost units and agent-minutes for the recipe, the configuration used for each size, and the share of tasks expected to need a second attempt (from the measured failure rate); when a size has no measured row that qualifies it says so and gives no figure for it. Add `render_factory`, a table for three recipes named `one task`, `one feature` and `one system`, with the recipes printed, the sentence that cost units are an assumption for comparing configurations and not a price or a subscription allowance, and the sentence that different models' units are not comparable. Tests: the arithmetic on rows built by hand; a size with no qualifying row gives no figure; the second phase's real document renders without error; nothing is divided by zero when a stage verified no task."
+  },
+  {
+   "id": "H15",
+   "group": "economics",
+   "title": "The threat model, checked against the tests",
+   "owns": [
+    "swarm/phase3/security_doc.py",
+    "swarm/phase3/SECURITY.md",
+    "tests/test_p3_security_doc.py"
+   ],
+   "brief": "Write `swarm/phase3/security_doc.py`: the experiment's threat model as a table in code, and `render() -> str` that writes `swarm/phase3/SECURITY.md` from it, so the document cannot drift from the tests. Each row: who (a worker; code a worker wrote; a development agent; an agent of an unknown type; the orchestrator), what it might try, the control that stops it (file and function), the tests that prove it (`tests/FILE.py::Class.test_name`), and what is left open. Read, to fill it: the docstring and `decide` in `swarm/phase3/hook.py`, `swarm/phase2/guard.py`, `swarm/phase3/lane_guard.py`, the docstring of `swarm/phase3/cage.py`, the refusals in `swarm/phase2/kit.py`, the gate stage in `swarm/phase3/PLAN3.json`, and the test names in `tests/test_p3_gate.py`, `tests/test_p3_gate_fuzz.py`, `tests/test_p3_cage.py` and `tests/test_p3_team.py`. Cover at least: a worker running another shell command, using a file tool, using a tool that reaches another session, starting an agent; a call the gate cannot read; the gate crashing; a call that cannot be recorded; an unknown agent type; worker code reading secrets, writing outside, using the network, outliving its time limit; a development agent writing outside its lane, pushing, reading outside the repository. State plainly what is not controlled: the orchestrator is not confined by the gate; a gate that is not installed does nothing, by design, so that ordinary sessions in this repository work; the lane net for development agents is a list of refused commands and not a sandbox; what the host does when the gate runs out of time was not measured. `check() -> list[str]`: every test a row cites exists (parse the test files with `ast`), every control's file and function exist, and `SECURITY.md` equals `render()`. Tests: `check()` is empty; a row citing a test that does not exist is reported; rows marked `open` must have no test claimed as proof."
+  },
+  {
+   "id": "H16",
+   "group": "economics",
+   "title": "The final report, built from the evidence",
+   "owns": [
+    "swarm/phase3/report3.py",
+    "tests/test_p3_report3.py"
+   ],
+   "brief": "Write `swarm/phase3/report3.py` with `build(root) -> str`, the final report of the whole experiment as Markdown, made only from files in the repository; `--save` writes `swarm/phase3/RESULTS-FINAL.md`. Sections: 1. The three phases in one table: for each, agents registered, real agents started, most at once, tasks, tasks verified by withheld tests, input tokens (first phase from `swarm/evidence/summary.json` and `ladder.json`; second from `swarm/phase2/evidence/stages.json`; third from `swarm/phase3/evidence/stages.json`). 2. Four kinds of agents kept apart, each with its count: real agents of the measured run, development agents (`swarm/phase3/evidence/team*.json`), probe agents of the security gate, and simulated agents (`swarm/phase3/evidence/capacity.json`); a simulated agent is never added to a real one. 3. The security gate: each probe, what it had to be, whether it held. 4. The ledger of each stage of the gated run: calls by class, calls outside the contract that ran, whether the gate saw every call. 5. The scale ladder as measured: for each queue stage, agents, agents per message, wall seconds, tasks per minute, verified rate, tokens per verified task. 6. The capacity study, under the heading `Simulation, not a measurement`. 7. What limited the experiment (read `swarm/evidence/host-limits.json` and the stages' peak figures; the host ran at most 20 agents at once). 8. What was counted against the limit and what was reported beside it (`counted_before_this_run`). 9. What was not done or not measured: every skipped stage with its reason, and every input file that was absent. A section whose file is absent says `not available: FILE is not in the repository` and gives no number. No sentence may claim more than a file shows; write no adjective about the results. Tests: with only the first two phases present the third's sections say not available; with the fixture copied in as the third phase's evidence the gate and ledger sections show its rows; no absolute path appears; building twice gives the same text."
+  }
+ ]
+}

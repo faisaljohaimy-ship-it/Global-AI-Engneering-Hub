@@ -1,0 +1,254 @@
+{
+ "schema_version": 1,
+ "recorded": "2026-11-28",
+ "scope": "Isolated developer installs outside the repository on one Linux x86_64 cloud session; scripted or mock models only; no provider key, no paid service, no project runtime.",
+ "host": {
+  "system": "Linux x86_64",
+  "python": "3.13.18",
+  "node": "v22.23.5",
+  "browser": "Chromium 1243 preinstalled, headless, no sandbox flag"
+ },
+ "results": {
+  "pydantic/pydantic-ai": {
+   "package": "pydantic-ai-slim==2.68.0",
+   "status": "passed",
+   "network": "none (network namespace without interfaces)",
+   "provider_requests_allowed": false,
+   "cases": {
+    "valid_typed_result": {
+     "output": {
+      "sensor": "roof",
+      "celsius": 21.5
+     },
+     "requests": 2,
+     "seconds": 0.05,
+     "passed": true
+    },
+    "invalid_output_corrected_after_one_retry": {
+     "output": {
+      "sensor": "roof",
+      "celsius": 21.5
+     },
+     "requests": 3,
+     "seconds": 0.017,
+     "final_answers_given": 2,
+     "passed": true
+    },
+    "invalid_output_never_corrected_is_rejected": {
+     "raised": "UnexpectedModelBehavior",
+     "seconds": 0.016,
+     "final_answers_given": 2,
+     "passed": true
+    },
+    "slow_tool_is_stopped": {
+     "raised": "TimeoutError",
+     "seconds": 0.209,
+     "limit_seconds": 0.2,
+     "passed": true
+    },
+    "endless_tool_calls_are_stopped": {
+     "raised": "UsageLimitExceeded",
+     "seconds": 0.012,
+     "passed": true
+    },
+    "unauthorised_call_is_refused": {
+     "raised": "Refused",
+     "seconds": 0.005,
+     "passed": true
+    }
+   }
+  },
+  "UKGovernmentBEIS/inspect_ai": {
+   "package": "inspect-ai==0.3.289",
+   "status": "passed",
+   "model": "mockllm/model",
+   "cases": {
+    "right_and_wrong_answers_are_scored": {
+     "status": "success",
+     "grades": [
+      "C",
+      "I"
+     ],
+     "accuracy": 0.5,
+     "seconds": 1.81,
+     "passed": true
+    },
+    "slow_sample_is_stopped_by_its_time_limit": {
+     "status": "success",
+     "limit": "time",
+     "seconds": 1.05,
+     "passed": true
+    },
+    "failing_solver_is_reported_as_an_error": {
+     "status": "error",
+     "error": "RuntimeError('solver failed on purpose')",
+     "seconds": 0.11,
+     "passed": true
+    }
+   },
+   "note": "First blocked: its mock run downloads a tokenizer file from a host the network policy refused. The owner allowed that host on 2026-11-28 and the test then passed. It ran with network access for that download."
+  },
+  "promptfoo/promptfoo": {
+   "package": "promptfoo@0.125.1",
+   "status": "passed",
+   "provider": "echo (built in, offline)",
+   "telemetry": "PROMPTFOO_DISABLE_TELEMETRY=1, PROMPTFOO_DISABLE_UPDATE=1",
+   "stats": {
+    "successes": 1,
+    "failures": 1,
+    "errors": 0
+   },
+   "exit_status": 100,
+   "cases": [
+    {
+     "passed_assertion": true,
+     "output": "Translate to French: good morning"
+    },
+    {
+     "passed_assertion": false,
+     "output": "Translate to French: thank you"
+    }
+   ],
+   "note": "One assertion is written to fail, to show that a failure is detected and reported through the exit status.",
+   "npm_audit": {
+    "moderate": 5,
+    "high": 0,
+    "critical": 0
+   },
+   "installed_megabytes": 758
+  },
+  "microsoft/playwright-mcp": {
+   "package": "@playwright/mcp@0.0.85",
+   "status": "passed",
+   "server": "Playwright 1.66.0-alpha-2026-11-09, 25 tools, stdio",
+   "npm_audit": {
+    "total": 0
+   },
+   "server_reported": {
+    "name": "Playwright",
+    "version": "1.66.0-alpha-2026-11-09"
+   },
+   "tools_listed": 25,
+   "page": "synthetic data: URL",
+   "profile": "isolated, in memory",
+   "checks": {
+    "navigation": {
+     "tool": "browser_navigate",
+     "expected_in_reply": "Probe page",
+     "rejected": false,
+     "passed": true
+    },
+    "snapshot": {
+     "tool": "browser_snapshot",
+     "expected_in_reply": "heading \"Hello from the hub\"",
+     "rejected": false,
+     "passed": true
+    },
+    "script_and_console_write": {
+     "tool": "browser_evaluate",
+     "expected_in_reply": "Probe page",
+     "rejected": false,
+     "passed": true
+    },
+    "console_diagnostics": {
+     "tool": "browser_console_messages",
+     "expected_in_reply": "probe-warning",
+     "rejected": false,
+     "passed": true
+    },
+    "screenshot": {
+     "tool": "browser_take_screenshot",
+     "expected_in_reply": "probe.png",
+     "rejected": false,
+     "passed": true,
+     "file_bytes": 8819,
+     "png_signature": true
+    },
+    "wrong_arguments_rejected": {
+     "tool": "browser_click",
+     "expected_in_reply": "Invalid",
+     "rejected": true,
+     "passed": true
+    }
+   }
+  },
+  "ChromeDevTools/chrome-devtools-mcp": {
+   "package": "chrome-devtools-mcp@1.13.0",
+   "status": "passed",
+   "server": "chrome_devtools 1.13.0, 33 tools, stdio",
+   "flags": "--headless --isolated --no-usage-statistics --no-performance-crux",
+   "npm_audit": {
+    "total": 0
+   },
+   "server_reported": {
+    "name": "chrome_devtools",
+    "title": "Chrome DevTools MCP server",
+    "version": "1.13.0"
+   },
+   "tools_listed": 33,
+   "page": "synthetic data: URL",
+   "profile": "isolated, in memory",
+   "checks": {
+    "navigation": {
+     "tool": "new_page",
+     "expected_in_reply": "Probe page",
+     "rejected": false,
+     "passed": true
+    },
+    "snapshot": {
+     "tool": "take_snapshot",
+     "expected_in_reply": "heading \"Hello from the hub\"",
+     "rejected": false,
+     "passed": true
+    },
+    "script_and_console_write": {
+     "tool": "evaluate_script",
+     "expected_in_reply": "Probe page",
+     "rejected": false,
+     "passed": true
+    },
+    "console_diagnostics": {
+     "tool": "list_console_messages",
+     "expected_in_reply": "probe-warning",
+     "rejected": false,
+     "passed": true
+    },
+    "screenshot": {
+     "tool": "take_screenshot",
+     "expected_in_reply": "probe.png",
+     "rejected": false,
+     "passed": true,
+     "file_bytes": 70520,
+     "png_signature": true
+    },
+    "wrong_arguments_rejected": {
+     "tool": "take_snapshot",
+     "expected_in_reply": "Invalid",
+     "rejected": true,
+     "passed": true
+    }
+   }
+  },
+  "upstash/context7": {
+   "package": "@upstash/context7-mcp@4.7.0",
+   "status": "blocked",
+   "installed": "in the session only, from the pinned package; no lock is committed (the dependency scan's limit of eight npm locks is reached)",
+   "server": "Context7 4.7.0 started over stdio and listed resolve-library-id and query-docs",
+   "reason": "Both requests were answered: Monthly quota exceeded. Create a free API key. The hosts themselves are reachable since the owner allowed them.",
+   "needs": "A free Context7 API key from the owner, saved through the environment's credential settings.",
+   "npm_audit": {
+    "moderate": 1,
+    "high": 0,
+    "critical": 0
+   },
+   "packages": 104
+  }
+ },
+ "not_proven": [
+  "Any call to a real model provider",
+  "Invocation from Codex",
+  "Attachment of the two MCP servers to an agent session (they were driven by a stdio probe)",
+  "macOS or Windows",
+  "Use inside a registered project"
+ ]
+}

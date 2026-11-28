@@ -119,6 +119,57 @@ def _compiler(revision):
     return module
 
 
+ENGINE_ROOT = "packages/motion-engines"
+ENGINE_DIR = ".engineering/vendor/motion-engines"
+ENGINE_MODULES = (
+    "quantum", "camera", "hologram", "glass", "neural", "twin", "particles", "lighting", "typography", "micro",
+    "dashboard", "transitions", "physics", "shaders", "icons", "product", "networks", "atmosphere", "story", "compositions",
+)
+_JS_IMPORT = re.compile(r"""(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.{1,2}/[^'"\n]+)\1""")
+
+
+def _engine_motion_files(revision, name):
+    """One engine-native motion and exactly the local modules it imports, nothing else.
+
+    The files keep their relative layout under ENGINE_DIR, so the imports inside them
+    still resolve. Only relative imports inside packages/motion-engines are followed.
+    """
+    module = next((key for key in ENGINE_MODULES if name.startswith(key + "-")), None)
+    if module is None:
+        raise ValueError(f"Engine motion {name} has no known module prefix")
+    entry = f"{ENGINE_ROOT}/motions/{module}/{name[len(module) + 1:]}.mjs"
+    seen, queue = {}, [entry]
+    while queue:
+        source = queue.pop()
+        if source in seen:
+            continue
+        try:
+            text = read(revision, source)
+        except ValueError:
+            if source == entry:
+                raise ValueError(f"Engine motion {name} is not in the hub at {revision[:12]}") from None
+            raise
+        seen[source] = True
+        for _, specifier in _JS_IMPORT.findall(text.decode("utf-8")):
+            resolved = pathlib.PurePosixPath(source).parent.joinpath(specifier)
+            parts = []
+            for part in resolved.parts:
+                if part == "..":
+                    if not parts:
+                        raise ValueError(f"{source} imports outside the repository: {specifier}")
+                    parts.pop()
+                elif part != ".":
+                    parts.append(part)
+            target = "/".join(parts)
+            if not target.startswith(ENGINE_ROOT + "/") or not target.endswith(".mjs"):
+                raise ValueError(f"{source} imports outside the motion package: {specifier}")
+            queue.append(target)
+    return [
+        {"path": f"{ENGINE_DIR}/{source[len(ENGINE_ROOT) + 1:]}", "source": source, "mode": "copy"}
+        for source in sorted(seen)
+    ]
+
+
 def resolve(revision, capability_id):
     """Return the project files a capability provides, reproduced from one hub revision."""
     kind, _, name = str(capability_id).partition(":")
@@ -143,6 +194,8 @@ def resolve(revision, capability_id):
             {"path": path, "source": source, "mode": "copy"}
             for source, path in sorted(pack.get("files", {}).items())
         ]
+    elif kind == "engine-motion":
+        files = _engine_motion_files(revision, name)
     else:
         raise ValueError(f"Unknown capability kind: {capability_id}")
     compiler = None
@@ -200,7 +253,7 @@ def validate_manifest(manifest):
             errors.append("each capability needs an id")
             continue
         kind, separator, name = capability["id"].partition(":")
-        if separator != ":" or kind not in {"skill", "motion", "pack"} or not NAME.fullmatch(name):
+        if separator != ":" or kind not in {"skill", "motion", "pack", "engine-motion"} or not NAME.fullmatch(name):
             errors.append(f"invalid capability id {capability['id']}")
         if capability["id"] in seen:
             errors.append(f"duplicate capability {capability['id']}")

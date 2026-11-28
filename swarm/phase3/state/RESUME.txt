@@ -1,0 +1,4 @@
+Third phase's run. Stages recorded: g0 r3.
+Stages left in the plan: q20 b20 q200 q1000.
+To go on, in a session that has the swarm-* agent types: python3 swarm/phase3/stage3.py setup, then prep, launch the card, finish.
+Read swarm/phase3/RUNBOOK-RUN.md first. The private task store does not travel with the repository; a new session starts a new one.

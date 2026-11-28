@@ -1,0 +1,140 @@
+{
+ "kind": "scripted trace: no agent and no model; tokens from the legacy Claude tokenizer bundled with litellm, a proxy",
+ "needs": {
+  "which tests fail": {
+   "A": {
+    "chars": 9987,
+    "tokens": 3735,
+    "answer_present": true
+   },
+   "B": {
+    "chars": 6260,
+    "tokens": 2097,
+    "answer_present": true
+   },
+   "C": {
+    "chars": 6260,
+    "tokens": 2101,
+    "answer_present": true
+   },
+   "D": {
+    "chars": 6260,
+    "tokens": 2097,
+    "answer_present": true
+   }
+  },
+  "who calls the broken function": {
+   "A": {
+    "chars": 154,
+    "tokens": 103,
+    "answer_present": false
+   },
+   "B": {
+    "chars": 154,
+    "tokens": 103,
+    "answer_present": false
+   },
+   "C": {
+    "chars": 2187,
+    "tokens": 868,
+    "answer_present": true
+   },
+   "D": {
+    "chars": 45,
+    "tokens": 37,
+    "answer_present": true
+   }
+  },
+  "the broken function's code": {
+   "A": {
+    "chars": 1333,
+    "tokens": 476,
+    "answer_present": true
+   },
+   "B": {
+    "chars": 1333,
+    "tokens": 476,
+    "answer_present": true
+   },
+   "C": {
+    "chars": 133,
+    "tokens": 53,
+    "answer_present": true
+   },
+   "D": {
+    "chars": 133,
+    "tokens": 53,
+    "answer_present": true
+   }
+  },
+  "which events failed": {
+   "A": {
+    "chars": 71907,
+    "tokens": 29110,
+    "answer_present": true
+   },
+   "B": {
+    "chars": 21747,
+    "tokens": 13704,
+    "answer_present": true
+   },
+   "C": {
+    "chars": 21747,
+    "tokens": 13704,
+    "answer_present": true
+   },
+   "D": {
+    "chars": 16,
+    "tokens": 10,
+    "answer_present": true
+   }
+  },
+  "the build error": {
+   "A": {
+    "chars": 43,
+    "tokens": 13,
+    "answer_present": true
+   },
+   "B": {
+    "chars": 43,
+    "tokens": 13,
+    "answer_present": true
+   },
+   "C": {
+    "chars": 43,
+    "tokens": 13,
+    "answer_present": true
+   },
+   "D": {
+    "chars": 43,
+    "tokens": 13,
+    "answer_present": true
+   }
+  }
+ },
+ "totals": {
+  "A": {
+   "chars": 83424,
+   "tokens": 33437,
+   "answers_present": 4
+  },
+  "B": {
+   "chars": 29537,
+   "tokens": 16393,
+   "answers_present": 4,
+   "tokens_saved_against_A_percent": 51.0
+  },
+  "C": {
+   "chars": 30370,
+   "tokens": 16739,
+   "answers_present": 5,
+   "tokens_saved_against_A_percent": 49.9
+  },
+  "D": {
+   "chars": 6497,
+   "tokens": 2210,
+   "answers_present": 5,
+   "tokens_saved_against_A_percent": 93.4
+  }
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "about": "Decisions of the owner that change what the experiment does or stops doing. The report reads this file, so that a part that was not done is shown as decided and not as missing.",
+ "decisions": [
+  {"date": "2026-11-28", "what": "The final limit of the experiment is 1,000 real agents.", "by": "the owner"},
+  {"date": "2026-11-28", "what": "The simulation of capacity up to 100,000 agents is cancelled. It was not run and no simulated figure is part of the results.", "by": "the owner",
+   "cancels": "swarm/phase3/evidence/capacity.json"},
+  {"date": "2026-11-28", "what": "Use is to be counted apart for orchestrators, agents and reviewers, and the sum of all of them shown.", "by": "the owner",
+   "see": "swarm/phase3/evidence/accounting.json"},
+  {"date": "2026-11-28", "what": "No further experiment is started and no stage that was completed is run again.", "by": "the owner"}
+ ]
+}

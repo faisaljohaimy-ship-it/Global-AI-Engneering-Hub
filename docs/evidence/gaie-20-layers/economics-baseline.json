@@ -1,0 +1,1803 @@
+{
+ "about": "Counts, sizes and figures only; no prompt, record content, secret or customer data.",
+ "context_comparison": {
+  "previously_reported_general_worker_first_request_tokens": {
+   "field": "first_request_context_tokens.median",
+   "source": "swarm/evidence/tool-audit.json",
+   "value": 222067
+  },
+  "previously_reported_lean_worker_first_request_tokens": {
+   "field": "stages[s20].first_request_context.median",
+   "source": "swarm/phase2/evidence/stages.json",
+   "value": 5486
+  },
+  "reading": "The previously reported figures are host-reported whole-request sizes and are cited, not reproduced; the repository-controlled part of a session in this tree is measured above. The difference is host-controlled context, unknown offline.",
+  "repository_always_loaded_tokens_approx": 1760
+ },
+ "context_footprint": {
+  "always_loaded": {
+   "agent_listing": [
+    {
+     "file": ".claude/agents/gaie-verifier.md",
+     "listing_chars": 231,
+     "listing_tokens_approx": 57,
+     "name": "gaie-verifier",
+     "sha256": "94e901bffc4c37122ab340ad2304fb76d440acb17a455d98a97edb12de5325e0"
+    },
+    {
+     "file": ".claude/agents/swarm-dev.md",
+     "listing_chars": 133,
+     "listing_tokens_approx": 33,
+     "name": "swarm-dev",
+     "sha256": "e7606bd3b47c6b330aab8712ded3b6c4caf9894ba8f0d3761a6661b8a43065cc"
+    },
+    {
+     "file": ".claude/agents/swarm-large.md",
+     "listing_chars": 152,
+     "listing_tokens_approx": 38,
+     "name": "swarm-large",
+     "sha256": "1c7138e44e8991e802231b4dadef04a29feaaf74e27ed3581c0613ba9df01dc3"
+    },
+    {
+     "file": ".claude/agents/swarm-light-2.md",
+     "listing_chars": 155,
+     "listing_tokens_approx": 38,
+     "name": "swarm-light-2",
+     "sha256": "053c37e095797b20af8459fdfae101dac9c976fc5095fb1d65d4bce85d678cca"
+    },
+    {
+     "file": ".claude/agents/swarm-light-inline.md",
+     "listing_chars": 138,
+     "listing_tokens_approx": 34,
+     "name": "swarm-light-inline",
+     "sha256": "1b956632b64d44ec1c3a9fcdda8117c0f638c84226cf822789ce32fb35af5169"
+    },
+    {
+     "file": ".claude/agents/swarm-light-open.md",
+     "listing_chars": 167,
+     "listing_tokens_approx": 41,
+     "name": "swarm-light-open",
+     "sha256": "91992df83ee1e77890764e44919803773d89bccd694a70a9be9a10c7c2fe0ecb"
+    },
+    {
+     "file": ".claude/agents/swarm-light.md",
+     "listing_chars": 138,
+     "listing_tokens_approx": 34,
+     "name": "swarm-light",
+     "sha256": "5c0f8e082830d6f9c4653f01f545e42d31dd6478e2f6cdc42a9ac3edf3bcbd66"
+    },
+    {
+     "file": ".claude/agents/swarm-probe-open.md",
+     "listing_chars": 177,
+     "listing_tokens_approx": 44,
+     "name": "swarm-probe-open",
+     "sha256": "506e6a4fda9939ade0cf0315c5c852533399f608bbac22066afb579f5cd196cc"
+    },
+    {
+     "file": ".claude/agents/swarm-probe-wide.md",
+     "listing_chars": 151,
+     "listing_tokens_approx": 37,
+     "name": "swarm-probe-wide",
+     "sha256": "5083b082ce3c4b37074bd92a46af14c89da4ef7c7797df83e66fd3ba209dbc6f"
+    },
+    {
+     "file": ".claude/agents/swarm-probe.md",
+     "listing_chars": 127,
+     "listing_tokens_approx": 31,
+     "name": "swarm-probe",
+     "sha256": "9c74c36a194ace4816a5b4af79b9232d7c5bc068b5fc4342959ec2391ec66f01"
+    },
+    {
+     "file": ".claude/agents/swarm-queue-1.md",
+     "listing_chars": 190,
+     "listing_tokens_approx": 47,
+     "name": "swarm-queue-1",
+     "sha256": "4fd1ddf62f0801f6a51a4e563c606b5b81951bd80722aeb9bec0f5ac04ec88f4"
+    },
+    {
+     "file": ".claude/agents/swarm-queue.md",
+     "listing_chars": 170,
+     "listing_tokens_approx": 42,
+     "name": "swarm-queue",
+     "sha256": "76006cdad038310694319015cc7b7dab27a26eb3968e159cfaac898150a93851"
+    }
+   ],
+   "chars": 7042,
+   "instruction_files": [
+    {
+     "chars": 937,
+     "file": "CLAUDE.md",
+     "non_ascii_chars": 0,
+     "sha256": "9493b459af23fd15455d8a93dff9fb65f8c53cc6f7e8e3eb5b1b94dc510107d8",
+     "tokens_approx": 234,
+     "utf8_bytes": 937
+    },
+    {
+     "chars": 2135,
+     "file": "AGENTS.md",
+     "non_ascii_chars": 0,
+     "sha256": "1c3503582be25c1960bad78eec27744494a0c80a0c29010c2aad8789a4cfa873",
+     "tokens_approx": 533,
+     "utf8_bytes": 2135,
+     "via": "CLAUDE.md"
+    }
+   ],
+   "skill_listing": [
+    {
+     "file": ".claude/skills/gaie-audit/SKILL.md",
+     "listing_chars": 262,
+     "listing_tokens_approx": 65,
+     "name": "gaie-audit",
+     "sha256": "afb2fc6d91a1dad6ac3371d52e32e7d3d5a779e3ff9ac14ecc49410049d1c5d9"
+    },
+    {
+     "file": ".claude/skills/gaie-build/SKILL.md",
+     "listing_chars": 284,
+     "listing_tokens_approx": 71,
+     "name": "gaie-build",
+     "sha256": "a74dcd6b1e2c16fa69058e4b7ef7e5dda7d65860f291274385bf5e1cd8020995"
+    },
+    {
+     "file": ".claude/skills/gaie-cinematic/SKILL.md",
+     "listing_chars": 341,
+     "listing_tokens_approx": 85,
+     "name": "gaie-cinematic",
+     "sha256": "bd192c033d371a87fcc48d26f207c8ffbfe0d33a88048d56daa81a763b2a30a9"
+    },
+    {
+     "file": ".claude/skills/gaie-master-router/SKILL.md",
+     "listing_chars": 483,
+     "listing_tokens_approx": 120,
+     "name": "gaie-master-router",
+     "sha256": "a6aab778db727de0d393bb6e6704f998b1c04c396d2c31ffbbee258eeee970ad"
+    },
+    {
+     "file": ".claude/skills/gaie-release/SKILL.md",
+     "listing_chars": 288,
+     "listing_tokens_approx": 72,
+     "name": "gaie-release",
+     "sha256": "a2f92b95c03f888b1aedd50d0a9c334033f6cc2a8ba5f96886b5bf37bcfd76b3"
+    },
+    {
+     "file": ".claude/skills/gaie-upgrade/SKILL.md",
+     "listing_chars": 383,
+     "listing_tokens_approx": 95,
+     "name": "gaie-upgrade",
+     "sha256": "b9d43dc88e0f029e842ae766641be223e9745ff2f91f2eff391787b02022f428"
+    }
+   ],
+   "tokens_approx": 1760
+  },
+  "host_controlled_context": "unknown",
+  "lean_worker_definitions": {
+   "swarm-light": {
+    "chars": 817,
+    "tokens_approx": 204
+   },
+   "swarm-light-2": {
+    "chars": 702,
+    "tokens_approx": 175
+   },
+   "swarm-light-inline": {
+    "chars": 818,
+    "tokens_approx": 204
+   },
+   "swarm-light-open": {
+    "chars": 735,
+    "tokens_approx": 183
+   }
+  },
+  "method": {
+   "includes": "repository files only; not the host's system prompt, tool schemas or connectors",
+   "listing_rule": "a skill or agent listing counts its name and description characters only",
+   "non_ascii_note": "characters / 4 tends to undercount non-ASCII (for example Arabic) text",
+   "rule": "tokens_approx = characters // 4, per item and on each total",
+   "tokenizers_importable": [],
+   "tokens": "characters / 4 (approximate; not a tokenizer count)",
+   "why": "no tokenizer module is installed, and no Claude tokenizer is available offline"
+  },
+  "on_demand": {
+   "agent_definitions": [
+    {
+     "chars": 1185,
+     "file": ".claude/agents/gaie-verifier.md",
+     "non_ascii_chars": 1,
+     "sha256": "94e901bffc4c37122ab340ad2304fb76d440acb17a455d98a97edb12de5325e0",
+     "tokens_approx": 296,
+     "utf8_bytes": 1187
+    },
+    {
+     "chars": 1274,
+     "file": ".claude/agents/swarm-dev.md",
+     "non_ascii_chars": 0,
+     "sha256": "e7606bd3b47c6b330aab8712ded3b6c4caf9894ba8f0d3761a6661b8a43065cc",
+     "tokens_approx": 318,
+     "utf8_bytes": 1274
+    },
+    {
+     "chars": 658,
+     "file": ".claude/agents/swarm-large.md",
+     "non_ascii_chars": 0,
+     "sha256": "1c7138e44e8991e802231b4dadef04a29feaaf74e27ed3581c0613ba9df01dc3",
+     "tokens_approx": 164,
+     "utf8_bytes": 658
+    },
+    {
+     "chars": 702,
+     "file": ".claude/agents/swarm-light-2.md",
+     "non_ascii_chars": 0,
+     "sha256": "053c37e095797b20af8459fdfae101dac9c976fc5095fb1d65d4bce85d678cca",
+     "tokens_approx": 175,
+     "utf8_bytes": 702
+    },
+    {
+     "chars": 818,
+     "file": ".claude/agents/swarm-light-inline.md",
+     "non_ascii_chars": 0,
+     "sha256": "1b956632b64d44ec1c3a9fcdda8117c0f638c84226cf822789ce32fb35af5169",
+     "tokens_approx": 204,
+     "utf8_bytes": 818
+    },
+    {
+     "chars": 735,
+     "file": ".claude/agents/swarm-light-open.md",
+     "non_ascii_chars": 0,
+     "sha256": "91992df83ee1e77890764e44919803773d89bccd694a70a9be9a10c7c2fe0ecb",
+     "tokens_approx": 183,
+     "utf8_bytes": 735
+    },
+    {
+     "chars": 817,
+     "file": ".claude/agents/swarm-light.md",
+     "non_ascii_chars": 0,
+     "sha256": "5c0f8e082830d6f9c4653f01f545e42d31dd6478e2f6cdc42a9ac3edf3bcbd66",
+     "tokens_approx": 204,
+     "utf8_bytes": 817
+    },
+    {
+     "chars": 614,
+     "file": ".claude/agents/swarm-probe-open.md",
+     "non_ascii_chars": 0,
+     "sha256": "506e6a4fda9939ade0cf0315c5c852533399f608bbac22066afb579f5cd196cc",
+     "tokens_approx": 153,
+     "utf8_bytes": 614
+    },
+    {
+     "chars": 661,
+     "file": ".claude/agents/swarm-probe-wide.md",
+     "non_ascii_chars": 0,
+     "sha256": "5083b082ce3c4b37074bd92a46af14c89da4ef7c7797df83e66fd3ba209dbc6f",
+     "tokens_approx": 165,
+     "utf8_bytes": 661
+    },
+    {
+     "chars": 560,
+     "file": ".claude/agents/swarm-probe.md",
+     "non_ascii_chars": 0,
+     "sha256": "9c74c36a194ace4816a5b4af79b9232d7c5bc068b5fc4342959ec2391ec66f01",
+     "tokens_approx": 140,
+     "utf8_bytes": 560
+    },
+    {
+     "chars": 753,
+     "file": ".claude/agents/swarm-queue-1.md",
+     "non_ascii_chars": 0,
+     "sha256": "4fd1ddf62f0801f6a51a4e563c606b5b81951bd80722aeb9bec0f5ac04ec88f4",
+     "tokens_approx": 188,
+     "utf8_bytes": 753
+    },
+    {
+     "chars": 1156,
+     "file": ".claude/agents/swarm-queue.md",
+     "non_ascii_chars": 0,
+     "sha256": "76006cdad038310694319015cc7b7dab27a26eb3968e159cfaac898150a93851",
+     "tokens_approx": 289,
+     "utf8_bytes": 1156
+    }
+   ],
+   "chars": 21703,
+   "skill_bodies": [
+    {
+     "chars": 1790,
+     "file": ".claude/skills/gaie-audit/SKILL.md",
+     "non_ascii_chars": 22,
+     "sha256": "afb2fc6d91a1dad6ac3371d52e32e7d3d5a779e3ff9ac14ecc49410049d1c5d9",
+     "tokens_approx": 447,
+     "utf8_bytes": 1813
+    },
+    {
+     "chars": 1570,
+     "file": ".claude/skills/gaie-build/SKILL.md",
+     "non_ascii_chars": 29,
+     "sha256": "a74dcd6b1e2c16fa69058e4b7ef7e5dda7d65860f291274385bf5e1cd8020995",
+     "tokens_approx": 392,
+     "utf8_bytes": 1600
+    },
+    {
+     "chars": 2448,
+     "file": ".claude/skills/gaie-cinematic/SKILL.md",
+     "non_ascii_chars": 30,
+     "sha256": "bd192c033d371a87fcc48d26f207c8ffbfe0d33a88048d56daa81a763b2a30a9",
+     "tokens_approx": 612,
+     "utf8_bytes": 2479
+    },
+    {
+     "chars": 2294,
+     "file": ".claude/skills/gaie-master-router/SKILL.md",
+     "non_ascii_chars": 106,
+     "sha256": "a6aab778db727de0d393bb6e6704f998b1c04c396d2c31ffbbee258eeee970ad",
+     "tokens_approx": 573,
+     "utf8_bytes": 2401
+    },
+    {
+     "chars": 1927,
+     "file": ".claude/skills/gaie-release/SKILL.md",
+     "non_ascii_chars": 17,
+     "sha256": "a2f92b95c03f888b1aedd50d0a9c334033f6cc2a8ba5f96886b5bf37bcfd76b3",
+     "tokens_approx": 481,
+     "utf8_bytes": 1945
+    },
+    {
+     "chars": 1741,
+     "file": ".claude/skills/gaie-upgrade/SKILL.md",
+     "non_ascii_chars": 35,
+     "sha256": "b9d43dc88e0f029e842ae766641be223e9745ff2f91f2eff391787b02022f428",
+     "tokens_approx": 435,
+     "utf8_bytes": 1777
+    }
+   ],
+   "tokens_approx": 5425
+  }
+ },
+ "estimates": {
+  "enterprise": {
+   "agent_time": {
+    "high": {
+     "unit": "seconds",
+     "value": "16009.56"
+    },
+    "low": {
+     "unit": "seconds",
+     "value": "1905.9"
+    }
+   },
+   "assumptions": {
+    "coordinator_share_basis": "lowest and highest measured in task stages of 10 or more agents (swarm/phase2/evidence/stages.json)",
+    "coordinator_share_of_all_tokens": [
+     "0.152",
+     "0.656"
+    ],
+    "excluded": [
+     "human review",
+     "infrastructure",
+     "maintenance",
+     "work the generated tasks do not stand in for"
+    ],
+    "pricing_basis": "all input at the uncached input rate (cache discounts not applied: an upper bound)",
+    "rates": "unknown: none supplied",
+    "recipe": "feature and mvp are swarm/phase3/economics.RECIPES 'one feature' and 'one system'; enterprise is 10 x 'one system'",
+    "second_attempt_basis": "low: measured failure share of the configurations used (factory); high: the worst measured failure rate of any stage of these sizes; a failed task is attempted once more at the same cost",
+    "second_attempt_share": [
+     "0",
+     "0.4"
+    ],
+    "task_multiplier": [
+     "0.5",
+     "3"
+    ],
+    "validity": "the measured tasks are generated stand-ins (a function, a module-sized feature, a fix in an existing system), not product work; read the result as an order of magnitude for agent work of that shape, not as a quote for a real feature, MVP or enterprise system",
+    "wall_time_basis": "each size run in turn at the measured tasks per minute of its configuration (swarm/phase3/economics.project), not in parallel"
+   },
+   "basis": {
+    "configurations": {
+     "large": {
+      "label": "l10",
+      "model": "sonnet",
+      "worker_type": "swarm-large"
+     },
+     "medium": {
+      "label": "m1",
+      "model": "haiku",
+      "worker_type": "swarm-light"
+     },
+     "small": {
+      "label": "c2",
+      "model": "haiku",
+      "worker_type": "swarm-light-2"
+     }
+    },
+    "evidence": "swarm/phase2/evidence/stages.json",
+    "sizes_without_a_figure": [],
+    "stand_ins": {
+     "large": "a fix in an existing system",
+     "medium": "a module-sized feature",
+     "small": "a function"
+    }
+   },
+   "kind": "ESTIMATE",
+   "label": "ESTIMATE: computed from the stated assumptions and measured per-task rows; not a measurement",
+   "measured": false,
+   "money": {
+    "high": "unknown",
+    "low": "unknown"
+   },
+   "recipe": {
+    "large": 30,
+    "medium": 120,
+    "small": 400
+   },
+   "scope": "enterprise",
+   "tokens": {
+    "input": {
+     "high": {
+      "unit": "tokens",
+      "value": 228322866
+     },
+     "low": {
+      "unit": "tokens",
+      "value": 11026374
+     }
+    },
+    "output": {
+     "high": {
+      "unit": "tokens",
+      "value": 6240541
+     },
+     "low": {
+      "unit": "tokens",
+      "value": 301374
+     }
+    }
+   },
+   "wall_time": {
+    "high": {
+     "unit": "seconds",
+     "value": "7260.12"
+    },
+    "low": {
+     "unit": "seconds",
+     "value": "864.3"
+    }
+   }
+  },
+  "feature": {
+   "agent_time": {
+    "high": {
+     "unit": "seconds",
+     "value": "51.6"
+    },
+    "low": {
+     "unit": "seconds",
+     "value": "12.9"
+    }
+   },
+   "assumptions": {
+    "coordinator_share_basis": "lowest and highest measured in task stages of 10 or more agents (swarm/phase2/evidence/stages.json)",
+    "coordinator_share_of_all_tokens": [
+     "0.152",
+     "0.656"
+    ],
+    "excluded": [
+     "human review",
+     "infrastructure",
+     "maintenance",
+     "work the generated tasks do not stand in for"
+    ],
+    "pricing_basis": "all input at the uncached input rate (cache discounts not applied: an upper bound)",
+    "rates": "unknown: none supplied",
+    "recipe": "feature and mvp are swarm/phase3/economics.RECIPES 'one feature' and 'one system'; enterprise is 10 x 'one system'",
+    "second_attempt_basis": "low: measured failure share of the configurations used (factory); high: the worst measured failure rate of any stage of these sizes; a failed task is attempted once more at the same cost",
+    "second_attempt_share": [
+     "0",
+     "0"
+    ],
+    "task_multiplier": [
+     "0.5",
+     "2"
+    ],
+    "validity": "the measured tasks are generated stand-ins (a function, a module-sized feature, a fix in an existing system), not product work; read the result as an order of magnitude for agent work of that shape, not as a quote for a real feature, MVP or enterprise system",
+    "wall_time_basis": "each size run in turn at the measured tasks per minute of its configuration (swarm/phase3/economics.project), not in parallel"
+   },
+   "basis": {
+    "configurations": {
+     "medium": {
+      "label": "m1",
+      "model": "haiku",
+      "worker_type": "swarm-light"
+     },
+     "small": {
+      "label": "c2",
+      "model": "haiku",
+      "worker_type": "swarm-light-2"
+     }
+    },
+    "evidence": "swarm/phase2/evidence/stages.json",
+    "sizes_without_a_figure": [],
+    "stand_ins": {
+     "large": "a fix in an existing system",
+     "medium": "a module-sized feature",
+     "small": "a function"
+    }
+   },
+   "kind": "ESTIMATE",
+   "label": "ESTIMATE: computed from the stated assumptions and measured per-task rows; not a measurement",
+   "measured": false,
+   "money": {
+    "high": "unknown",
+    "low": "unknown"
+   },
+   "recipe": {
+    "medium": 1,
+    "small": 3
+   },
+   "scope": "feature",
+   "tokens": {
+    "input": {
+     "high": {
+      "unit": "tokens",
+      "value": 693849
+     },
+     "low": {
+      "unit": "tokens",
+      "value": 70367
+     }
+    },
+    "output": {
+     "high": {
+      "unit": "tokens",
+      "value": 22076
+     },
+     "low": {
+      "unit": "tokens",
+      "value": 2239
+     }
+    }
+   },
+   "wall_time": {
+    "high": {
+     "unit": "seconds",
+     "value": "26.4"
+    },
+    "low": {
+     "unit": "seconds",
+     "value": "6.6"
+    }
+   }
+  },
+  "maintenance_of_mvp": {
+   "assumptions": {
+    "basis": "supplied, or the default planning range 0.15-0.25 of build per year; a planning assumption, not measured in this repository",
+    "share_per_year": [
+     "0.15",
+     "0.25"
+    ]
+   },
+   "kind": "ESTIMATE",
+   "label": "ESTIMATE: computed from the stated assumptions and measured per-task rows; not a measurement",
+   "measured": false,
+   "money": {
+    "high": "unknown",
+    "low": "unknown"
+   },
+   "tokens": {
+    "high": {
+     "unit": "tokens",
+     "value": 3909390
+    },
+    "low": {
+     "unit": "tokens",
+     "value": 169916
+    }
+   },
+   "years": 1
+  },
+  "mvp": {
+   "agent_time": {
+    "high": {
+     "unit": "seconds",
+     "value": "1066.8"
+    },
+    "low": {
+     "unit": "seconds",
+     "value": "190.5"
+    }
+   },
+   "assumptions": {
+    "coordinator_share_basis": "lowest and highest measured in task stages of 10 or more agents (swarm/phase2/evidence/stages.json)",
+    "coordinator_share_of_all_tokens": [
+     "0.152",
+     "0.656"
+    ],
+    "excluded": [
+     "human review",
+     "infrastructure",
+     "maintenance",
+     "work the generated tasks do not stand in for"
+    ],
+    "pricing_basis": "all input at the uncached input rate (cache discounts not applied: an upper bound)",
+    "rates": "unknown: none supplied",
+    "recipe": "feature and mvp are swarm/phase3/economics.RECIPES 'one feature' and 'one system'; enterprise is 10 x 'one system'",
+    "second_attempt_basis": "low: measured failure share of the configurations used (factory); high: the worst measured failure rate of any stage of these sizes; a failed task is attempted once more at the same cost",
+    "second_attempt_share": [
+     "0",
+     "0.4"
+    ],
+    "task_multiplier": [
+     "0.5",
+     "2"
+    ],
+    "validity": "the measured tasks are generated stand-ins (a function, a module-sized feature, a fix in an existing system), not product work; read the result as an order of magnitude for agent work of that shape, not as a quote for a real feature, MVP or enterprise system",
+    "wall_time_basis": "each size run in turn at the measured tasks per minute of its configuration (swarm/phase3/economics.project), not in parallel"
+   },
+   "basis": {
+    "configurations": {
+     "large": {
+      "label": "l10",
+      "model": "sonnet",
+      "worker_type": "swarm-large"
+     },
+     "medium": {
+      "label": "m1",
+      "model": "haiku",
+      "worker_type": "swarm-light"
+     },
+     "small": {
+      "label": "c2",
+      "model": "haiku",
+      "worker_type": "swarm-light-2"
+     }
+    },
+    "evidence": "swarm/phase2/evidence/stages.json",
+    "sizes_without_a_figure": [],
+    "stand_ins": {
+     "large": "a fix in an existing system",
+     "medium": "a module-sized feature",
+     "small": "a function"
+    }
+   },
+   "kind": "ESTIMATE",
+   "label": "ESTIMATE: computed from the stated assumptions and measured per-task rows; not a measurement",
+   "measured": false,
+   "money": {
+    "high": "unknown",
+    "low": "unknown"
+   },
+   "recipe": {
+    "large": 3,
+    "medium": 12,
+    "small": 40
+   },
+   "scope": "mvp",
+   "tokens": {
+    "input": {
+     "high": {
+      "unit": "tokens",
+      "value": 15221524
+     },
+     "low": {
+      "unit": "tokens",
+      "value": 1102637
+     }
+    },
+    "output": {
+     "high": {
+      "unit": "tokens",
+      "value": 416036
+     },
+     "low": {
+      "unit": "tokens",
+      "value": 30137
+     }
+    }
+   },
+   "wall_time": {
+    "high": {
+     "unit": "seconds",
+     "value": "483.84"
+    },
+    "low": {
+     "unit": "seconds",
+     "value": "86.4"
+    }
+   }
+  },
+  "rework_of_mvp": {
+   "assumptions": {
+    "basis": "the build estimate's measured second-attempt share: its configurations' failure share to the worst measured failure rate of any stage of those sizes",
+    "rework_share": [
+     "0",
+     "0.4"
+    ]
+   },
+   "kind": "ESTIMATE",
+   "label": "ESTIMATE: computed from the stated assumptions and measured per-task rows; not a measurement",
+   "measured": false,
+   "money": {
+    "high": "unknown",
+    "low": "unknown"
+   },
+   "tokens": {
+    "high": {
+     "unit": "tokens",
+     "value": 6255024
+    },
+    "low": {
+     "unit": "tokens",
+     "value": 0
+    }
+   }
+  }
+ },
+ "kind": "economics-baseline",
+ "layer": "L19",
+ "measured": {
+  "consumption_by_stage": {
+   "source": "swarm/phase2/evidence/stages.json",
+   "stages": {
+    "c1": {
+     "agents": 1,
+     "cache_read_share_of_worker_input": 0.73,
+     "coordinator": {
+      "cache_read": 324395,
+      "cache_write": 1534,
+      "input": 325932,
+      "output": 578
+     },
+     "coordinator_share_of_all_tokens": 0.835,
+     "cost_units_per_verified_task": 29771,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 1,
+     "worker": {
+      "cache_read": 46543,
+      "cache_write": 17201,
+      "input": 63754,
+      "output": 721
+     },
+     "worker_tokens_per_verified_task": 64475
+    },
+    "c2": {
+     "agents": 5,
+     "cache_read_share_of_worker_input": 0.3236,
+     "coordinator": {
+      "cache_read": 327671,
+      "cache_write": 3065,
+      "input": 330740,
+      "output": 1223
+     },
+     "coordinator_share_of_all_tokens": 0.725,
+     "cost_units_per_verified_task": 25289,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 5,
+     "worker": {
+      "cache_read": 39520,
+      "cache_write": 82585,
+      "input": 122125,
+      "output": 3848
+     },
+     "worker_tokens_per_verified_task": 25195
+    },
+    "c3": {
+     "agents": 5,
+     "cache_read_share_of_worker_input": 0.5373,
+     "coordinator": {
+      "cache_read": 335594,
+      "cache_write": 8624,
+      "input": 344221,
+      "output": 2879
+     },
+     "coordinator_share_of_all_tokens": 0.645,
+     "cost_units_per_verified_task": 28089,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 5,
+     "worker": {
+      "cache_read": 100360,
+      "cache_write": 86402,
+      "input": 186792,
+      "output": 4475
+     },
+     "worker_tokens_per_verified_task": 38253
+    },
+    "g10": {
+     "agents": 10,
+     "cache_read_share_of_worker_input": 0.7041,
+     "coordinator": {
+      "cache_read": 827480,
+      "cache_write": 11101,
+      "input": 838585,
+      "output": 3458
+     },
+     "coordinator_share_of_all_tokens": 0.152,
+     "cost_units_per_verified_task": 213939,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 10,
+     "worker": {
+      "cache_read": 3309968,
+      "cache_write": 1390755,
+      "input": 4700793,
+      "output": 13976
+     },
+     "worker_tokens_per_verified_task": 471477
+    },
+    "l1": {
+     "agents": 1,
+     "cache_read_share_of_worker_input": 0.8252,
+     "coordinator": {
+      "cache_read": 1018875,
+      "cache_write": 1672,
+      "input": 1020553,
+      "output": 537
+     },
+     "coordinator_share_of_all_tokens": 0.905,
+     "cost_units_per_verified_task": 36677,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 1,
+     "worker": {
+      "cache_read": 87951,
+      "cache_write": 18616,
+      "input": 106579,
+      "output": 920
+     },
+     "worker_tokens_per_verified_task": 107499
+    },
+    "l10": {
+     "agents": 10,
+     "cache_read_share_of_worker_input": 0.8413,
+     "coordinator": {
+      "cache_read": 1042141,
+      "cache_write": 9037,
+      "input": 1051182,
+      "output": 2101
+     },
+     "coordinator_share_of_all_tokens": 0.48,
+     "cost_units_per_verified_task": 36148,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 10,
+     "worker": {
+      "cache_read": 954270,
+      "cache_write": 179836,
+      "input": 1134232,
+      "output": 8226
+     },
+     "worker_tokens_per_verified_task": 114246
+    },
+    "l25": {
+     "agents": 25,
+     "cache_read_share_of_worker_input": 0.8507,
+     "coordinator": {
+      "cache_read": 1116707,
+      "cache_write": 511889,
+      "input": 1628603,
+      "output": 4730
+     },
+     "coordinator_share_of_all_tokens": 0.347,
+     "cost_units_per_verified_task": 37688,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 25,
+     "worker": {
+      "cache_read": 2590549,
+      "cache_write": 454210,
+      "input": 3045095,
+      "output": 23008
+     },
+     "worker_tokens_per_verified_task": 122724
+    },
+    "l5l": {
+     "agents": 5,
+     "cache_read_share_of_worker_input": 0.8441,
+     "coordinator": {
+      "cache_read": 1032134,
+      "cache_write": 5084,
+      "input": 1037224,
+      "output": 1249
+     },
+     "coordinator_share_of_all_tokens": 0.641,
+     "cost_units_per_verified_task": 36391,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 5,
+     "worker": {
+      "cache_read": 486843,
+      "cache_write": 89837,
+      "input": 576744,
+      "output": 4182
+     },
+     "worker_tokens_per_verified_task": 116185
+    },
+    "l5r": {
+     "agents": 5,
+     "cache_read_share_of_worker_input": 0.8415,
+     "coordinator": {
+      "cache_read": 1022226,
+      "cache_write": 4859,
+      "input": 1027091,
+      "output": 1199
+     },
+     "coordinator_share_of_all_tokens": 0.618,
+     "cost_units_per_verified_task": 68614,
+     "not_verified": 2,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 3,
+     "worker": {
+      "cache_read": 529503,
+      "cache_write": 99680,
+      "input": 629249,
+      "output": 5645
+     },
+     "worker_tokens_per_verified_task": 211631
+    },
+    "m1": {
+     "agents": 1,
+     "cache_read_share_of_worker_input": 0.6126,
+     "coordinator": {
+      "cache_read": 849703,
+      "cache_write": 1848,
+      "input": 851557,
+      "output": 499
+     },
+     "coordinator_share_of_all_tokens": 0.947,
+     "cost_units_per_verified_task": 32562,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 1,
+     "worker": {
+      "cache_read": 28222,
+      "cache_write": 17839,
+      "input": 46067,
+      "output": 1487
+     },
+     "worker_tokens_per_verified_task": 47554
+    },
+    "m10h": {
+     "agents": 10,
+     "cache_read_share_of_worker_input": 0.6249,
+     "coordinator": {
+      "cache_read": 853242,
+      "cache_write": 9143,
+      "input": 862388,
+      "output": 2049
+     },
+     "coordinator_share_of_all_tokens": 0.632,
+     "cost_units_per_verified_task": 34954,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 10,
+     "worker": {
+      "cache_read": 303205,
+      "cache_write": 181907,
+      "input": 485176,
+      "output": 18355
+     },
+     "worker_tokens_per_verified_task": 50353
+    },
+    "m10s": {
+     "agents": 10,
+     "cache_read_share_of_worker_input": 0.5506,
+     "coordinator": {
+      "cache_read": 871557,
+      "cache_write": 9069,
+      "input": 880629,
+      "output": 2099
+     },
+     "coordinator_share_of_all_tokens": 0.656,
+     "cost_units_per_verified_task": 32719,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 10,
+     "worker": {
+      "cache_read": 249894,
+      "cache_write": 203863,
+      "input": 453817,
+      "output": 9463
+     },
+     "worker_tokens_per_verified_task": 46328
+    },
+    "m25": {
+     "agents": 25,
+     "cache_read_share_of_worker_input": 0.6554,
+     "coordinator": {
+      "cache_read": 946377,
+      "cache_write": 426939,
+      "input": 1373323,
+      "output": 4682
+     },
+     "coordinator_share_of_all_tokens": 0.498,
+     "cost_units_per_verified_task": 36774,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 25,
+     "worker": {
+      "cache_read": 875812,
+      "cache_write": 460249,
+      "input": 1336243,
+      "output": 51255
+     },
+     "worker_tokens_per_verified_task": 55500
+    },
+    "m50": {
+     "agents": 50,
+     "cache_read_share_of_worker_input": 0.6647,
+     "coordinator": {
+      "cache_read": 1046943,
+      "cache_write": 913750,
+      "input": 1960698,
+      "output": 8994
+     },
+     "coordinator_share_of_all_tokens": 0.41,
+     "cost_units_per_verified_task": 36396,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 50,
+     "worker": {
+      "cache_read": 1817065,
+      "cache_write": 916369,
+      "input": 2733808,
+      "output": 98451
+     },
+     "worker_tokens_per_verified_task": 56645
+    },
+    "s10": {
+     "agents": 10,
+     "cache_read_share_of_worker_input": 0.6688,
+     "coordinator": {
+      "cache_read": 351043,
+      "cache_write": 9071,
+      "input": 360118,
+      "output": 2081
+     },
+     "coordinator_share_of_all_tokens": 0.415,
+     "cost_units_per_verified_task": 28440,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 10,
+     "worker": {
+      "cache_read": 336375,
+      "cache_write": 166472,
+      "input": 502919,
+      "output": 8521
+     },
+     "worker_tokens_per_verified_task": 51144
+    },
+    "s100": {
+     "agents": 100,
+     "cache_read_share_of_worker_input": 0.6724,
+     "coordinator": {
+      "cache_read": 530335,
+      "cache_write": 1702538,
+      "input": 2232880,
+      "output": 17661
+     },
+     "coordinator_share_of_all_tokens": 0.303,
+     "cost_units_per_verified_task": 28592,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 100,
+     "worker": {
+      "cache_read": 3419954,
+      "cache_write": 1665321,
+      "input": 5086005,
+      "output": 86955
+     },
+     "worker_tokens_per_verified_task": 51730
+    },
+    "s20": {
+     "agents": 20,
+     "cache_read_share_of_worker_input": 0.6672,
+     "coordinator": {
+      "cache_read": 224254,
+      "cache_write": 162392,
+      "input": 386649,
+      "output": 3801
+     },
+     "coordinator_share_of_all_tokens": 0.276,
+     "cost_units_per_verified_task": 29005,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 20,
+     "worker": {
+      "cache_read": 671350,
+      "cache_write": 334656,
+      "input": 1006148,
+      "output": 18899
+     },
+     "worker_tokens_per_verified_task": 51252
+    },
+    "s25": {
+     "agents": 25,
+     "cache_read_share_of_worker_input": 0.6433,
+     "coordinator": {
+      "cache_read": 462024,
+      "cache_write": 185869,
+      "input": 647900,
+      "output": 5762
+     },
+     "coordinator_share_of_all_tokens": 0.354,
+     "cost_units_per_verified_task": 28327,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 25,
+     "worker": {
+      "cache_read": 751274,
+      "cache_write": 416498,
+      "input": 1167932,
+      "output": 22452
+     },
+     "worker_tokens_per_verified_task": 47615
+    },
+    "s50": {
+     "agents": 50,
+     "cache_read_share_of_worker_input": 0.67,
+     "coordinator": {
+      "cache_read": 564014,
+      "cache_write": 430563,
+      "input": 994582,
+      "output": 9280
+     },
+     "coordinator_share_of_all_tokens": 0.28,
+     "cost_units_per_verified_task": 29082,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 50,
+     "worker": {
+      "cache_read": 1701233,
+      "cache_write": 837374,
+      "input": 2538969,
+      "output": 47379
+     },
+     "worker_tokens_per_verified_task": 51727
+    },
+    "s75": {
+     "agents": 75,
+     "cache_read_share_of_worker_input": 0.6725,
+     "coordinator": {
+      "cache_read": 704725,
+      "cache_write": 796845,
+      "input": 1501576,
+      "output": 13566
+     },
+     "coordinator_share_of_all_tokens": 0.28,
+     "cost_units_per_verified_task": 28798,
+     "not_verified": 0,
+     "retries": "unknown",
+     "reviewer": "unknown",
+     "verified": 75,
+     "worker": {
+      "cache_read": 2570536,
+      "cache_write": 1251535,
+      "input": 3822617,
+      "output": 67566
+     },
+     "worker_tokens_per_verified_task": 51869
+    }
+   }
+  },
+  "coordinator_machinery": {
+   "gate": {
+    "hook_decide_per_second_one_process": 390665,
+    "installed_gate_calls": 200,
+    "installed_gate_exit_codes_seen": [
+     0
+    ],
+    "installed_gate_seconds_per_call": 0.0478,
+    "record_line_bytes": 169
+   },
+   "ledger_build": {
+    "peak_memory_bytes_tracemalloc": 162441,
+    "records": 2000,
+    "seconds": 0.724,
+    "tool_calls_counted": 4000
+   },
+   "note": "CPU-side cost of the queue, gate and ledger; no agent and no model ran",
+   "source": "swarm/phase3/evidence/coordinator-scale.json"
+  },
+  "cost_weights": {
+   "about": "Cost units weigh each kind of token against one uncached input token. The weights are the ratios of the published API prices (a cache read costs a tenth, a five-minute cache write a quarter more, a one-hour write double, an output token five times). They are an assumption for comparing configurations. They are not a measure of subscription allowance, which the host does not show.",
+   "cache_read": 0.1,
+   "cache_write_1h": 2.0,
+   "cache_write_5m": 1.25,
+   "output": 5.0,
+   "source": "swarm/phase2/PLAN.json"
+  },
+  "development_lanes": {
+   "note": "each lane built one module of this repository with its tests: real development work, unlike the generated stand-in tasks",
+   "phase3_team": {
+    "agent_seconds_per_lane": {
+     "max": 739.13,
+     "median": 37.47,
+     "min": 25.43
+    },
+    "lanes": 20,
+    "source": "swarm/phase3/evidence/team.json",
+    "suite_after_joining_passed": true,
+    "tests_added": 135,
+    "tokens_per_lane": {
+     "max": 505643,
+     "median": 149463.5,
+     "min": 68019
+    }
+   },
+   "phase3_team2": {
+    "agent_seconds_per_lane": {
+     "max": 405.85,
+     "median": 68.6,
+     "min": 36.7
+    },
+    "lanes": 16,
+    "source": "swarm/phase3/evidence/team2.json",
+    "suite_after_joining_passed": false,
+    "tests_added": 181,
+    "tokens_per_lane": {
+     "max": 1177549,
+     "median": 272395.0,
+     "min": 103067
+    }
+   }
+  },
+  "development_waves": [
+   {
+    "agents": 20,
+    "batch": 1,
+    "conflicts": 0,
+    "duration_seconds": 739.2,
+    "failures": 0,
+    "label": "team-20-lanes",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 20,
+    "source": "swarm/phase3/evidence/team.json",
+    "tasks_verified": 20,
+    "tokens": 4024754
+   },
+   {
+    "agents": 16,
+    "batch": 1,
+    "conflicts": 1,
+    "duration_seconds": 405.9,
+    "failures": 2,
+    "label": "team-16-lanes",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 16,
+    "source": "swarm/phase3/evidence/team2.json",
+    "tasks_verified": 13,
+    "tokens": 5838222
+   }
+  ],
+  "headline_comparisons": {
+   "first_request_context_tokens": {
+    "after": {
+     "field": "stages[s20].first_request_context.median",
+     "source": "swarm/phase2/evidence/stages.json",
+     "value": 5486
+    },
+    "before": {
+     "field": "first_request_context_tokens.median",
+     "source": "swarm/evidence/tool-audit.json",
+     "value": 222067
+    },
+    "reduction_percent": 97.53,
+    "status": "cited, not reproduced",
+    "why": "a host-reported size of a whole first request (host system prompt, tool schemas, connectors and the worker definition); it needs live agents on the host, so it cannot be re-measured offline. The part this tree controls is re-measured under context_footprint."
+   },
+   "input_tokens_per_verified_small_task_20_agents": {
+    "after": {
+     "field": "stages[s20].per_verified_task.input_total",
+     "source": "swarm/phase2/evidence/stages.json",
+     "value": 50307
+    },
+    "before": {
+     "field": "ladder[s20].per_verified_task.input_total",
+     "source": "swarm/evidence/ladder.json",
+     "value": 801572
+    },
+    "recomputed": {
+     "after": 50307,
+     "before": 801572,
+     "rule": "agent_tokens.input_total / verified_tasks, rounded"
+    },
+    "reduction_percent": 93.72,
+    "status": "arithmetic reproduced from the evidence files; not re-measured (needs live agents)"
+   },
+   "tasks_per_minute_20_agents": {
+    "after": {
+     "field": "stages[s20].tasks_per_minute",
+     "source": "swarm/phase2/evidence/stages.json",
+     "value": 76.57
+    },
+    "before": {
+     "field": "ladder[s20].tasks_per_minute",
+     "source": "swarm/evidence/ladder.json",
+     "value": 29.64
+    },
+    "ratio": 2.58,
+    "recomputed": {
+     "after": 76.58,
+     "before": 29.64,
+     "rule": "verified_tasks / wall_seconds x 60 from the rounded wall_seconds in the file"
+    },
+    "status": "arithmetic reproduced to the rounding of the published wall seconds; not re-measured (needs live agents)"
+   }
+  },
+  "pending": {
+   "phase3_1000_agent_run": {
+    "expected_sources": [
+     "swarm/phase3/evidence/stages.json",
+     "swarm/phase3/RESULTS-FINAL.md"
+    ],
+    "note": "Not read by this baseline; cite it only after the swarm session publishes it.",
+    "status": "pending (owned by swarm session)"
+   }
+  },
+  "recommender_on_measured_waves": {
+   "limits_note": "max_agents 20 is the host's measured ceiling (swarm/phase2/README.md finding 2); tokens_left is the phase-2 cap minus its counted input tokens (swarm/phase2/evidence/stages.json caps, figures)",
+   "phase2_c1_then_s10": {
+    "agents": 20,
+    "basis": "measured waves; deterministic rules; nothing executed",
+    "batch": 1,
+    "last_wave": {
+     "agents": 10,
+     "batch": 1,
+     "conflicts": "unknown",
+     "label": "s10",
+     "limit_errors": 0,
+     "tasks_per_minute": "55.452865",
+     "tokens": {
+      "unit": "tokens",
+      "value": 873639
+     },
+     "verified_success_rate_percent": "100",
+     "verified_tasks_per_million_tokens": "11.446375"
+    },
+    "next_wave_base": {
+     "agents": 20,
+     "batch": 1,
+     "reason": "Throughput rose from 7.76 to 55.45 tasks a minute, at least 10 percent, so double 10 agents to 20."
+    },
+    "previous_wave": {
+     "agents": 1,
+     "batch": 1,
+     "conflicts": "unknown",
+     "label": "c1",
+     "limit_errors": 0,
+     "tasks_per_minute": "7.761966",
+     "tokens": {
+      "unit": "tokens",
+      "value": 390985
+     },
+     "verified_success_rate_percent": "100",
+     "verified_tasks_per_million_tokens": "2.557643"
+    },
+    "reason": "Verified tasks per million tokens improved from 2.56 to 11.45 and throughput rose from 7.76 to 55.45 tasks a minute, at least 10 percent, so double 10 agents to 20.",
+    "rule": "grow-efficiency-improved",
+    "stop": false,
+    "unknown_inputs": [
+     "conflicts"
+    ]
+   },
+   "phase2_s10_then_s20": {
+    "agents": 20,
+    "basis": "measured waves; deterministic rules; nothing executed",
+    "batch": 1,
+    "last_wave": {
+     "agents": 20,
+     "batch": 1,
+     "conflicts": "unknown",
+     "label": "s20",
+     "limit_errors": 0,
+     "tasks_per_minute": "76.579451",
+     "tokens": {
+      "unit": "tokens",
+      "value": 1415497
+     },
+     "verified_success_rate_percent": "100",
+     "verified_tasks_per_million_tokens": "14.129313"
+    },
+    "next_wave_base": {
+     "agents": 20,
+     "batch": 1,
+     "reason": "Throughput rose from 55.45 to 76.58 tasks a minute, at least 10 percent, so double 20 agents to 20."
+    },
+    "previous_wave": {
+     "agents": 10,
+     "batch": 1,
+     "conflicts": "unknown",
+     "label": "s10",
+     "limit_errors": 0,
+     "tasks_per_minute": "55.452865",
+     "tokens": {
+      "unit": "tokens",
+      "value": 873639
+     },
+     "verified_success_rate_percent": "100",
+     "verified_tasks_per_million_tokens": "11.446375"
+    },
+    "reason": "Throughput rose from 55.45 to 76.58 tasks a minute, at least 10 percent, so double 20 agents to 20.",
+    "rule": "next-wave",
+    "stop": false,
+    "unknown_inputs": [
+     "conflicts"
+    ]
+   },
+   "phase2_s20_then_s25": {
+    "agents": 20,
+    "basis": "measured waves; deterministic rules; nothing executed",
+    "batch": 2,
+    "last_wave": {
+     "agents": 25,
+     "batch": 1,
+     "conflicts": "unknown",
+     "label": "s25",
+     "limit_errors": 0,
+     "tasks_per_minute": "44.937088",
+     "tokens": {
+      "unit": "tokens",
+      "value": 1844046
+     },
+     "verified_success_rate_percent": "100",
+     "verified_tasks_per_million_tokens": "13.557146"
+    },
+    "next_wave_base": {
+     "agents": 25,
+     "batch": 2,
+     "reason": "Throughput did not rise by 10 percent (76.58 to 44.94 tasks a minute), so keep 25 agents and raise the batch from 1 to 2."
+    },
+    "previous_wave": {
+     "agents": 20,
+     "batch": 1,
+     "conflicts": "unknown",
+     "label": "s20",
+     "limit_errors": 0,
+     "tasks_per_minute": "76.579451",
+     "tokens": {
+      "unit": "tokens",
+      "value": 1415497
+     },
+     "verified_success_rate_percent": "100",
+     "verified_tasks_per_million_tokens": "14.129313"
+    },
+    "reason": "Throughput did not rise by 10 percent (76.58 to 44.94 tasks a minute), so keep 25 agents and raise the batch from 1 to 2, but the limit is 20 agents, so cap it at 20.",
+    "rule": "next-wave+max-agents-cap",
+    "stop": false,
+    "unknown_inputs": [
+     "conflicts"
+    ]
+   },
+   "phase3_team_then_team2": {
+    "agents": 8,
+    "basis": "measured waves; deterministic rules; nothing executed",
+    "batch": 1,
+    "last_wave": {
+     "agents": 16,
+     "batch": 1,
+     "conflicts": 1,
+     "label": "team-16-lanes",
+     "limit_errors": 0,
+     "tasks_per_minute": "1.921656",
+     "tokens": {
+      "unit": "tokens",
+      "value": 5838222
+     },
+     "verified_success_rate_percent": "86.666667",
+     "verified_tasks_per_million_tokens": "2.226705"
+    },
+    "next_wave_base": {
+     "agents": 8,
+     "batch": 1,
+     "reason": "Verified success was 86.67 percent, under 90, so halve 16 agents to 8 and keep the batch at 1."
+    },
+    "previous_wave": {
+     "agents": 20,
+     "batch": 1,
+     "conflicts": 0,
+     "label": "team-20-lanes",
+     "limit_errors": 0,
+     "tasks_per_minute": "1.623377",
+     "tokens": {
+      "unit": "tokens",
+      "value": 4024754
+     },
+     "verified_success_rate_percent": "100",
+     "verified_tasks_per_million_tokens": "4.969248"
+    },
+    "reason": "1 conflict in the last wave of 16 agents, so shrink to 8 agents and keep the batch at 1.",
+    "rule": "conflict-shrink",
+    "stop": false,
+    "unknown_inputs": []
+   }
+  },
+  "results_table_cross_check": {
+   "against": "swarm/phase2/evidence/stages.json",
+   "rows": [
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "c1"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "c2"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "c3"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "s10"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "s20"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "s25"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "s50"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "s75"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "s100"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "g10"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "m1"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "m10h"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "m10s"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "m25"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "m50"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "l1"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "l5r"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "l5l"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "l10"
+    },
+    {
+     "agrees_with_stages_json": true,
+     "mismatched": [],
+     "stage": "l25"
+    }
+   ],
+   "source": "swarm/phase2/RESULTS.md"
+  },
+  "rework_measured": {
+   "lanes": 16,
+   "lanes_needing_repair_by_the_setting_session": 3,
+   "of_which_conflicts": 1,
+   "of_which_own_tests_failed": 2,
+   "rework_tokens": "unknown",
+   "source": "swarm/phase3/evidence/team2.json",
+   "suite_after_joining_passed": false
+  },
+  "small_task_waves": [
+   {
+    "agents": 1,
+    "batch": 1,
+    "conflicts": null,
+    "duration_seconds": 7.73,
+    "failures": 0,
+    "label": "c1",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 1,
+    "source": "swarm/phase2/evidence/stages.json",
+    "tasks_verified": 1,
+    "tokens": 390985
+   },
+   {
+    "agents": 10,
+    "batch": 1,
+    "conflicts": null,
+    "duration_seconds": 10.82,
+    "failures": 0,
+    "label": "s10",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 10,
+    "source": "swarm/phase2/evidence/stages.json",
+    "tasks_verified": 10,
+    "tokens": 873639
+   },
+   {
+    "agents": 20,
+    "batch": 1,
+    "conflicts": null,
+    "duration_seconds": 15.67,
+    "failures": 0,
+    "label": "s20",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 20,
+    "source": "swarm/phase2/evidence/stages.json",
+    "tasks_verified": 20,
+    "tokens": 1415497
+   },
+   {
+    "agents": 25,
+    "batch": 1,
+    "conflicts": null,
+    "duration_seconds": 33.38,
+    "failures": 0,
+    "label": "s25",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 20,
+    "source": "swarm/phase2/evidence/stages.json",
+    "tasks_verified": 25,
+    "tokens": 1844046
+   },
+   {
+    "agents": 50,
+    "batch": 1,
+    "conflicts": null,
+    "duration_seconds": 82.21,
+    "failures": 0,
+    "label": "s50",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 20,
+    "source": "swarm/phase2/evidence/stages.json",
+    "tasks_verified": 50,
+    "tokens": 3590210
+   },
+   {
+    "agents": 75,
+    "batch": 1,
+    "conflicts": null,
+    "duration_seconds": 119.24,
+    "failures": 0,
+    "label": "s75",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 20,
+    "source": "swarm/phase2/evidence/stages.json",
+    "tasks_verified": 75,
+    "tokens": 5405325
+   },
+   {
+    "agents": 100,
+    "batch": 1,
+    "conflicts": null,
+    "duration_seconds": 155.5,
+    "failures": 0,
+    "label": "s100",
+    "limit_errors": 0,
+    "peak_concurrent_agents": 20,
+    "source": "swarm/phase2/evidence/stages.json",
+    "tasks_verified": 100,
+    "tokens": 7423501
+   }
+  ]
+ },
+ "measured_on": "2026-11-28",
+ "method": {
+  "agents_run": 0,
+  "code": "engineering_os/economics.py (baseline_document)",
+  "command": "python3 -m engineering_os.economics baseline --date 2026-11-28 --out docs/evidence/gaie-20-layers/economics-baseline.json",
+  "context_tokens": {
+   "includes": "repository files only; not the host's system prompt, tool schemas or connectors",
+   "listing_rule": "a skill or agent listing counts its name and description characters only",
+   "non_ascii_note": "characters / 4 tends to undercount non-ASCII (for example Arabic) text",
+   "rule": "tokens_approx = characters // 4, per item and on each total",
+   "tokenizers_importable": [],
+   "tokens": "characters / 4 (approximate; not a tokenizer count)",
+   "why": "no tokenizer module is installed, and no Claude tokenizer is available offline"
+  },
+  "deterministic": true,
+  "provider_calls": 0
+ },
+ "schema_version": 1,
+ "sources": {
+  "phase1_ladder": {
+   "path": "swarm/evidence/ladder.json",
+   "sha256": "706e1ddd60ad2490643aa1471f94fac6d5db6561c1ef3b03ca793b532b6f1b3a"
+  },
+  "phase1_tool_audit": {
+   "path": "swarm/evidence/tool-audit.json",
+   "sha256": "b678d207d2a569dae4545c8529c2552fde0ec4da859d5c2647b420baee9cfc57"
+  },
+  "phase2_plan": {
+   "path": "swarm/phase2/PLAN.json",
+   "sha256": "a55faa7f9713afa68a7fa0ff86f64d3687547b1f28c44338cc35e2aba695bf07"
+  },
+  "phase2_readme": {
+   "path": "swarm/phase2/README.md",
+   "sha256": "3e7385a04cf792f99ae4836193910b95289b46ef599cd5a23d03625b9f48f027"
+  },
+  "phase2_results": {
+   "path": "swarm/phase2/RESULTS.md",
+   "sha256": "9e611ecd57b4fef6cce5ae25370c1aade2811293c903bad335202b4c3c3df042"
+  },
+  "phase2_stages": {
+   "path": "swarm/phase2/evidence/stages.json",
+   "sha256": "f33e84d4546a56614bce636dcc45b9eb8e05aeaf411bd94a517bd93a5d920591"
+  },
+  "phase3_coordinator_scale": {
+   "path": "swarm/phase3/evidence/coordinator-scale.json",
+   "sha256": "21cb96f591f506691f11b810acd2f0be2d1c2d2e66d35346d87c04e6cb732c8b"
+  },
+  "phase3_team": {
+   "path": "swarm/phase3/evidence/team.json",
+   "sha256": "631e8f3562d3a467c176b9af3b7a64a9a55ab4459c8351da4ea3bf50f57de016"
+  },
+  "phase3_team2": {
+   "path": "swarm/phase3/evidence/team2.json",
+   "sha256": "1eb7d56767df26f195c8d9ff1b098f0c83adec586faa900e756ddbc0d5b692e8"
+  }
+ },
+ "units": {
+  "money": "USD, only from supplied rates or billed items (unknown here)",
+  "quota": "unknown (not observable)",
+  "time": "seconds",
+  "tokens": "tokens",
+  "unknown": "\"unknown\", never 0"
+ }
+}

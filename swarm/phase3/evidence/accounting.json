@@ -1,0 +1,71 @@
+{
+ "about": "Input tokens of the whole experiment, each kind of user apart, read from the repository's evidence files. Nothing here was measured by this script.",
+ "unit": "input tokens as the host's records give them with each reply; a token is counted each time it is read, cache reads included",
+ "agents": {
+  "workers": {
+   "first_phase_workers": 32849288,
+   "second_phase_trial": 2219321,
+   "second_phase_stages": 29745064,
+   "third_phase_run_1": 2049735,
+   "third_phase_final_run": 12370351
+  },
+  "probe_agents_of_the_security_gate": {
+   "second_phase_probe_stage": 47977,
+   "third_phase_run_1_gate_stage": 504352,
+   "third_phase_final_run_gate_stage": 505249,
+   "allowance_for_the_team_sessions_probes_an_estimate": 95954
+  },
+  "total": 80387291
+ },
+ "reviewers": {
+  "first_phase_review_agents": 3319350,
+  "third_phase_review_and_attack_lanes_of_team.json": {
+   "S1": 475386
+  },
+  "third_phase_review_and_attack_lanes_of_team2.json": {
+   "H1": 282311,
+   "H7": 420591,
+   "H11": 908760,
+   "H12": 1139298
+  },
+  "total": 6545696,
+  "which": "the first phase's review agents, and the lanes of the development rounds whose work was to attack or review and not to build"
+ },
+ "development_agents": {
+  "third_phase_building_lanes_of_team.json": 3420813,
+  "third_phase_building_lanes_of_team2.json": 2885744,
+  "total": 6306557
+ },
+ "orchestrators": {
+  "first_phase_inside_stage_windows": 6538319,
+  "second_phase_run_inside_stage_windows": 19656431,
+  "third_phase_run_1_inside_stage_windows": 689575,
+  "third_phase_final_run_inside_stage_windows": 5445495,
+  "total_measured": 32329820,
+  "not_measured_and_in_no_figure": [
+   "the session that wrote the experiment and started the others (the authoring session), outside the first phase's stage windows",
+   "what an orchestrating session read between stages (setting up, preparing and closing a stage, saving)",
+   "the orchestrating sessions of the two development rounds",
+   "the orchestrator during a security gate stage"
+  ]
+ },
+ "counted_against_the_limit": {
+  "total": 93239544,
+  "what": "agents, reviewers and development agents: the definition the limit has had since the first phase"
+ },
+ "limit": 150000000,
+ "within_the_limit_as_defined": true,
+ "everything_measured": {
+  "total": 125569364,
+  "what": "agents, reviewers, development agents and the measured part of the orchestrators"
+ },
+ "everything_measured_is_over_the_limit": false,
+ "stages_that_ran_and_are_in_no_figure": [
+  {
+   "stage": "q1000",
+   "agents_reported": 1000,
+   "projected_input_tokens_before_the_stage": 24565350,
+   "why": "the stage was not closed, so the scripts measured neither its agents nor its orchestrator"
+  }
+ ]
+}

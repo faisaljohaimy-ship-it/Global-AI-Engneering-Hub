@@ -1,0 +1,12 @@
+{
+  "name": "gaie-hub",
+  "owner": {"name": "faisaljohaimy-ship-it"},
+  "description": "Global AI Engineering Hub capabilities for Claude Code.",
+  "plugins": [
+    {
+      "name": "gaie",
+      "source": "./",
+      "description": "GAIE software factory: route natural-language owner commands to the build, upgrade, audit, cinematic and release engines."
+    }
+  ]
+}

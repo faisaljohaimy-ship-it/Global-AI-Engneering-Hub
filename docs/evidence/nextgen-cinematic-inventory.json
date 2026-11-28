@@ -1,0 +1,1715 @@
+{
+  "schema_version": 1,
+  "brief": {
+    "repository": "faisaljohaimy-ship-it/Global-AI-Engneering-Hub",
+    "pr": 16,
+    "revision": "f9b88f3928def5c804a1353a17a5dffca071406c",
+    "path": "packages/motion-engines/tools/brief.json",
+    "sha256": "3271e1ea723da51618e046d719a70f7eb4ae1f70e21e03d7d41c7b1cccad4bf6"
+  },
+  "notes": "Owner-authored requested names, not copied PR16 implementation. Historical source hashes independently inspected read-only. PR16 code remains on its separate unmerged branch and has no scoped MIT coverage. Existing 400 differently named Canvas2D reference recipes are excluded from this 200-name inventory.",
+  "motions": [
+    {
+      "number": 1,
+      "id": "quantum-field-distortion",
+      "module": "quantum",
+      "name": "Quantum Field Distortion",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/field-distortion.mjs",
+        "sha256": "bfc0d8ff883409bca1b4d0e05c5d9cfc97703deab1c5feca5da2645454d24603"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 2,
+      "id": "quantum-energy-collapse",
+      "module": "quantum",
+      "name": "Quantum Energy Collapse",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/energy-collapse.mjs",
+        "sha256": "df59fee035d80fa8d7e39f19170787e0dfdf03dbf6a3402df8a7b6dc12ced699"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 3,
+      "id": "quantum-particle-entanglement",
+      "module": "quantum",
+      "name": "Quantum Particle Entanglement Visualization",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/particle-entanglement.mjs",
+        "sha256": "c145fd764cd46404692b68d1536d9ec349681ef3f375d780bad7816b4d38a373"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 4,
+      "id": "quantum-wave-propagation",
+      "module": "quantum",
+      "name": "Quantum Wave Propagation",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/wave-propagation.mjs",
+        "sha256": "17d03cb0e4c33dd0891a1ca470f5a655cacc4904e32ec80d4f6a84a8bd6eb632"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 5,
+      "id": "quantum-orbital-matrix",
+      "module": "quantum",
+      "name": "Quantum Orbital Matrix",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/orbital-matrix.mjs",
+        "sha256": "b97b45b8638d67a6e91b1e5a021c1ca43631c485803895ca7ddb5db6c6f9bd4c"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 6,
+      "id": "quantum-light-tunnel",
+      "module": "quantum",
+      "name": "Quantum Light Tunnel",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/light-tunnel.mjs",
+        "sha256": "9b09cce27391c838a0fa4b5f2c685b778373ea456a4d80ac4c459b0dd5ec2179"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 7,
+      "id": "quantum-singularity-reveal",
+      "module": "quantum",
+      "name": "Quantum Singularity Reveal",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/singularity-reveal.mjs",
+        "sha256": "f053789263a9a393f4efdc30b9feee99190eedb5eb0aaf16828d639012b4a628"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 8,
+      "id": "quantum-probability-cloud",
+      "module": "quantum",
+      "name": "Quantum Probability Cloud",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/probability-cloud.mjs",
+        "sha256": "22f79df4f95656e8f2f56dd928bbfff759be27c2a57413433163d529fd468891"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 9,
+      "id": "quantum-fractal-expansion",
+      "module": "quantum",
+      "name": "Quantum Fractal Expansion",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/fractal-expansion.mjs",
+        "sha256": "801a83bc08cd45a3b1b67a55b53496b2ed660de2ed14d06e539161456088e7f3"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 10,
+      "id": "quantum-energy-pulse",
+      "module": "quantum",
+      "name": "Quantum Energy Pulse",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/quantum/energy-pulse.mjs",
+        "sha256": "7526df588331b720daa76bd1d3aac86c4c0c00f60bbcb1d6d5fca7f200bf209b"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 11,
+      "id": "camera-dolly-in",
+      "module": "camera",
+      "name": "Cinematic Dolly In",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 12,
+      "id": "camera-dolly-out",
+      "module": "camera",
+      "name": "Cinematic Dolly Out",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 13,
+      "id": "camera-orbital-sweep",
+      "module": "camera",
+      "name": "Orbital Camera Sweep",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 14,
+      "id": "camera-crane-reveal",
+      "module": "camera",
+      "name": "Vertical Crane Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 15,
+      "id": "camera-focus-pull",
+      "module": "camera",
+      "name": "Dynamic Focus Pull",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 16,
+      "id": "camera-parallax-tracking",
+      "module": "camera",
+      "name": "Multi-layer Parallax Tracking",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 17,
+      "id": "camera-infinite-flythrough",
+      "module": "camera",
+      "name": "Infinite Camera Flythrough",
+      "pr16_source": null,
+      "nextgen_source": "motion-library/expansion/nextgen-camera.mjs"
+    },
+    {
+      "number": 18,
+      "id": "camera-drone-approach",
+      "module": "camera",
+      "name": "Cinematic Drone Approach",
+      "pr16_source": null,
+      "nextgen_source": "motion-library/expansion/nextgen-camera.mjs"
+    },
+    {
+      "number": 19,
+      "id": "camera-macro-to-micro",
+      "module": "camera",
+      "name": "Macro-to-Micro Transition",
+      "pr16_source": null,
+      "nextgen_source": "motion-library/expansion/nextgen-camera.mjs"
+    },
+    {
+      "number": 20,
+      "id": "camera-spatial-roll",
+      "module": "camera",
+      "name": "Spatial Camera Roll",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 21,
+      "id": "hologram-materialization",
+      "module": "hologram",
+      "name": "Hologram Materialization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 22,
+      "id": "hologram-scanline-reveal",
+      "module": "hologram",
+      "name": "Hologram Scanline Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 23,
+      "id": "hologram-volumetric-projection",
+      "module": "hologram",
+      "name": "Volumetric Projection",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 24,
+      "id": "hologram-card-assembly",
+      "module": "hologram",
+      "name": "Holographic Card Assembly",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 25,
+      "id": "hologram-floating-grid",
+      "module": "hologram",
+      "name": "Floating Hologram Grid",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 26,
+      "id": "hologram-depth-mapping",
+      "module": "hologram",
+      "name": "Holographic Depth Mapping",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 27,
+      "id": "hologram-interface-deconstruction",
+      "module": "hologram",
+      "name": "Holographic Interface Deconstruction",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 28,
+      "id": "hologram-data-projection",
+      "module": "hologram",
+      "name": "Holographic Data Projection",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 29,
+      "id": "hologram-interactive-rotation",
+      "module": "hologram",
+      "name": "Interactive Hologram Rotation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 30,
+      "id": "hologram-command-interface",
+      "module": "hologram",
+      "name": "Holographic Command Interface",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 31,
+      "id": "glass-liquid-refraction",
+      "module": "glass",
+      "name": "Liquid Glass Refraction",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/liquid-refraction.mjs",
+        "sha256": "686cd98ef5eb04be86904b7cb252a3cdc7d043c2f2e1fb2d35683f6667dc4299"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 32,
+      "id": "glass-dynamic-dispersion",
+      "module": "glass",
+      "name": "Dynamic Glass Dispersion",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/dynamic-dispersion.mjs",
+        "sha256": "c1ac22312a9ef27208aeb2277ab7e7d3483063f7b600f42ea4baa46a35897564"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 33,
+      "id": "glass-surface-ripple",
+      "module": "glass",
+      "name": "Glass Surface Ripple",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/surface-ripple.mjs",
+        "sha256": "fa2ce4e3bc9bf0c3f60626fde43de528b3961837d1851fe7fa6d60a46537cc84"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 34,
+      "id": "glass-card-elevation",
+      "module": "glass",
+      "name": "Glass Card Elevation",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/card-elevation.mjs",
+        "sha256": "9db26c189d26976b9670c8eea61e874c641c8de46c00097c82629d682b384b39"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 35,
+      "id": "glass-metallic-flow",
+      "module": "glass",
+      "name": "Metallic Surface Flow",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/metallic-flow.mjs",
+        "sha256": "2f702d8cc7c4bdb9b98b6ed007da99dc84cc67a22222c1b8f77e448b9ac58137"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 36,
+      "id": "glass-titanium-sweep",
+      "module": "glass",
+      "name": "Titanium Reflection Sweep",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/titanium-sweep.mjs",
+        "sha256": "e396de50b19f51b623d000d1abf75bb93c4e74732d8bd3d4574a00abc619457f"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 37,
+      "id": "glass-crystal-transformation",
+      "module": "glass",
+      "name": "Crystal Geometry Transformation",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/crystal-transformation.mjs",
+        "sha256": "503472a234fb29dbabe32ada3ae414e4c3b4b043b18d792aa254c0d49ffbaf10"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 38,
+      "id": "glass-iridescent-morphing",
+      "module": "glass",
+      "name": "Iridescent Glass Morphing",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/iridescent-morphing.mjs",
+        "sha256": "0e06e1b366d991fa07907082bff62f2b1a96697ac05060b189edc2e26bd66c4f"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 39,
+      "id": "glass-frosted-focus",
+      "module": "glass",
+      "name": "Frosted Glass Focus Transition",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/frosted-focus.mjs",
+        "sha256": "69282bdc8e6e2ea29075403dd26e5244168fa2e4687ad9f09881680b86c5873c"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 40,
+      "id": "glass-lens-distortion",
+      "module": "glass",
+      "name": "Optical Lens Distortion",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/glass/lens-distortion.mjs",
+        "sha256": "c9729ef33edb3a873b1d518fdc4d7a658f45ddb00031e55c28c45577cd24fb05"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 41,
+      "id": "neural-synapse-activation",
+      "module": "neural",
+      "name": "Neural Synapse Activation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 42,
+      "id": "neural-signal-propagation",
+      "module": "neural",
+      "name": "Neural Signal Propagation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 43,
+      "id": "neural-thought-flow",
+      "module": "neural",
+      "name": "AI Thought Flow Visualization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 44,
+      "id": "neural-multi-agent-communication",
+      "module": "neural",
+      "name": "Multi-Agent Communication",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 45,
+      "id": "neural-network-growth",
+      "module": "neural",
+      "name": "Neural Network Growth",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 46,
+      "id": "neural-decision-tree",
+      "module": "neural",
+      "name": "AI Decision Tree Animation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 47,
+      "id": "neural-task-orchestration",
+      "module": "neural",
+      "name": "Agent Task Orchestration",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 48,
+      "id": "neural-inference-pipeline",
+      "module": "neural",
+      "name": "AI Inference Pipeline",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 49,
+      "id": "neural-attention-matrix",
+      "module": "neural",
+      "name": "Attention Matrix Visualization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 50,
+      "id": "neural-embedding-space",
+      "module": "neural",
+      "name": "Embedding Space Exploration",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 51,
+      "id": "twin-construction",
+      "module": "twin",
+      "name": "Digital Twin Construction",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 52,
+      "id": "twin-asset-synchronization",
+      "module": "twin",
+      "name": "Real-time Asset Synchronization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 53,
+      "id": "twin-exploded-assembly",
+      "module": "twin",
+      "name": "Exploded Technical Assembly",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 54,
+      "id": "twin-layer-isolation",
+      "module": "twin",
+      "name": "Structural Layer Isolation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 55,
+      "id": "twin-blueprint-transformation",
+      "module": "twin",
+      "name": "Building Blueprint Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 56,
+      "id": "twin-system-flythrough",
+      "module": "twin",
+      "name": "Industrial System Flythrough",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 57,
+      "id": "twin-sensor-propagation",
+      "module": "twin",
+      "name": "Spatial Sensor Propagation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 58,
+      "id": "twin-terrain-reconstruction",
+      "module": "twin",
+      "name": "Digital Terrain Reconstruction",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 59,
+      "id": "twin-asset-condition",
+      "module": "twin",
+      "name": "Asset Condition Visualization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 60,
+      "id": "twin-risk-heatmap",
+      "module": "twin",
+      "name": "Spatial Risk Heatmap",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 61,
+      "id": "particles-gpu-swarm",
+      "module": "particles",
+      "name": "GPU Particle Swarm",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 62,
+      "id": "particles-logo-reconstruction",
+      "module": "particles",
+      "name": "Particle Logo Reconstruction",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 63,
+      "id": "particles-attraction-field",
+      "module": "particles",
+      "name": "Particle Attraction Field",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 64,
+      "id": "particles-repulsion-field",
+      "module": "particles",
+      "name": "Particle Repulsion Field",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 65,
+      "id": "particles-magnetic-orbit",
+      "module": "particles",
+      "name": "Magnetic Particle Orbit",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 66,
+      "id": "particles-vortex",
+      "module": "particles",
+      "name": "Particle Vortex",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 67,
+      "id": "particles-disintegration",
+      "module": "particles",
+      "name": "Particle Disintegration",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 68,
+      "id": "particles-fluid-simulation",
+      "module": "particles",
+      "name": "Particle Fluid Simulation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 69,
+      "id": "particles-path-convergence",
+      "module": "particles",
+      "name": "Particle Path Convergence",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 70,
+      "id": "particles-surface-formation",
+      "module": "particles",
+      "name": "Particle Surface Formation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 71,
+      "id": "lighting-volumetric-beams",
+      "module": "lighting",
+      "name": "Volumetric Light Beams",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 72,
+      "id": "lighting-bloom-reveal",
+      "module": "lighting",
+      "name": "Dynamic Bloom Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 73,
+      "id": "lighting-studio-spotlight",
+      "module": "lighting",
+      "name": "Moving Studio Spotlight",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 74,
+      "id": "lighting-lens-flare",
+      "module": "lighting",
+      "name": "Cinematic Lens Flare",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 75,
+      "id": "lighting-atmospheric-scattering",
+      "module": "lighting",
+      "name": "Atmospheric Light Scattering",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 76,
+      "id": "lighting-shadow-sweep",
+      "module": "lighting",
+      "name": "Dynamic Shadow Sweep",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 77,
+      "id": "lighting-reflection-transition",
+      "module": "lighting",
+      "name": "Real-time Reflection Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 78,
+      "id": "lighting-light-painting",
+      "module": "lighting",
+      "name": "Light Painting Animation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 79,
+      "id": "lighting-emissive-activation",
+      "module": "lighting",
+      "name": "Emissive Material Activation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 80,
+      "id": "lighting-exposure-transition",
+      "module": "lighting",
+      "name": "Cinematic Exposure Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 81,
+      "id": "typography-kinetic-assembly",
+      "module": "typography",
+      "name": "Kinetic Typography Assembly",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 82,
+      "id": "typography-letter-materialization",
+      "module": "typography",
+      "name": "Letter-by-Letter Materialization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 83,
+      "id": "typography-depth-extrusion",
+      "module": "typography",
+      "name": "Typography Depth Extrusion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 84,
+      "id": "typography-word-morph",
+      "module": "typography",
+      "name": "Cinematic Word Morph",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 85,
+      "id": "typography-variable-font",
+      "module": "typography",
+      "name": "Variable Font Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 86,
+      "id": "typography-particle-dissolve",
+      "module": "typography",
+      "name": "Typography Particle Dissolve",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 87,
+      "id": "typography-calligraphy-path",
+      "module": "typography",
+      "name": "Arabic Calligraphy Path Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 88,
+      "id": "typography-bilingual-transition",
+      "module": "typography",
+      "name": "Bilingual Typography Transition",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/typography/bilingual-transition.mjs",
+        "sha256": "c4ccbafb520c1271907e9942350c1ab7d1fb2761c2911c744a9ed9b322ce1bd4"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 89,
+      "id": "typography-perspective-projection",
+      "module": "typography",
+      "name": "Perspective Text Projection",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 90,
+      "id": "typography-fluid-reformation",
+      "module": "typography",
+      "name": "Fluid Text Reformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 91,
+      "id": "micro-magnetic-button",
+      "module": "micro",
+      "name": "Magnetic Button Attraction",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/micro/magnetic-button.mjs",
+        "sha256": "96556efaea310b4cba42675a40743eff859e878d2a02702d93e752f6488ed624"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 92,
+      "id": "micro-button-compression",
+      "module": "micro",
+      "name": "Physics-based Button Compression",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 93,
+      "id": "micro-liquid-button",
+      "module": "micro",
+      "name": "Liquid Button Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 94,
+      "id": "micro-cursor-distortion",
+      "module": "micro",
+      "name": "Interactive Cursor Distortion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 95,
+      "id": "micro-hover-elevation",
+      "module": "micro",
+      "name": "Adaptive Hover Elevation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 96,
+      "id": "micro-toggle-transformation",
+      "module": "micro",
+      "name": "Dynamic Toggle Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 97,
+      "id": "micro-input-focus",
+      "module": "micro",
+      "name": "Progressive Input Focus",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 98,
+      "id": "micro-elastic-selection",
+      "module": "micro",
+      "name": "Elastic Selection Animation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 99,
+      "id": "micro-navigation-morph",
+      "module": "micro",
+      "name": "Interactive Navigation Morph",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 100,
+      "id": "micro-success-feedback",
+      "module": "micro",
+      "name": "Context-aware Success Feedback",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 101,
+      "id": "dashboard-kpi-flow",
+      "module": "dashboard",
+      "name": "Real-time KPI Flow",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 102,
+      "id": "dashboard-risk-matrix",
+      "module": "dashboard",
+      "name": "Animated Risk Matrix",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 103,
+      "id": "dashboard-predictive-reveal",
+      "module": "dashboard",
+      "name": "Predictive Data Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 104,
+      "id": "dashboard-geographic-heatmap",
+      "module": "dashboard",
+      "name": "Dynamic Geographic Heatmap",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 105,
+      "id": "dashboard-network-graph",
+      "module": "dashboard",
+      "name": "Flowing Network Graph",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 106,
+      "id": "dashboard-sankey-flow",
+      "module": "dashboard",
+      "name": "Interactive Sankey Flow",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 107,
+      "id": "dashboard-data-orbit",
+      "module": "dashboard",
+      "name": "Multi-dimensional Data Orbit",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 108,
+      "id": "dashboard-time-series-reveal",
+      "module": "dashboard",
+      "name": "Time-series Progressive Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 109,
+      "id": "dashboard-signal-pulse",
+      "module": "dashboard",
+      "name": "Live Operational Signal Pulse",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 110,
+      "id": "dashboard-alert-cascade",
+      "module": "dashboard",
+      "name": "Command Center Alert Cascade",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 111,
+      "id": "transitions-spatial-navigation",
+      "module": "transitions",
+      "name": "Seamless Spatial Navigation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 112,
+      "id": "transitions-liquid-screen",
+      "module": "transitions",
+      "name": "Liquid Screen Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 113,
+      "id": "transitions-mask-reveal",
+      "module": "transitions",
+      "name": "Cinematic Mask Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 114,
+      "id": "transitions-panel-assembly",
+      "module": "transitions",
+      "name": "Multi-panel Page Assembly",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 115,
+      "id": "transitions-shared-element",
+      "module": "transitions",
+      "name": "Shared Element Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 116,
+      "id": "transitions-perspective-portal",
+      "module": "transitions",
+      "name": "Perspective Portal Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 117,
+      "id": "transitions-depth-replacement",
+      "module": "transitions",
+      "name": "Depth-based Page Replacement",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 118,
+      "id": "transitions-curtain-reveal",
+      "module": "transitions",
+      "name": "Interactive Curtain Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 119,
+      "id": "transitions-fragment-transition",
+      "module": "transitions",
+      "name": "Geometric Fragment Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 120,
+      "id": "transitions-view-transition",
+      "module": "transitions",
+      "name": "Dynamic View Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 121,
+      "id": "physics-cloth-simulation",
+      "module": "physics",
+      "name": "Cloth Simulation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 122,
+      "id": "physics-soft-body",
+      "module": "physics",
+      "name": "Soft Body Deformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 123,
+      "id": "physics-rigid-collision",
+      "module": "physics",
+      "name": "Rigid Body Collision",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 124,
+      "id": "physics-fluid-surface",
+      "module": "physics",
+      "name": "Fluid Surface Dynamics",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 125,
+      "id": "physics-gravitational-orbit",
+      "module": "physics",
+      "name": "Gravitational Orbit Simulation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 126,
+      "id": "physics-geometry-growth",
+      "module": "physics",
+      "name": "Procedural Geometry Growth",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 127,
+      "id": "physics-spring-motion",
+      "module": "physics",
+      "name": "Spring-based Object Motion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 128,
+      "id": "physics-voronoi-structure",
+      "module": "physics",
+      "name": "Voronoi Structure Animation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 129,
+      "id": "physics-terrain-evolution",
+      "module": "physics",
+      "name": "Procedural Terrain Evolution",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 130,
+      "id": "physics-metaball-fusion",
+      "module": "physics",
+      "name": "Metaball Surface Fusion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 131,
+      "id": "shaders-noise-displacement",
+      "module": "shaders",
+      "name": "GLSL Noise Displacement",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 132,
+      "id": "shaders-wgsl-compute-particles",
+      "module": "shaders",
+      "name": "WGSL Compute Particle Motion",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/shaders/wgsl-compute-particles.mjs",
+        "sha256": "78b41d0e7c17ac368aa427d165cff7e31d3e2dd055b533340060958f4b7c3957"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 133,
+      "id": "shaders-raymarched-geometry",
+      "module": "shaders",
+      "name": "Ray-marched Geometry",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 134,
+      "id": "shaders-sdf-morph",
+      "module": "shaders",
+      "name": "Signed Distance Field Morph",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 135,
+      "id": "shaders-ripple",
+      "module": "shaders",
+      "name": "Shader-based Ripple",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 136,
+      "id": "shaders-chromatic-aberration",
+      "module": "shaders",
+      "name": "Chromatic Aberration Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 137,
+      "id": "shaders-fractal",
+      "module": "shaders",
+      "name": "Procedural Fractal Shader",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 138,
+      "id": "shaders-wave-interference",
+      "module": "shaders",
+      "name": "GPU Wave Interference",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 139,
+      "id": "shaders-fresnel",
+      "module": "shaders",
+      "name": "Dynamic Fresnel Effect",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 140,
+      "id": "shaders-material-dissolve",
+      "module": "shaders",
+      "name": "Shader-based Material Dissolve",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 141,
+      "id": "icons-extrusion",
+      "module": "icons",
+      "name": "Three-dimensional Icon Extrusion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 142,
+      "id": "icons-reactive-rotation",
+      "module": "icons",
+      "name": "Reactive Icon Rotation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 143,
+      "id": "icons-particle-reconstruction",
+      "module": "icons",
+      "name": "Icon Particle Reconstruction",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 144,
+      "id": "icons-metallic",
+      "module": "icons",
+      "name": "Animated Metallic Icon",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 145,
+      "id": "icons-spatial-expansion",
+      "module": "icons",
+      "name": "Spatial Icon Expansion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 146,
+      "id": "icons-object-transformation",
+      "module": "icons",
+      "name": "Icon-to-Object Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 147,
+      "id": "icons-physics-bounce",
+      "module": "icons",
+      "name": "Physics-based Icon Bounce",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 148,
+      "id": "icons-volumetric-illumination",
+      "module": "icons",
+      "name": "Volumetric Icon Illumination",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 149,
+      "id": "icons-morphing",
+      "module": "icons",
+      "name": "Interactive Icon Morphing",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 150,
+      "id": "icons-multi-state",
+      "module": "icons",
+      "name": "Multi-state 3D Icon Transition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 151,
+      "id": "product-materialization",
+      "module": "product",
+      "name": "Luxury Product Materialization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 152,
+      "id": "product-executive-rotation",
+      "module": "product",
+      "name": "Executive Product Rotation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 153,
+      "id": "product-component-reveal",
+      "module": "product",
+      "name": "Technical Component Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 154,
+      "id": "product-feature-spotlight",
+      "module": "product",
+      "name": "Feature-by-Feature Spotlight",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 155,
+      "id": "product-interface-flythrough",
+      "module": "product",
+      "name": "Cinematic Interface Flythrough",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 156,
+      "id": "product-multi-screen-assembly",
+      "module": "product",
+      "name": "Multi-screen Product Assembly",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 157,
+      "id": "product-system-demonstration",
+      "module": "product",
+      "name": "Immersive System Demonstration",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 158,
+      "id": "product-timeline-transformation",
+      "module": "product",
+      "name": "Product Timeline Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 159,
+      "id": "product-feature-explosion",
+      "module": "product",
+      "name": "Interactive Feature Explosion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 160,
+      "id": "product-brand-reveal",
+      "module": "product",
+      "name": "Cinematic Final Brand Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 161,
+      "id": "networks-node-network-3d",
+      "module": "networks",
+      "name": "Three-dimensional Node Network",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 162,
+      "id": "networks-data-transmission",
+      "module": "networks",
+      "name": "Data Transmission Through Nodes",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 163,
+      "id": "networks-reconfiguration",
+      "module": "networks",
+      "name": "Dynamic Network Reconfiguration",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 164,
+      "id": "networks-geographic-connection",
+      "module": "networks",
+      "name": "Geographic Network Connection",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 165,
+      "id": "networks-relationship-mapping",
+      "module": "networks",
+      "name": "Spatial Relationship Mapping",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 166,
+      "id": "networks-agent-constellation",
+      "module": "networks",
+      "name": "Agent Collaboration Constellation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 167,
+      "id": "networks-dependency-animation",
+      "module": "networks",
+      "name": "Infrastructure Dependency Animation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 168,
+      "id": "networks-hierarchical-expansion",
+      "module": "networks",
+      "name": "Hierarchical Network Expansion",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 169,
+      "id": "networks-distributed-system",
+      "module": "networks",
+      "name": "Distributed System Visualization",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 170,
+      "id": "networks-signal-routing",
+      "module": "networks",
+      "name": "Network Signal Routing",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 171,
+      "id": "atmosphere-procedural-fog",
+      "module": "atmosphere",
+      "name": "Procedural Atmospheric Fog",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/procedural-fog.mjs",
+        "sha256": "afb50d21d2284885d838c7d39b50558a5ef81cd581db663675167a0d6b9633da"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 172,
+      "id": "atmosphere-electric-arc",
+      "module": "atmosphere",
+      "name": "Electric Energy Arc",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/electric-arc.mjs",
+        "sha256": "2bd1a2c013dc6779a91e62ca4f5755b92d453edff07130e59ab48f43692c95bf"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 173,
+      "id": "atmosphere-plasma-flow",
+      "module": "atmosphere",
+      "name": "Plasma Flow Animation",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/plasma-flow.mjs",
+        "sha256": "0d39b714f003733df9941673f8c3bcaca5cd3f1eba835246e765040189ef994e"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 174,
+      "id": "atmosphere-solar-flare",
+      "module": "atmosphere",
+      "name": "Solar Flare Visualization",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/solar-flare.mjs",
+        "sha256": "bf9ca0b5084ccf005728813f341922772b6c36a091c9fb7b88ee963502420fea"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 175,
+      "id": "atmosphere-aurora-wave",
+      "module": "atmosphere",
+      "name": "Aurora Energy Wave",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/aurora-wave.mjs",
+        "sha256": "71f25fe3de538ffe39161cda95384753ecd983747242ff5aec022857d67989e6"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 176,
+      "id": "atmosphere-energy-shield",
+      "module": "atmosphere",
+      "name": "Dynamic Energy Shield",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/energy-shield.mjs",
+        "sha256": "1eff852f79886441b357c0ca353027587490d138f770ed85b24d3a606e4bc2d3"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 177,
+      "id": "atmosphere-electromagnetic-field",
+      "module": "atmosphere",
+      "name": "Electromagnetic Field Visualization",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/electromagnetic-field.mjs",
+        "sha256": "964e4877bb988877cfe5914bb4aead9808441ed9d9970a5360efee26e6740ca4"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 178,
+      "id": "atmosphere-volumetric-clouds",
+      "module": "atmosphere",
+      "name": "Volumetric Cloud Movement",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/volumetric-clouds.mjs",
+        "sha256": "51bbcf0c3ecd305da9041e25459094fbe1a3c7559a9249c3cc488c5a4d8d92fb"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 179,
+      "id": "atmosphere-core-ignition",
+      "module": "atmosphere",
+      "name": "Energy Core Ignition",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/core-ignition.mjs",
+        "sha256": "5d4056b6027e5fcbb0bc67ef6ae2f1ab28dc474db81534e7c0f38657430655d0"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 180,
+      "id": "atmosphere-shockwave",
+      "module": "atmosphere",
+      "name": "Atmospheric Shockwave",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/atmosphere/shockwave.mjs",
+        "sha256": "89b137257d6d53db9a2157873fd622cbee040b1f0ca4530ea2ad6b42c7f80f23"
+      },
+      "nextgen_source": null
+    },
+    {
+      "number": 181,
+      "id": "story-architecture-timeline",
+      "module": "story",
+      "name": "Cinematic Architecture Timeline",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 182,
+      "id": "story-capability-reveal",
+      "module": "story",
+      "name": "Engineering Capability Reveal",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 183,
+      "id": "story-workflow-transformation",
+      "module": "story",
+      "name": "AI Workflow Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 184,
+      "id": "story-system-evolution",
+      "module": "story",
+      "name": "Before-and-After System Evolution",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 185,
+      "id": "story-kpi-storytelling",
+      "module": "story",
+      "name": "Executive KPI Storytelling",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 186,
+      "id": "story-milestone-journey",
+      "module": "story",
+      "name": "Interactive Milestone Journey",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 187,
+      "id": "story-achievement-sequence",
+      "module": "story",
+      "name": "Technical Achievement Sequence",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 188,
+      "id": "story-roadmap-animation",
+      "module": "story",
+      "name": "Strategic Roadmap Animation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 189,
+      "id": "story-transformation-journey",
+      "module": "story",
+      "name": "Digital Transformation Journey",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 190,
+      "id": "story-evidence-presentation",
+      "module": "story",
+      "name": "Cinematic Evidence Presentation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 191,
+      "id": "compositions-multi-engine-cinematic",
+      "module": "compositions",
+      "name": "Multi-engine Cinematic Composition",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 192,
+      "id": "compositions-spatial-operating-system",
+      "module": "compositions",
+      "name": "Interactive Spatial Operating System",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 193,
+      "id": "compositions-audio-reactive-neural",
+      "module": "compositions",
+      "name": "Audio-reactive Neural Environment",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 194,
+      "id": "compositions-holographic-city",
+      "module": "compositions",
+      "name": "Procedural Holographic City",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 195,
+      "id": "compositions-ai-command-center",
+      "module": "compositions",
+      "name": "Immersive AI Command Center",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 196,
+      "id": "compositions-adaptive-universe",
+      "module": "compositions",
+      "name": "Adaptive Digital Universe",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 197,
+      "id": "compositions-scene-assembly",
+      "module": "compositions",
+      "name": "Real-time Cinematic Scene Assembly",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 198,
+      "id": "compositions-gpu-interface-transformation",
+      "module": "compositions",
+      "name": "Multi-layer GPU Interface Transformation",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 199,
+      "id": "compositions-infinite-storytelling",
+      "module": "compositions",
+      "name": "Infinite Spatial Storytelling",
+      "pr16_source": null,
+      "nextgen_source": null
+    },
+    {
+      "number": 200,
+      "id": "compositions-quantum-master-sequence",
+      "module": "compositions",
+      "name": "Quantum-inspired Cinematic Master Sequence",
+      "pr16_source": {
+        "path": "packages/motion-engines/motions/compositions/quantum-master-sequence.mjs",
+        "sha256": "5e5cd40ffa0aea70b52775875d6d9c94a91c6b98701f6d8917375146de632e38"
+      },
+      "nextgen_source": null
+    }
+  ]
+}

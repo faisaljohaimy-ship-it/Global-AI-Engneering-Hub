@@ -1,0 +1,698 @@
+{
+ "caps": {
+  "cumulative_input_tokens": 150000000,
+  "spent_before_phase2": 36168638,
+  "preflight_input_tokens": 2219321,
+  "preflight_note": "spent_before_phase2 is the first phase's total. preflight_input_tokens is what the agents used that were started in the authoring session to try this phase's worker command before the plan ran; evidence/preflight.json has their record. Both count against the limit.",
+  "phase2_agent_runs": 600,
+  "phase2_output_tokens": 3000000
+ },
+ "figures": {
+  "input_tokens_counted": 68181000,
+  "cap": 150000000,
+  "agents_started_in_phase_2": 445,
+  "projected_for_stage": null
+ },
+ "stages": [
+  {
+   "stage": "p1",
+   "agent_tokens": {
+    "input_uncached": 8,
+    "cache_write": 37187,
+    "cache_read": 10782,
+    "input_total": 47977,
+    "output": 510,
+    "total": 48487
+   },
+   "orchestrator_tokens": null,
+   "cost_units": 50120,
+   "cache_written": {
+    "five_minutes": 37187,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": null,
+   "wall_seconds": 4.67
+  },
+  {
+   "stage": "c1",
+   "agent_tokens": {
+    "input_uncached": 10,
+    "cache_write": 17201,
+    "cache_read": 46543,
+    "input_total": 63754,
+    "output": 721,
+    "total": 64475
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 1534,
+    "cache_read": 324395,
+    "input_total": 325932,
+    "output": 578,
+    "roundtrips": 2
+   },
+   "cost_units": 29771,
+   "cache_written": {
+    "five_minutes": 17201,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 16,
+    "peak_load_1m": 0.26,
+    "least_memory_available_mb": 15501,
+    "peak_host_process_rss_mb": 342,
+    "host_process_cpu_seconds": 0.7
+   },
+   "wall_seconds": 7.73
+  },
+  {
+   "stage": "c2",
+   "agent_tokens": {
+    "input_uncached": 20,
+    "cache_write": 82585,
+    "cache_read": 39520,
+    "input_total": 122125,
+    "output": 3848,
+    "total": 125973
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 4,
+    "cache_write": 3065,
+    "cache_read": 327671,
+    "input_total": 330740,
+    "output": 1223,
+    "roundtrips": 2
+   },
+   "cost_units": 126443,
+   "cache_written": {
+    "five_minutes": 82585,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 20,
+    "peak_load_1m": 0.2,
+    "least_memory_available_mb": 15445,
+    "peak_host_process_rss_mb": 388,
+    "host_process_cpu_seconds": 1.7
+   },
+   "wall_seconds": 7.48
+  },
+  {
+   "stage": "c3",
+   "agent_tokens": {
+    "input_uncached": 30,
+    "cache_write": 86402,
+    "cache_read": 100360,
+    "input_total": 186792,
+    "output": 4475,
+    "total": 191267
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 8624,
+    "cache_read": 335594,
+    "input_total": 344221,
+    "output": 2879,
+    "roundtrips": 2
+   },
+   "cost_units": 140444,
+   "cache_written": {
+    "five_minutes": 86402,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 32,
+    "peak_load_1m": 0.37,
+    "least_memory_available_mb": 15452,
+    "peak_host_process_rss_mb": 388,
+    "host_process_cpu_seconds": 1.8
+   },
+   "wall_seconds": 8.73
+  },
+  {
+   "stage": "s10",
+   "agent_tokens": {
+    "input_uncached": 72,
+    "cache_write": 166472,
+    "cache_read": 336375,
+    "input_total": 502919,
+    "output": 8521,
+    "total": 511440
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 4,
+    "cache_write": 9071,
+    "cache_read": 351043,
+    "input_total": 360118,
+    "output": 2081,
+    "roundtrips": 2
+   },
+   "cost_units": 284404,
+   "cache_written": {
+    "five_minutes": 166472,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 28,
+    "peak_load_1m": 0.3,
+    "least_memory_available_mb": 15415,
+    "peak_host_process_rss_mb": 426,
+    "host_process_cpu_seconds": 3.6
+   },
+   "wall_seconds": 10.82
+  },
+  {
+   "stage": "s20",
+   "agent_tokens": {
+    "input_uncached": 142,
+    "cache_write": 334656,
+    "cache_read": 671350,
+    "input_total": 1006148,
+    "output": 18899,
+    "total": 1025047
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 162392,
+    "cache_read": 224254,
+    "input_total": 386649,
+    "output": 3801,
+    "roundtrips": 2
+   },
+   "cost_units": 580092,
+   "cache_written": {
+    "five_minutes": 334656,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 44,
+    "peak_load_1m": 0.38,
+    "least_memory_available_mb": 15346,
+    "peak_host_process_rss_mb": 461,
+    "host_process_cpu_seconds": 5.7
+   },
+   "wall_seconds": 15.67
+  },
+  {
+   "stage": "s25",
+   "agent_tokens": {
+    "input_uncached": 160,
+    "cache_write": 416498,
+    "cache_read": 751274,
+    "input_total": 1167932,
+    "output": 22452,
+    "total": 1190384
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 7,
+    "cache_write": 185869,
+    "cache_read": 462024,
+    "input_total": 647900,
+    "output": 5762,
+    "roundtrips": 3
+   },
+   "cost_units": 708170,
+   "cache_written": {
+    "five_minutes": 416498,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 68,
+    "peak_load_1m": 0.87,
+    "least_memory_available_mb": 15343,
+    "peak_host_process_rss_mb": 458,
+    "host_process_cpu_seconds": 7.5
+   },
+   "wall_seconds": 33.38
+  },
+  {
+   "stage": "s50",
+   "agent_tokens": {
+    "input_uncached": 362,
+    "cache_write": 837374,
+    "cache_read": 1701233,
+    "input_total": 2538969,
+    "output": 47379,
+    "total": 2586348
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 5,
+    "cache_write": 430563,
+    "cache_read": 564014,
+    "input_total": 994582,
+    "output": 9280,
+    "roundtrips": 4
+   },
+   "cost_units": 1454098,
+   "cache_written": {
+    "five_minutes": 837374,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 114,
+    "peak_load_1m": 0.83,
+    "least_memory_available_mb": 15316,
+    "peak_host_process_rss_mb": 527,
+    "host_process_cpu_seconds": 14.3
+   },
+   "wall_seconds": 82.21
+  },
+  {
+   "stage": "s75",
+   "agent_tokens": {
+    "input_uncached": 546,
+    "cache_write": 1251535,
+    "cache_read": 2570536,
+    "input_total": 3822617,
+    "output": 67566,
+    "total": 3890183
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 6,
+    "cache_write": 796845,
+    "cache_read": 704725,
+    "input_total": 1501576,
+    "output": 13566,
+    "roundtrips": 5
+   },
+   "cost_units": 2159848,
+   "cache_written": {
+    "five_minutes": 1251535,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 153,
+    "peak_load_1m": 1.43,
+    "least_memory_available_mb": 15321,
+    "peak_host_process_rss_mb": 515,
+    "host_process_cpu_seconds": 21.5
+   },
+   "wall_seconds": 119.24
+  },
+  {
+   "stage": "s100",
+   "agent_tokens": {
+    "input_uncached": 730,
+    "cache_write": 1665321,
+    "cache_read": 3419954,
+    "input_total": 5086005,
+    "output": 86955,
+    "total": 5172960
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 7,
+    "cache_write": 1702538,
+    "cache_read": 530335,
+    "input_total": 2232880,
+    "output": 17661,
+    "roundtrips": 6
+   },
+   "cost_units": 2859152,
+   "cache_written": {
+    "five_minutes": 1665321,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 185,
+    "peak_load_1m": 0.85,
+    "least_memory_available_mb": 15266,
+    "peak_host_process_rss_mb": 544,
+    "host_process_cpu_seconds": 26.5
+   },
+   "wall_seconds": 155.5
+  },
+  {
+   "stage": "g10",
+   "agent_tokens": {
+    "input_uncached": 70,
+    "cache_write": 1390755,
+    "cache_read": 3309968,
+    "input_total": 4700793,
+    "output": 13976,
+    "total": 4714769
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 4,
+    "cache_write": 11101,
+    "cache_read": 827480,
+    "input_total": 838585,
+    "output": 3458,
+    "roundtrips": 2
+   },
+   "cost_units": 2139391,
+   "cache_written": {
+    "five_minutes": 1390755,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 45,
+    "peak_load_1m": 0.49,
+    "least_memory_available_mb": 15302,
+    "peak_host_process_rss_mb": 550,
+    "host_process_cpu_seconds": 4.6
+   },
+   "wall_seconds": 17.24
+  },
+  {
+   "stage": "m1",
+   "agent_tokens": {
+    "input_uncached": 6,
+    "cache_write": 17839,
+    "cache_read": 28222,
+    "input_total": 46067,
+    "output": 1487,
+    "total": 47554
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 6,
+    "cache_write": 1848,
+    "cache_read": 849703,
+    "input_total": 851557,
+    "output": 499,
+    "roundtrips": 2
+   },
+   "cost_units": 32562,
+   "cache_written": {
+    "five_minutes": 17839,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 17,
+    "peak_load_1m": 0.39,
+    "least_memory_available_mb": 15323,
+    "peak_host_process_rss_mb": 520,
+    "host_process_cpu_seconds": 0.5
+   },
+   "wall_seconds": 8.96
+  },
+  {
+   "stage": "m10h",
+   "agent_tokens": {
+    "input_uncached": 64,
+    "cache_write": 181907,
+    "cache_read": 303205,
+    "input_total": 485176,
+    "output": 18355,
+    "total": 503531
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 9143,
+    "cache_read": 853242,
+    "input_total": 862388,
+    "output": 2049,
+    "roundtrips": 2
+   },
+   "cost_units": 349543,
+   "cache_written": {
+    "five_minutes": 181907,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 35,
+    "peak_load_1m": 0.28,
+    "least_memory_available_mb": 15329,
+    "peak_host_process_rss_mb": 519,
+    "host_process_cpu_seconds": 3.1
+   },
+   "wall_seconds": 17.66
+  },
+  {
+   "stage": "m10s",
+   "agent_tokens": {
+    "input_uncached": 60,
+    "cache_write": 203863,
+    "cache_read": 249894,
+    "input_total": 453817,
+    "output": 9463,
+    "total": 463280
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 9069,
+    "cache_read": 871557,
+    "input_total": 880629,
+    "output": 2099,
+    "roundtrips": 2
+   },
+   "cost_units": 327193,
+   "cache_written": {
+    "five_minutes": 203863,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 29,
+    "peak_load_1m": 0.14,
+    "least_memory_available_mb": 15311,
+    "peak_host_process_rss_mb": 523,
+    "host_process_cpu_seconds": 3.0
+   },
+   "wall_seconds": 10.63
+  },
+  {
+   "stage": "m25",
+   "agent_tokens": {
+    "input_uncached": 182,
+    "cache_write": 460249,
+    "cache_read": 875812,
+    "input_total": 1336243,
+    "output": 51255,
+    "total": 1387498
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 7,
+    "cache_write": 426939,
+    "cache_read": 946377,
+    "input_total": 1373323,
+    "output": 4682,
+    "roundtrips": 3
+   },
+   "cost_units": 919349,
+   "cache_written": {
+    "five_minutes": 460249,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 67,
+    "peak_load_1m": 0.23,
+    "least_memory_available_mb": 15280,
+    "peak_host_process_rss_mb": 553,
+    "host_process_cpu_seconds": 7.1
+   },
+   "wall_seconds": 37.45
+  },
+  {
+   "stage": "m50",
+   "agent_tokens": {
+    "input_uncached": 374,
+    "cache_write": 916369,
+    "cache_read": 1817065,
+    "input_total": 2733808,
+    "output": 98451,
+    "total": 2832259
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 5,
+    "cache_write": 913750,
+    "cache_read": 1046943,
+    "input_total": 1960698,
+    "output": 8994,
+    "roundtrips": 4
+   },
+   "cost_units": 1819797,
+   "cache_written": {
+    "five_minutes": 916369,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 113,
+    "peak_load_1m": 0.31,
+    "least_memory_available_mb": 15266,
+    "peak_host_process_rss_mb": 575,
+    "host_process_cpu_seconds": 14.1
+   },
+   "wall_seconds": 83.8
+  },
+  {
+   "stage": "l1",
+   "agent_tokens": {
+    "input_uncached": 12,
+    "cache_write": 18616,
+    "cache_read": 87951,
+    "input_total": 106579,
+    "output": 920,
+    "total": 107499
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 6,
+    "cache_write": 1672,
+    "cache_read": 1018875,
+    "input_total": 1020553,
+    "output": 537,
+    "roundtrips": 2
+   },
+   "cost_units": 36677,
+   "cache_written": {
+    "five_minutes": 18616,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 24,
+    "peak_load_1m": 0.5,
+    "least_memory_available_mb": 15311,
+    "peak_host_process_rss_mb": 498,
+    "host_process_cpu_seconds": 1.0
+   },
+   "wall_seconds": 15.57
+  },
+  {
+   "stage": "l5r",
+   "agent_tokens": {
+    "input_uncached": 66,
+    "cache_write": 99680,
+    "cache_read": 529503,
+    "input_total": 629249,
+    "output": 5645,
+    "total": 634894
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 6,
+    "cache_write": 4859,
+    "cache_read": 1022226,
+    "input_total": 1027091,
+    "output": 1199,
+    "roundtrips": 2
+   },
+   "cost_units": 205841,
+   "cache_written": {
+    "five_minutes": 99680,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 32,
+    "peak_load_1m": 0.43,
+    "least_memory_available_mb": 15308,
+    "peak_host_process_rss_mb": 522,
+    "host_process_cpu_seconds": 3.4
+   },
+   "wall_seconds": 20.4
+  },
+  {
+   "stage": "l5l",
+   "agent_tokens": {
+    "input_uncached": 64,
+    "cache_write": 89837,
+    "cache_read": 486843,
+    "input_total": 576744,
+    "output": 4182,
+    "total": 580926
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 6,
+    "cache_write": 5084,
+    "cache_read": 1032134,
+    "input_total": 1037224,
+    "output": 1249,
+    "roundtrips": 2
+   },
+   "cost_units": 181955,
+   "cache_written": {
+    "five_minutes": 89837,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 29,
+    "peak_load_1m": 0.43,
+    "least_memory_available_mb": 15221,
+    "peak_host_process_rss_mb": 510,
+    "host_process_cpu_seconds": 3.0
+   },
+   "wall_seconds": 17.32
+  },
+  {
+   "stage": "l10",
+   "agent_tokens": {
+    "input_uncached": 126,
+    "cache_write": 179836,
+    "cache_read": 954270,
+    "input_total": 1134232,
+    "output": 8226,
+    "total": 1142458
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 4,
+    "cache_write": 9037,
+    "cache_read": 1042141,
+    "input_total": 1051182,
+    "output": 2101,
+    "roundtrips": 2
+   },
+   "cost_units": 361478,
+   "cache_written": {
+    "five_minutes": 179836,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 36,
+    "peak_load_1m": 0.42,
+    "least_memory_available_mb": 15098,
+    "peak_host_process_rss_mb": 523,
+    "host_process_cpu_seconds": 5.3
+   },
+   "wall_seconds": 18.68
+  },
+  {
+   "stage": "l25",
+   "agent_tokens": {
+    "input_uncached": 336,
+    "cache_write": 454210,
+    "cache_read": 2590549,
+    "input_total": 3045095,
+    "output": 23008,
+    "total": 3068103
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 7,
+    "cache_write": 511889,
+    "cache_read": 1116707,
+    "input_total": 1628603,
+    "output": 4730,
+    "roundtrips": 3
+   },
+   "cost_units": 942193,
+   "cache_written": {
+    "five_minutes": 454210,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 83,
+    "peak_load_1m": 1.1,
+    "least_memory_available_mb": 14818,
+    "peak_host_process_rss_mb": 570,
+    "host_process_cpu_seconds": 13.1
+   },
+   "wall_seconds": 53.31
+  }
+ ]
+}

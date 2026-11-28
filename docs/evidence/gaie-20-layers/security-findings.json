@@ -1,0 +1,265 @@
+{
+  "command": "python3 -m engineering_os.security_audit",
+  "deterministic": true,
+  "findings": [
+    {
+      "control": "git() runs with -c core.fsmonitor=false -c core.hooksPath=/dev/null, no system config, no GIT_* from the parent, GIT_OPTIONAL_LOCKS=0; checkout_guard refuses filter programs (also in submodule configs), a redirected work tree and hidden index entries",
+      "evidence": "tests/test_security_enterprise.py::GitCheckoutTests",
+      "id": "SEC-01",
+      "kind": "registered",
+      "location": "sdk/engineering_sdk.py:target",
+      "rule": "git-untrusted-checkout",
+      "severity": "high",
+      "status": "fixed",
+      "title": "Release target check ran a target checkout's own Git programs (core.fsmonitor, filter drivers, index hooks) and could be redirected by core.worktree, assume-unchanged bits or inherited GIT_* variables"
+    },
+    {
+      "control": "governor.check_payload runs before authorization for every secrets:none action; the deny is audited by rule name",
+      "evidence": "tests/test_security_enterprise.py::PayloadSecretTests",
+      "id": "SEC-02",
+      "kind": "registered",
+      "location": "engineering_os/control_plane.py:invoke",
+      "rule": "secret-in-payload",
+      "severity": "high",
+      "status": "fixed",
+      "title": "Control plane did not enforce secrets:none: a credential-shaped payload reached the engine"
+    },
+    {
+      "control": "fstat after O_NOFOLLOW open: regular, caller-owned, one link, no group/other bits; state dir not writable by others; verify_audit opens with O_NOFOLLOW",
+      "evidence": "tests/test_security_enterprise.py::AuditLogTests",
+      "id": "SEC-03",
+      "kind": "registered",
+      "location": "engineering_os/governor.py:audit",
+      "rule": "audit-log-permissions",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "Governor audit log was appended although it was readable by others, hard-linked to another file, foreign-owned, or in a directory others can write"
+    },
+    {
+      "control": "_write refuses a GAIE_HOME not owned by the caller or writable by group/others",
+      "evidence": "tests/test_security_enterprise.py::RegistryHomeTests",
+      "id": "SEC-04",
+      "kind": "registered",
+      "location": "engineering_os/project_registry.py:_write",
+      "rule": "private-state-permissions",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "Private project registry was written into a GAIE_HOME that another user owns or can write"
+    },
+    {
+      "control": "_context refuses an existing state directory that is not caller-owned mode 0700 before the governor or any engine",
+      "evidence": "tests/test_security_enterprise.py::StateDirectoryTests",
+      "id": "SEC-05",
+      "kind": "registered",
+      "location": "engineering_os/control_plane.py:_context",
+      "rule": "private-state-permissions",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "A state directory open to others was refused only after the engine had written state"
+    },
+    {
+      "control": "security_audit.audit_anchor / verify_audit_anchor; the owner must keep the anchor outside the state directory",
+      "evidence": "tests/test_security_enterprise.py::AnchorTests",
+      "id": "SEC-06",
+      "kind": "registered",
+      "location": "engineering_os/governor.py:verify_audit",
+      "rule": "audit-tail-truncation",
+      "severity": "low",
+      "status": "mitigated",
+      "title": "The audit hash chain cannot see records removed from its end, or the whole log removed"
+    },
+    {
+      "control": "environment reduced to PATH/HOME/TMPDIR, loopback-only socket guard, timeouts, process-group kill; fix: run the driver through governor.sandbox_run (owner: self-healing)",
+      "evidence": "docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
+      "id": "SEC-07",
+      "kind": "registered",
+      "location": "engineering_os/detectors.py:Sandbox",
+      "rule": "untrusted-code-outside-sandbox",
+      "severity": "medium",
+      "status": "open",
+      "title": "Self-healing runs target repository code through detectors.Sandbox, a Python-level guard without the governor's OS sandbox: files the user can read stay readable"
+    },
+    {
+      "control": "fix: resolve and check before mkdir, create with mode 0o700 (owner: cinematic)",
+      "evidence": "probe_video_output_dir",
+      "id": "SEC-08",
+      "kind": "registered",
+      "location": "engineering_os/video_pipeline.py:_outside_repository",
+      "rule": "private-state-permissions",
+      "severity": "low",
+      "status": "open",
+      "title": "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository"
+    },
+    {
+      "control": "`git remote get-url` refreshes no index and runs no hook or filter; GIT_* variables are stripped",
+      "evidence": "probe_router_workspace",
+      "id": "SEC-09",
+      "kind": "registered",
+      "location": "engineering_os/gaie_router.py:workspace",
+      "rule": "git-untrusted-checkout",
+      "severity": "low",
+      "status": "accepted",
+      "title": "Router workspace probe runs git in a workspace without the hardening flags"
+    },
+    {
+      "control": "O_NOFOLLOW, 0600 on create, 0700 directories; fix: reuse orchestration._open_private (owner: memory)",
+      "evidence": "probe_legacy_journal",
+      "id": "SEC-10",
+      "kind": "registered",
+      "location": "engineering_os/gaie_memory.py:_journal_add",
+      "rule": "private-state-permissions",
+      "severity": "low",
+      "status": "open",
+      "title": "Frozen gaie_memory journal is appended without an owner, mode or hard-link check"
+    },
+    {
+      "control": "safe_path requires a regular file",
+      "evidence": "tests/test_security_enterprise.py::GitCheckoutTests.test_fifo_capability_file_is_refused_without_blocking",
+      "id": "SEC-11",
+      "kind": "registered",
+      "location": "sdk/engineering_sdk.py:safe_path",
+      "rule": "unbounded-input",
+      "severity": "low",
+      "status": "fixed",
+      "title": "SDK verify accepted a manifest-named FIFO or device and would block on it"
+    },
+    {
+      "control": "the tests are the hub's own; an agent that can write tests/ and holds layers.verify gets code execution with the owner's environment. fix: governor.sandbox_run like quality-assurance.run-tests (owner: layers)",
+      "evidence": "probe_layers_environment",
+      "id": "SEC-12",
+      "kind": "registered",
+      "location": "engineering_os/layers.py:_run",
+      "rule": "untrusted-code-outside-sandbox",
+      "severity": "medium",
+      "status": "open",
+      "title": "layers.verify declares exec:sandbox and secrets:none but runs repository tests outside the governor sandbox with the caller's whole environment"
+    },
+    {
+      "control": "authority only from the grant and ctx['approval_token']; static rule authority-from-payload",
+      "evidence": "tests/test_control_plane.py (INJECTION), tests/test_security_enterprise.py::InjectionTests",
+      "id": "SEC-13",
+      "kind": "registered",
+      "location": "engineering_os/control_plane.py:invoke",
+      "rule": "prompt-injection",
+      "severity": "info",
+      "status": "held",
+      "title": "Payload text is data: an approval token, grant or instruction inside a payload grants nothing"
+    },
+    {
+      "control": "SHA-256 seal, expected-digest restore, empty-store restore only, private atomic writes",
+      "evidence": "tests/test_security_enterprise.py::BackupTests",
+      "id": "SEC-14",
+      "kind": "registered",
+      "location": "engineering_os/memory.py:checkpoint",
+      "rule": "backup-integrity",
+      "severity": "info",
+      "status": "held",
+      "title": "Memory checkpoints are sealed: a tampered checkpoint does not restore; files are 0600"
+    },
+    {
+      "control": "1 MiB canonical payload bound, 16 MiB result bound; governor scan bound 8 MiB, depth 64",
+      "evidence": "tests/test_security_enterprise.py::PayloadSecretTests",
+      "id": "SEC-15",
+      "kind": "registered",
+      "location": "engineering_os/control_plane.py:invoke",
+      "rule": "unbounded-input",
+      "severity": "info",
+      "status": "held",
+      "title": "Oversized payloads are refused before authorization"
+    },
+    {
+      "function": "security_governor",
+      "id": "authority-from-payload:engineering_os/adapters.py:781",
+      "justification": "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
+      "kind": "static",
+      "location": "engineering_os/adapters.py:781",
+      "rule": "authority-from-payload",
+      "severity": "high",
+      "status": "accepted",
+      "title": "authorization data is read from a payload; payloads are data, never authority"
+    },
+    {
+      "function": "security_governor",
+      "id": "authority-from-payload:engineering_os/adapters.py:796",
+      "justification": "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
+      "kind": "static",
+      "location": "engineering_os/adapters.py:796",
+      "rule": "authority-from-payload",
+      "severity": "high",
+      "status": "accepted",
+      "title": "authorization data is read from a payload; payloads are data, never authority"
+    },
+    {
+      "function": "_git",
+      "id": "git-dynamic-subcommand:hublink.py:29",
+      "justification": "runs only in the hub's own checkout (ROOT), never in a target repository",
+      "kind": "static",
+      "location": "hublink.py:29",
+      "rule": "git-dynamic-subcommand",
+      "severity": "low",
+      "status": "accepted",
+      "title": "a Git helper takes its subcommand from the caller and is not hardened"
+    },
+    {
+      "function": "git",
+      "id": "git-dynamic-subcommand:scripts/security_scan.py:181",
+      "justification": "reads the hub's own index (ls-files, diff --cached --name-only, cat-file): none refreshes the index or runs filters",
+      "kind": "static",
+      "location": "scripts/security_scan.py:181",
+      "rule": "git-dynamic-subcommand",
+      "severity": "low",
+      "status": "accepted",
+      "title": "a Git helper takes its subcommand from the caller and is not hardened"
+    },
+    {
+      "function": "_sandbox_init",
+      "id": "private-mode:engineering_os/governor.py:693",
+      "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
+      "kind": "static",
+      "location": "engineering_os/governor.py:693",
+      "rule": "private-mode",
+      "severity": "medium",
+      "status": "accepted",
+      "title": "engine state created with mode 0o666 (group/other bits set)"
+    },
+    {
+      "function": "_sandbox_init",
+      "id": "private-mode:engineering_os/governor.py:711",
+      "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
+      "kind": "static",
+      "location": "engineering_os/governor.py:711",
+      "rule": "private-mode",
+      "severity": "medium",
+      "status": "accepted",
+      "title": "engine state created with mode 0o644 (group/other bits set)"
+    }
+  ],
+  "layer": "L09",
+  "model_calls": 0,
+  "network": false,
+  "probes_run": true,
+  "schema_version": 1,
+  "scope": {
+    "registered": "probes run against the modules imported from this checkout",
+    "static": "tracked files; Python rules exclude tests/, swarm/"
+  },
+  "simulated": false,
+  "summary": {
+    "by_severity": {
+      "critical": 0,
+      "high": 4,
+      "info": 3,
+      "low": 7,
+      "medium": 7
+    },
+    "by_status": {
+      "accepted": 7,
+      "fixed": 6,
+      "held": 3,
+      "mitigated": 1,
+      "open": 4
+    },
+    "open_critical_or_high": []
+  },
+  "tool": "engineering_os.security_audit"
+}

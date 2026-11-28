@@ -1,0 +1,64 @@
+{
+  "enforced": {
+    "cpu_memory_file_nofile_limits": true,
+    "empty_environment": true,
+    "filesystem_writes_only_in_allowed_paths": true,
+    "host_files_outside_read_paths_hidden": true,
+    "network_off_by_default": true,
+    "no_capabilities_in_sandbox": true,
+    "own_pid_namespace": true,
+    "own_process_group_killed_after_run": true,
+    "process_count_limit": false
+  },
+  "host": {
+    "caller_is_root": true,
+    "kernel": "6.18",
+    "machine": "x86_64",
+    "python": "3.13.18",
+    "unshare": "unshare from util-linux 2.39.3"
+  },
+  "measured": true,
+  "measured_on": "2026-11-28",
+  "not_enforced": [
+    "number of processes: a sandbox mapped to uid 0 is exempt from RLIMIT_NPROC (bounded by timeout only)",
+    "unix sockets inside allowed_paths or read_paths can be connected to",
+    "network=True shares the host network, including loopback services",
+    "system directories (/usr, /etc, /bin, /sbin, /lib*) are readable",
+    "kernel attack surface: no seccomp filter is installed"
+  ],
+  "probes": [
+    {
+      "command": "unshare --user --map-root-user --net -- true",
+      "name": "user+net namespace",
+      "result": true
+    },
+    {
+      "command": "unshare -n true",
+      "name": "root network namespace (cage.network_wall)",
+      "result": true
+    },
+    {
+      "command": "unshare --user --map-root-user --mount --propagation private --pid --fork --kill-child --net -- python3 -I -S -c <governor._sandbox_init> <spec>; then python3 -I -S -c <probe>",
+      "name": "full sandbox walls, checked from inside and from the host",
+      "result": {
+        "cap_eff": "0000000000000000",
+        "host_listener_contacted": false,
+        "host_sees_inside_write": true,
+        "host_sees_outside_write": false,
+        "read_outside": "FileNotFoundError:2",
+        "remount_rw": "errno:1",
+        "signal_host_pid": "ProcessLookupError:3",
+        "tcp_loopback": "OSError:101",
+        "write_inside": "ok",
+        "write_outside": "FileNotFoundError:2",
+        "write_usr": "OSError:30"
+      }
+    }
+  ],
+  "schema": "gaie-isolation/v1",
+  "simulated": false,
+  "tests": [
+    "tests/test_governor.py"
+  ],
+  "tier": "full"
+}

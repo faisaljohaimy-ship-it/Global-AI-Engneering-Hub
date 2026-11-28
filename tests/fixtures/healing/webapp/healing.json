@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "inventory-fixture",
+  "app": {"script": "app.py", "args": ["--port", "{port}", "--db", "{db}"], "ready_path": "/health",
+          "routes_module": "app.py", "routes_variable": "ROUTES", "startup_timeout_s": 15},
+  "route_spec": "routes.json",
+  "links": ["templates"],
+  "contracts": "contracts.json",
+  "dependencies": {"requirements": ["requirements.txt"], "lock": "requirements.lock.json"},
+  "database": {"schema": ["schema.sql"]},
+  "memory": [{"module": "pricing", "function": "quote", "args": [200, 12], "calls": 2000, "threshold_bytes": 65536}],
+  "performance": {"baseline": "perf-baseline.json"},
+  "entrypoints": ["main"]
+}

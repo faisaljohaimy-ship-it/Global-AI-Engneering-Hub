@@ -1,0 +1,214 @@
+{
+ "stages": [
+  {
+   "stage": "p1",
+   "registered": 2,
+   "started": 2,
+   "ran_at_once": null,
+   "replied_done": null,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 1
+  },
+  {
+   "stage": "c1",
+   "registered": 1,
+   "started": 1,
+   "ran_at_once": 1,
+   "replied_done": 1,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "c2",
+   "registered": 5,
+   "started": 5,
+   "ran_at_once": 5,
+   "replied_done": 0,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "c3",
+   "registered": 5,
+   "started": 5,
+   "ran_at_once": 5,
+   "replied_done": 5,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "s10",
+   "registered": 10,
+   "started": 10,
+   "ran_at_once": 10,
+   "replied_done": 10,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "s20",
+   "registered": 20,
+   "started": 20,
+   "ran_at_once": 20,
+   "replied_done": 20,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "s25",
+   "registered": 25,
+   "started": 25,
+   "ran_at_once": 20,
+   "replied_done": 25,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "s50",
+   "registered": 50,
+   "started": 50,
+   "ran_at_once": 20,
+   "replied_done": 50,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "s75",
+   "registered": 75,
+   "started": 75,
+   "ran_at_once": 20,
+   "replied_done": 75,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "s100",
+   "registered": 100,
+   "started": 100,
+   "ran_at_once": 20,
+   "replied_done": 100,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "g10",
+   "registered": 10,
+   "started": 10,
+   "ran_at_once": 10,
+   "replied_done": 10,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "m1",
+   "registered": 1,
+   "started": 1,
+   "ran_at_once": 1,
+   "replied_done": 1,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "m10h",
+   "registered": 10,
+   "started": 10,
+   "ran_at_once": 10,
+   "replied_done": 10,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "m10s",
+   "registered": 10,
+   "started": 10,
+   "ran_at_once": 10,
+   "replied_done": 10,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "m25",
+   "registered": 25,
+   "started": 25,
+   "ran_at_once": 20,
+   "replied_done": 25,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "m50",
+   "registered": 50,
+   "started": 50,
+   "ran_at_once": 20,
+   "replied_done": 50,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "l1",
+   "registered": 1,
+   "started": 1,
+   "ran_at_once": 1,
+   "replied_done": 1,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "l5r",
+   "registered": 5,
+   "started": 5,
+   "ran_at_once": 5,
+   "replied_done": 5,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 23
+  },
+  {
+   "stage": "l5l",
+   "registered": 5,
+   "started": 5,
+   "ran_at_once": 5,
+   "replied_done": 5,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 3
+  },
+  {
+   "stage": "l10",
+   "registered": 10,
+   "started": 10,
+   "ran_at_once": 10,
+   "replied_done": 10,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 3
+  },
+  {
+   "stage": "l25",
+   "registered": 25,
+   "started": 25,
+   "ran_at_once": 20,
+   "replied_done": 25,
+   "met_a_limit": 0,
+   "refused_calls": 0,
+   "foreign_calls": 6
+  }
+ ]
+}

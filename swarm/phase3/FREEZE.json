@@ -1,0 +1,655 @@
+{
+  "file_count": 162,
+  "files": {
+    ".claude/agents/swarm-dev.md": {
+      "sha256": "e7606bd3b47c6b330aab8712ded3b6c4caf9894ba8f0d3761a6661b8a43065cc",
+      "size": 1274
+    },
+    ".claude/agents/swarm-large.md": {
+      "sha256": "b1d5ccfdb306e4111824dd956324a912cdb9a02491d8a50b04a6c1820efcb20c",
+      "size": 658
+    },
+    ".claude/agents/swarm-light-2.md": {
+      "sha256": "053c37e095797b20af8459fdfae101dac9c976fc5095fb1d65d4bce85d678cca",
+      "size": 702
+    },
+    ".claude/agents/swarm-light-inline.md": {
+      "sha256": "1b956632b64d44ec1c3a9fcdda8117c0f638c84226cf822789ce32fb35af5169",
+      "size": 818
+    },
+    ".claude/agents/swarm-light-open.md": {
+      "sha256": "91992df83ee1e77890764e44919803773d89bccd694a70a9be9a10c7c2fe0ecb",
+      "size": 735
+    },
+    ".claude/agents/swarm-light.md": {
+      "sha256": "5c0f8e082830d6f9c4653f01f545e42d31dd6478e2f6cdc42a9ac3edf3bcbd66",
+      "size": 817
+    },
+    ".claude/agents/swarm-probe-open.md": {
+      "sha256": "cbe3ce64dd05a8394bcf8962e7cb4d3974b5ec780d05d21f40ab758cc0d4d6db",
+      "size": 755
+    },
+    ".claude/agents/swarm-probe-wide.md": {
+      "sha256": "5083b082ce3c4b37074bd92a46af14c89da4ef7c7797df83e66fd3ba209dbc6f",
+      "size": 661
+    },
+    ".claude/agents/swarm-probe.md": {
+      "sha256": "9c74c36a194ace4816a5b4af79b9232d7c5bc068b5fc4342959ec2391ec66f01",
+      "size": 560
+    },
+    ".claude/agents/swarm-queue-1.md": {
+      "sha256": "4fd1ddf62f0801f6a51a4e563c606b5b81951bd80722aeb9bec0f5ac04ec88f4",
+      "size": 753
+    },
+    ".claude/agents/swarm-queue.md": {
+      "sha256": "76006cdad038310694319015cc7b7dab27a26eb3968e159cfaac898150a93851",
+      "size": 1156
+    },
+    ".claude/settings.json": {
+      "sha256": "21bce59ac968a5dfa8313ccf3e02e1c2a52886a3f42273cc3dacd2007ea5bae4",
+      "size": 265
+    },
+    "swarm/README.md": {
+      "sha256": "027bf6f5031e3fabf9d19182c6646b60caefad71b75f5444fcbdfb624284c9ff",
+      "size": 6497
+    },
+    "swarm/agent-definitions/swarm-worker.md": {
+      "sha256": "f256757f1ec6d7dc56c3940a62d9976457cc22d3e71dee76d77b30c129a20666",
+      "size": 558
+    },
+    "swarm/agents.json": {
+      "sha256": "cf91cdec8f4f200cb09306842aa12987f852569aea2d9bd001212364ffb4f64e",
+      "size": 139929
+    },
+    "swarm/bench.py": {
+      "sha256": "c6c305d4c29dca87463a961914f22537bb26dda6dcf55e47ab47cc2c69c3e76b",
+      "size": 13048
+    },
+    "swarm/build_registries.py": {
+      "sha256": "fa9b316692223d0ac53e8b5ed94a0e76aafed5efcd2dfe187546ae145c0c0251",
+      "size": 27301
+    },
+    "swarm/capabilities.json": {
+      "sha256": "8edfe3ed26b5bd6a3b79dc7f605fe362c5a6a67028877bf0557cc33c08f051c4",
+      "size": 33273
+    },
+    "swarm/evidence/configurations-agents.json": {
+      "sha256": "90b3762df4243d6e761b15adc0789c79778cfc6d2678e0e2e0f2426dab84d5e0",
+      "size": 1939
+    },
+    "swarm/evidence/configurations-trace.json": {
+      "sha256": "eb5c598872bf50908b0674014983e307e7a19c95c600458645c39281301feb8e",
+      "size": 2366
+    },
+    "swarm/evidence/headroom-two-integrations.json": {
+      "sha256": "f9cafb92d37f866d77424a964e307b877cdae11ccbcbb270807e2e31be4f3239",
+      "size": 1206
+    },
+    "swarm/evidence/host-limits.json": {
+      "sha256": "6efc30f1aa433a9b74276b21b97dcd06a9301bee01ff4394621affff9ddaa1fa",
+      "size": 1771
+    },
+    "swarm/evidence/ladder.json": {
+      "sha256": "706e1ddd60ad2490643aa1471f94fac6d5db6561c1ef3b03ca793b532b6f1b3a",
+      "size": 7401
+    },
+    "swarm/evidence/minimal-worker.json": {
+      "sha256": "0f8dd66cc5996fda149702f5455ad95d85367a000c685f29ca582bf6e2930284",
+      "size": 803
+    },
+    "swarm/evidence/review.json": {
+      "sha256": "4243fe8e35f67bc51e4a53fb559b2dba94518bb4fd0dbae5091bb89d07e3379d",
+      "size": 8621
+    },
+    "swarm/evidence/summary.json": {
+      "sha256": "b47ba2e4ded47177edd7b7e1d1104532c97098b7e694e264c876fcf837377191",
+      "size": 3588
+    },
+    "swarm/evidence/tool-audit.json": {
+      "sha256": "b678d207d2a569dae4545c8529c2552fde0ec4da859d5c2647b420baee9cfc57",
+      "size": 730
+    },
+    "swarm/ladder.py": {
+      "sha256": "b0dad274de927409678de5a0497d9bdabbdd88ecd84ca2bd5ebc347141bb4b9c",
+      "size": 5611
+    },
+    "swarm/measure.py": {
+      "sha256": "61f3a257cf96aa0d0205b1410876f58da14bf5633ee2a52b7eba76b47ddcb950",
+      "size": 13204
+    },
+    "swarm/phase2/PLAN.json": {
+      "sha256": "a55faa7f9713afa68a7fa0ff86f64d3687547b1f28c44338cc35e2aba695bf07",
+      "size": 6397
+    },
+    "swarm/phase2/README.md": {
+      "sha256": "3e7385a04cf792f99ae4836193910b95289b46ef599cd5a23d03625b9f48f027",
+      "size": 7417
+    },
+    "swarm/phase2/RESULTS.md": {
+      "sha256": "9e611ecd57b4fef6cce5ae25370c1aade2811293c903bad335202b4c3c3df042",
+      "size": 2786
+    },
+    "swarm/phase2/RUNBOOK.md": {
+      "sha256": "df969341b1103da76d174eebc152bbcc2b140cf01ad6f294d93fab7c35ba0439",
+      "size": 4448
+    },
+    "swarm/phase2/evidence/preflight.json": {
+      "sha256": "12b6bc1ee2d98a3a7f4d61edae40b0bcfb90337b6f30f1f6944faa825582b2f3",
+      "size": 2853
+    },
+    "swarm/phase2/evidence/stages.json": {
+      "sha256": "f33e84d4546a56614bce636dcc45b9eb8e05aeaf411bd94a517bd93a5d920591",
+      "size": 55052
+    },
+    "swarm/phase2/guard.py": {
+      "sha256": "7d8c35dc401c448424fc5ec9a289ed02fb8442919fd1a13263545d785d960dde",
+      "size": 2146
+    },
+    "swarm/phase2/kit.py": {
+      "sha256": "0050f6b83197ee1a7474b51148c29fb8656d7cbf8a75fcc34c03449abef68ede",
+      "size": 16682
+    },
+    "swarm/phase2/stage.py": {
+      "sha256": "54764878badf2d7859852e1b8c2048905b177f5bf0e08605ac28db6201dd42a9",
+      "size": 31003
+    },
+    "swarm/phase2/state/AGENT_STATUS.json": {
+      "sha256": "53d81627cca293f68c81e857f4a472454a8e81f8ffa7da536308a3630d2fff10",
+      "size": 3732
+    },
+    "swarm/phase2/state/BENCHMARK_RESULTS.json": {
+      "sha256": "984ec18bdf45d4ed0bf70354c8d8addb14541731440b261426de746ad6b23ece",
+      "size": 54211
+    },
+    "swarm/phase2/state/RESOURCE_METRICS.json": {
+      "sha256": "9bbd64a764ad0012940c9e9df2f298a59c9585d62b667723a497f4687d324781",
+      "size": 15374
+    },
+    "swarm/phase2/state/RESUME.txt": {
+      "sha256": "82026bdaa6a66ce933d0d4b24e82f2c071dc37b4ea7b1208469bb4cdffde0820",
+      "size": 402
+    },
+    "swarm/phase2/state/TASK_STATE.json": {
+      "sha256": "6bc8962cbfdfae569add79b28a43b778b34bd589652f269e80a4e81596fba34e",
+      "size": 468
+    },
+    "swarm/phase2/state/TEST_EVIDENCE.json": {
+      "sha256": "23269e66cf1dfdc4acad6f74712bcdbc9590fb49afbd70196c99aba092eb3a0a",
+      "size": 3442
+    },
+    "swarm/phase2/tasks.py": {
+      "sha256": "447812b02afac305fcdb01e646dfdec4baf66edd5da0369e15f0b61d55a09a74",
+      "size": 35863
+    },
+    "swarm/phase3/CONTRACT.md": {
+      "sha256": "c12151620c2c77b7c557a4796f281c4973f88e58783900481a5603ed19452a10",
+      "size": 6966
+    },
+    "swarm/phase3/CONTRACT2.md": {
+      "sha256": "79a9bce23214cb4abdec0d3ba6497d2bb143e7addf968aa790794571ec3e3cc1",
+      "size": 7407
+    },
+    "swarm/phase3/DECISIONS.json": {
+      "sha256": "daf55528f5957145ce5456373cbbe8c0534a157eadc343650658dea0755678fe",
+      "size": 902
+    },
+    "swarm/phase3/HANDOVER.md": {
+      "sha256": "d28b1da8108dc7981074b460ebf5fde62996a2b4f9615e3cdbf09268844e6294",
+      "size": 14448
+    },
+    "swarm/phase3/PLAN3-run-1.json": {
+      "sha256": "1290f31713a01e762abc4be5c73064324e865dc07b16de3ece894b7995df63fe",
+      "size": 5656
+    },
+    "swarm/phase3/PLAN3.json": {
+      "sha256": "498c32f04cc4da3f91adb0e556f0029d247beb90c1d94872e467a592e838c46e",
+      "size": 7006
+    },
+    "swarm/phase3/RESULTS-FINAL.md": {
+      "sha256": "0de25c75bd9ed8322d76892f31dd127cd84e034fa9137c3c672c4c24a16a5285",
+      "size": 10028
+    },
+    "swarm/phase3/RESUME.md": {
+      "sha256": "714618ff633fe080b4cf7d57cc782102efb1e766e08cfe4f056ee35500edd942",
+      "size": 7931
+    },
+    "swarm/phase3/RUNBOOK-RUN.md": {
+      "sha256": "1e8bb9b1495959fd48704e90d17aa07ab10ae2d8d8439539c649387d1eb429d0",
+      "size": 6830
+    },
+    "swarm/phase3/RUNBOOK-TEAM.md": {
+      "sha256": "4320774ead577792c6043aebb6cf0aa0f1388f208d49be5ff37ba233cf299d69",
+      "size": 2577
+    },
+    "swarm/phase3/RUNBOOK-TEAM2.md": {
+      "sha256": "f43547d2dd2ac7aebe51f1a10541168eb6c2e85b3e34c0f5c5e1d39ca5096269",
+      "size": 3240
+    },
+    "swarm/phase3/SECURITY.md": {
+      "sha256": "cb826915cd4dd546dfcc449671b3d6916fbcfe85c7eed9960cf862668043f7d4",
+      "size": 15001
+    },
+    "swarm/phase3/TEAM.json": {
+      "sha256": "6127cbeece5104b0ee55324fa4637e4157127701841557dc89f1ff0177b85196",
+      "size": 30157
+    },
+    "swarm/phase3/TEAM2.json": {
+      "sha256": "f5f085b1fbaecbb8080f9d15865c9788c236c93988f3e54db81eaa06138312dc",
+      "size": 31319
+    },
+    "swarm/phase3/accounting.py": {
+      "sha256": "8781d5df5addc99b8d07bc8a8263743c84e3c1bd711bda2147b5b0a1867d8f6d",
+      "size": 10102
+    },
+    "swarm/phase3/adaptive.py": {
+      "sha256": "e59dac5500be26e20982b8791499f71c39629e65ad10f3644d57313abf8f55c0",
+      "size": 4716
+    },
+    "swarm/phase3/cache_report.py": {
+      "sha256": "3dd39aadb859ce0f8394d6fb63d09318ae153237801e3a33f8d8bd00a3b57949",
+      "size": 4981
+    },
+    "swarm/phase3/cage.py": {
+      "sha256": "ef169e7e84b78a01ba322dbc5ffb2fc9cd08b29ef81f79261bbcded490eeeacd",
+      "size": 6628
+    },
+    "swarm/phase3/capacity.py": {
+      "sha256": "1a4315cd1bf6085e543e3b7f625267f4d245ab094aadd2954ec88c91d05de1f0",
+      "size": 7065
+    },
+    "swarm/phase3/closure.py": {
+      "sha256": "096d6693e932d884d69d4ee63946df6d3238c5a9ed8de94671af140d961e5bb7",
+      "size": 10546
+    },
+    "swarm/phase3/compact.py": {
+      "sha256": "f2109a127b30f3230c36825b9d213b0fd98c48b1dd21484138752a2d90df770a",
+      "size": 1619
+    },
+    "swarm/phase3/context_budget.py": {
+      "sha256": "6034759cd32ec77cf6bed5fee2eca226130fcb282fa05b9221aec7c69740b62b",
+      "size": 5765
+    },
+    "swarm/phase3/coordinator_scale.py": {
+      "sha256": "047a6122707854dc722a5b9f07b23ea40ff3c6230f725bf7c9854e529ea2031b",
+      "size": 8500
+    },
+    "swarm/phase3/economics.py": {
+      "sha256": "39d4d7281e040e25aaf8e93e02ae84a1f888f1ac5ddc1e6794b910a6d74f1054",
+      "size": 12263
+    },
+    "swarm/phase3/evidence/accounting.json": {
+      "sha256": "46a92703ed8de801add30285f267dc238b1f363c1921e19087d44ce92d9ae29c",
+      "size": 2693
+    },
+    "swarm/phase3/evidence/cage-concurrency.json": {
+      "sha256": "a28c4fa815405f0a7905df8a328aa583e1ede7c5655736d9ac2444a739a47dfb",
+      "size": 1069
+    },
+    "swarm/phase3/evidence/coordinator-scale.json": {
+      "sha256": "21cb96f591f506691f11b810acd2f0be2d1c2d2e66d35346d87c04e6cb732c8b",
+      "size": 2417
+    },
+    "swarm/phase3/evidence/gate.json": {
+      "sha256": "d7699caff7c8a805dab7b820976d0dc391d817398393ec1be735dfae53106a6b",
+      "size": 813
+    },
+    "swarm/phase3/evidence/q1000-not-closed.json": {
+      "sha256": "b5b9423704766a869ace4d4bb3867de7f4f6b62d2846bf97c45574da1f3dad50",
+      "size": 2326
+    },
+    "swarm/phase3/evidence/run-1.json": {
+      "sha256": "715525f04ea844b49387e7502a5df1eca2a6becd68128f603d0053cafe39fbef",
+      "size": 15659
+    },
+    "swarm/phase3/evidence/stages.json": {
+      "sha256": "4ba8544ae3cd260898481c791a53b76db69e7f307bc2364e6e2d660b13ab6499",
+      "size": 37936
+    },
+    "swarm/phase3/evidence/team.json": {
+      "sha256": "631e8f3562d3a467c176b9af3b7a64a9a55ab4459c8351da4ea3bf50f57de016",
+      "size": 13173
+    },
+    "swarm/phase3/evidence/team2.json": {
+      "sha256": "1eb7d56767df26f195c8d9ff1b098f0c83adec586faa900e756ddbc0d5b692e8",
+      "size": 11324
+    },
+    "swarm/phase3/freeze.py": {
+      "sha256": "8e1e5ec2862bd7e3df579c6a180d4458f166ee5db3f3b87c35a1735f1b3fcc1e",
+      "size": 5446
+    },
+    "swarm/phase3/handin.py": {
+      "sha256": "79036b3cb8c8e56a96b3230446cd34ba5c7216eb2e7de2c45c718ab079544f4b",
+      "size": 16723
+    },
+    "swarm/phase3/handover.py": {
+      "sha256": "78fee7e037d1d1cd8c3d91861add340eef31fa7dd7a8831aebaa2ecac9fc21e2",
+      "size": 10941
+    },
+    "swarm/phase3/hook.py": {
+      "sha256": "4e5dfd607fe16ab87af5e3e0fa04c2250214aecfd17004443cf59896cf9fbe82",
+      "size": 14206
+    },
+    "swarm/phase3/kit3.py": {
+      "sha256": "7a78c0e358181b390b4178903e5178757c78ad93d2675e72f61fd4c60c6fe5f4",
+      "size": 7710
+    },
+    "swarm/phase3/lane_guard.py": {
+      "sha256": "14d79770bf7341d397fcefbcb5c9c5aff3a849577ab905e128a63e0905f2ba47",
+      "size": 4812
+    },
+    "swarm/phase3/ledger.py": {
+      "sha256": "d9b97eda89e1d7e25ac31667ea68a90b11c704888efe59e330ccdefe28a6cbe9",
+      "size": 13240
+    },
+    "swarm/phase3/loadtest.py": {
+      "sha256": "f4d1a672ddc31dad78e793d5f4d746431f372ad1f2b568af77ac1764bed491e9",
+      "size": 5861
+    },
+    "swarm/phase3/mutate.py": {
+      "sha256": "9aba370e7e5a7be07b84419d5bd050acceb2071a755a87d07ce23a06d52816a9",
+      "size": 6604
+    },
+    "swarm/phase3/properties.py": {
+      "sha256": "854646289c290ab5d2dfc5d9e9c58c96a9c593e42ff5ed0d55b122a8b428426e",
+      "size": 10985
+    },
+    "swarm/phase3/registry.json": {
+      "sha256": "cd80ad5cdd6315d65388b58b0fd7851ca62d59a0b076ad148d01e5bb39075e4a",
+      "size": 170192
+    },
+    "swarm/phase3/registry.py": {
+      "sha256": "9230ab16986c156f6a88d08834938e1b7b3ba666089fb26970424dfcbe6cb957",
+      "size": 2979
+    },
+    "swarm/phase3/report3.py": {
+      "sha256": "0d0150e8a77358c89e57e6e63585ebf92b59318bd78384ddb159c8344dca84db",
+      "size": 19187
+    },
+    "swarm/phase3/resume.py": {
+      "sha256": "a57733d1cf5e33700c644004266ed3babba3ef5c8e7f89871440bf01ab6b6edd",
+      "size": 4206
+    },
+    "swarm/phase3/reviews/gate-attack.md": {
+      "sha256": "131264eb6e2976ce338d2994c640e38824f0e5eea04fb522f86ad47d59a6b20d",
+      "size": 6329
+    },
+    "swarm/phase3/reviews/isolation.md": {
+      "sha256": "fb36a80186fdd2c85cb7856376072690a59d6353e42282a923693411791e798c",
+      "size": 6168
+    },
+    "swarm/phase3/reviews/measurement-review.md": {
+      "sha256": "5427cb459dcd77f42f00ed5b1150e1f42a786d12582a1a577f070818a682dc95",
+      "size": 13662
+    },
+    "swarm/phase3/reviews/security-review.md": {
+      "sha256": "41c86fb5b3c9181aa8f3a4c6a7f621f5a372522eaa133f7f96eba08336321a15",
+      "size": 13796
+    },
+    "swarm/phase3/schema.py": {
+      "sha256": "ed5513fcd2e3c40e3d21b1a6beaad506990328312827e8f7f43b2989a54db3a5",
+      "size": 9523
+    },
+    "swarm/phase3/security_doc.py": {
+      "sha256": "2f82b6b5fe71377fbea2449613e59df7757d600126309a741acca83fcd17cf3c",
+      "size": 19716
+    },
+    "swarm/phase3/simulate.py": {
+      "sha256": "49a02d85d390170e77def82827f111c416ae2e04df4c8c119321887c345dbacd",
+      "size": 4707
+    },
+    "swarm/phase3/stage3.py": {
+      "sha256": "12854ca503c578ff26569b2c25c94eaa9effe7e77eee38ed1e90c16489ca8b4c",
+      "size": 28271
+    },
+    "swarm/phase3/state/AGENT_STATUS.json": {
+      "sha256": "0e2ae574fe6065a0aa618ba94188aaa2408ff3fbdaae30424c86c2a19142f151",
+      "size": 373
+    },
+    "swarm/phase3/state/BENCHMARK_RESULTS.json": {
+      "sha256": "80451acb92b3224d41127e30652dc56723077e22749ae8501e49ccf493254d53",
+      "size": 13471
+    },
+    "swarm/phase3/state/RESOURCE_METRICS.json": {
+      "sha256": "f50fe231483db9bbce9f7544acd1be7c67374ab1fd4f4da8af54114333824022",
+      "size": 1806
+    },
+    "swarm/phase3/state/RESUME.txt": {
+      "sha256": "24a36c94654610f06b25d3a3233da208d60bc904a1156c07eaa31e609cf74e92",
+      "size": 351
+    },
+    "swarm/phase3/state/TASK_STATE.json": {
+      "sha256": "e52311eb465f9d724ffafa7bec70e6c6a8d0869aa46fbd0d807f8572f6c1c151",
+      "size": 460
+    },
+    "swarm/phase3/state/TEST_EVIDENCE.json": {
+      "sha256": "02b83d43abc9ce8a59cf424eefd41faa30f46f2745f2e944aaac845623a71b51",
+      "size": 215
+    },
+    "swarm/phase3/stats.py": {
+      "sha256": "50aa902408371ee28e237e030f002266d2a68cd936405bc46fc7e9f00335912d",
+      "size": 6218
+    },
+    "swarm/phase3/taskqueue.py": {
+      "sha256": "3efbcbceb39b846506f6f6ee1887abe2c8135ae76a46e9583e93010acde986ee",
+      "size": 8343
+    },
+    "swarm/phase3/team.py": {
+      "sha256": "389cf8a8b01bc0a7c4d3fc7c3af2bee1bf6d511740d6bde04e2de8bfd7c888d7",
+      "size": 13861
+    },
+    "swarm/phase3/timeline.py": {
+      "sha256": "6d3bfc563b5002c1cad050d652888af1013205c1cd0e5179575001950cea2252",
+      "size": 4851
+    },
+    "swarm/phase3/trace.py": {
+      "sha256": "5c11d7e323ecd62ee6b612f49fd8ebe0c667824d4ef6b9e35a8c39dec486795e",
+      "size": 6518
+    },
+    "swarm/protect.py": {
+      "sha256": "00c5dc570f7e20b223e754e07cc82ce72ed1a600b55251abf77ad08346f85f4f",
+      "size": 5147
+    },
+    "swarm/route.py": {
+      "sha256": "68cd1159a9c991783ffd89cbac29ecb7f226b95479814af796bfaa005e52d8a6",
+      "size": 2851
+    },
+    "swarm/scheduler.py": {
+      "sha256": "70912793ca777d3e38392e27d7fde765493331a2b678ca05cbf57a6d633c56a2",
+      "size": 10466
+    },
+    "swarm/state/AGENT_STATUS.json": {
+      "sha256": "144498bce832ecfc0d26928fbec888d3d87fbe692271336fc74f1d27c71d27d9",
+      "size": 609
+    },
+    "swarm/state/BENCHMARK_RESULTS.json": {
+      "sha256": "993c7ab1596672738f6abf9b4b839bfee3f711f8192641fdac9606eb57f9ff16",
+      "size": 9914
+    },
+    "swarm/state/BLOCKERS.md": {
+      "sha256": "73c3a6010465cec5498877d80c050aece88b0d6e6d8f5f4aafeb5f6a7d3c823e",
+      "size": 1427
+    },
+    "swarm/state/ENGINEERING_HANDOVER.md": {
+      "sha256": "74729cc132868ecae0321f4122bed2bbf937912d40ff6387600706d2507e735f",
+      "size": 2796
+    },
+    "swarm/state/RESOURCE_METRICS.json": {
+      "sha256": "19995738e9720ef8d2704695a36ee35c93c826c8cfbc15f99943e60cf1c72739",
+      "size": 3299
+    },
+    "swarm/state/RESUME.txt": {
+      "sha256": "faf06b0ddbcdcfb85b97bf7aa9e6e2da62ed38a386314dfd4ec50ea4a9377700",
+      "size": 636
+    },
+    "swarm/state/TASK_STATE.json": {
+      "sha256": "708a30804a16d82b75c7879125fbbf8af786fd705a358af65aeb7c0504ee36af",
+      "size": 1044
+    },
+    "swarm/state/TEST_EVIDENCE.json": {
+      "sha256": "e93718e0a84d4124e0b36a58bc0696b48e3b318458f1f24bc5b9a31ae2038ed0",
+      "size": 3360
+    },
+    "swarm/workload.py": {
+      "sha256": "6150cde76f2b9cb949000c4eab5bc76943626349cbe5a72e7ab06b45bef0f523",
+      "size": 22755
+    },
+    "tests/fixtures/p3-stand-in-stages.json": {
+      "sha256": "49ddfbc2e0bd833addc9ebae684fb11c1778f5cd1cbb0fcc3f1443b2ff3d953f",
+      "size": 8602
+    },
+    "tests/test_p3_accounting.py": {
+      "sha256": "dabc08e1086694fe69b169c985dcd0b578cdbfd2c9bfd91dc9d4a5fb9ca5ef0f",
+      "size": 3823
+    },
+    "tests/test_p3_adaptive.py": {
+      "sha256": "5efcd752777255e8c91c3298b45b91243fb3ca065321090ccb2ad13f69b79dcf",
+      "size": 4261
+    },
+    "tests/test_p3_cache_report.py": {
+      "sha256": "cb61f6ea2f8915150a769fece4b0c459022ec27de6d055d25f129f352ddd2e2d",
+      "size": 3071
+    },
+    "tests/test_p3_cage.py": {
+      "sha256": "35d815d185a07601c19b21dedc642ad99e2a4e45540558a971806c80491a3df3",
+      "size": 5113
+    },
+    "tests/test_p3_capacity.py": {
+      "sha256": "393ff91c9326fb053247c503e6827b75f3fcdaf6ba05f4a7f8a5f1da8e1edf99",
+      "size": 2977
+    },
+    "tests/test_p3_closure.py": {
+      "sha256": "b7d6bbc2b4d03669d747182f033aabdffc992e0acf30afa2e7e58e8b3bbcee7c",
+      "size": 6038
+    },
+    "tests/test_p3_compact.py": {
+      "sha256": "1cda4a688a0328351506d3534a0a1e5d369b0665878f2d6a3fa6e0ba771185d1",
+      "size": 1830
+    },
+    "tests/test_p3_context_budget.py": {
+      "sha256": "866bf5b35255d861357996f39c4519210f579ddaa6ab28dbaf2851e98583a920",
+      "size": 3332
+    },
+    "tests/test_p3_coordinator_scale.py": {
+      "sha256": "81223d2b605e98a9227ccc7d5dc1392c0a33ff74ce6618bd195430cbed7da93f",
+      "size": 1539
+    },
+    "tests/test_p3_economics.py": {
+      "sha256": "b98d438046802f557af5ed572f91a1efffaed51dae97c56ad34eace356f27c87",
+      "size": 6680
+    },
+    "tests/test_p3_freeze.py": {
+      "sha256": "dffc19c891b16835c3394502c41aec0ccfb26ae79de594d8d4f33f9754034f11",
+      "size": 5011
+    },
+    "tests/test_p3_gate.py": {
+      "sha256": "8020b1e558b7edc6e718f3596de7caec472ff4bfe63d78671673d89991fcee35",
+      "size": 40221
+    },
+    "tests/test_p3_gate_fuzz.py": {
+      "sha256": "867d14e9bbcc9ac4b73595024805c29304aa8701bf6499c4a365a2532268379e",
+      "size": 16712
+    },
+    "tests/test_p3_handin.py": {
+      "sha256": "9c030c75766678bcfa6ee7a17b9bfc6dcf288fff3df20d5e9e1253fbc9deb71b",
+      "size": 7915
+    },
+    "tests/test_p3_handover.py": {
+      "sha256": "dddbeb5f17501cfe8e6f24c9bd396da96dc0a8e69c28559f0151d503e871dd6c",
+      "size": 4781
+    },
+    "tests/test_p3_hook_attack.py": {
+      "sha256": "c249bac41cfb8eae6ccd67354af2413b56439be81afee74918cf9f236a38c1cb",
+      "size": 9913
+    },
+    "tests/test_p3_isolation.py": {
+      "sha256": "e52c2563fc5c8f8c2ffdbd4459dd711482c37bc9007d63b716cae7177f6889a1",
+      "size": 18723
+    },
+    "tests/test_p3_kit3.py": {
+      "sha256": "51f92a241e7d2f708359656bfa87072461af7715706320065da9b04574890b64",
+      "size": 4518
+    },
+    "tests/test_p3_ledger_edges.py": {
+      "sha256": "afae0558c55cd54104997cd711293d8c0efa296fd94653235b480b3e3a0b8571",
+      "size": 9049
+    },
+    "tests/test_p3_loadtest.py": {
+      "sha256": "ff69a96d1b3ddbd1ae4642c07f6e108a23a5aa4a951da048fea0a85787ed9771",
+      "size": 898
+    },
+    "tests/test_p3_mutation_guards.py": {
+      "sha256": "ca5aa1a73f2adfb16fd39873b3bd8eab214954cfe1510ccc5f91a6b0e436b189",
+      "size": 8110
+    },
+    "tests/test_p3_reference_properties.py": {
+      "sha256": "75b2b479f41f77dad53aec806d1c9f50442b07cde9c840f5db75a127af76ef2d",
+      "size": 2243
+    },
+    "tests/test_p3_registry.py": {
+      "sha256": "b2f0b5e292832edcf1998ecc74d61efaaa64018001def9c2f8bff88bdeca3f26",
+      "size": 1849
+    },
+    "tests/test_p3_report3.py": {
+      "sha256": "934a4ff79b8d759f24671f8109fed8bd9cd54da11787559c291f165737d9d161",
+      "size": 2439
+    },
+    "tests/test_p3_resume.py": {
+      "sha256": "9db19ed8d207318f8eff658d1a9e237dd6282eb87f2f1066d38c637128e9c4b0",
+      "size": 3367
+    },
+    "tests/test_p3_review_measurement.py": {
+      "sha256": "746569a2dcc2abad591fd75cb24fb8f306f70ff579e57356cf5a134f642e9edb",
+      "size": 31695
+    },
+    "tests/test_p3_review_security.py": {
+      "sha256": "745553acc747138a03c7b70abd59512feccc4137b4ff855c180934818f21c33b",
+      "size": 14580
+    },
+    "tests/test_p3_schema.py": {
+      "sha256": "4bb42517b72e5ca80e19e46f183dfcd1dc8fc223cec052b714eb4750861a5611",
+      "size": 5425
+    },
+    "tests/test_p3_security_doc.py": {
+      "sha256": "e08bc1c17c0c0a5e0656862bd3125225d6f10b9199bcfcb4e0b87733db297168",
+      "size": 2448
+    },
+    "tests/test_p3_simulate.py": {
+      "sha256": "c64ea213dbe059ed0a884709e9d605386dcdd184708e840eb6200a3941167c39",
+      "size": 1551
+    },
+    "tests/test_p3_stats.py": {
+      "sha256": "2472f91532bcc15ac46b13ab11614da9af12455f448e1f0b54717f27395d8e73",
+      "size": 3316
+    },
+    "tests/test_p3_taskqueue.py": {
+      "sha256": "f1a47c86cc5206549d1cd1072349d42d050ff879d643ca794350d50551bdda31",
+      "size": 6003
+    },
+    "tests/test_p3_team.py": {
+      "sha256": "f3ea70d480df60e9eea6dccb24a9158ae84db65db060d09c0d482a165b627425",
+      "size": 16001
+    },
+    "tests/test_p3_tickets.py": {
+      "sha256": "576f7890fbe42573ddafc9f3e0e2983301a08dd0e740f275fdd868a8ec398bac",
+      "size": 6094
+    },
+    "tests/test_p3_timeline.py": {
+      "sha256": "d99875f17e181ad3bcf856fe3e80d13af9eeed836a43fec68a9e9f3f7ebfcb9a",
+      "size": 2271
+    },
+    "tests/test_p3_trace.py": {
+      "sha256": "910f9c746454a2e2bd3b312461fcae0f4a4564406e96958873c5241a71309c05",
+      "size": 942
+    },
+    "tests/test_swarm.py": {
+      "sha256": "653635993b33bd1d65abe7f5efdf6a8d598d36cd39b5837801e229e7bb6dc55d",
+      "size": 16730
+    },
+    "tests/test_swarm_phase2.py": {
+      "sha256": "ab24c223b2a2abb6f91fbf8c7da76f03c581d49ee6394a8be65250936815b048",
+      "size": 27650
+    }
+  },
+  "overall_sha256": "3fe80f9bf573f1388aa38a52dd6aaf3a1ffe3df66cdf93487113f6a46fddf0e1",
+  "statement": "The numerical scale-up phase is closed. No further scale stage is to be run on this branch."
+}
