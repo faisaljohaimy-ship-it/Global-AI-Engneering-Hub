@@ -88,7 +88,10 @@ state_sha256}`, written exclusively (never overwritten) into a private directory
 4. Checkpoints carry their project. Restoring one into another project, or a
    multi-project checkpoint into a project store, is refused.
 5. Read-only use (`create=False`, the facade's reads, `invoke` read actions) never
-   creates a directory or file for an unknown project (`MissingMemory`).
+   creates a directory or file for an unknown project (`MissingMemory`). `invoke` read
+   actions (every action whose side effect is `none`) open the store with
+   `for_project(..., read_only=True)`: no lock file, no migration of a schema-1
+   `memory.json`, and a project that was never written answers as an empty store.
 6. The legacy `MemoryStore(state_dir)` (used by `engineering_os.intelligence`) is still
    a multi-project store that filters by project in code; new callers use
    `for_project`, which is what the facade and `invoke` always do.
