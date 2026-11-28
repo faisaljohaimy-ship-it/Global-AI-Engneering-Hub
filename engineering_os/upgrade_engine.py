@@ -33,6 +33,7 @@ import pprint
 import re
 import shutil
 import sqlite3
+import struct
 import tempfile
 import time
 import urllib.parse
@@ -342,6 +343,17 @@ def load_manifest(root):
     return data
 
 
+def _refuse_linked_databases(root, manifest):
+    """A database the manifest lists must be a real file: ``list_files`` skips symlinks, so a listed one reached through
+    a symlink (the file or a directory on its path) would silently leave the data proof. Refused before anything is copied."""
+    for rel in manifest.get("databases") or []:
+        parts = pathlib.PurePosixPath(rel).parts
+        linked = next((part for part in (pathlib.PurePosixPath(*parts[:n]) for n in range(1, len(parts) + 1))
+                       if (root / part).is_symlink()), None)
+        _need(linked is None, f"Database {rel} listed in {MANIFEST} is reached through the symlink {linked}; its data cannot "
+                              "be proven, so the run is refused before anything was copied (list the real file instead)")
+
+
 def _test_spec(tests, root):
     if tests is None:
         start = root / "tests"
@@ -368,24 +380,179 @@ def _load_spec(root, manifest):
     return rel, spec
 
 
-def requested_changes(command, spec):
+UNSETTLED = ("unparsed", "open-questions", "unsettled")
+# Owner wording that one of the engine's own steps carries out: (request id, area, phrases). A clause naming one is
+# accounted for by that step; the request is met only when the run verifies the outcome (``_Run.verify_requests``).
+ENGINE_REQUESTS = (
+    ("unused-assets", "assets", ("unused assets", "unused images", "unused files", "unreferenced assets", "unreferenced images",
+                                 "unreferenced files", "الأصول المهملة", "الصور المهملة", "الملفات المهملة", "الأصول غير المستخدمة",
+                                 "الصور غير المستخدمة", "الملفات غير المستخدمة")),
+    ("dead-code", "code", ("dead code", "unused code", "unreachable code", "الكود الميت", "الشيفرة الميتة", "الكود غير المستخدم",
+                           "الشيفرة غير المستخدمة")),
+    ("slow-queries", "performance", ("slow queries", "slow query", "unindexed queries", "full table scans", "الاستعلامات البطيئة",
+                                     "الاستعلامات البطيئه")),
+)
+# Function words around what a command names; they never carry a request on their own.
+_FUNCTION_WORDS = frozenset(token for word in (*requirements._GAP, *requirements._HAS, *(
+    "a about all an app application apps are as at be by can could entire every is it its my our platform please project "
+    "service should so system systems that their them this tool up whole will would your").split(), *(
+    "نظام منظومة تطبيق مشروع منصة خدمة أداة كل جميع كامل كاملا بالكامل كله هذا هذه عن").split(),
+    *("ال" + word for word in "نظام منظومة تطبيق مشروع منصة خدمة أداة".split())) for token in requirements._words(word))
+_SPEC_ITEMS = frozenset({"entity", "field", "feature", "role", "locale", "integration", "ai", "database", "product"})
+
+
+def _router_vocabulary():
+    rules = gaie_router.policy()
+    words = [w for key in ("fillers", "coordinators", "clause_breaks") for w in rules[key]]
+    words += [w for group in rules["focus"].values() for w in group]
+    return {t for w in words for t in requirements._words(w)}, gaie_router._operation_words(rules)
+
+
+def _known(token, vocabulary):
+    return bool(requirements._variants(token) & vocabulary)
+
+
+def _account(command, spec, names=()):
+    """Clause accounting of a command, by the requirements parser's own clause rules.
+
+    Returns ``{exclusions, changes, requests, unaccounted}``. An exclusion is a remove verb used
+    as a command (at the start of a clause, after a coordinator or with و/ف attached: "members
+    can delete their own tasks" removes nothing) or a negation, with its clause text. A change is
+    any later commanding change verb («عدّل», "modify") whose clause names a specification item.
+    A request is an ``ENGINE_REQUESTS`` phrase; a remove verb in front of one is that request,
+    not an exclusion. ``unaccounted`` lists the clause text of every word that nothing accounts
+    for: not the router's own vocabulary (command verbs, focus, fillers, coordinators), not a
+    function word, not the target's name (the specification's title and slug, ``names``), not a
+    requirements-lexicon phrase (what the specification diff is computed from) and not an engine
+    request. Without a specification the target's name is unknown, so a run of up to three
+    unknown words right after the command verb is taken as that name.
+    """
+    try:
+        index, control = requirements._entries(requirements.load_knowledge(), spec)
+        sentences = requirements._analyse(command, index, control)
+        vocabulary, verbs = _router_vocabulary()
+    except (requirements.SpecError, gaie_router.RouteError, OSError, KeyError, ValueError, TypeError):
+        whole = ["the command (its wording could not be analysed)"]  # fail closed: unknown wording is not "nothing requested"
+        return {"exclusions": whole, "changes": [], "requests": [], "unaccounted": whole}
+    title = [(spec or {}).get("title", {}).get(lang, "") for lang in ("en", "ar")] + [(spec or {}).get("slug", "")]
+    vocabulary = vocabulary | _FUNCTION_WORDS | {t for name in (*title, *names) if isinstance(name, str)
+                                                 for t in requirements._words(re.sub(r"[-_.]+", " ", name))}
+
+    def verb(word):
+        bare, joined = gaie_router._conjoined(word)
+        return gaie_router._verb(word, verbs)[0] is not None or (joined and gaie_router._verb(bare, verbs)[0] is not None)
+
+    out = {"exclusions": set(), "changes": set(), "requests": {}, "unaccounted": []}
+    later, named = False, spec is not None  # later: past the router's own command verb; named: the target's name was seen
+    for sentence in sentences:
+        words, hits = sentence["raw"], sentence["hits"]
+        starts = {h["clause"][1] for h in hits} | {0}
+        coordinators = {h["pos"] for h in hits if h["cat"] == "signal:coordinators"}
+        verbs_at = [k for k, word in enumerate(words) if verb(word)]
+        # a segment ends at the next clause, coordinator, control verb or command verb
+        bounds = sorted(starts | coordinators | {h["pos"] for h in hits if h["cat"].startswith("signal:")} | set(verbs_at))
+        covered = [False] * len(words)
+        for hit in hits:
+            covered[hit["pos"]:hit["end"]] = [True] * (hit["end"] - hit["pos"])
+        engine = []
+        for rid, area, phrases in ENGINE_REQUESTS:
+            for tokens in (requirements._words(phrase) for phrase in phrases):
+                for first in range(len(words) - len(tokens) + 1):
+                    if all(requirements._variants(words[first + k]) & requirements._variants(t) for k, t in enumerate(tokens)):
+                        engine.append((first, first + len(tokens)))
+                        covered[first:first + len(tokens)] = [True] * len(tokens)
+                        out["requests"].setdefault(rid, {"id": rid, "area": area, "words": " ".join(words[first:first + len(tokens)])})
+
+        def end(start):
+            return min([b for b in bounds if b > start] + [len(words), start + 12])
+
+        first_verb = None
+        if not later and verbs_at:
+            first_verb, later = verbs_at[0], True
+        for hit in sorted(hits, key=lambda h: h["pos"]):
+            start = hit["pos"]
+            commanding = start in starts or start - 1 in coordinators or words[start][:1] in "وف"
+            if hit["cat"] == "signal:remove" and commanding:
+                rest = [k for k in range(start + 1, end(start)) if not _known(words[k], _FUNCTION_WORDS)]
+                if rest and all(any(a <= k < b for a, b in engine) for k in rest):
+                    continue  # "remove unused assets": an engine request, not an exclusion
+            if (hit["cat"] == "signal:remove" and commanding) or hit["cat"] == "signal:negations":
+                out["exclusions"].add(" ".join(words[start:end(start)]))
+            elif hit["cat"] == "signal:change" and commanding and start != first_verb \
+                    and any(h["cat"] in _SPEC_ITEMS and start < h["pos"] < end(start) for h in hits):
+                out["changes"].add(" ".join(words[start:end(start)]))
+        for position, word in enumerate(words):
+            if covered[position] or verb(word) or _known(word, vocabulary):
+                continue
+            if not named:  # no specification: up to three unknown words right after the command verb name the target
+                named, run = True, position
+                while run < end(position) and run - position < 4 and not covered[run] and not verb(words[run]) \
+                        and not _known(words[run], vocabulary) and (run == position or not gaie_router._conjoined(words[run])[1]):
+                    run += 1  # a word with و/ف attached starts the next Arabic clause
+                if first_verb is not None and first_verb < position and run - position <= 3 \
+                        and (run == len(words) or covered[run] or verb(words[run]) or _known(words[run], vocabulary)
+                             or gaie_router._conjoined(words[run])[1] or run == end(position)):
+                    covered[position:run] = [True] * (run - position)
+                    continue
+            stop = end(position)
+            out["unaccounted"].append(" ".join(words[position:stop]))
+            covered[position:stop] = [True] * (stop - position)
+    return {"exclusions": sorted(out["exclusions"]), "changes": sorted(out["changes"]),
+            "requests": [out["requests"][key] for key in sorted(out["requests"])], "unaccounted": out["unaccounted"]}
+
+
+def _exclusions(command, spec):
+    """Remove or exclude requests the command states (see ``_account``); returns the clause text from each such word."""
+    return _account(command, spec)["exclusions"]
+
+
+def requested_changes(command, spec, names=()):
     """What the command asks to change in the existing specification (requirements.parse with base= and diff_specs).
 
     ``status`` is ``refused-breaking`` when the change would remove an entity, field, relation,
     feature, role or locale or tighten a field (data or function loss); ``unmet`` lists the
     non-breaking structural additions, which the deterministic generators do not implement.
+    A request that is not settled is one of ``UNSETTLED``: ``unparsed`` (the change cannot be
+    applied to the specification), ``open-questions``, or ``unsettled``: a clause that nothing
+    accounts for (``_account``: wording the parser ignored, e.g. "get rid of the Arabic
+    locale"), or a removal, exclusion or change of a specification item that the diff does not
+    reflect. Its ``unmet`` names what was asked; ``upgrade`` stops before copying anything.
+    ``requests`` are the engine's own steps the command asks for (``ENGINE_REQUESTS``); the run
+    verifies them and reports each one it could not carry out as unmet. ``names`` are further
+    words that name the target (the project, the manifest name, the directory).
     """
+    account = _account(command, spec, names)
+    exclusions, requests = account["exclusions"], account["requests"]
+
+    def unsettled(removed=False, changed=False):
+        shown = ([] if removed else exclusions) + ([] if changed else account["changes"])  # each names its own words
+        unmet = [f"not accounted for: {text}" for text in account["unaccounted"] if not any(text in other for other in shown)]
+        unmet += [] if removed else [f"remove or exclude: {text}" for text in exclusions]
+        unmet += [] if changed else [f"change: {text}" for text in account["changes"]]
+        return {"status": "unsettled", "exclusions": exclusions, "requests": requests, "unmet": unmet,
+                "detail": "the command has wording that neither the specification diff nor the engine's own steps account for, "
+                          "or asks to remove, exclude or change something the diff does not reflect; nothing is guessed or "
+                          "removed without an owner-settled specification change"}
+
     if spec is None:
-        return {"status": "no-specification", "unmet": [],
+        if exclusions or account["unaccounted"] or account["changes"]:
+            return unsettled()
+        return {"status": "no-specification", "unmet": [], "requests": requests,
                 "detail": "no gaie-spec.json: requested changes cannot be derived; only audit findings drive the plan"}
     try:
         target = requirements.parse(command, base=spec)
     except requirements.SpecError as error:
-        return {"status": "unparsed", "errors": error.errors, "unmet": []}
+        return {"status": "unparsed", "errors": error.errors, "exclusions": exclusions, "requests": requests,
+                "unmet": [f"the request as worded ({'; '.join(error.errors[:3])})"[:300]],
+                "detail": "the requested change cannot be applied to the specification; it is not settled"}
     if target["open_questions"]:
-        return {"status": "open-questions", "open_questions": [q["id"] for q in target["open_questions"]], "unmet": [],
+        return {"status": "open-questions", "open_questions": [q["id"] for q in target["open_questions"]], "exclusions": exclusions,
+                "requests": requests, "unmet": [f"open question {q['id']}" for q in target["open_questions"]],
                 "detail": "the requested change is not settled; nothing structural is generated"}
     diff = requirements.diff_specs(spec, target)
+    removed, changed = bool(diff["summary"]["removed"]), any(diff["summary"][k] for k in ("added", "removed", "changed"))
+    if not diff["breaking"] and (account["unaccounted"] or (exclusions and not removed) or (account["changes"] and not changed)):
+        return unsettled(removed, changed)
     unmet = [f"entity {name}" for name in diff["entities"]["added"]]
     unmet += [f"field {change['name']}.{field}" for change in diff["entities"]["changed"] for field in change["fields"]["added"]]
     unmet += [f"feature {fid}" for fid in diff["features"]["added"]] + [f"role {rid}" for rid in diff["roles"]["added"]]
@@ -393,7 +560,7 @@ def requested_changes(command, spec):
     unmet += [f"integration {iid}" for iid in diff["integrations"]["added"]]
     structural = {key: diff[key] for key in ("entities", "relations", "features", "roles", "integrations")}
     return {"status": "refused-breaking" if diff["breaking"] else "ok", "breaking": diff["breaking"], "summary": diff["summary"],
-            "structural": structural, "spec_sha256": diff["new_sha256"], "unmet": [] if diff["breaking"] else unmet,
+            "structural": structural, "spec_sha256": diff["new_sha256"], "unmet": [] if diff["breaking"] else unmet, "requests": requests,
             "detail": ("breaking changes would lose data or functions; they need an owner-designed migration and approval" if diff["breaking"] else
                        "structural additions are reported as unmet: their application code is outside the deterministic generators" if unmet else
                        "non-structural: the upgrade raises quality against the existing specification")}
@@ -446,6 +613,135 @@ def _open_ro(path):
     return sqlite3.connect(f"file:{urllib.parse.quote(str(path))}?mode=ro&immutable=1", uri=True)
 
 
+def _companions(path):
+    """Journal companions next to a SQLite file (``-wal``, ``-shm``, ``-journal``) that exist; a symlinked one is refused."""
+    found = []
+    for suffix in ("-wal", "-shm", "-journal"):
+        companion = pathlib.Path(f"{path}{suffix}")
+        _need(not companion.is_symlink(), f"Database companion {companion.name} is a symlink; refused")
+        if companion.exists():
+            found.append(suffix)
+    return found
+
+
+def _pending(path):
+    """Companions that can hold committed (``-wal``) or to-be-rolled-back (``-journal``) content; ``-shm`` is only the WAL index."""
+    return [suffix for suffix in _companions(path) if suffix != "-shm"]
+
+
+def _row_counts(conn):
+    names = [row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
+    return {name: conn.execute(f"SELECT COUNT(*) FROM {_quote(name)}").fetchone()[0] for name in names}
+
+
+JOURNAL_MAGIC = bytes.fromhex("d9d505f920a163d7")  # SQLite rollback-journal header and super-journal record magic
+WAL_MAGIC = (0x377F0682, 0x377F0683)
+WAL_VERSION = 3007000
+
+
+def _journal_refusal(path):
+    """Why the ``-journal`` beside ``path`` must never reach SQLite, or None when it holds nothing to roll back.
+
+    SQLite rolls a hot journal back on the first normal open and then deletes the file the
+    journal names as its super-journal (any path the process may delete). The engine never
+    hands SQLite a journal it did not create: a journal that ends in a super-journal record
+    or is hot (its first byte is not zero: an interrupted write transaction) is refused; an
+    empty or zeroed one (``TRUNCATE``/``PERSIST`` residue) is inert and is never copied.
+    """
+    try:
+        with open(f"{path}-journal", "rb") as stream:
+            first = stream.read(1)
+            size = stream.seek(0, 2)
+            stream.seek(max(size - 8, 0))
+            tail = stream.read(8)
+    except FileNotFoundError:
+        return None
+    if size >= 8 and tail == JOURNAL_MAGIC:
+        return ("its -journal ends in a super-journal record (a multi-database transaction); rolling it back would make "
+                "SQLite delete the file that record names")
+    if first not in (b"", b"\0"):
+        return ("its -journal is a hot rollback journal (an interrupted write transaction); the engine never rolls back a "
+                "journal it did not create: open and close the database once with the application that owns it, then run again")
+    return None
+
+
+def _wal_refusal(wal):
+    """Why the ``-wal`` file ``wal`` must not be opened, or None: empty, or a SQLite WAL header whose checksum verifies."""
+    with open(wal, "rb") as stream:
+        header = stream.read(32)
+    if not header:
+        return None
+    if len(header) < 32:
+        return "its -wal is shorter than a WAL header"
+    magic, version, page_size = struct.unpack(">3I", header[:12])
+    if magic not in WAL_MAGIC or version != WAL_VERSION or not 512 <= page_size <= 65536 or page_size & (page_size - 1):
+        return "its -wal does not start with a SQLite WAL header"
+    words, first, second = ">" if magic & 1 else "<", 0, 0  # wal.c walChecksumBytes over the first 24 bytes
+    for offset in range(0, 24, 8):
+        low, high = struct.unpack(words + "2I", header[offset:offset + 8])
+        first = (first + low + second) & 0xFFFFFFFF
+        second = (second + high + first) & 0xFFFFFFFF
+    if struct.unpack(">2I", header[24:32]) != (first, second):
+        return "its -wal header checksum does not verify"
+    return None
+
+
+def snapshot_database(path, dest, staging):
+    """Consistent single-file copy of the SQLite database at ``path``, made with the sqlite3 backup API.
+
+    SQLite never opens the source directory (a read-only open of a WAL database creates or
+    rewrites its ``-shm`` there) and never sees a journal the engine did not create. A
+    ``-journal`` is read as bytes first and the copy is refused when it is hot or carries a
+    super-journal record (``_journal_refusal``); an inert one is left out. The main file and a
+    ``-wal`` whose header verifies are byte-copied into ``staging``, a directory created here:
+    with a ``-wal`` SQLite opens the copy there and applies the committed frames, otherwise the
+    copy is opened ``immutable=1`` (no journal or WAL is consulted). ``dest`` keeps the source's
+    journal mode and has no companion file. Raises UpgradeError, before SQLite opens anything,
+    for a refused companion, and afterwards unless ``dest`` passes ``PRAGMA integrity_check``
+    and every table has the source's row count (both read through the same API). Returns
+    ``{journal_mode, companions, rows, integrity, method}``.
+    """
+    path, dest, staging = pathlib.Path(path), pathlib.Path(dest), pathlib.Path(staging)
+    companions = _companions(path)
+    refusal = _journal_refusal(path) if "-journal" in companions else None
+    _need(refusal is None, f"Database {path.name}: {refusal}. Refused before SQLite opened it; nothing was rolled back or deleted")
+    for stale in [dest] + [pathlib.Path(f"{dest}{suffix}") for suffix in _companions(dest)]:
+        stale.unlink(missing_ok=True)
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True, mode=0o700)  # exist_ok=False: the private directory is the one created here
+    source = staging / "source.db"
+    try:
+        shutil.copyfile(path, source)
+        wal = "-wal" in companions
+        if wal:  # the WAL index (-shm) is rebuilt from the WAL; a copied one could be stale. A journal is never copied
+            shutil.copyfile(f"{path}-wal", f"{source}-wal")
+            refusal = _wal_refusal(f"{source}-wal")  # the bytes SQLite would read
+            _need(refusal is None, f"Database {path.name}: {refusal}. Refused before SQLite opened it")
+        try:
+            src = sqlite3.connect(source) if wal else _open_ro(source)
+            try:
+                dst = sqlite3.connect(dest)
+                try:
+                    src.backup(dst)
+                    mode = dst.execute("PRAGMA journal_mode").fetchone()[0]  # the header's mode (an immutable source reports delete)
+                    integrity = dst.execute("PRAGMA integrity_check").fetchone()[0]
+                    before, after = _row_counts(src), _row_counts(dst)
+                finally:
+                    dst.close()
+            finally:
+                src.close()
+        except sqlite3.Error as error:
+            raise UpgradeError(f"Database {path.name} could not be copied consistently ({type(error).__name__}: {str(error)[:200]})") from None
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    _need(integrity == "ok", f"Database {path.name}: its copy fails PRAGMA integrity_check ({str(integrity)[:200]})")
+    _need(before == after, f"Database {path.name}: the copy's row counts {after} differ from the source's {before}")
+    _need(not _pending(dest), f"Database {path.name}: the copy kept a journal companion")
+    return {"journal_mode": mode, "companions": companions, "rows": after, "integrity": integrity,
+            "method": "journal checked before any open; byte copy of the file and a verified -wal into a private directory, "
+                      "then the sqlite3 backup API"}
+
+
 def _table_checksum(conn, table, columns):
     selected = ", ".join(_quote(c) for c in columns)
     try:
@@ -459,12 +755,23 @@ def _table_checksum(conn, table, columns):
     return rows, digest.hexdigest()
 
 
-def data_manifest(path, columns=None):
+def data_manifest(path, columns=None, staging=None):
     """Logical manifest of one SQLite file, read-only and immutable: tables (rows, columns, SHA-256), indexes, version.
 
     ``columns`` restricts each table's checksum to the given columns (the baseline columns),
-    so a migration that only adds a column still proves the original data unchanged.
+    so a migration that only adds a column still proves the original data unchanged. A
+    database with a ``-wal`` or ``-journal`` companion is read from ``snapshot_database`` in
+    the private ``staging`` directory, so committed WAL frames count; without ``staging``
+    (the read-only audit writes nowhere) its main file is read as it is and ``complete`` is false.
     """
+    pending = _pending(path)
+    if pending and staging is not None:
+        staging = pathlib.Path(staging)
+        try:
+            snapshot_database(path, staging / "snapshot.db", staging / "source")
+            return {**data_manifest(staging / "snapshot.db", columns), "companions": pending}
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
     conn = _open_ro(path)
     try:
         names = [row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
@@ -477,14 +784,15 @@ def data_manifest(path, columns=None):
         schema = [list(row) for row in conn.execute("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name")]
         return {"tables": tables, "indexes": sorted(row[1] for row in schema if row[0] == "index"),
                 "user_version": conn.execute("PRAGMA user_version").fetchone()[0],
-                "integrity": conn.execute("PRAGMA quick_check").fetchone()[0], "schema_sha256": sha(schema)}
+                "integrity": conn.execute("PRAGMA quick_check").fetchone()[0], "schema_sha256": sha(schema),
+                "companions": pending, "complete": not pending}
     finally:
         conn.close()
 
 
-def data_preserved(before, after_path):
+def data_preserved(before, after_path, staging=None):
     """Problems (empty when none): every baseline table keeps its rows and the SHA-256 over its baseline columns."""
-    after = data_manifest(after_path, {name: row["columns"] for name, row in before["tables"].items()})
+    after = data_manifest(after_path, {name: row["columns"] for name, row in before["tables"].items()}, staging)
     problems = []
     for name, row in sorted(before["tables"].items()):
         now = after["tables"].get(name)
@@ -498,6 +806,8 @@ def data_preserved(before, after_path):
             problems.append(f"table {name}: row checksum changed")
     if after["integrity"] != "ok":
         problems.append("integrity check failed")
+    if not after["complete"]:
+        problems.append(f"read without its {'/'.join(after['companions'])} companion: committed data is unproven")
     return problems, after
 
 
@@ -548,7 +858,10 @@ def _execute_migration(path, statements):
 def migrate_database(path, up, down, scratch):
     """Apply ``up`` to a scratch copy of ``path``, prove data preservation and that ``down`` restores the schema.
 
-    Returns ``(migrated bytes, proof)``; the file at ``path`` is never written here. Raises
+    Returns ``(migrated bytes, proof)``; the file at ``path`` is never written here. The scratch
+    copy comes from ``snapshot_database`` (committed ``-wal`` frames included, integrity and row
+    counts verified), so the migrated bytes are one complete file: the caller must remove the
+    stale ``-wal``/``-shm``/``-journal`` next to ``path`` when it writes them. Raises
     UpgradeError when the SQL is refused, fails, or any baseline row is lost or changed.
     """
     statements = classify_migration(up)
@@ -556,7 +869,7 @@ def migrate_database(path, up, down, scratch):
     scratch = pathlib.Path(scratch)
     scratch.mkdir(parents=True, exist_ok=True, mode=0o700)
     work, back = scratch / "up.db", scratch / "down.db"
-    shutil.copyfile(path, work)
+    copied = snapshot_database(path, work, scratch / "source")
     before = data_manifest(work)
     try:
         _execute_migration(work, statements)
@@ -565,9 +878,9 @@ def migrate_database(path, up, down, scratch):
     problems, after = data_preserved(before, work)
     _need(not problems, "Migration refused: it would lose or change data (" + "; ".join(problems) + ")")
     proof = {"before": before, "after": after, "statements": [r["kind"] for r in statements], "data_preserved": True,
-             "down_verified": None, "down_statements": [r["kind"] for r in reverse]}
+             "down_verified": None, "down_statements": [r["kind"] for r in reverse], "copy": copied}
     if reverse:
-        shutil.copyfile(work, back)
+        snapshot_database(work, back, scratch / "source")
         try:
             _execute_migration(back, reverse)
         except sqlite3.Error as error:
@@ -810,10 +1123,15 @@ def _plan(conn, query):
 
 
 def _schema_db(root, schemas):
-    conn = sqlite3.connect(":memory:")
-    for rel in schemas:
-        conn.executescript(detectors.read_text(root, rel) or "")
-    return conn
+    """The declared schema in a throwaway in-memory database (detectors.schema_memory: no statement reaches a file).
+
+    Returns ``(connection, problems)``; the connection is closed and ``None`` when any schema did not load.
+    """
+    conn, problems = detectors.schema_memory(root, schemas)
+    if problems:
+        conn.close()
+        return None, problems
+    return conn, []
 
 
 def _index_effect(conn, table, columns, query):
@@ -831,10 +1149,12 @@ def audit_queries(root, files, schemas, tests_dir):
     """Full-table scans in filtered SQL literals, with the index chosen by a reasoning.trade_off over measured plans."""
     if not schemas:
         return []
-    try:
-        conn = _schema_db(root, schemas)
-    except sqlite3.Error:
-        return []
+    conn, problems = _schema_db(root, schemas)
+    if conn is None:  # a refused statement is reported; a broken schema leaves nothing to measure (detectors report it)
+        return [{"kind": "unsafe-schema-sql", "path": row["path"], "line": None, "symbol": row["path"], "severity": "high",
+                 "evidence": {"refused": row["refused"], "error": row["error"],
+                              "detail": "target SQL was refused, not executed: it would reach a file or extension; no query plan was measured"}}
+                for row in problems if row["kind"] == "unsafe-schema-sql"]
     out, seen = [], set()
     try:
         for rel, line, query in detectors.sql_queries(root, files, tests_dir=tests_dir):
@@ -1213,6 +1533,7 @@ class _Run:
         self.patch = self.reverse = ""
         self.changed, self.task_id, self.requested = {}, None, {"unmet": []}
         self.memory, self.memory_report, self.adr = None, {"written": False}, None
+        self.unused, self.entrypoints, self.schemas = [], (), []
         self.run_dir = self.candidate = self.sandbox = None
         self.original = self._snapshot(root)
 
@@ -1307,17 +1628,20 @@ class _Run:
         tests_dir = self.tests["start"] if self.tests else None
         databases = self.manifest.get("databases") or sqlite_files(self.root, files, tests_dir)
         self.databases = [rel for rel in databases if rel in files]
+        self.databases_missing = sorted(set(databases) - set(self.databases))  # listed but not a file in the target
         self.data = {}
-        for rel in self.databases:
-            try:
-                self.data[rel] = data_manifest(self.root / rel)
+        for number, rel in enumerate(self.databases, 1):
+            try:  # an upgrade reads its copy through a verified snapshot (committed -wal frames count); the audit writes nowhere
+                self.data[rel] = data_manifest(self.root / rel) if self.audit_only else \
+                    data_manifest(self.candidate / rel, staging=self.run_dir / "scratch" / f"baseline-{number:02d}")
             except sqlite3.Error as error:
                 raise UpgradeError(f"Database {rel} is unreadable ({type(error).__name__}); its data could not be protected") from None
         self.assets = {rel: self.original[rel] for rel in asset_files(self.root, files, self.manifest, tests_dir)}
         self.definitions = self.defs(self.root, files)
         self.route_entries = self.routes(self.root)
         self.test_files = {rel: digest for rel, digest in self.original.items() if tests_dir and _under(rel, tests_dir)}
-        result = {"data": self.data, "assets": self.assets, "definitions": len(self.definitions), "routes": len(self.route_entries),
+        result = {"data": self.data, "databases_missing": self.databases_missing, "assets": self.assets,
+                  "definitions": len(self.definitions), "routes": len(self.route_entries),
                   "test_files": sorted(self.test_files)}
         if self.audit_only:
             result["tests"] = {"executed": False, "reason": "audit is read-only: the suite would run in a workspace copy"}
@@ -1372,16 +1696,19 @@ class _Run:
         except detectors.DetectorError as error:
             raise UpgradeError(f"Invalid healing manifest: {error}") from None
         runtime = bool(healing_manifest.get("app")) and not self.audit_only
-        where = self.root if not runtime else self.scratch("audit")
+        # An upgrade runs the detectors on a disposable copy only, never on the original; the audit (which writes
+        # nothing) reads the target itself, and its database checks open files with immutable=1.
+        where = self.root if self.audit_only else self.scratch("audit")
         try:
             detection = detectors.run_all(where, healing_manifest, tests_dir=tests_dir, runtime=runtime,
                                           sandbox=self.sandbox if runtime else _NO_SANDBOX)
         except detectors.DetectorError as error:
             raise UpgradeError(f"Detector configuration error: {error}") from None
         finally:
-            if runtime:
+            if not self.audit_only:
                 shutil.rmtree(where, ignore_errors=True)
         self.security_baseline = sorted(f["evidence"]["fingerprint"] for f in detection["findings"] if f["detector"] == "security")
+        self.entrypoints = healing_manifest.get("entrypoints", ())
         self.defects = [f for f in detection["findings"] if healing.RANK[f["severity"]] >= healing.RANK["medium"]]
         templates = sorted(rel for rel in files if rel.endswith((".html", ".htm")) and not _under(rel, tests_dir)
                            and (not self.manifest.get("templates") or any(_under(rel, d) for d in self.manifest["templates"])))
@@ -1728,6 +2055,7 @@ class _Run:
             raise _NotApplicable("no step was applied; nothing to document")
         if preview:
             return {"summary": [{"op": "write", "path": "UPGRADE.md"}]}
+        self.verify_requests()
         current = _text_of(self.read("UPGRADE.md"))
         lines = [f"# Upgrade of {self.project} / تطوير {self.project}\n\n" if current is None else "\n",
                  f"Generated by the GAIE Master Upgrade Engine at {_iso(self.now)} for the command: `{self.route_command}`.\n",
@@ -1884,6 +2212,9 @@ class _Run:
                 self.write(rel, op["data"])
             elif op["op"] == "migrate":
                 data, proof = migrate_database(self.candidate / rel, op["up"], op["down"], self.run_dir / "scratch" / f"{step_id}-{_slugify(op['id'])}")
+                for suffix in _companions(self.candidate / rel):  # the migrated file is complete; a stale WAL would be replayed onto it
+                    remember(f"{rel}{suffix}")
+                    self.write(f"{rel}{suffix}", None)
                 self.write(rel, data)
                 migrations.append({"id": op["id"], "database": rel, "statements": proof["statements"], "down_verified": proof["down_verified"],
                                    "rows": {t: r["rows"] for t, r in proof["before"]["tables"].items()},
@@ -1924,7 +2255,10 @@ class _Run:
         written = [rel for rel in touched if (self.candidate / rel).is_file()]
         data_ok = True
         for rel, manifest in self.data.items():
-            problems, _ = data_preserved(manifest, self.candidate / rel)
+            try:
+                problems, _ = data_preserved(manifest, self.candidate / rel, self.run_dir / "scratch" / "gate")
+            except (UpgradeError, sqlite3.Error) as error:  # an unreadable or inconsistent database fails the gate
+                problems = [str(error)]
             data_ok = data_ok and not problems
         security = detectors.detect_security(self.candidate, [r for r in written if pathlib.PurePosixPath(r).suffix in detectors.TEXT_SUFFIXES],
                                              baseline=self.security_baseline)
@@ -1954,8 +2288,28 @@ class _Run:
                        f"{None if after is None else hashlib.sha256(after).hexdigest()[:16]}\n")
         return "".join(out)
 
+    def verify_requests(self):
+        """Report as unmet every engine request of the command (``ENGINE_REQUESTS``) the upgraded copy does not satisfy."""
+        tests_dir = self.tests["start"] if self.tests else None
+        for row in self.requested.get("requests") or []:
+            if row["id"] == "unused-assets":
+                left = sorted(proof["asset"] for proof in self.unused if proof["asset"] not in self.backups)
+                problem = left and f"{len(left)} unreferenced asset(s) still in the copy ({', '.join(left[:5])})"
+            elif row["id"] == "dead-code":
+                found = detectors.detect_dead_code(self.candidate, None, tests_dir=tests_dir, entrypoints=self.entrypoints)["findings"]
+                problem = found and (f"{len(found)} dead-code finding(s) remain; the upgrade keeps every function, so dead code "
+                                     "is reported, not deleted")
+            else:
+                files = detectors.list_files(self.candidate)
+                left = [o for o in audit_queries(self.candidate, files, self.schemas, tests_dir) if o["kind"] == "unindexed-filter"]
+                problem = left and f"{len(left)} filtered quer(ies) still scan a whole table"
+            item = f"{row['words']}: {problem}" if problem else None
+            if item and item not in self.requested["unmet"]:
+                self.requested["unmet"].append(item)
+
     # ----- REGRESSION
     def regression(self):
+        self.verify_requests()
         final = self.suite("final") if self.tests else {"status": "not-run", "tests": {}}
         outcomes = final.get("tests", {})
         added = sorted({rel for s in self.steps if s["status"] == "applied" for rel in s["new_tests"]["files"]})
@@ -1963,7 +2317,10 @@ class _Run:
         new_ids = sorted(t for t in outcomes if self.is_new(t, modules))
         data = {}
         for rel, manifest in self.data.items():
-            problems, after = data_preserved(manifest, self.candidate / rel)
+            try:
+                problems, after = data_preserved(manifest, self.candidate / rel, self.run_dir / "scratch" / "regression")
+            except (UpgradeError, sqlite3.Error) as error:  # unreadable or inconsistent: not preserved
+                problems, after = [str(error)], {"tables": {}, "indexes": [], "integrity": None}
             data[rel] = {"preserved": not problems, "problems": problems,
                          "tables": {t: {"rows_before": r["rows"], "rows_after": after["tables"].get(t, {}).get("rows"),
                                         "sha256_before": r["sha256"], "sha256_after": after["tables"].get(t, {}).get("sha256")}
@@ -2003,7 +2360,7 @@ class _Run:
             "patch-and-reverse-apply": patch_ok,
             "rollback-restores-original": rollback_ok,
             "not-blocked": self.blocked is None,
-            "requested-changes-met": not self.requested.get("unmet"),
+            "requested-changes-met": self.requested.get("status") in ("ok", "no-specification") and not self.requested.get("unmet"),
         }
         regressions = sorted(t for t in self.passing if not _passed(outcomes.get(t)))
         fixed = sorted(t for t, o in self.baseline_tests.items() if not _passed(o) and o != "skipped" and _passed(outcomes.get(t)))
@@ -2129,14 +2486,26 @@ def upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extr
     route = route_command(command, environ=environ, workspace=root)
     resolved_workdir = _workdir(workdir, root)
     manifest = load_manifest(root)
+    _refuse_linked_databases(root, manifest)
     spec_tests = _test_spec(tests if tests is not None else manifest.get("tests"), root)
     spec_rel, spec = _load_spec(root, manifest)
     extra = _extra_steps(extra_steps)
-    requested = requested_changes(command, spec)
+    names = [name for name in (route["project"], manifest.get("name"), root.name) if name]
+    if route["project"]:
+        try:
+            names += list(gaie_router.projects(environ).get(route["project"], {}).get("aliases") or [])
+        except (gaie_router.RouteError, OSError, ValueError):
+            pass  # the project's own aliases only widen the accepted names; without them the command must name it otherwise
+    requested = requested_changes(command, spec, names)
     _need(route["mode"] == "audit" or requested["status"] != "refused-breaking",
           "Requested change refused: it would remove data or functions (" + ", ".join(
               f"{row['kind']} {row.get('entity', '')}{'.' + row['field'] if row.get('field') else ''}".strip()
               for row in requested.get("breaking", [])) + "); a breaking change needs an owner-designed migration and approval")
+    _need(route["mode"] == "audit" or requested["status"] not in UNSETTLED,
+          f"Requested change not settled ({requested['status']}: {'; '.join(requested['unmet'])[:400]}): {requested['detail']}. "
+          "Nothing was copied or changed; rephrase the command or settle the change with the owner first")
+    asked = {row["area"] for row in requested.get("requests") or []}  # the owner asked for these steps by name
+    route = {**route, "areas": [area for area in AREAS if area in set(route["areas"]) | asked]}
     run = _Run(root, resolved_workdir, route, manifest, spec_tests, spec_rel, spec, policy, now)
     run.route_command, run.target_spec, run.requested = command, spec, requested
     if run.audit_only:
@@ -2193,9 +2562,13 @@ LIMITS = ("Generators are a bounded deterministic catalogue: spec-derived input 
 def _summary(run, status, applied):
     names = ", ".join(s["id"] for s in applied) or "none"
     unmet = run.requested.get("unmet") or []
-    return {"en": f"{status}: {len(applied)} step(s) applied in an isolated copy ({names}); the original system is unchanged."
+    unchanged = run.regression_report["checks"]["original-unchanged"]  # the sentence follows the snapshot comparison
+    return {"en": f"{status}: {len(applied)} step(s) applied in an isolated copy ({names}); "
+                  + ("the original system is unchanged." if unchanged else
+                     "WARNING: the original system changed during the run (the original-unchanged check failed).")
                   + (f" Requested but NOT implemented: {', '.join(unmet)}." if unmet else ""),
-            "ar": f"الحالة {status}: طُبّقت {len(applied)} خطوة في نسخة معزولة ({names})؛ النظام الأصلي لم يتغير."
+            "ar": f"الحالة {status}: طُبّقت {len(applied)} خطوة في نسخة معزولة ({names})؛ "
+                  + ("النظام الأصلي لم يتغير." if unchanged else "تحذير: تغيّر النظام الأصلي أثناء التشغيل (فشل فحص عدم تغيّر الأصل).")
                   + (f" طُلب ولم يُنفَّذ: {', '.join(unmet)}." if unmet else "")}
 
 
@@ -2207,10 +2580,14 @@ def _audit_report(run, extra, started):
     run.baseline()
     run.audit()
     run.plan(extra)
-    unchanged = run._snapshot(run.root) == before
-    workdir_untouched = run.workdir.exists() == workdir_existed and (
-        not workdir_existed or sorted(p.name for p in run.workdir.iterdir()) == workdir_before)
-    proof = {"target_unchanged": unchanged, "workdir_untouched": workdir_untouched, "files_written": 0, "tests_executed": False,
+    after = run._snapshot(run.root)
+    unchanged = after == before
+    workdir_after = sorted(p.name for p in run.workdir.iterdir()) if run.workdir.exists() else None
+    workdir_untouched = (workdir_after is not None) == workdir_existed and (not workdir_existed or workdir_after == workdir_before)
+    # files_written counts what the comparison found: target files added, removed or changed, and workdir entries
+    written = sum(1 for rel in set(before) | set(after) if before.get(rel) != after.get(rel))
+    written += len(set(workdir_after or []) ^ set(workdir_before or [])) + int(workdir_after is not None and not workdir_existed)
+    proof = {"target_unchanged": unchanged, "workdir_untouched": workdir_untouched, "files_written": written, "tests_executed": False,
              "memory_written": False}
     run.receipt("REPORT", {"mode": "audit"}, proof, "audited" if unchanged and workdir_untouched else "failed")
     result = {"schema_version": VERSION, "engine": ENGINE, "layers": list(LAYERS), "mode": "audit",
@@ -2224,8 +2601,12 @@ def _audit_report(run, extra, started):
               "guarantees": {**GUARANTEES, "read_only": True}, "limits": LIMITS,
               "evidence": {"deterministic": ["route", "inventory", "static detectors", "audit findings", "plan"], "measured": [],
                            "simulated": [], "ai_reasoning": []},
-              "summary": {"en": f"Audit only: {len(run.opportunities)} upgrade opportunities and {len(run.defects)} defect(s) found; nothing was changed.",
-                          "ar": f"فحص فقط: وُجدت {len(run.opportunities)} فرصة تطوير و{len(run.defects)} عيب؛ لم يتغير شيء."}}
+              "summary": {"en": f"Audit only: {len(run.opportunities)} upgrade opportunities and {len(run.defects)} defect(s) found; "
+                                + ("nothing was changed." if unchanged and workdir_untouched else
+                                   f"WARNING: {written} file(s) changed during the audit (see no_change_proof)."),
+                          "ar": f"فحص فقط: وُجدت {len(run.opportunities)} فرصة تطوير و{len(run.defects)} عيب؛ "
+                                + ("لم يتغير شيء." if unchanged and workdir_untouched else
+                                   f"تحذير: تغيّر {written} ملف أثناء الفحص (انظر no_change_proof).")}}
     result["report_sha256"] = sha(result)
     return result
 

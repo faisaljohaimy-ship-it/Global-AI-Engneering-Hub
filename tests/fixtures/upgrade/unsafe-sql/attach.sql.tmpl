@@ -1,0 +1,5 @@
+-- reporting schema shipped with the project (synthetic attack)
+CREATE TABLE IF NOT EXISTS report (id INTEGER PRIMARY KEY, name TEXT);
+ATTACH DATABASE '{outside}/created-by-audit.db' AS side;
+CREATE TABLE IF NOT EXISTS side.planted (note TEXT);
+INSERT INTO side.planted VALUES ('written by a read-only audit');

@@ -778,12 +778,118 @@ def _bindings(query):
     return (None,) * max([stripped.count("?")] + numbered)
 
 
+# Target SQL is data. It only ever runs in a throwaway ":memory:" database where nothing can reach a file:
+# ATTACH (and VACUUM, which attaches; VACUUM INTO writes a file), DETACH, load_extension and every PRAGMA
+# except schema introspection and connection-local switches are denied by an authorizer.
+SQL_PRAGMAS_ALLOWED = frozenset({"foreign_keys", "user_version", "table_info", "table_xinfo", "index_list", "index_info",
+                                 "index_xinfo", "foreign_key_list"})
+SQL_FUNCTIONS_REFUSED = frozenset({"load_extension", "fts3_tokenizer"})
+# Read-only pragmas the built-in fts3/fts4/fts5/rtree/geopoly modules prepare for themselves ("PRAGMA 'main'.page_size",
+# "PRAGMA 'main'.data_version"). They are allowed only schema-qualified and without a value, only while a statement of
+# the script is already running (its own authorizer calls all come before that) and only when that statement uses a
+# virtual table of one of these modules, so the script itself never issues them.
+SQL_MODULE_PRAGMAS = frozenset({"page_size", "data_version"})
+SQL_MODULES = frozenset({"fts3", "fts4", "fts5", "rtree", "rtree_i32", "geopoly"})
+SQL_WORK_LIMIT = 2000  # progress-handler calls of 10000 virtual-machine instructions per schema script
+SQL_TIME_LIMIT_S = 5.0  # wall-clock bound per schema script, checked by the same progress handler
+SQL_VALUE_LIMIT = 1_000_000  # SQLITE_LIMIT_LENGTH: bytes in one string or blob (and one row)
+SQL_STATEMENT_LIMIT = 1_000_000  # SQLITE_LIMIT_SQL_LENGTH: bytes in one statement
+SQL_PAGE_LIMIT = 4096  # max_page_count of the main and the temp database (16 MiB each with 4 KiB pages)
+
+
+def schema_memory(root, schemas):
+    """Load schema files into a fresh ``:memory:`` SQLite database that no statement can use to reach a file.
+
+    An authorizer denies ATTACH/VACUUM, DETACH, load_extension and PRAGMA outside
+    ``SQL_PRAGMAS_ALLOWED``; the attached-database limit is 0 and extension loading stays off.
+    Memory and time are bounded too: one value or row at most ``SQL_VALUE_LIMIT`` bytes, one
+    statement ``SQL_STATEMENT_LIMIT``, the main and temp databases ``SQL_PAGE_LIMIT`` pages
+    each (temp kept in memory), and each script ``SQL_WORK_LIMIT`` progress steps and
+    ``SQL_TIME_LIMIT_S`` seconds. Returns ``(connection, problems)``: one problem per
+    schema that did not load, ``kind`` ``unsafe-schema-sql`` (a statement was refused; the
+    script stops there) or ``schema-error``. The caller closes the connection.
+    """
+    memory = sqlite3.connect(":memory:", isolation_level=None)  # autocommit, as executescript runs a script
+    memory.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
+    memory.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, SQL_VALUE_LIMIT)
+    memory.setlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH, SQL_STATEMENT_LIMIT)
+    for pragma in ("temp_store = MEMORY", f"main.max_page_count = {SQL_PAGE_LIMIT}", f"temp.max_page_count = {SQL_PAGE_LIMIT}"):
+        memory.execute(f"PRAGMA {pragma}").fetchall()  # before the authorizer, which refuses every other PRAGMA
+    if hasattr(memory, "enable_load_extension"):
+        memory.enable_load_extension(False)
+    refused, work, deadline, running, uses_module, module_tables = [], [0], [0.0], [False], [False], set()
+    table_actions = {sqlite3.SQLITE_READ, sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE,
+                     sqlite3.SQLITE_DROP_VTABLE}
+
+    def authorize(action, first, second, database, trigger):
+        if not running[0]:  # the statement being prepared: does it use a virtual table of an allowed module?
+            if action == sqlite3.SQLITE_CREATE_VTABLE and (second or "").casefold() in SQL_MODULES:
+                module_tables.add((first or "").casefold())
+            if (first or "").casefold() in module_tables and (action in table_actions or action == sqlite3.SQLITE_CREATE_VTABLE):
+                uses_module[0] = True
+        if action in (sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH):
+            refused.append("ATTACH or VACUUM" if action == sqlite3.SQLITE_ATTACH else "DETACH")
+        elif action == sqlite3.SQLITE_PRAGMA and (first or "").casefold() not in SQL_PRAGMAS_ALLOWED and not (
+                running[0] and uses_module[0] and second is None and database == "main"
+                and (first or "").casefold() in SQL_MODULE_PRAGMAS):
+            refused.append(f"PRAGMA {first}")
+        elif action == sqlite3.SQLITE_FUNCTION and (second or "").casefold() in SQL_FUNCTIONS_REFUSED:
+            refused.append(f"function {second}")
+        else:
+            return sqlite3.SQLITE_OK
+        return sqlite3.SQLITE_DENY
+
+    def progress():
+        work[0] += 1
+        if work[0] > SQL_WORK_LIMIT or time.monotonic() > deadline[0]:
+            refused.append("work limit" if work[0] > SQL_WORK_LIMIT else "time limit")
+            return 1
+        return 0
+
+    def started(_statement):  # SQLite traces a statement when it starts running, after it was prepared and authorized
+        running[0] = True
+
+    memory.set_authorizer(authorize)
+    memory.set_progress_handler(progress, 10000)
+    memory.set_trace_callback(started)
+    problems = []
+    for rel in schemas:
+        refused.clear()
+        work[0], deadline[0] = 0, time.monotonic() + SQL_TIME_LIMIT_S
+        try:
+            for statement in _sql_statements(read_text(root, rel) or ""):
+                running[0] = uses_module[0] = False
+                memory.execute(statement).fetchall()
+        except sqlite3.Error as error:
+            if getattr(error, "sqlite_errorname", "") in ("SQLITE_TOOBIG", "SQLITE_FULL") or isinstance(error, sqlite3.DataError):
+                refused.append("size limit")  # a value, statement or database past the bounds above
+            problems.append({"path": rel, "kind": "unsafe-schema-sql" if refused else "schema-error",
+                             "refused": sorted(set(refused)), "error": _redact(str(error), 200)})
+    running[0] = uses_module[0] = False
+    memory.set_trace_callback(None)  # the caller's own statements are authorized as script statements
+    work[0], deadline[0] = 0, time.monotonic() + SQL_TIME_LIMIT_S  # the caller's own queries get the same bounds
+    return memory, problems
+
+
+def _sql_statements(script):
+    """The statements of ``script`` one at a time, at the boundaries ``sqlite3.complete_statement`` gives (comments kept)."""
+    buffer = ""
+    for piece in script.split(";"):
+        buffer += piece + ";"
+        if sqlite3.complete_statement(buffer):
+            if re.sub(r"--[^\n]*|/\*.*?\*/|\s|;", "", buffer, flags=re.S):
+                yield buffer
+            buffer = ""
+    if re.sub(r"--[^\n]*|/\*.*?\*/|\s|;", "", buffer, flags=re.S):
+        yield buffer  # an incomplete last statement: SQLite reports it
+
+
 def explain_query(root, schemas, query):
     """EXPLAIN one query against the declared schema in a fresh in-memory database; None or the error text."""
-    memory = sqlite3.connect(":memory:")
+    memory, problems = schema_memory(root, schemas)
     try:
-        for rel in schemas:
-            memory.executescript(read_text(root, rel) or "")
+        if problems:
+            return _redact(f"schema {problems[0]['path']} did not load ({problems[0]['kind']}): {problems[0]['error']}", 200)
         memory.execute("EXPLAIN " + query, _bindings(query))
         return None
     except (sqlite3.Error, ValueError) as error:
@@ -814,13 +920,11 @@ def detect_database(root, files=None, manifest=None, *, tests_dir=None, extra_qu
     if not schemas and not queries and not databases:
         return _report("database", "not-configured", reason="no schema, SQL literals or database files", method="sqlite-in-memory")
     out = []
-    memory = sqlite3.connect(":memory:")
+    memory, problems = schema_memory(root, schemas)
     try:
-        for rel in schemas:
-            try:
-                memory.executescript(read_text(root, rel) or "")
-            except sqlite3.Error as error:
-                out.append(finding("database", "schema-error", rel, None, rel, {"error": _redact(str(error), 200)}, "high"))
+        for row in problems:
+            evidence = {"error": row["error"]} if row["kind"] == "schema-error" else {"refused": row["refused"], "error": row["error"]}
+            out.append(finding("database", row["kind"], row["path"], None, row["path"], evidence, "high"))
         if schemas:
             for rel, line, query in queries:
                 try:
@@ -833,7 +937,8 @@ def detect_database(root, files=None, manifest=None, *, tests_dir=None, extra_qu
     for rel in databases:
         path = _inside(root, rel)
         try:
-            conn = sqlite3.connect(f"file:{urllib.parse.quote(str(path))}?mode=ro", uri=True)
+            # immutable=1: a mode=ro open of a WAL database would create or rewrite its -shm beside it
+            conn = sqlite3.connect(f"file:{urllib.parse.quote(str(path))}?mode=ro&immutable=1", uri=True)
             try:
                 status = conn.execute("PRAGMA quick_check").fetchone()[0]
             finally:

@@ -26,10 +26,11 @@ verified rollback. It reuses the hub's engines instead of duplicating them.
 |---|---|---|
 | `upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extra_steps=None, environ=None)` | `workspace-write` (a new `workdir/upgrade-*` run directory); none in audit mode | The pipeline below; returns the report. |
 | `route_command(command, *, environ=None, workspace=None)` | none | Router decision plus the engine's refusals; `mode`, `scope`, `focus`, `areas`. |
-| `requested_changes(command, spec)` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions. |
-| `data_manifest(path, columns=None)` / `data_preserved(before, after_path)` | none (read-only, `immutable=1`) | Per-table row count and SHA-256 over the original columns; problems list. |
+| `requested_changes(command, spec, names=())` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions, or not settled (`UNSETTLED`): `unparsed`, `open-questions`, `unsettled`. Every word is accounted for (`_account`): the router's own vocabulary, function words, the target's name (spec title and slug, project, manifest name, directory), a requirements-lexicon phrase the diff is computed from, or an engine request (`ENGINE_REQUESTS`: unused assets, dead code, slow queries). Wording nothing accounts for, a remove verb used as a command or a negation the diff does not reflect, and a later change verb on a spec item with an empty diff are `unsettled`; `unmet` names the words. `requests` lists the engine requests. |
+| `data_manifest(path, columns=None, staging=None)` / `data_preserved(before, after_path, staging=None)` | none on the file (read-only, `immutable=1`); with `staging`, a private snapshot there | Per-table row count and SHA-256 over the original columns; problems list. A database with a `-wal`/`-journal` companion is read through `snapshot_database` in `staging`; without it (audit) only the main file is read, `complete` is false and `data_preserved` reports the data as unproven. |
+| `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory it creates | Consistent single-file copy. SQLite never opens the source directory and never sees a journal the engine did not create: the `-journal` is read as bytes first and the copy is refused (`UpgradeError`, before any open) when the journal is hot (an interrupted write transaction) or ends in a super-journal record, because rolling it back would make SQLite delete the file that record names; an empty or zeroed journal (`TRUNCATE`/`PERSIST` residue) holds nothing and is never copied. The main file and a `-wal` whose header and header checksum verify are byte-copied into `staging`; with a `-wal` the copy is opened there and the committed frames are applied, otherwise it is opened `immutable=1`; then the sqlite3 backup API. `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
 | `classify_migration(sql)` / `split_sql(sql)` | none | Statement verdicts; raises `UpgradeError` on any statement that can lose or rewrite data. |
-| `migrate_database(path, up, down, scratch)` | scratch copies only | Applies `up` to a copy, proves data preservation and that `down` restores the schema; returns the migrated bytes. |
+| `migrate_database(path, up, down, scratch)` | scratch copies only | Applies `up` to a `snapshot_database` copy, proves data preservation and that `down` restores the schema; returns the migrated bytes as one complete file (the upgrade removes the copy's stale `-wal`/`-shm`/`-journal` when it writes them; the rollback restores them). |
 | `asset_references(root, rel, files)` | none | Static proof of use or non-use of one asset. |
 | `audit_html`, `fix_html`, `audit_queries`, `audit_validation` | none | The audit checks and the template fixer (deterministic). |
 | `verify_receipts(receipts)` | none | Recomputes every receipt hash and chain link. |
@@ -72,17 +73,35 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
    caller's `workdir`. Policy refusals:
    `network`, `deploy`, any `environment` other than `isolated-copy`, unknown fields.
    `workdir` must be outside the target and outside every Git repository. A requested change
-   that `diff_specs` marks breaking is refused here.
+   that `diff_specs` marks breaking is refused here, and so is one that is not settled
+   (`unparsed`, `open-questions`, `unsettled`, in Arabic and English): the run stops before
+   anything is copied and names what was asked.
 2. **BASELINE** — snapshot the target (SHA-256 per file), copy it to
    `workdir/upgrade-*/upgraded`, run the suite twice in disposable copies (disagreeing tests
    are `flaky` and excluded), record every passing test id, the logical manifest of every
-   SQLite file (tables, rows, SHA-256 over all columns, indexes, `user_version`,
+   SQLite file read from a verified snapshot of the copy, so committed `-wal` frames count
+   (tables, rows, SHA-256 over all columns, indexes, `user_version`,
    `quick_check`), the SHA-256 of every asset, every top-level function/class/method and every
    route. No passing baseline test → `blocked`, nothing is changed.
 3. **AUDIT** — `gaie_inventory.inventory`, `detectors.run_all`, and the upgrade checks:
    write routes of a spec entity without a 4xx rejection path, templates without
    `lang`/`dir`, viewport or labels, filtered SQL literals whose `EXPLAIN QUERY PLAN` is a full
    `SCAN`, assets with no internal reference, and the requested change (`requested_changes`).
+   The target's schema SQL is data: it runs only in a throwaway `:memory:` database
+   (`detectors.schema_memory`) whose authorizer denies `ATTACH` and `VACUUM` (`VACUUM INTO`
+   writes a file), `DETACH`, `load_extension` and every `PRAGMA` except schema introspection,
+   `foreign_keys` and `user_version`; the attached-database limit is 0 and extension loading
+   is off. A script runs one statement at a time; the fts3/fts4/fts5/rtree/geopoly modules may
+   prepare their own read-only `PRAGMA 'main'.page_size` / `data_version` (no value, only while
+   a statement that uses one of their tables is running), so such schemas load and their
+   queries are measured; the script itself still cannot state those pragmas (the one residual:
+   the read-only `pragma_page_size('main')` function inside a statement that also uses such a
+   table, which touches no file). Memory and time are bounded: one string, blob or row at most 1 MB
+   (`SQLITE_LIMIT_LENGTH`), one statement at most 1 MB (`SQLITE_LIMIT_SQL_LENGTH`), the main
+   and temp databases 4096 pages each (temp kept in memory), and each script 2000 progress
+   steps of 10000 instructions and 5 seconds. A refused statement or a script past a bound
+   stops that script and is reported as `unsafe-schema-sql` (severity high), by the detectors
+   and by the query audit.
 4. **PLAN** — one step per area from a bounded generator catalogue (§3), filtered by the
    command's scope (by primary area), ordered with `reasoning.decompose` (areas in the order
    `code, architecture, database, performance, security, ui, assets, tests, docs`, the notes
@@ -112,8 +131,15 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
 
 Audit mode («افحص», «راجع», `audit`, `review`…) runs ROUTE, a static BASELINE (no tests),
 AUDIT and PLAN on the target itself and writes nothing anywhere: not the target, not
-`workdir`, not memory; detectors run without a sandbox. The report carries the proof
-(`target_unchanged`, `workdir_untouched`).
+`workdir`, not memory; detectors run without a sandbox and open every SQLite file with
+`mode=ro&immutable=1` (a plain `mode=ro` open of a WAL database creates its `-shm`), so a
+database with a pending `-wal` is reported from its main file with `complete: false`. The
+report carries the proof (`target_unchanged`, `workdir_untouched`, and `files_written`,
+the number of target files and `workdir` entries the before/after comparison found
+added, removed or changed); the summary says "nothing was changed" only when that
+comparison is clean. In upgrade mode the detectors run on a disposable copy of the
+isolated copy, never on the target, and the summary says "the original system is
+unchanged" only when the `original-unchanged` check passed.
 
 Each receipt is `{stage, step, status, input_sha256, output_sha256, source_sha256,
 side_effect, at, previous_sha256, receipt_sha256}`; the chain is deterministic for a fixed
@@ -179,12 +205,33 @@ and malformed steps are refused before anything is created.
 - The generators are a bounded catalogue. Input validation needs the declared dispatch
   convention and a spec; other frameworks get the audit and the plan, not code. Structural
   additions requested by the command (a new field, entity or feature) are reported as unmet,
-  never half-implemented; breaking changes are refused.
+  never half-implemented; breaking changes are refused, and so are requests the parser cannot
+  settle or a remove/exclude request it does not reflect (for example removing a locale). Every
+  word of the command must be accounted for: a clause the parser ignores ("get rid of the
+  Arabic locale", «وامسح اللغة العربية», "rename the tasks entity to jobs") stops the run before
+  anything is copied. The `requested-changes-met` check is true only for an `ok` request (or no
+  specification) with nothing unmet. A remove verb that is not a command ("members can delete
+  their own tasks") is not an exclusion; the permission it states is still not in the diff, so
+  that command is unsettled too. Without a specification the target's name is unknown: up to
+  three words right after the command verb are taken as that name.
+- Engine requests are the engine's own steps named in the command: "remove unused assets"
+  (`assets-backup-unused`), "remove slow queries" (`performance-query-indexes`) and "remove
+  dead code". Their area joins the run's scope. Each is met only when the upgraded copy is
+  verified: no unreferenced asset left, no filtered full-table scan left, no dead-code finding
+  left. The upgrade keeps every function, so existing dead code is reported as unmet, never
+  deleted. Arabic wording with «غير» (for example «غير المستخدمة») is refused by the router as
+  a negation before this check; «المهملة» is accepted.
 - Asset non-use is a static proof over internal references; external links to a served file
   cannot be ruled out (hence the backup); directory listings in code make it unprovable.
 - Data proofs cover SQLite files only; other stores are copied and hashed but not compared
   row by row. Index choice uses query plans over the declared schema, not production data
-  distributions; measured timings are not used as gates.
+  distributions; measured timings are not used as gates. A database left with a hot
+  rollback journal (a crashed write) or a journal carrying a super-journal record, or with a
+  `-wal` whose header does not verify, is refused before SQLite opens it: the engine never
+  rolls back a journal it did not create. The owner recovers it with the application first.
+  A database listed in `gaie-upgrade.json` that is a symlink, or lies under a symlinked
+  directory, is refused before anything is copied (it would otherwise leave the data proof);
+  a listed database that does not exist is named in `baseline.databases_missing`.
 - Template fixes never invent content: images without `alt` are reported for the owner. Label
   text comes from the spec, otherwise from the control's name.
 - Tests prove only what they check; a validated upgrade is not a release approval. Only
