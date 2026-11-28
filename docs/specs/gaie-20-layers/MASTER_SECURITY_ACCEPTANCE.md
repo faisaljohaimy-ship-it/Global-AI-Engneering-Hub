@@ -22,6 +22,18 @@ A trusted operator separately approves and dispatches a scoped write.
   selected agents and revalidates each one at launch. The strict governor gives
   the child one writable mount with protected Git metadata and no network or
   ambient credentials. If the boundary is unavailable, the command is refused.
+- The workspace preflight runs Git offline and without the checkout's programs:
+  fsmonitor, hooks and the untracked cache are off; every transport is refused
+  (`protocol.allow=never` plus an empty `GIT_ALLOW_PROTOCOL`, which also
+  overrides a checkout's `protocol.<name>.allow`); lazy fetching is off where
+  Git honours `GIT_NO_LAZY_FETCH` (Git 2.43.0-1ubuntu7.4 on the measured host
+  does; it has no `--no-lazy-fetch` option). The origin is verified before any
+  object lookup. A checkout config with includes, URL rewrites, filters,
+  `core.hooksPath`, `core.sshCommand`, `core.gitProxy`, any `protocol.*` key, a
+  promisor remote (`remote.<x>.promisor` or `.partialCloneFilter`), a remote
+  program (`.uploadpack`, `.receivepack`, `.vcs`) or a repository extension
+  other than `worktreeConfig` and `objectFormat` is refused
+  (`tests/test_isolation_fixes_git.py`).
 - A Claude Code audit forks into the verifier's Read/Grep/Glob-only tool scope.
   Native host settings and hooks determine path and tool enforcement. Treat a
   validated plugin as artifact evidence and use the governed static audit when

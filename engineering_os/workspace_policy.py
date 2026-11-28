@@ -108,15 +108,33 @@ def _new_workspace(path, *, initial=True):
     return WorkspaceScope(path, None, path)
 
 
+# Every checkout Git call runs offline: a partial-clone lazy fetch would start the transport (and the
+# upload-pack, ssh or remote-helper program) that the checkout's own config names. GIT_ALLOW_PROTOCOL set to
+# an empty list overrides any protocol.<name>.allow in that config; GIT_NO_LAZY_FETCH is honoured by Git
+# releases that carry it (2.43.0-1ubuntu7.4 here does; the --no-lazy-fetch option it lacks is not used).
+GIT_FLAGS = ("--no-pager", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false",
+             "-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never")
+GIT_OFFLINE_ENV = {"GIT_ALLOW_PROTOCOL": "", "GIT_NO_LAZY_FETCH": "1", "GIT_TERMINAL_PROMPT": "0"}
+# Canonical config names (section and key lower case) that name a program, a hook, a fetch source or a
+# protocol policy. extensions.worktreeConfig and extensions.objectFormat are the only repository
+# extensions a write scope accepts; extensions.partialClone and remote.<x>.promisor or
+# .partialCloneFilter make object lookups fetch.
+DENIED_CONFIG = re.compile(
+    r"(include|includeif|url|filter|protocol)\..*|core\.(hookspath|sshcommand|gitproxy)"
+    r"|remote\..+\.(promisor|partialclonefilter|uploadpack|receivepack|vcs)"
+    r"|extensions\.(?!(worktreeconfig|objectformat)$).*",
+    re.DOTALL,
+)
+
+
 def _git(path, *args, absent=False):
     executable = shutil.which("git", path=os.defpath)
     if executable is None:
         raise WorkspacePolicyError("Local Git is unavailable for workspace verification.")
     env = {"PATH": os.defpath, "LC_ALL": "C", "GIT_CONFIG_NOSYSTEM": "1",
-           "GIT_CONFIG_GLOBAL": os.devnull, "GIT_OPTIONAL_LOCKS": "0"}
+           "GIT_CONFIG_GLOBAL": os.devnull, "GIT_OPTIONAL_LOCKS": "0", **GIT_OFFLINE_ENV}
     result = subprocess.run(
-        [executable, "--no-pager", "-C", str(path), "-c", "core.fsmonitor=false",
-         "-c", "core.untrackedCache=false", *args],
+        [executable, GIT_FLAGS[0], "-C", str(path), *GIT_FLAGS[1:], *args],
         capture_output=True, text=True, encoding="utf-8", timeout=10, check=False, env=env,
     )
     if absent and result.returncode == 1 and not result.stdout:
@@ -156,9 +174,11 @@ def _linked_git_identity(path):
     for config in (common / "config", metadata / "config.worktree"):
         if config.exists() or config.is_symlink():
             _owned(config, file=True)
-            if _git(pathlib.Path("/"), "config", "--file", str(config), "--no-includes",
-                    "--name-only", "--get-regexp", r"^(include(if)?\.|url\.|filter\.|core\.hookspath$)", absent=True):
-                raise WorkspacePolicyError("Git includes, URL rewrites, filters and hooks are refused for write scopes.")
+            names = _git(pathlib.Path("/"), "config", "--file", str(config), "--no-includes",
+                         "--name-only", "--null", "--list").split("\0")
+            if any(DENIED_CONFIG.fullmatch(name) for name in names):
+                raise WorkspacePolicyError("Git includes, URL rewrites, filters and hooks, remote programs, "
+                                           "partial-clone and protocol settings are refused for write scopes.")
     actual = _git(path, "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-dir",
                   "--git-common-dir").splitlines()
     if actual != [str(path), str(metadata), str(common)]:
@@ -175,6 +195,11 @@ def _linked_workspace(path, expected_repository, registered_path, require_clean)
     branch = _git(path, "symbolic-ref", "--quiet", "HEAD").removeprefix("refs/heads/").strip()
     if not BRANCH.fullmatch(branch) or any(part in {"", ".", ".."} for part in branch.split("/")):
         raise WorkspacePolicyError("Use an isolated codex/ or claude/ branch for the linked worktree.")
+    # The origin is checked before any command that reads objects (rev-parse --verify, status).
+    for args in [("remote", "get-url", "--all", "origin"), ("remote", "get-url", "--push", "--all", "origin")]:
+        urls = _git(path, *args).splitlines()
+        if len(urls) != 1 or not REMOTE.fullmatch(urls[0]) or _repo_id(urls[0]) != expected:
+            raise WorkspacePolicyError("The worktree must have a single matching registered fetch and push origin.")
     default = _git(path, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD", absent=True).strip()
     if not default.startswith("refs/remotes/origin/") or default == "refs/remotes/origin/HEAD":
         raise WorkspacePolicyError("The locally recorded origin default branch must be verified before writes.")
@@ -186,10 +211,6 @@ def _linked_workspace(path, expected_repository, registered_path, require_clean)
     matches = [row for row in participants if f"branch refs/heads/{branch}" in row]
     if len(matches) != 1 or matches[0][0] != f"worktree {path}" or common.is_relative_to(path):
         raise WorkspacePolicyError("The branch is not exclusively checked out in this isolated worktree.")
-    for args in [("remote", "get-url", "--all", "origin"), ("remote", "get-url", "--push", "--all", "origin")]:
-        urls = _git(path, *args).splitlines()
-        if len(urls) != 1 or not REMOTE.fullmatch(urls[0]) or _repo_id(urls[0]) != expected:
-            raise WorkspacePolicyError("The worktree must have a single matching registered fetch and push origin.")
     if require_clean and _git(path, "status", "--porcelain=v1", "--untracked-files=normal", "--ignore-submodules=all"):
         raise WorkspacePolicyError("Use a clean dedicated worktree before requesting write permission.")
     root = _registry_scope(path, registered_path)
