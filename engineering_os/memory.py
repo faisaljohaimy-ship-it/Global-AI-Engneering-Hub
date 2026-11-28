@@ -16,6 +16,8 @@ import os
 import pathlib
 import re
 
+from scripts.security_scan import secret_findings
+
 from .orchestration import (DIGEST, ENGINES, _atomic_write, _open_private,
                             _read_private, _safe_directory, _slug, _text, load_json, sha)
 
@@ -32,6 +34,13 @@ class MemoryError(ValueError):
     """A private-memory request failed validation."""
 
 
+def _safe_text(value, limit):
+    _text(value, limit)
+    if secret_findings("memory.txt", value):
+        raise MemoryError("Credential-shaped memory text refused")
+    return value
+
+
 def _digest(value):
     if not isinstance(value, str) or not DIGEST.fullmatch(value):
         raise MemoryError("Invalid memory digest")
@@ -42,7 +51,7 @@ def _items(values, limit, item_limit=100, digest=False):
     if not isinstance(values, list) or len(values) > limit:
         raise MemoryError("Invalid bounded memory list")
     for item in values:
-        _digest(item) if digest else _text(item, item_limit)
+        _digest(item) if digest else _safe_text(item, item_limit)
     if len(values) != len(set(values)):
         raise MemoryError("Duplicate memory list entry")
     return sorted(values)
@@ -61,8 +70,8 @@ def _record(record):
     _slug(record["project"])
     if not isinstance(record["kind"], str) or record["kind"] not in KINDS:
         raise MemoryError("Unknown memory kind")
-    _text(record["title"], 200)
-    _text(record["summary"], 4000)
+    _safe_text(record["title"], 200)
+    _safe_text(record["summary"], 4000)
     value = copy.deepcopy(record)
     for key, limit, length in [("tags", 30, 80), ("symbols", 100, 200), ("links", 100, 64)]:
         value[key] = _items(record[key], limit, length, digest=key == "links")
@@ -222,7 +231,7 @@ class MemoryStore:
 
     def search(self, project, query, limit=10, source_root=None):
         _slug(project)
-        _text(query, 500)
+        _safe_text(query, 500)
         if type(limit) is not int or not 1 <= limit <= 50:
             raise MemoryError("Invalid retrieval limit")
         terms = _terms(query)
@@ -262,7 +271,7 @@ class MemoryStore:
         data = target.read_bytes()
         # Guard transient source too; never store source bodies or docstrings.
         from .orchestration import SECRET
-        if SECRET.search(data.decode("utf-8")):
+        if SECRET.search(data.decode("utf-8")) or secret_findings(path, data.decode("utf-8")):
             raise MemoryError("Credential-shaped source refused")
         tree = ast.parse(data, filename=path)
         definitions = []

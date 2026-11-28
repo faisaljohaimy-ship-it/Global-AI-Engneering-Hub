@@ -173,7 +173,7 @@ class EngineeringMemoryTests(unittest.TestCase):
                 self.store.index_python('demo', path, self.source, 'codex')
 
     def test_credentials_unknown_fields_bounds_and_control_text(self):
-        for changes in [{'summary': 'sk-' + 'a' * 35}, {'title': 'unsafe\ntext'}, {'project': '../escape'},
+        for changes in [{'summary': 'sk-' + 'a' * 35}, {'title': 'unsafe\ntext'}, {'summary': 'postgres://worker:' + 'private-value' + '@localhost/data'}, {'summary': 'API_KEY = \"' + 'private-key-value' + '\"'}, {'project': '../escape'},
                         {'kind': 'arbitrary'}, {'tags': ['dup', 'dup']}, {'tags': ['a'] * 31},
                         {'provenance': {'engine': 'unverified', 'source_sha256': 'a' * 64}},
                         {'provenance': {'engine': 'codex', 'source_sha256': 'bad'}}, {'summary': 'x' * 4001}, {'password': 'secret'}]:
