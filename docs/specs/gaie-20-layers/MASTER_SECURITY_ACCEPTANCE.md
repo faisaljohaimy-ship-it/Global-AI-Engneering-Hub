@@ -45,6 +45,18 @@ A trusted operator separately approves and dispatches a scoped write.
   https or local destination, and refuses a repository whose config names a
   program, filter, include, URL rewrite, promisor, credential helper or HTTP
   setting (`tests/test_isolation_fixes_planted_git.py`).
+- Strict mode hides `/etc` and everything outside the system directories, so
+  the governor resolves the requested program on the host and executes its
+  real file (argv[0] unchanged); an `/etc/alternatives` link therefore cannot
+  dangle. The install prefix of that program and of the sandbox's own
+  interpreter are mounted read-only in both tiers; the sandbox's pid 1 imports
+  C modules such as `resource` from it after `pivot_root`, which failed on
+  GitHub runners whose Python lives in `/opt/hostedtoolcache`. A prefix is
+  never `/`, a whole top-level directory such as `/opt`, a system directory, or
+  a directory holding `/tmp` or the home directory, and it must not overlap the
+  writable workspace. A strict program that cannot be resolved is refused
+  (`program-not-visible`) instead of exiting 127
+  (`tests/test_isolation_fixes_governor.py`).
 - A Claude Code audit forks into the verifier's Read/Grep/Glob-only tool scope.
   Native host settings and hooks determine path and tool enforcement. Treat a
   validated plugin as artifact evidence and use the governed static audit when
