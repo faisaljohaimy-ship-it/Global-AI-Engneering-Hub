@@ -574,7 +574,10 @@
       "tests/test_isolation_fixes_relaunch.py",
       "tests/test_isolation_fixes_governor.py",
       "tests/test_recheck_fixes_remote_ascii.py",
-      "tests/test_recheck_fixes_repo_id.py"
+      "tests/test_recheck_fixes_repo_id.py",
+      "tests/test_isolation_fixes_mounts.py",
+      "tests/test_isolation_fixes_relaunch_binding.py",
+      "tests/test_isolation_fixes_build_git.py"
     ],
     "scenarios": [
       {

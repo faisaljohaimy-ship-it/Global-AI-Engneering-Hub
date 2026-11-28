@@ -485,6 +485,8 @@ PROCESS_ONLY_TESTS = {
     "tests/test_isolation_fixes_governor.py": "tests the governor sandbox itself (pr30-isolation F4, F6, F7) and " + _NESTED,
     "tests/test_isolation_fixes_planted_git.py": "runs strict workspace children that plant Git metadata, which " + _NESTED,
     "tests/test_isolation_fixes_relaunch.py": "relaunches the strict workspace supervisor, which " + _NESTED,
+    "tests/test_isolation_fixes_mounts.py": "reads the strict sandbox's own mount table (recheck-isolation item 1), which " + _NESTED,
+    "tests/test_isolation_fixes_relaunch_binding.py": "binds --relaunch to a recorded strict launch, which " + _NESTED,
     "tests/test_gaie_memory_journal.py": ("chowns its memory directories to uid 65534 to prove a foreign owner is refused; the "
                                           "layer sandbox's user namespace maps only the caller, so chown gives EINVAL"),
 }

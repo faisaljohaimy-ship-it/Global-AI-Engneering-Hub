@@ -407,7 +407,7 @@ Responsibilities:
 - **Tools:** `python3`, `git`
 - **Skills:** `skills/security-review/SKILL.md`
 - **Agents:** `agent-isolation-security-engineer`, `enterprise-security-privacy-engineer`, `testing-self-healing-engineer`
-- **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`, `tests/test_governor.py`, `tests/test_security_enterprise.py`, `tests/test_workspace_policy.py`, `tests/test_master_audit_permissions.py`, `tests/test_isolation_fixes_git.py`, `tests/test_isolation_fixes_planted_git.py`, `tests/test_isolation_fixes_relaunch.py`, `tests/test_isolation_fixes_governor.py`, `tests/test_recheck_fixes_remote_ascii.py`, `tests/test_recheck_fixes_repo_id.py`
+- **Tests:** `tests/test_security_scan.py`, `tests/test_security.py`, `tests/test_p3_cage.py`, `tests/test_p3_team.py`, `tests/test_swarm_phase2.py`, `tests/test_governor.py`, `tests/test_security_enterprise.py`, `tests/test_workspace_policy.py`, `tests/test_master_audit_permissions.py`, `tests/test_isolation_fixes_git.py`, `tests/test_isolation_fixes_planted_git.py`, `tests/test_isolation_fixes_relaunch.py`, `tests/test_isolation_fixes_governor.py`, `tests/test_recheck_fixes_remote_ascii.py`, `tests/test_recheck_fixes_repo_id.py`, `tests/test_isolation_fixes_mounts.py`, `tests/test_isolation_fixes_relaunch_binding.py`, `tests/test_isolation_fixes_build_git.py`
 - **Scenarios:** E — `tests/test_governor.py` `StrictSandboxTests`, `SandboxTests`
 - **Evidence boundary:** SHA-pinned CI and test/audit evidence; no blanket compliance claim
 - **Evidence status:** VERIFIED — 9/9 test files, 201 test cases passed; 40 sources bound (`source_sha256` 41a26f47eb955ab6…).
