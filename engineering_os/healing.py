@@ -475,14 +475,32 @@ def _test_slug(test_id):
     return f"{base}-{hashlib.sha256(test_id.encode()).hexdigest()[:12]}"
 
 
+def _lines(text):
+    """Split at LF only, keeping it: the line model of unified diffs and ``git apply``.
+
+    ``str.splitlines`` also breaks at form feed, \\x1c-\\x1e, \\x85 and U+2028/2029, which
+    split one diff line in two and corrupted the patch of any file holding one.
+    """
+    parts = text.split("\n")
+    return [part + "\n" for part in parts[:-1]] + ([parts[-1]] if parts[-1] else [])
+
+
+_SOURCE_LINE = re.compile(r"[^\r\n]*(?:\r\n|\r|\n)|[^\r\n]+\Z")
+
+
+def _source_lines(text):
+    """Split like the Python tokenizer (CRLF, CR, LF; never form feed) so ``ast`` line numbers index it."""
+    return _SOURCE_LINE.findall(text)
+
+
 def _diff(rel, before, after):
-    lines = difflib.unified_diff(before.decode("utf-8").splitlines(keepends=True), after.decode("utf-8").splitlines(keepends=True), f"a/{rel}", f"b/{rel}")
+    lines = difflib.unified_diff(_lines(before.decode("utf-8")), _lines(after.decode("utf-8")), f"a/{rel}", f"b/{rel}")
     return "".join(line if line.endswith("\n") else line + "\n\\ No newline at end of file\n" for line in lines)
 
 
 def apply_patch(files, patch):
     """Apply a unified diff exactly (no fuzz) to ``{path: text}``; HealingError on any mismatch."""
-    result, lines, index = dict(files), patch.splitlines(keepends=True), 0
+    result, lines, index = dict(files), _lines(patch), 0
     while index < len(lines):
         if not lines[index].startswith("--- ") or index + 1 >= len(lines) or not lines[index + 1].startswith("+++ "):
             raise HealingError("Malformed patch header")
@@ -491,7 +509,7 @@ def apply_patch(files, patch):
         source = "" if old == "/dev/null" else result.get(rel)
         if source is None:
             raise HealingError("Patch target missing")
-        original, out, position = source.splitlines(keepends=True), [], 0
+        original, out, position = _lines(source), [], 0
         index += 2
         while index < len(lines) and lines[index].startswith("@@"):
             match = re.match(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", lines[index])
@@ -526,6 +544,27 @@ def apply_patch(files, patch):
         out.extend(original[position:])
         result[rel] = None if new == "/dev/null" else "".join(out)
     return result
+
+
+def introduced(reference, detection):
+    """What ``detection`` shows that ``reference`` did not: the fail-closed recheck of a repair.
+
+    ``new_findings`` are findings of medium or higher severity (the loop's defect
+    threshold) whose stable ``key`` is absent from every ``reference`` finding;
+    ``not_rechecked`` are detectors that ran for ``reference`` but did not run now (an
+    app that no longer starts skips its integrations, so their findings cannot vanish
+    unseen). Both lists are deterministic: no measured evidence is copied.
+    """
+    known = {row["key"] for row in reference["findings"]}
+    new = {}
+    for row in detection["findings"]:
+        if RANK[row["severity"]] >= RANK["medium"] and row["key"] not in known and row["key"] not in new:
+            new[row["key"]] = {"key": row["key"], "detector": row["detector"], "kind": row["kind"], "severity": row["severity"],
+                               "path": row["location"]["path"], "symbol": row["location"]["symbol"]}
+    status = {row["detector"]: row["status"] for row in detection["detectors"]}
+    lost = sorted(row["detector"] for row in reference["detectors"] if row["status"] == "ran" and status.get(row["detector"]) != "ran")
+    ordered = sorted(new.values(), key=lambda row: (-RANK[row["severity"]], row["detector"], row["kind"], row["path"], str(row["symbol"]), row["key"]))
+    return {"new_findings": ordered, "not_rechecked": lost}
 
 
 def verify_receipts(receipts):
@@ -777,8 +816,8 @@ def handler_source(route, spec, *, root=None, schemas=()):
 
 def _insert_handler(source, code, handlers):
     tree = ast.parse(source)
-    lines = source.splitlines(keepends=True)
-    if lines and not lines[-1].endswith("\n"):
+    lines = _source_lines(source)
+    if lines and not lines[-1].endswith(("\n", "\r")):
         lines[-1] += "\n"
     defs = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name in handlers]
     guard = next((n for n in tree.body if isinstance(n, ast.If) and "__main__" in ast.unparse(n.test)), None)
@@ -802,6 +841,8 @@ class _Heal:
         self.project = manifest.get("name") or "target"
         self.receipts, self.trials, self.accepted, self.iterations, self.journal = [], [], [], [], {}
         self.security_baseline, self.flaky, self.blocked, self.exhausted = None, [], None, set()
+        # Detection of the current accepted state; a candidate may not add a defect to it.
+        self.reference_detection = self.pending_detection = None
 
     # ----- state and receipts
     def tree_sha(self):
@@ -870,7 +911,7 @@ class _Heal:
             self.flaky = sorted(t for t in set(traced.get("tests", {})) | set(plain.get("tests", {})) if traced.get("tests", {}).get(t) != plain.get("tests", {}).get(t))
             self.baseline, self.reference = plain, dict(plain.get("tests", {}))
             self.security_baseline = sorted(f["evidence"]["fingerprint"] for f in detection["findings"] if f["detector"] == "security")
-            self.initial = detection
+            self.initial = self.reference_detection = detection
         self.current, self.detection = traced, detection
         self.findings = {row["id"]: row for row in detection["findings"]}
         outputs = {"findings": sorted(self.findings), "tests": traced.get("tests", {}), "flaky": self.flaky, "blocked": self.blocked,
@@ -975,7 +1016,7 @@ class _Heal:
             node = next((n for n in ast.parse(source).body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.name == symbol), None)
             if node is None or node.decorator_list:
                 return
-            lines = source.splitlines(keepends=True)
+            lines = _source_lines(source)
             end = node.end_lineno
             while end < len(lines) and end - node.end_lineno < 2 and not lines[end].strip():
                 end += 1
@@ -1029,6 +1070,7 @@ class _Heal:
         self.receipt("CRITIQUE", iteration, {"item": item["item"], "trial": number}, verdict, "accepted" if verdict["accepted"] else "rejected")
         if verdict["accepted"]:
             self.reference = dict(full["tests"])
+            self.reference_detection = self.pending_detection
             record.update(repair="kept", rollback_verified=None)
             self.accepted.append({"item": item["item"], "trial": number, "strategy": item["strategy"], "root": item["root"],
                                   "finding_key": item["finding_key"], "targets": targets, "description": candidate["description"],
@@ -1065,7 +1107,7 @@ class _Heal:
                     reasons.append("regression-gate-disagreement")
         elif not reasons:
             reasons.append("full-suite-not-run")
-        changed = sum(1 for rel, data in candidate["edits"].items() for line in _diff(rel, pre[rel], data).splitlines()
+        changed = sum(1 for rel, data in candidate["edits"].items() for line in _lines(_diff(rel, pre[rel], data))
                       if line[:1] in "+-" and not line.startswith(("+++", "---")))
         if changed > self.policy["max_patch_lines"]:
             reasons.append("patch-exceeds-bound")
@@ -1087,7 +1129,23 @@ class _Heal:
                 api, _ = detectors.detect_http(self.copy, None, self.manifest, sandbox=self.sandbox, only_routes={self.findings[item["finding"]]["evidence"]["route"]})
                 if api["findings"] or api["status"] != "ran":
                     reasons.append("api-probe-failed")
-        return {"accepted": not reasons, "reasons": reasons, "regressions": regression, "changed_lines": changed, "finding_resolved": resolved}
+        recheck, self.pending_detection = None, None
+        if not reasons:
+            # Fail closed: the passing tests are not the only oracle. Every detector (runtime
+            # ones included) re-runs on the candidate; a defect the accepted state did not have,
+            # or a detector that can no longer observe the copy, rejects (and rolls back) it.
+            self.pending_detection = self.recheck()
+            recheck = introduced(self.reference_detection, self.pending_detection)
+            if recheck["new_findings"]:
+                reasons.append("new-finding")
+            if recheck["not_rechecked"]:
+                reasons.append("detector-not-rechecked")
+        return {"accepted": not reasons, "reasons": reasons, "regressions": regression, "changed_lines": changed, "finding_resolved": resolved,
+                "recheck": recheck}
+
+    def recheck(self):
+        return detectors.run_all(self.copy, self.manifest, tests_dir=self.spec["start"], runtime=True, sandbox=self.sandbox,
+                                 ffprobe=self.ffprobe, security_baseline=self.security_baseline)
 
     def execute(self, iteration, items):
         progressed = False
@@ -1130,6 +1188,9 @@ class _Heal:
         final = self.suite()
         detection = detectors.run_all(self.copy, self.manifest, tests_dir=self.spec["start"], runtime=True, sandbox=self.sandbox,
                                       ffprobe=self.ffprobe, security_baseline=self.security_baseline)
+        added = introduced(self.initial, detection)
+        final_keys = {row["key"] for row in detection["findings"]}
+        unresolved = sorted({row["finding_key"] for row in self.accepted if row["finding_key"] and row["finding_key"] in final_keys})
         outcomes = final.get("tests", {})
         regression = self.regressions(self.baseline.get("tests", {}), outcomes) if final["status"] == "ok" else {"regressions": ["<suite-did-not-run>"], "agree": False}
         targeted = sorted({t for row in self.accepted for t in row["targets"]})
@@ -1161,10 +1222,12 @@ class _Heal:
         checks = {"repairs_accepted": bool(self.accepted), "no_regression": not regression["regressions"] and regression.get("agree", False),
                   "target_tests_pass": not not_fixed, "original_unchanged": original_now == self.original, "isolated_copy_intact": intact,
                   "patch_and_reverse_apply": patch_ok, "artifact_verified": bool(artifact) and artifact["status"] == "artifact-verified-awaiting-runtime-review",
-                  "not_blocked": self.blocked is None}
+                  "not_blocked": self.blocked is None, "no_new_findings": not added["new_findings"],
+                  "detectors_rechecked": not added["not_rechecked"], "targeted_findings_resolved": not unresolved}
         validation = {"passed": all(checks.values()), "checks": checks, "regressions": regression["regressions"], "targeted_tests": targeted,
                       "targeted_still_failing": not_fixed, "final_tests": outcomes, "final_failing": self.failing(outcomes), "artifact": artifact,
-                      "blocked": self.blocked}
+                      "blocked": self.blocked, "new_findings": added["new_findings"], "detectors_not_rechecked": added["not_rechecked"],
+                      "targeted_findings_unresolved": unresolved}
         self.receipt("VALIDATE", len(self.iterations), {"tree": self.tree_sha(), "accepted": self.accepted}, {k: v for k, v in validation.items() if k != "final_tests"},
                      "passed" if validation["passed"] else "failed")
         return validation, detection, patch, reverse, changed
@@ -1179,8 +1242,11 @@ def heal(target, *, workdir, tests, now=None, policy=None, ffprobe="auto"):
     deterministic and bounded: restore a route handler from its declared spec
     template, align an exact pin to an integrity-bearing lock entry, a single safe
     mutation validated by the tests, or (opt-in) removal of provably unreferenced code.
-    VALIDATE passes only if every targeted failing test now passes and no baseline
-    passing test fails. Returns a report with findings, root causes, plan, trials,
+    VALIDATE passes only if every targeted failing test now passes, no baseline
+    passing test fails, every finding a repair targeted is gone, every detector that
+    ran at the start ran again, and the final detection holds no medium-or-higher
+    finding that was absent at the start (CRITIQUE already rejects and rolls back a
+    candidate that adds one). Returns a report with findings, root causes, plan, trials,
     patch, rollback data and the hash-chained receipts; writes them into a new run
     directory under ``workdir``.
     """
@@ -1234,30 +1300,45 @@ def heal(target, *, workdir, tests, now=None, policy=None, ffprobe="auto"):
     return _report_heal(run, validation, detection, patch, reverse, changed)
 
 
-def _ledger(run, final_findings, final_outcomes):
+def _ledger(run, detection, final_outcomes):
     first = next((it for it in run.iterations if "attribution" in it), {"attribution": {}, "plan": []})
     attribution = dict(first["attribution"])
     plans = [item for it in run.iterations for item in it.get("plan", [])]
-    final_keys = {f["key"] for f in run.defects(final_findings)}
+    final_keys = {f["key"] for f in run.defects(detection["findings"])}
+    # A finding can only be called gone if its detector looked again: one that did not run,
+    # or an app that no longer starts (broken-apis then reports only app-start-failed and
+    # integrations are skipped), leaves the initial finding unrepaired, never resolved.
+    blind = {row["detector"] for row in detection["detectors"] if row["status"] != "ran"}
+    if any(f["kind"] == "app-start-failed" for f in detection["findings"]):
+        blind |= {"broken-apis", "integrations"}
     entries = []
     defects = [("finding:" + f["id"], f) for f in run.defects(run.initial["findings"])]
     defects += [("test:" + t, None) for t in run.failing(run.baseline.get("tests", {}))]
     for label, row in defects:
-        present = row["key"] in final_keys if row else not _passed(final_outcomes.get(label[5:]))
+        unseen = bool(row) and row["key"] not in final_keys and row["detector"] in blind
+        present = (row["key"] in final_keys or unseen) if row else not _passed(final_outcomes.get(label[5:]))
         roots = attribution.get(label, [label])
         repair = next((a for a in run.accepted if a["root"] in roots or label[5:] in a["targets"]), None)
         plan = next((p for p in plans if p["root"] in roots), None)
         status = "unrepaired" if present else "repaired" if repair else "resolved-indirectly"
+        reason = None if not present else (f"not re-checked: the {row['detector']} detector could not observe the final copy" if unseen
+                                           else plan["reason"] if plan and plan.get("reason") else "no repair attempted within the iteration bound")
         entries.append({"defect": label, "type": "finding" if row else "test", "kind": row["kind"] if row else "failing-test",
                         "severity": row["severity"] if row else "high", "location": row["location"] if row else None,
-                        "root_causes": roots, "status": status, "repair": repair["item"] if repair else None,
-                        "reason": None if not present else (plan["reason"] if plan and plan.get("reason") else "no repair attempted within the iteration bound")})
+                        "root_causes": roots, "status": status, "repair": repair["item"] if repair else None, "reason": reason})
+    known, seen = {f["key"] for f in run.initial["findings"]}, set()
+    for row in run.defects(detection["findings"]):
+        if row["key"] not in known and row["key"] not in seen:
+            seen.add(row["key"])
+            entries.append({"defect": "finding:" + row["id"], "type": "finding", "kind": row["kind"], "severity": row["severity"],
+                            "location": row["location"], "root_causes": [], "status": "introduced", "repair": None,
+                            "reason": "absent at the start, present in the final detection of the repaired copy"})
     return entries
 
 
 def _report_heal(run, validation, detection, patch, reverse, changed):
-    ledger = _ledger(run, detection["findings"], validation["final_tests"])
-    remaining = [row for row in ledger if row["status"] == "unrepaired"]
+    ledger = _ledger(run, detection, validation["final_tests"])
+    remaining = [row for row in ledger if row["status"] in ("unrepaired", "introduced")]
     if run.accepted and validation["passed"]:
         status = "partially-repaired" if remaining else "repaired"
     elif run.accepted:

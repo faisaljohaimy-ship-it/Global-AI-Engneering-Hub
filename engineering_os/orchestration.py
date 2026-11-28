@@ -194,6 +194,18 @@ def _read_private(path):
     return load_json(data)
 
 
+PRODUCING = frozenset({"claim", "renew", "handover", "submit", "fail"})
+
+
+def producers(state, task_id):
+    """Every actor id that ever held or worked ``task_id``: claim, renew, handover, submit or fail.
+
+    Read from the hash-chained audit events, so a handover or a fail-and-recover never
+    clears it; review independence is checked against all of them, not the current owner.
+    """
+    return {event["actor"]["id"] for event in state["events"] if event["task"] == task_id and event["operation"] in PRODUCING}
+
+
 def verify_state(state):
     if not isinstance(state, dict) or set(state) != {"schema_version", "revision", "tasks", "events"} or state["schema_version"] != 1:
         raise CoordinationError("Invalid state schema")
@@ -236,6 +248,13 @@ def verify_state(state):
             raise CoordinationError("Task data differs from audit receipt")
     elif state["tasks"]:
         raise CoordinationError("Tasks without audit evidence")
+    worked = {}
+    for event in state["events"]:
+        if event["operation"] in PRODUCING:
+            worked.setdefault(event["task"], set()).add(event["actor"]["id"])
+    for key, task in state["tasks"].items():
+        if any(row["actor"]["id"] in worked.get(key, ()) for row in task["approvals"].values()):
+            raise CoordinationError("A reviewer of this task also held or worked it")
     return True
 
 
@@ -449,6 +468,8 @@ class TaskStore:
         def change(state, task, reviewer, now):
             if task["status"] != "review" or reviewer["role"] not in {"testing", "security", "release"} or reviewer["id"] == task["owner"]["id"]:
                 raise CoordinationError("Independent testing/security/release reviewer required")
+            if reviewer["id"] in producers(state, task_id) | ({task["handover"]["from"]["id"]} if task["handover"] else set()):
+                raise CoordinationError("A reviewer may not have held or worked this task (claim, renew, handover, submit or fail)")
             if any(row["actor"]["id"] == reviewer["id"] for role, row in task["approvals"].items() if role != reviewer["role"]):
                 raise CoordinationError("A reviewer cannot approve multiple independent roles")
             task["approvals"][reviewer["role"]] = {"actor": reviewer, "decision": decision,

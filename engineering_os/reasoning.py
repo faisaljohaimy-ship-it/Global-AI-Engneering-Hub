@@ -840,7 +840,8 @@ def analyze_root_causes(request):
     for row in logs.values():
         if _id(row['node']) not in edges:
             raise ReasoningError("Log names an unknown node")
-        _number(row['reliability'], 0, 1)
+        if _number(row['reliability'], 0, 1) <= 0:
+            raise ReasoningError("Log reliability must be positive; drop a log that carries no evidence")
         for line in _rows(row['lines'], 5000):
             _log_line(line)
     rules = _indexed(request['rules'], {'id', 'contains', 'hypothesis', 'effect', 'weight'}, 64)
@@ -849,11 +850,13 @@ def analyze_root_causes(request):
         if _id(row['hypothesis']) not in hypotheses:
             raise ReasoningError("Evidence names an unknown hypothesis")
         _choice(row['effect'], ('supports', 'refutes'), "evidence effect")
-        _number(row['weight'], 0, 1)
+        if _number(row['weight'], 0, 1) <= 0:
+            raise ReasoningError("Evidence and rule weights must be positive; drop a row that carries no weight")
     for row in rules.values():
         _needle(row['contains'])
     for row in evidence.values():
-        _number(row['reliability'], 0, 1)
+        if _number(row['reliability'], 0, 1) <= 0:
+            raise ReasoningError("Evidence reliability must be positive; drop a row that carries no evidence")
         _digest(row['sha256'])
     ancestors = _ancestors(edges)
     roots = structural['candidate_roots']
@@ -894,7 +897,11 @@ def analyze_root_causes(request):
         refute = _r(-sum(item['delta'] for item in direct if item['delta'] < 0))
         log_odds = math.log(row['prior'] / (1 - row['prior'])) + STRUCTURE[position] + sum(item['delta'] for item in direct)
         score = 1 / (1 + math.exp(-max(-50, min(50, log_odds))))
-        status = ('unsupported' if not direct else 'conflicting' if support >= 1 and refute >= 1
+        # Status follows the evidence weight, not the presence of rows: no weight either way is
+        # unsupported, equal weight both ways is conflicting, and only more support than
+        # refutation is supported (so a refuting or weightless row never reads as support).
+        status = ('unsupported' if support <= 0 and refute <= 0
+                  else 'conflicting' if support >= 1 and refute >= 1 or support == refute
                   else 'refuted' if refute > support else 'supported')
         ranked.append({'id': key, 'node': node, 'node_status': state, 'prior': row['prior'],
                        'structure': {'position': position, 'delta': STRUCTURE[position]},
@@ -1368,7 +1375,9 @@ def trade_off(request):
 
     For every criterion the result states the weight at which the winner changes
     (other weights rescaled proportionally), the new winner, and whether that
-    flip lies within ``robustness_margin`` of the current weight.
+    flip lies within ``robustness_margin`` of the current weight. When the top
+    totals tie, ``tied`` lists the tied options, ``winner`` is only the smallest id
+    among them and ``robust`` is false.
     """
     _schema(request, {'schema_version', 'decision', 'options', 'criteria', 'values', 'robustness_margin'})
     decision = _id(request['decision'])
@@ -1445,8 +1454,9 @@ def trade_off(request):
         sensitivity.append(row)
     flippable = [row for row in sensitivity if row['min_change'] is not None]
     most = min(flippable, key=lambda row: (row['min_change'], row['criterion'])) if flippable else None
-    tie = len(ranking) > 1 and round(totals[ranking[0]], 12) == round(totals[ranking[1]], 12)
-    body = {'decision': decision, 'winner': winner, 'runner_up': ranking[1], 'tie': tie,
+    tied = [option for option in ranking if round(totals[option], 12) == round(totals[winner], 12)]
+    tie = len(tied) > 1
+    body = {'decision': decision, 'winner': winner, 'runner_up': ranking[1], 'tie': tie, 'tied': tied if tie else [],
             'ranking': ranking, 'totals': {option: _r(totals[option]) for option in options},
             'margin': _r(totals[winner] - totals[ranking[1]]),
             'weights': weights, 'normalized': normalized,
@@ -1456,7 +1466,8 @@ def trade_off(request):
                 'criterion': most['criterion'], 'min_change': most['min_change'],
                 'new_winner': next(most[d]['new_winner'] for d in ('increase', 'decrease')
                                    if most[d] and abs(most[d]['change']) == most['min_change'])},
-            'robust': not any(row['within_margin'] for row in sensitivity), 'robustness_margin': margin,
+            # A tie has no single winner: ``winner`` is then only the id tie-break, never robust.
+            'robust': not tie and not any(row['within_margin'] for row in sensitivity), 'robustness_margin': margin,
             'method': 'min-max normalised weighted sum; one weight varied, others rescaled proportionally'}
     return _seal('trade-off', request, body)
 

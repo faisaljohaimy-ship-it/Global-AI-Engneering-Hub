@@ -542,7 +542,10 @@ def review_assignment(task, *, roles=None, root=ROOT):
         _need(requested in by_id, f"{task.get('id')}: unknown reviewer {requested}")
     panel = {}
     for capacity in CAPACITIES:
-        panel[capacity] = next(rid for rid in PANEL_CANDIDATES[capacity] if rid != implementer and rid in by_id)
+        panel[capacity] = next((rid for rid in PANEL_CANDIDATES[capacity] if rid != implementer and rid in by_id), None)
+        _need(panel[capacity] is not None,
+              f"{task.get('id')}: no independent {capacity} reviewer: the role document lacks every candidate "
+              f"other than the implementer ({', '.join(PANEL_CANDIDATES[capacity])})", ReviewIndependenceError)
     flagged = [rid for rid in by_id if by_id[rid]["reviewer"] and rid != implementer]
     reviewer = requested or (flagged[0] if flagged else panel["testing"])
     _need(reviewer != implementer and implementer not in panel.values() and len(set(panel.values())) == len(CAPACITIES),
@@ -698,7 +701,13 @@ def verify_plan(value, *, roles=None, root=ROOT):
     _need(sha256(document) == value["sources"]["roles_sha256"],
           "plan: made with a different role registry (pass the same roles document)")
     by_id = _by_id(document)
+    # The digest is a plain SHA-256 anyone can recompute, so ownership is rechecked against the role
+    # registry exactly as plan() checks it: a re-sealed plan may not write another role's path.
+    conflicts = detect_conflicts(tasks, document=document, frozen=value["frozen"])
+    if conflicts:
+        raise OwnershipConflict(conflicts)
     for task in tasks:
+        _need(task["store_paths"] == _store_scope(task["paths"]), f"{task['id']}: task store scope differs from its paths")
         _need(task["review"] == review_assignment(task, roles=document), f"{task['id']}: review assignment changed",
               ReviewIndependenceError)
         grant_within_default(task["grant"], by_id[task["role"]])
