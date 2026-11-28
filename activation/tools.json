@@ -213,7 +213,15 @@
     "use from Codex",
     "attachment to an agent session"
    ],
-   "artifact_integrity": "sha512-t3Jqm0hGQtkZvx5mwrBZMEiedqhmltVwhOiFKgnzDBcOXUZNqtVSQShaBLmUNVjsIRoV202THb/BEYlJF5Dajg=="
+   "artifact_integrity": "sha512-t3Jqm0hGQtkZvx5mwrBZMEiedqhmltVwhOiFKgnzDBcOXUZNqtVSQShaBLmUNVjsIRoV202THb/BEYlJF5Dajg==",
+   "remote": {
+    "endpoint": "https://mcp.context7.com/mcp",
+    "transport": "MCP streamable HTTP; nothing installed, so no lock and no dependency-scan slot",
+    "host_config": ".mcp.json",
+    "probe": "integrations/context7/probe.py",
+    "evidence": "docs/evidence/gaie-20-layers/context7.json",
+    "note": "The labels and blocked_by above describe the npm package as measured on 2026-11-28 and stay as recorded. The remote endpoint is the route in use: the owner's key is an environment network secret, and resolve-library-id and query-docs returned documentation on 2026-11-28."
+   }
   }
  ]
 }

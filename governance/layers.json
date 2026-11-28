@@ -317,7 +317,8 @@
     "tests": [
       "tests/test_sdk.py",
       "tests/test_os_control.py",
-      "tests/test_engine_motion_link.py"
+      "tests/test_engine_motion_link.py",
+      "tests/test_context7_integration.py"
     ],
     "scenarios": [],
     "evidence": {

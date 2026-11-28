@@ -6,9 +6,9 @@
   "documents": {
     "MASTER_BUILD": {
       "path": "prompts/MASTER_BUILD.md",
-      "version": "1.1.0",
-      "sha256": "d45579e201c497fe113959338bb0b2725cd57300b2215dbffa764b22d7eed159",
-      "bytes": 8937,
+      "version": "1.2.0",
+      "sha256": "ade3058112e9f70dfb2fbf6984304e2193f7d24e8478e865f394b4d8011cb420",
+      "bytes": 9594,
       "installed_as": {
         "pack": ".engineering/gaie/MASTER_BUILD.md",
         "claude": "skills/gaie-build/MASTER_BUILD.md"
@@ -29,14 +29,22 @@
           "approved_by": "owner order: adopt MASTER_BUILD and MASTER_UPGRADE officially (GAIE OS final integration)",
           "reference": "PR #31",
           "chain": "bacd0c6cf50d5ac8a66ebfeeb8b39d9d07d1109b965cfb4a72909af0aed7dd6f"
+        },
+        {
+          "version": "1.2.0",
+          "sha256": "ade3058112e9f70dfb2fbf6984304e2193f7d24e8478e865f394b4d8011cb420",
+          "date": "2026-11-28",
+          "approved_by": "owner order: activate Context7 MCP for MASTER_BUILD and MASTER_UPGRADE",
+          "reference": "PR #31",
+          "chain": "b16b0304007f872364ccf38f9d5940fef5c40bbce8d2fa13e33b58ed4dc2cf3d"
         }
       ]
     },
     "MASTER_UPGRADE": {
       "path": "prompts/MASTER_UPGRADE.md",
-      "version": "1.1.0",
-      "sha256": "4f8f29f6f169c7cc2605cf50562a696890bb61c4f3c103c7f495817c414a2e34",
-      "bytes": 8364,
+      "version": "1.2.0",
+      "sha256": "383ad2cdc75d210aa006b64d428645f3550d941576a421bd9fd6b7666590bbd5",
+      "bytes": 8964,
       "installed_as": {
         "pack": ".engineering/gaie/MASTER_UPGRADE.md",
         "claude": "skills/gaie-upgrade/MASTER_UPGRADE.md"
@@ -57,6 +65,14 @@
           "approved_by": "owner order: adopt MASTER_BUILD and MASTER_UPGRADE officially (GAIE OS final integration)",
           "reference": "PR #31",
           "chain": "849b35d8d4a7126901a9fe85ddd05de6d1496ec320811ab5fcbdeb4deb285c3f"
+        },
+        {
+          "version": "1.2.0",
+          "sha256": "383ad2cdc75d210aa006b64d428645f3550d941576a421bd9fd6b7666590bbd5",
+          "date": "2026-11-28",
+          "approved_by": "owner order: activate Context7 MCP for MASTER_BUILD and MASTER_UPGRADE",
+          "reference": "PR #31",
+          "chain": "a299844733b9cbe7499213a2be61c1a048c92ea2d98df6089da60289f09d4187"
         }
       ]
     }

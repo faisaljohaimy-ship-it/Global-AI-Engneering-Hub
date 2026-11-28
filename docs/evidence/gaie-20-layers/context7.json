@@ -1,0 +1,60 @@
+{
+ "schema": "gaie.context7-probe/1",
+ "endpoint": "https://mcp.context7.com/mcp",
+ "transport": "MCP streamable HTTP (remote); nothing installed",
+ "generated_at_utc": "2026-11-28T12:07:09Z",
+ "generator": {
+  "path": "integrations/context7/probe.py",
+  "sha256": "ea10059bc0706f25fb253f4d145170b9a68255a5ab777880dab2d3e4e260be6a"
+ },
+ "keys_read_into_output": 0,
+ "paid_services": 0,
+ "provider_calls": 0,
+ "server": {
+  "name": "Context7",
+  "version": "4.9.1",
+  "protocol": "2025-06-18"
+ },
+ "tools": {
+  "resolve-library-id": [
+   "libraryName",
+   "query"
+  ],
+  "query-docs": [
+   "libraryId",
+   "query"
+  ]
+ },
+ "calls": {
+  "resolve-library-id": {
+   "arguments": {
+    "libraryName": "fastapi",
+    "query": "dependency injection with Depends"
+   },
+   "is_error": false,
+   "chars": 944,
+   "sha256": "5057f44048a623c65bbad3eefa1c276e24d78821dbee2f62a671e876d9b20b1a",
+   "library_id": "/websites/fastapi_tiangolo"
+  },
+  "query-docs": {
+   "arguments": {
+    "libraryId": "/websites/fastapi_tiangolo",
+    "query": "dependency injection with Depends"
+   },
+   "is_error": false,
+   "chars": 6562,
+   "sha256": "72d7c25510e86c09c46981a21eb15b9bd0231c1f3cb98e435360208f28bc893c",
+   "first_heading": "### Example using Depends with Annotated"
+  }
+ },
+ "checks": {
+  "initialize": true,
+  "lists_resolve_library_id": true,
+  "lists_query_docs": true,
+  "library_resolved": true,
+  "documentation_returned": true
+ },
+ "status": "passed",
+ "duration_s": 3.21,
+ "key_source": "proxy network secret or none"
+}
