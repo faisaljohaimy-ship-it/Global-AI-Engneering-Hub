@@ -28,7 +28,7 @@ verified rollback. It reuses the hub's engines instead of duplicating them.
 | `route_command(command, *, environ=None, workspace=None)` | none | Router decision plus the engine's refusals; `mode`, `scope`, `focus`, `areas`. |
 | `requested_changes(command, spec)` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions, or not settled (`UNSETTLED`): `unparsed`, `open-questions`, `unsettled` (a remove verb used as a command, or a negation, that the diff does not reflect, e.g. a locale). |
 | `data_manifest(path, columns=None, staging=None)` / `data_preserved(before, after_path, staging=None)` | none on the file (read-only, `immutable=1`); with `staging`, a private snapshot there | Per-table row count and SHA-256 over the original columns; problems list. A database with a `-wal`/`-journal` companion is read through `snapshot_database` in `staging`; without it (audit) only the main file is read, `complete` is false and `data_preserved` reports the data as unproven. |
-| `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory only | Consistent single-file copy: the file and its `-wal`/`-journal` are byte-copied into `staging` (SQLite never opens the source directory), opened there and copied with the sqlite3 backup API; `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
+| `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory it creates | Consistent single-file copy. SQLite never opens the source directory and never sees a journal the engine did not create: the `-journal` is read as bytes first and the copy is refused (`UpgradeError`, before any open) when the journal is hot (an interrupted write transaction) or ends in a super-journal record, because rolling it back would make SQLite delete the file that record names; an empty or zeroed journal (`TRUNCATE`/`PERSIST` residue) holds nothing and is never copied. The main file and a `-wal` whose header and header checksum verify are byte-copied into `staging`; with a `-wal` the copy is opened there and the committed frames are applied, otherwise it is opened `immutable=1`; then the sqlite3 backup API. `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
 | `classify_migration(sql)` / `split_sql(sql)` | none | Statement verdicts; raises `UpgradeError` on any statement that can lose or rewrite data. |
 | `migrate_database(path, up, down, scratch)` | scratch copies only | Applies `up` to a `snapshot_database` copy, proves data preservation and that `down` restores the schema; returns the migrated bytes as one complete file (the upgrade removes the copy's stale `-wal`/`-shm`/`-journal` when it writes them; the rollback restores them). |
 | `asset_references(root, rel, files)` | none | Static proof of use or non-use of one asset. |
@@ -205,7 +205,10 @@ and malformed steps are refused before anything is created.
   cannot be ruled out (hence the backup); directory listings in code make it unprovable.
 - Data proofs cover SQLite files only; other stores are copied and hashed but not compared
   row by row. Index choice uses query plans over the declared schema, not production data
-  distributions; measured timings are not used as gates.
+  distributions; measured timings are not used as gates. A database left with a hot
+  rollback journal (a crashed write) or a journal carrying a super-journal record, or with a
+  `-wal` whose header does not verify, is refused before SQLite opens it: the engine never
+  rolls back a journal it did not create. The owner recovers it with the application first.
 - Template fixes never invent content: images without `alt` are reported for the owner. Label
   text comes from the spec, otherwise from the control's name.
 - Tests prove only what they check; a validated upgrade is not a release approval. Only

@@ -33,6 +33,7 @@ import pprint
 import re
 import shutil
 import sqlite3
+import struct
 import tempfile
 import time
 import urllib.parse
@@ -458,36 +459,96 @@ def _row_counts(conn):
     return {name: conn.execute(f"SELECT COUNT(*) FROM {_quote(name)}").fetchone()[0] for name in names}
 
 
+JOURNAL_MAGIC = bytes.fromhex("d9d505f920a163d7")  # SQLite rollback-journal header and super-journal record magic
+WAL_MAGIC = (0x377F0682, 0x377F0683)
+WAL_VERSION = 3007000
+
+
+def _journal_refusal(path):
+    """Why the ``-journal`` beside ``path`` must never reach SQLite, or None when it holds nothing to roll back.
+
+    SQLite rolls a hot journal back on the first normal open and then deletes the file the
+    journal names as its super-journal (any path the process may delete). The engine never
+    hands SQLite a journal it did not create: a journal that ends in a super-journal record
+    or is hot (its first byte is not zero: an interrupted write transaction) is refused; an
+    empty or zeroed one (``TRUNCATE``/``PERSIST`` residue) is inert and is never copied.
+    """
+    try:
+        with open(f"{path}-journal", "rb") as stream:
+            first = stream.read(1)
+            size = stream.seek(0, 2)
+            stream.seek(max(size - 8, 0))
+            tail = stream.read(8)
+    except FileNotFoundError:
+        return None
+    if size >= 8 and tail == JOURNAL_MAGIC:
+        return ("its -journal ends in a super-journal record (a multi-database transaction); rolling it back would make "
+                "SQLite delete the file that record names")
+    if first not in (b"", b"\0"):
+        return ("its -journal is a hot rollback journal (an interrupted write transaction); the engine never rolls back a "
+                "journal it did not create: open and close the database once with the application that owns it, then run again")
+    return None
+
+
+def _wal_refusal(wal):
+    """Why the ``-wal`` file ``wal`` must not be opened, or None: empty, or a SQLite WAL header whose checksum verifies."""
+    with open(wal, "rb") as stream:
+        header = stream.read(32)
+    if not header:
+        return None
+    if len(header) < 32:
+        return "its -wal is shorter than a WAL header"
+    magic, version, page_size = struct.unpack(">3I", header[:12])
+    if magic not in WAL_MAGIC or version != WAL_VERSION or not 512 <= page_size <= 65536 or page_size & (page_size - 1):
+        return "its -wal does not start with a SQLite WAL header"
+    words, first, second = ">" if magic & 1 else "<", 0, 0  # wal.c walChecksumBytes over the first 24 bytes
+    for offset in range(0, 24, 8):
+        low, high = struct.unpack(words + "2I", header[offset:offset + 8])
+        first = (first + low + second) & 0xFFFFFFFF
+        second = (second + high + first) & 0xFFFFFFFF
+    if struct.unpack(">2I", header[24:32]) != (first, second):
+        return "its -wal header checksum does not verify"
+    return None
+
+
 def snapshot_database(path, dest, staging):
     """Consistent single-file copy of the SQLite database at ``path``, made with the sqlite3 backup API.
 
     SQLite never opens the source directory (a read-only open of a WAL database creates or
-    rewrites its ``-shm`` there): the main file and its ``-wal``/``-journal`` are copied byte for
-    byte into the private ``staging`` directory and opened there, so committed WAL frames are
-    applied and a hot journal is rolled back as SQLite itself would. ``dest`` keeps the source's
-    journal mode and has no companion file. Raises UpgradeError unless ``dest`` passes
-    ``PRAGMA integrity_check`` and every table has the source's row count (both read through
-    the same API). Returns ``{journal_mode, companions, rows, integrity, method}``.
+    rewrites its ``-shm`` there) and never sees a journal the engine did not create. A
+    ``-journal`` is read as bytes first and the copy is refused when it is hot or carries a
+    super-journal record (``_journal_refusal``); an inert one is left out. The main file and a
+    ``-wal`` whose header verifies are byte-copied into ``staging``, a directory created here:
+    with a ``-wal`` SQLite opens the copy there and applies the committed frames, otherwise the
+    copy is opened ``immutable=1`` (no journal or WAL is consulted). ``dest`` keeps the source's
+    journal mode and has no companion file. Raises UpgradeError, before SQLite opens anything,
+    for a refused companion, and afterwards unless ``dest`` passes ``PRAGMA integrity_check``
+    and every table has the source's row count (both read through the same API). Returns
+    ``{journal_mode, companions, rows, integrity, method}``.
     """
     path, dest, staging = pathlib.Path(path), pathlib.Path(dest), pathlib.Path(staging)
     companions = _companions(path)
+    refusal = _journal_refusal(path) if "-journal" in companions else None
+    _need(refusal is None, f"Database {path.name}: {refusal}. Refused before SQLite opened it; nothing was rolled back or deleted")
     for stale in [dest] + [pathlib.Path(f"{dest}{suffix}") for suffix in _companions(dest)]:
         stale.unlink(missing_ok=True)
     shutil.rmtree(staging, ignore_errors=True)
-    staging.mkdir(parents=True, mode=0o700)
+    staging.mkdir(parents=True, mode=0o700)  # exist_ok=False: the private directory is the one created here
     source = staging / "source.db"
     try:
         shutil.copyfile(path, source)
-        for suffix in companions:
-            if suffix != "-shm":  # the WAL index is rebuilt from the WAL; a copied one could be stale
-                shutil.copyfile(f"{path}{suffix}", f"{source}{suffix}")
+        wal = "-wal" in companions
+        if wal:  # the WAL index (-shm) is rebuilt from the WAL; a copied one could be stale. A journal is never copied
+            shutil.copyfile(f"{path}-wal", f"{source}-wal")
+            refusal = _wal_refusal(f"{source}-wal")  # the bytes SQLite would read
+            _need(refusal is None, f"Database {path.name}: {refusal}. Refused before SQLite opened it")
         try:
-            src = sqlite3.connect(source)
+            src = sqlite3.connect(source) if wal else _open_ro(source)
             try:
                 dst = sqlite3.connect(dest)
                 try:
-                    mode = src.execute("PRAGMA journal_mode").fetchone()[0]
                     src.backup(dst)
+                    mode = dst.execute("PRAGMA journal_mode").fetchone()[0]  # the header's mode (an immutable source reports delete)
                     integrity = dst.execute("PRAGMA integrity_check").fetchone()[0]
                     before, after = _row_counts(src), _row_counts(dst)
                 finally:
@@ -502,7 +563,8 @@ def snapshot_database(path, dest, staging):
     _need(before == after, f"Database {path.name}: the copy's row counts {after} differ from the source's {before}")
     _need(not _pending(dest), f"Database {path.name}: the copy kept a journal companion")
     return {"journal_mode": mode, "companions": companions, "rows": after, "integrity": integrity,
-            "method": "byte copy of the file and its -wal/-journal into a private directory, then the sqlite3 backup API"}
+            "method": "journal checked before any open; byte copy of the file and a verified -wal into a private directory, "
+                      "then the sqlite3 backup API"}
 
 
 def _table_checksum(conn, table, columns):
