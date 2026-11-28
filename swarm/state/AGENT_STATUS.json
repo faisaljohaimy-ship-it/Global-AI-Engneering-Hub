@@ -30,5 +30,7 @@
   "benchmark": [
    "claude-sonnet-5-5"
   ]
- }
+ },
+ "review_agents_started": 4,
+ "all_real_agents_started": 42
 }

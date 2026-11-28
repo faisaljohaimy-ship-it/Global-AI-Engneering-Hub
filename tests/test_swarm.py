@@ -211,3 +211,43 @@ class EvidenceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReviewFixTests(unittest.TestCase):
+    """Each of these fails on the code the independent review criticised."""
+
+    def test_every_script_a_capability_names_exists_or_names_its_pull_request(self):
+        import re
+        for row in json.loads((SWARM / "capabilities.json").read_text())["capabilities"]:
+            for path in re.findall(r"(?:skills|scripts|swarm|packages|tools)/[\w./-]+\.(?:py|sh|mjs)", row["invoke"] or ""):
+                self.assertTrue((ROOT / path).exists() or "PR #16" in row["implementation"], f"{row['id']} names {path}")
+
+    def test_the_screen_refuses_the_classic_escape_and_allows_plain_code(self):
+        self.assertEqual(workload.inspect("def f(x):\n    return sorted(x)\n"), [])
+        self.assertIn("use of __class__", workload.inspect("def f(x):\n    return ().__class__.__mro__\n"))
+        self.assertIn("import of inv.m1", workload.inspect("from inv.m1 import f\n"))
+        self.assertEqual(workload.inspect("from inv.m1 import f\n", workload.ALLOWED_IMPORTS | {"inv"}), [])
+
+    def test_a_worktree_with_edited_tests_or_unsafe_code_is_never_run(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder) / "proj"
+            made = bench.build(root, 4)
+            (root / "tests" / "test_inv.py").write_text("import os\nos.system('touch ran')\n")
+            refused = bench.check(root, root, made["truth"])
+            self.assertEqual((refused["tests_pass"], refused["score"]), (False, 0))
+            self.assertIn("tests/test_inv.py", refused["refused_to_run"])
+            self.assertFalse((root / "ran").exists())
+            subprocess.run(["git", "-C", str(root), "checkout", "-q", "--", "tests"], check=True)
+            module = made["truth"]["fixed_function"].split(".")[0]
+            (root / "inv" / f"{module}.py").write_text("import socket\n" + bench.source(bench.design(4), module, False))
+            self.assertIn(f"inv/{module}.py: import of socket", bench.check(root, root, made["truth"])["refused_to_run"])
+
+    def test_limits_and_review_are_recorded_with_how_they_were_observed(self):
+        limits = json.loads((SWARM / "evidence" / "host-limits.json").read_text())
+        review = json.loads((SWARM / "evidence" / "review.json").read_text())
+        self.assertTrue(all("how" in limits[key] for key in ("machine", "agent_tool", "workflow_tool", "agent_definitions", "network")))
+        self.assertLessEqual(limits["workflow_tool"]["peak_concurrent_measured"], limits["workflow_tool"]["agents_in_this_run"])
+        self.assertEqual(review["findings"], len(review["detail"]))
+        self.assertTrue(all(row["action"] != "reviewed" for row in review["detail"]))
+        both = json.loads((SWARM / "evidence" / "headroom-two-integrations.json").read_text())["samples"]
+        self.assertEqual(len(both), 3)

@@ -63,9 +63,11 @@ def prep(stage: str, agents: int, first: int, tasks: int) -> None:
 def finish(stage: str, next_agents: int) -> int:
     run = json.loads((HOME / "runs" / f"{stage}.json").read_text())
     end = now()
-    try:
-        os.killpg(run["sampler"], signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
+    try:  # the process id comes from a file, so make sure it still is the sampler before stopping it
+        command = Path(f"/proc/{run['sampler']}/cmdline").read_bytes()
+        if b"measure.py" in command and b"sample" in command:
+            os.killpg(run["sampler"], signal.SIGTERM)
+    except (OSError, ProcessLookupError, PermissionError):
         pass
     rows = [measure.read(path) for path in records() if path.name not in run["before"]]
     rows = [row for row in rows if row["task"] in run["tasks"]]

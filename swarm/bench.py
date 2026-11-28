@@ -10,6 +10,9 @@ each, a large single-line JSON file with three failed records and a long build l
 one error. One function is wrong, so its test and the tests of everything that calls it
 fail. The job is to find and fix that one function and to answer four questions.
 
+`build` writes the answers to DIR.truth.json beside DIR, on purpose: an agent working inside
+DIR must not be able to read them. Give it a DIR outside any repository.
+
 `trace` starts no agent. For the same five information needs it runs the commands each
 configuration would use and records how much text comes back:
 
@@ -25,9 +28,13 @@ import importlib.util
 import json
 import os
 import random
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import workload  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 MODULES, FUNCTIONS, INPUTS = 8, 12, (0, 1, 5, 12)
@@ -152,8 +159,20 @@ def trace(root: Path, truth: dict, index: dict) -> dict:
 
 
 def check(root: Path, worktree: Path, truth: dict) -> dict:
+    # The worktree holds code an agent wrote. Before running any of it: only the package may have
+    # changed, never the tests, and every changed file must pass the same screen as the small tasks.
+    status = subprocess.run(["git", "-C", str(worktree), "status", "--porcelain"], capture_output=True, text=True).stdout.splitlines()
+    touched = [line[3:] for line in status]
+    refused = [name for name in touched if not re.fullmatch(r"inv/m\d+\.py", name)]
+    for name in touched:
+        if name not in refused:
+            refused += [f"{name}: {finding}" for finding in workload.inspect((worktree / name).read_text(), workload.ALLOWED_IMPORTS | {"inv"})]
+    if refused:
+        return {"tests_pass": False, "refused_to_run": refused, "score": 0, "out_of": len(truth) + 1}
     # -B: leave no compiled files behind, so a later fix of the same size in the same second is not masked by them
-    tests = subprocess.run([sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests"], cwd=worktree, capture_output=True, text=True, timeout=120)
+    # -s -E: no user packages and no Python variables; the environment is empty and there is no network.
+    # Not -I: that would also drop the project folder from the import path, and the tests import the package.
+    tests = workload.isolated([sys.executable, "-B", "-s", "-E", "-m", "unittest", "discover", "-s", "tests"], worktree, 120)
     diff = subprocess.run(["git", "-C", str(worktree), "diff", "--numstat"], capture_output=True, text=True).stdout.split()
     changed = subprocess.run(["git", "-C", str(worktree), "diff", "--name-only"], capture_output=True, text=True).stdout.split()
     try:

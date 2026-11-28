@@ -35,11 +35,11 @@ What the ladder shows:
 - All 40 tasks passed all 564 withheld tests, at every size. Quality did not drop.
 - Five agents were not faster than one agent doing the same five tasks (21.81 s against 23.23 s) and cost 5.9 times the input tokens.
 - Throughput doubled from five to ten agents and then stopped: twenty agents took twice as long each.
-- Every new agent started with 222,067 tokens of context before reading its task, and the host wrote about
-  182,023 of them to the cache again for each agent. That fixed cost, not the task, is what the tokens went on.
-  That context is what the host gives every agent in this session before its task. The session has six repositories'
-  instruction files and many connectors attached, which is the likely reason; the split was not measured.
-- Speedup is measured against stage one's 4.65 seconds a task. Efficiency is speedup divided by agents.
+- An agent's first request carried a median of 222,067 tokens of context (221,822 to 222,192) before it had read its task, and a median
+  of 182,023 tokens was written to the cache per agent. The ladder's agents made 125 model replies and used 29,049,897
+  input tokens, about 232,399 a reply: nearly all of it is that starting context sent again each time, not the task.
+  The session has six repositories' instruction files and many connectors attached, which is the likely reason; the split was not measured.
+- Speedup is measured against stage one's 23.23 seconds for five tasks, unrounded. Efficiency is speedup divided by agents.
 
 ## Configurations A to D
 
@@ -66,6 +66,13 @@ With one real agent each (`evidence/configurations-agents.json`, one sample, so 
 | Seconds | 20.37 | 17.36 |
 
 Configurations B and C were not run with real agents: the token limit left no room.
+
+## Independent review
+
+Four reviewers, started by the host's workflow tool and told to refute this report, returned 12 findings
+(8 low, 4 medium). All were valid and are addressed; `evidence/review.json` lists each with what was done.
+They also measured that tool's limit: 2 of the 4 ran at once, as its documentation says for a four-core machine.
+`evidence/host-limits.json` records every limit named in `state/BLOCKERS.md` and how it was observed.
 
 ## Safety
 

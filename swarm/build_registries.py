@@ -65,7 +65,7 @@ Tree-sitter|tool|inside ast-grep and Repomix; the Python binding 0.26.1 parsed o
 Ripgrep|tool|ripgrep 14.1.0 and the host's search tool|rg -n PATTERN|USED|search,code
 Symbol-level Retrieval|tool|sym def returns one definition instead of a file|sym def NAME FILE|USED|code
 Reference Graph Analysis|script|sym refs; swarm/bench.py writes a call index for its project|sym refs NAME FILE|USED|code
-Dependency-aware Code Retrieval|script|the hub copies a motion with exactly the modules it imports|hub.py register ... engine-motion:ID|TESTED|code
+Dependency-aware Code Retrieval|script|the hub copies a motion with exactly the modules it imports (PR #16)|python3 hub.py register PROJECT --capability engine-motion:ID|TESTED|code
 Context7|tool|not installed: its hosts are refused by the session's network policy|none|BLOCKED|docs
 Version-specific Documentation Retrieval|script|read the pinned version from the lock, then inspect the installed package|python -c 'import inspect, PKG'|USED|docs
 Selective API Documentation|script|print one signature or one help section, not a manual|python -c inspect.signature|USED|docs
@@ -81,9 +81,9 @@ Stable Context Prefixes|rule|every worker got the same instructions first; even 
 Content Fingerprinting|script|SHA-256 of originals, of motion sources and of tasks|automatic|USED|orchestration
 Git Blob-based Reuse|script|the hub reads files at a revision from Git objects|hublink.read(revision, path)|TESTED|code
 File Checksum Verification|hub|hub.py verify --strict and hr verify|python3 hub.py verify --strict|USED|release
-Dependency Lockfile Caching|script|bootstrap skips a tool whose lock has not changed; uv reuses downloads|scripts/bootstrap.sh|USED|setup
+Dependency Lockfile Caching|script|bootstrap skips a tool whose lock has not changed; uv reuses downloads|skills/ultra-context-optimization/scripts/bootstrap.sh|USED|setup
 Build Cache Optimization|none|the hub has no build step to cache|none|NOT IMPLEMENTED|build
-Test Result Reuse|script|motion evidence is bound to source hashes, so unchanged motions are not re-run|verify/browser.mjs --module KEY|USED|test
+Test Result Reuse|script|motion evidence is bound to source hashes, so unchanged motions are not re-run (the motion package, PR #16)|node packages/motion-engines/verify/browser.mjs --module KEY|USED|test
 Cache Invalidation|script|evidence is void when its source or the core changes; lock stamps|automatic|TESTED|test
 Shared Artifact Reuse|script|one tool install under ~/.gaie-tools serves every agent|GAIE_TOOLS|USED|setup
 Programmatic Tool Calling|host|the host exposed no native programmatic tool calling; local scripts stand in|none|BLOCKED|orchestration
@@ -120,7 +120,7 @@ Incremental Testing|rule|run the test for what changed first, the full suite bef
 Affected-module Detection|none|nothing here maps a change to the tests it affects|none|NOT IMPLEMENTED|test
 Dependency-aware Testing|none|the same gap|none|NOT IMPLEMENTED|test
 Change-aware Builds|none|the hub has no build step|none|NOT IMPLEMENTED|build
-Selective Regression Testing|script|the browser harness runs one module or one motion|verify/browser.mjs --id ID|USED|test
+Selective Regression Testing|script|the browser harness runs one module or one motion (the motion package, PR #16)|node packages/motion-engines/verify/browser.mjs --id ID|USED|test
 Reproducible Build Artifacts|script|hash-checked locks and seeded generators give the same files again|locks/, --seed|USED|setup
 Deterministic Quality Gates|hub|unit tests, the secret scan, the dependency scan and the harness|scripts/security_scan.py scan|USED|release
 Parallel Independent Testing|script|the checker runs each agent's hidden tests in its own process|python3 swarm/workload.py check|USED|test

@@ -10,8 +10,9 @@ a production deployment or the control plane. All work data was generated; none 
 2. **Workers ran on the lightest model with low effort; the two benchmark agents on the middle model.** The work was
    routine; `route.py` gives the same answer. The session's own model was used only to orchestrate.
 3. **Ownership uses `engineering_os.orchestration.TaskStore`,** not a new store. The experiment acted as orchestrator
-   for its own forty tasks in a private state folder. Tasks end in `review`: the store wants three independent
-   approvals and only the testing one exists.
+   for its own forty tasks in a private state folder. Tasks end in `review`: `review()` in
+   `engineering_os/orchestration.py` marks a task done only after testing, security and release have each approved,
+   and only the testing approval exists. The `approved` counts in the evidence are those testing approvals.
 4. **Limits were fixed before the first run** (`protect.py`). One was amended after stage one and is marked in the
    code: the orchestrator-share rule now applies from two agents up.
 5. **The ladder stopped at twenty agents** because two of those limits said so. Stages 25 to 100 were not run.
@@ -26,7 +27,7 @@ a production deployment or the control plane. All work data was generated; none 
 - `evidence/tool-audit.json`: four workers called session-control tools they were never asked to use. The host
   refused all four. A worker type with only file tools would remove the risk; it needs a session restart to load.
 - The hub now has two Headroom integrations: `tools/headroom_context.py` on main and `hr` in the
-  context-optimization skill. Both were run here. The first handles JSON with stronger isolation and returns logs
+  context-optimization skill. Both were run here on the same three samples (`evidence/headroom-two-integrations.json`). The first handles JSON with stronger isolation and returns logs
   and search results unchanged; the second also calls Headroom's log, search and diff transforms. They should
   become one.
 

@@ -8,7 +8,8 @@
   "ladder stages s01 s05 s10 s20 with real agents",
   "scripted comparison of configurations A to D",
   "one real agent each for A and D",
-  "task-store checkpoint and restore"
+  "task-store checkpoint and restore",
+  "independent review by four agents; its twelve findings addressed"
  ],
  "not_done": [
   "stages s25 s50 s75 s100 (stopped by the limits)",

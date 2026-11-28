@@ -20,6 +20,7 @@ import argparse
 import ast
 import hashlib
 import json
+import os
 import random
 import re
 import statistics
@@ -373,8 +374,17 @@ print(json.dumps({"passed": passed, "total": len(hidden["tests"])}))
 """
 
 
-def inspect(source: str) -> list[str]:
-    """What a reader would object to before running the file at all."""
+def isolated(command: list[str], cwd: Path | None = None, timeout: int = 20) -> subprocess.CompletedProcess:
+    """Run code an agent wrote: no inherited environment, and no network where the kernel allows."""
+    cage = ["unshare", "-n"] if subprocess.run(["unshare", "-n", "true"], capture_output=True).returncode == 0 else []
+    return subprocess.run([*cage, *command], cwd=cwd, capture_output=True, text=True, timeout=timeout, env={"PATH": os.environ.get("PATH", "")})
+
+
+def inspect(source: str, allowed: set[str] = ALLOWED_IMPORTS) -> list[str]:
+    """What a reader would object to before running the file at all.
+
+    This is a screen, not a sandbox: it refuses the obvious, and the run that follows is
+    still done by `isolated`, with a time limit."""
     try:
         tree = ast.parse(source)
     except SyntaxError as problem:
@@ -383,7 +393,9 @@ def inspect(source: str) -> list[str]:
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else [node.module or ""]
-            findings += [f"import of {name}" for name in names if name.split(".")[0] not in ALLOWED_IMPORTS]
+            findings += [f"import of {name}" for name in names if name.split(".")[0] not in allowed]
+        elif isinstance(node, ast.Attribute) and node.attr.startswith("__") and node.attr.endswith("__"):
+            findings.append(f"use of {node.attr}")
         elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
             findings.append(f"call of {node.func.id}")
     return findings
@@ -401,7 +413,7 @@ def check_one(folder: Path, hidden: Path) -> dict:
     row["findings"] = inspect(source)
     if not row["findings"]:
         try:
-            done = subprocess.run([sys.executable, "-I", "-c", RUNNER, str(solution), str(hidden)], capture_output=True, text=True, timeout=20)
+            done = isolated([sys.executable, "-I", "-c", RUNNER, str(solution), str(hidden)])
             row.update(json.loads(done.stdout) if done.returncode == 0 else {"error": (done.stderr.strip().splitlines() or ["failed"])[-1][:120]})
         except subprocess.TimeoutExpired:
             row["error"] = "timed out"

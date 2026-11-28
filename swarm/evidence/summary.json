@@ -34,7 +34,9 @@
    "s50",
    "s75",
    "s100"
-  ]
+  ],
+  "review_agents_started": 4,
+  "all_real_agents_started": 42
  },
  "why_the_ladder_stopped": "Stage s25 was not started. After s20 two limits written before the first run said stop: throughput was 29.64 tasks a minute against 29.46 at ten agents, under the required 10% gain; and the next stage was projected to pass the limit of 40,000,000 input tokens.",
  "tokens": {
@@ -42,7 +44,10 @@
   "all_experiment_agents_output": 73477,
   "orchestrator_inside_stage_windows": 6538319,
   "limit_input": 40000000,
-  "note": "Usage as returned by the API with each reply. Cache reads are included in input. Not a measure of subscription allowance."
+  "note": "Usage as returned by the API with each reply. Cache reads are included in input. Not a measure of subscription allowance.",
+  "review_agents_input": 3319350,
+  "review_agents_output": 14584,
+  "all_agents_input_with_review": 35900134
  },
  "tasks": {
   "ladder_verified": 40,
@@ -117,5 +122,20 @@
    "tokens_saved_against_A_percent": 93.4
   }
  },
- "amendment": "The orchestrator-share stop rule was restricted to stages with more than one agent after stage one tripped it at 75%. No other limit was changed."
+ "amendment": "The orchestrator-share stop rule was restricted to stages with more than one agent after stage one tripped it at 75%. No other limit was changed.",
+ "independent_review": {
+  "agents": 4,
+  "peak_concurrent_agents": 2,
+  "findings": 12,
+  "by_severity": {
+   "low": 8,
+   "medium": 4
+  },
+  "tokens": {
+   "input_total": 3319350,
+   "output": 14584,
+   "cache_read": 2451194,
+   "cache_write": 868128
+  }
+ }
 }

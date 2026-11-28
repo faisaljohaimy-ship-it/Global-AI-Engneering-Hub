@@ -403,8 +403,8 @@
    "group_name": "Semantic code intelligence",
    "name": "Dependency-aware Code Retrieval",
    "kind": "script",
-   "implementation": "the hub copies a motion with exactly the modules it imports",
-   "invoke": "hub.py register ... engine-motion:ID",
+   "implementation": "the hub copies a motion with exactly the modules it imports (PR #16)",
+   "invoke": "python3 hub.py register PROJECT --capability engine-motion:ID",
    "status": "TESTED",
    "task_classes": [
     "code"
@@ -613,7 +613,7 @@
    "name": "Dependency Lockfile Caching",
    "kind": "script",
    "implementation": "bootstrap skips a tool whose lock has not changed; uv reuses downloads",
-   "invoke": "scripts/bootstrap.sh",
+   "invoke": "skills/ultra-context-optimization/scripts/bootstrap.sh",
    "status": "USED",
    "task_classes": [
     "setup"
@@ -638,8 +638,8 @@
    "group_name": "Cache and reuse",
    "name": "Test Result Reuse",
    "kind": "script",
-   "implementation": "motion evidence is bound to source hashes, so unchanged motions are not re-run",
-   "invoke": "verify/browser.mjs --module KEY",
+   "implementation": "motion evidence is bound to source hashes, so unchanged motions are not re-run (the motion package, PR #16)",
+   "invoke": "node packages/motion-engines/verify/browser.mjs --module KEY",
    "status": "USED",
    "task_classes": [
     "test"
@@ -1120,8 +1120,8 @@
    "group_name": "Incremental engineering",
    "name": "Selective Regression Testing",
    "kind": "script",
-   "implementation": "the browser harness runs one module or one motion",
-   "invoke": "verify/browser.mjs --id ID",
+   "implementation": "the browser harness runs one module or one motion (the motion package, PR #16)",
+   "invoke": "node packages/motion-engines/verify/browser.mjs --id ID",
    "status": "USED",
    "task_classes": [
     "test"
