@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "task-manager",
+  "tests": {"start": "tests", "pattern": "case_*.py"},
+  "spec": "gaie-spec.json",
+  "app": {"module": "app", "routes_variable": "ROUTES", "dispatch": "dispatch",
+          "connection": {"module": "store", "connect": "connect", "init": "init", "memory": ":memory:"}},
+  "schema": ["schema.sql"],
+  "databases": ["data/tasks.db", "data/tasks.store"],
+  "templates": ["templates"],
+  "assets": ["static"]
+}

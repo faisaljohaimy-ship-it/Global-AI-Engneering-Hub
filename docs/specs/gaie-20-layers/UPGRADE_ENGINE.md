@@ -27,9 +27,10 @@ verified rollback. It reuses the hub's engines instead of duplicating them.
 | `upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extra_steps=None, environ=None)` | `workspace-write` (a new `workdir/upgrade-*` run directory); none in audit mode | The pipeline below; returns the report. |
 | `route_command(command, *, environ=None, workspace=None)` | none | Router decision plus the engine's refusals; `mode`, `scope`, `focus`, `areas`. |
 | `requested_changes(command, spec)` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions. |
-| `data_manifest(path, columns=None)` / `data_preserved(before, after_path)` | none (read-only, `immutable=1`) | Per-table row count and SHA-256 over the original columns; problems list. |
+| `data_manifest(path, columns=None, staging=None)` / `data_preserved(before, after_path, staging=None)` | none on the file (read-only, `immutable=1`); with `staging`, a private snapshot there | Per-table row count and SHA-256 over the original columns; problems list. A database with a `-wal`/`-journal` companion is read through `snapshot_database` in `staging`; without it (audit) only the main file is read, `complete` is false and `data_preserved` reports the data as unproven. |
+| `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory only | Consistent single-file copy: the file and its `-wal`/`-journal` are byte-copied into `staging` (SQLite never opens the source directory), opened there and copied with the sqlite3 backup API; `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
 | `classify_migration(sql)` / `split_sql(sql)` | none | Statement verdicts; raises `UpgradeError` on any statement that can lose or rewrite data. |
-| `migrate_database(path, up, down, scratch)` | scratch copies only | Applies `up` to a copy, proves data preservation and that `down` restores the schema; returns the migrated bytes. |
+| `migrate_database(path, up, down, scratch)` | scratch copies only | Applies `up` to a `snapshot_database` copy, proves data preservation and that `down` restores the schema; returns the migrated bytes as one complete file (the upgrade removes the copy's stale `-wal`/`-shm`/`-journal` when it writes them; the rollback restores them). |
 | `asset_references(root, rel, files)` | none | Static proof of use or non-use of one asset. |
 | `audit_html`, `fix_html`, `audit_queries`, `audit_validation` | none | The audit checks and the template fixer (deterministic). |
 | `verify_receipts(receipts)` | none | Recomputes every receipt hash and chain link. |
@@ -76,7 +77,8 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
 2. **BASELINE** — snapshot the target (SHA-256 per file), copy it to
    `workdir/upgrade-*/upgraded`, run the suite twice in disposable copies (disagreeing tests
    are `flaky` and excluded), record every passing test id, the logical manifest of every
-   SQLite file (tables, rows, SHA-256 over all columns, indexes, `user_version`,
+   SQLite file read from a verified snapshot of the copy, so committed `-wal` frames count
+   (tables, rows, SHA-256 over all columns, indexes, `user_version`,
    `quick_check`), the SHA-256 of every asset, every top-level function/class/method and every
    route. No passing baseline test → `blocked`, nothing is changed.
 3. **AUDIT** — `gaie_inventory.inventory`, `detectors.run_all`, and the upgrade checks:

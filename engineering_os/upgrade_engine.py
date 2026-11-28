@@ -395,6 +395,74 @@ def _open_ro(path):
     return sqlite3.connect(f"file:{urllib.parse.quote(str(path))}?mode=ro&immutable=1", uri=True)
 
 
+def _companions(path):
+    """Journal companions next to a SQLite file (``-wal``, ``-shm``, ``-journal``) that exist; a symlinked one is refused."""
+    found = []
+    for suffix in ("-wal", "-shm", "-journal"):
+        companion = pathlib.Path(f"{path}{suffix}")
+        _need(not companion.is_symlink(), f"Database companion {companion.name} is a symlink; refused")
+        if companion.exists():
+            found.append(suffix)
+    return found
+
+
+def _pending(path):
+    """Companions that can hold committed (``-wal``) or to-be-rolled-back (``-journal``) content; ``-shm`` is only the WAL index."""
+    return [suffix for suffix in _companions(path) if suffix != "-shm"]
+
+
+def _row_counts(conn):
+    names = [row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
+    return {name: conn.execute(f"SELECT COUNT(*) FROM {_quote(name)}").fetchone()[0] for name in names}
+
+
+def snapshot_database(path, dest, staging):
+    """Consistent single-file copy of the SQLite database at ``path``, made with the sqlite3 backup API.
+
+    SQLite never opens the source directory (a read-only open of a WAL database creates or
+    rewrites its ``-shm`` there): the main file and its ``-wal``/``-journal`` are copied byte for
+    byte into the private ``staging`` directory and opened there, so committed WAL frames are
+    applied and a hot journal is rolled back as SQLite itself would. ``dest`` keeps the source's
+    journal mode and has no companion file. Raises UpgradeError unless ``dest`` passes
+    ``PRAGMA integrity_check`` and every table has the source's row count (both read through
+    the same API). Returns ``{journal_mode, companions, rows, integrity, method}``.
+    """
+    path, dest, staging = pathlib.Path(path), pathlib.Path(dest), pathlib.Path(staging)
+    companions = _companions(path)
+    for stale in [dest] + [pathlib.Path(f"{dest}{suffix}") for suffix in _companions(dest)]:
+        stale.unlink(missing_ok=True)
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True, mode=0o700)
+    source = staging / "source.db"
+    try:
+        shutil.copyfile(path, source)
+        for suffix in companions:
+            if suffix != "-shm":  # the WAL index is rebuilt from the WAL; a copied one could be stale
+                shutil.copyfile(f"{path}{suffix}", f"{source}{suffix}")
+        try:
+            src = sqlite3.connect(source)
+            try:
+                dst = sqlite3.connect(dest)
+                try:
+                    mode = src.execute("PRAGMA journal_mode").fetchone()[0]
+                    src.backup(dst)
+                    integrity = dst.execute("PRAGMA integrity_check").fetchone()[0]
+                    before, after = _row_counts(src), _row_counts(dst)
+                finally:
+                    dst.close()
+            finally:
+                src.close()
+        except sqlite3.Error as error:
+            raise UpgradeError(f"Database {path.name} could not be copied consistently ({type(error).__name__}: {str(error)[:200]})") from None
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    _need(integrity == "ok", f"Database {path.name}: its copy fails PRAGMA integrity_check ({str(integrity)[:200]})")
+    _need(before == after, f"Database {path.name}: the copy's row counts {after} differ from the source's {before}")
+    _need(not _pending(dest), f"Database {path.name}: the copy kept a journal companion")
+    return {"journal_mode": mode, "companions": companions, "rows": after, "integrity": integrity,
+            "method": "byte copy of the file and its -wal/-journal into a private directory, then the sqlite3 backup API"}
+
+
 def _table_checksum(conn, table, columns):
     selected = ", ".join(_quote(c) for c in columns)
     try:
@@ -408,12 +476,23 @@ def _table_checksum(conn, table, columns):
     return rows, digest.hexdigest()
 
 
-def data_manifest(path, columns=None):
+def data_manifest(path, columns=None, staging=None):
     """Logical manifest of one SQLite file, read-only and immutable: tables (rows, columns, SHA-256), indexes, version.
 
     ``columns`` restricts each table's checksum to the given columns (the baseline columns),
-    so a migration that only adds a column still proves the original data unchanged.
+    so a migration that only adds a column still proves the original data unchanged. A
+    database with a ``-wal`` or ``-journal`` companion is read from ``snapshot_database`` in
+    the private ``staging`` directory, so committed WAL frames count; without ``staging``
+    (the read-only audit writes nowhere) its main file is read as it is and ``complete`` is false.
     """
+    pending = _pending(path)
+    if pending and staging is not None:
+        staging = pathlib.Path(staging)
+        try:
+            snapshot_database(path, staging / "snapshot.db", staging / "source")
+            return {**data_manifest(staging / "snapshot.db", columns), "companions": pending}
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
     conn = _open_ro(path)
     try:
         names = [row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
@@ -426,14 +505,15 @@ def data_manifest(path, columns=None):
         schema = [list(row) for row in conn.execute("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name")]
         return {"tables": tables, "indexes": sorted(row[1] for row in schema if row[0] == "index"),
                 "user_version": conn.execute("PRAGMA user_version").fetchone()[0],
-                "integrity": conn.execute("PRAGMA quick_check").fetchone()[0], "schema_sha256": sha(schema)}
+                "integrity": conn.execute("PRAGMA quick_check").fetchone()[0], "schema_sha256": sha(schema),
+                "companions": pending, "complete": not pending}
     finally:
         conn.close()
 
 
-def data_preserved(before, after_path):
+def data_preserved(before, after_path, staging=None):
     """Problems (empty when none): every baseline table keeps its rows and the SHA-256 over its baseline columns."""
-    after = data_manifest(after_path, {name: row["columns"] for name, row in before["tables"].items()})
+    after = data_manifest(after_path, {name: row["columns"] for name, row in before["tables"].items()}, staging)
     problems = []
     for name, row in sorted(before["tables"].items()):
         now = after["tables"].get(name)
@@ -447,6 +527,8 @@ def data_preserved(before, after_path):
             problems.append(f"table {name}: row checksum changed")
     if after["integrity"] != "ok":
         problems.append("integrity check failed")
+    if not after["complete"]:
+        problems.append(f"read without its {'/'.join(after['companions'])} companion: committed data is unproven")
     return problems, after
 
 
@@ -497,7 +579,10 @@ def _execute_migration(path, statements):
 def migrate_database(path, up, down, scratch):
     """Apply ``up`` to a scratch copy of ``path``, prove data preservation and that ``down`` restores the schema.
 
-    Returns ``(migrated bytes, proof)``; the file at ``path`` is never written here. Raises
+    Returns ``(migrated bytes, proof)``; the file at ``path`` is never written here. The scratch
+    copy comes from ``snapshot_database`` (committed ``-wal`` frames included, integrity and row
+    counts verified), so the migrated bytes are one complete file: the caller must remove the
+    stale ``-wal``/``-shm``/``-journal`` next to ``path`` when it writes them. Raises
     UpgradeError when the SQL is refused, fails, or any baseline row is lost or changed.
     """
     statements = classify_migration(up)
@@ -505,7 +590,7 @@ def migrate_database(path, up, down, scratch):
     scratch = pathlib.Path(scratch)
     scratch.mkdir(parents=True, exist_ok=True, mode=0o700)
     work, back = scratch / "up.db", scratch / "down.db"
-    shutil.copyfile(path, work)
+    copied = snapshot_database(path, work, scratch / "source")
     before = data_manifest(work)
     try:
         _execute_migration(work, statements)
@@ -514,9 +599,9 @@ def migrate_database(path, up, down, scratch):
     problems, after = data_preserved(before, work)
     _need(not problems, "Migration refused: it would lose or change data (" + "; ".join(problems) + ")")
     proof = {"before": before, "after": after, "statements": [r["kind"] for r in statements], "data_preserved": True,
-             "down_verified": None, "down_statements": [r["kind"] for r in reverse]}
+             "down_verified": None, "down_statements": [r["kind"] for r in reverse], "copy": copied}
     if reverse:
-        shutil.copyfile(work, back)
+        snapshot_database(work, back, scratch / "source")
         try:
             _execute_migration(back, reverse)
         except sqlite3.Error as error:
@@ -1264,9 +1349,10 @@ class _Run:
         databases = self.manifest.get("databases") or sqlite_files(self.root, files, tests_dir)
         self.databases = [rel for rel in databases if rel in files]
         self.data = {}
-        for rel in self.databases:
-            try:
-                self.data[rel] = data_manifest(self.root / rel)
+        for number, rel in enumerate(self.databases, 1):
+            try:  # an upgrade reads its copy through a verified snapshot (committed -wal frames count); the audit writes nowhere
+                self.data[rel] = data_manifest(self.root / rel) if self.audit_only else \
+                    data_manifest(self.candidate / rel, staging=self.run_dir / "scratch" / f"baseline-{number:02d}")
             except sqlite3.Error as error:
                 raise UpgradeError(f"Database {rel} is unreadable ({type(error).__name__}); its data could not be protected") from None
         self.assets = {rel: self.original[rel] for rel in asset_files(self.root, files, self.manifest, tests_dir)}
@@ -1840,6 +1926,9 @@ class _Run:
                 self.write(rel, op["data"])
             elif op["op"] == "migrate":
                 data, proof = migrate_database(self.candidate / rel, op["up"], op["down"], self.run_dir / "scratch" / f"{step_id}-{_slugify(op['id'])}")
+                for suffix in _companions(self.candidate / rel):  # the migrated file is complete; a stale WAL would be replayed onto it
+                    remember(f"{rel}{suffix}")
+                    self.write(f"{rel}{suffix}", None)
                 self.write(rel, data)
                 migrations.append({"id": op["id"], "database": rel, "statements": proof["statements"], "down_verified": proof["down_verified"],
                                    "rows": {t: r["rows"] for t, r in proof["before"]["tables"].items()},
@@ -1880,7 +1969,10 @@ class _Run:
         written = [rel for rel in touched if (self.candidate / rel).is_file()]
         data_ok = True
         for rel, manifest in self.data.items():
-            problems, _ = data_preserved(manifest, self.candidate / rel)
+            try:
+                problems, _ = data_preserved(manifest, self.candidate / rel, self.run_dir / "scratch" / "gate")
+            except (UpgradeError, sqlite3.Error) as error:  # an unreadable or inconsistent database fails the gate
+                problems = [str(error)]
             data_ok = data_ok and not problems
         security = detectors.detect_security(self.candidate, [r for r in written if pathlib.PurePosixPath(r).suffix in detectors.TEXT_SUFFIXES],
                                              baseline=self.security_baseline)
@@ -1919,7 +2011,10 @@ class _Run:
         new_ids = sorted(t for t in outcomes if self.is_new(t, modules))
         data = {}
         for rel, manifest in self.data.items():
-            problems, after = data_preserved(manifest, self.candidate / rel)
+            try:
+                problems, after = data_preserved(manifest, self.candidate / rel, self.run_dir / "scratch" / "regression")
+            except (UpgradeError, sqlite3.Error) as error:  # unreadable or inconsistent: not preserved
+                problems, after = [str(error)], {"tables": {}, "indexes": [], "integrity": None}
             data[rel] = {"preserved": not problems, "problems": problems,
                          "tables": {t: {"rows_before": r["rows"], "rows_after": after["tables"].get(t, {}).get("rows"),
                                         "sha256_before": r["sha256"], "sha256_after": after["tables"].get(t, {}).get("sha256")}
