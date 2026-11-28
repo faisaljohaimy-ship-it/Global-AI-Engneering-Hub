@@ -409,6 +409,14 @@ class EngineTests(Base):
         self.assertTrue(assurance.engine("gate", {"items": ["lane-a"]}, ctx)["result"]["passed"])
         self.assertEqual(assurance.engine("status", {}, ctx)["result"]["count"], 1)
 
+    def test_the_spec_documents_every_receipt_field_action_and_the_limit(self):
+        spec = (ROOT / "docs/specs/gaie-20-layers/ASSURANCE.md").read_text(encoding="utf-8")
+        for name in [*assurance.RECEIPT_FIELDS, *assurance.ENGINE_ACTIONS, *assurance.VERDICTS, *assurance.SEVERITIES,
+                     assurance.GATE_SCHEMA, assurance.RECEIPT_KIND, "engineering_os/assurance.py", "tests/test_assurance.py"]:
+            self.assertIn(f"`{name}`" if "/" not in name else name, spec, name)
+        self.assertIn("they do not authenticate anyone", spec)
+        self.assertIn("do not authenticate", assurance.__doc__)
+
     def test_engine_refuses_unknown_actions_and_bad_payloads(self):
         ctx = {"state_dir": str(self.tmp / "cp"), "root": self.root}
         for action, payload in (("delete", {}), ("verify", {}), ("verify", {"key": "a", "path": "/etc"}),
