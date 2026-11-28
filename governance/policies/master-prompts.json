@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "policy_version": "1.0.0",
+  "implementation": "engineering_os/master_docs.py",
+  "authority": "Records the pinned version and SHA-256 of each MASTER document. A match proves that the bytes on disk equal a recorded digest; it does not prove owner approval, because one pull request can change a document and this file together. Approval rests on CODEOWNERS review plus branch protection on main. Change versions, digests and history only with `python3 -m engineering_os.master_docs pin`; the history is append-only. Editing a MASTER document changes agent instructions, not engine code.",
+  "documents": {
+    "MASTER_BUILD": {
+      "path": "prompts/MASTER_BUILD.md",
+      "version": "1.0.0",
+      "sha256": "88f82081aec59fcdadc1303471480defa7f7229d9737b7c07a77c5c5d23f43f8",
+      "bytes": 8548,
+      "installed_as": {
+        "pack": ".engineering/gaie/MASTER_BUILD.md",
+        "claude": "skills/gaie-build/MASTER_BUILD.md"
+      },
+      "history": [
+        {
+          "version": "1.0.0",
+          "sha256": "88f82081aec59fcdadc1303471480defa7f7229d9737b7c07a77c5c5d23f43f8",
+          "date": "2026-11-28",
+          "approved_by": "owner order: adopt MASTER_BUILD and MASTER_UPGRADE officially (GAIE OS final integration)",
+          "reference": "PR #31",
+          "chain": "b99c54023c274fcf00fb76a55bfee516ad050cb97da1de6355cfe67e5a48da66"
+        }
+      ]
+    },
+    "MASTER_UPGRADE": {
+      "path": "prompts/MASTER_UPGRADE.md",
+      "version": "1.0.0",
+      "sha256": "f50bd5eead682dae57410689496805383a1581601274bb06be79693f383fe3cf",
+      "bytes": 8064,
+      "installed_as": {
+        "pack": ".engineering/gaie/MASTER_UPGRADE.md",
+        "claude": "skills/gaie-upgrade/MASTER_UPGRADE.md"
+      },
+      "history": [
+        {
+          "version": "1.0.0",
+          "sha256": "f50bd5eead682dae57410689496805383a1581601274bb06be79693f383fe3cf",
+          "date": "2026-11-28",
+          "approved_by": "owner order: adopt MASTER_BUILD and MASTER_UPGRADE officially (GAIE OS final integration)",
+          "reference": "PR #31",
+          "chain": "92cc59927eebd38281f884942020ed96aed84b32d9fa21d315237aba8377776c"
+        }
+      ]
+    }
+  }
+}
