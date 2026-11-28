@@ -18,10 +18,25 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.12"
       - run: python3 -m unittest discover -s tests -v
+      - name: Install the reviewed optional Headroom closure
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/headroom-venv"
+          "$RUNNER_TEMP/headroom-venv/bin/python" -m pip --isolated install \
+            --disable-pip-version-check --only-binary=:all: --require-hashes --no-compile \
+            -r integrations/headroom/requirements.lock
+      - name: Verify actual offline Headroom and selective project invocation
+        env:
+          HEADROOM_CONTEXT_INTEGRATION: "1"
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/headroom-venv/bin/python" -m unittest discover -s tests -p 'test_headroom*.py' -v
       - run: python3 hub.py audit
       - run: python3 motion-library/compile.py motion-library/specs/fade-in.json --output /tmp/fade-in.css
       - run: test -s /tmp/fade-in.css

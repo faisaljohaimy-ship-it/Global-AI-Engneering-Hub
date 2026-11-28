@@ -8,3 +8,9 @@ Git for task leases/handover; coordinate exact branches/paths before editing.
 Leases are advisory coordination, not authenticated OS access control. Review
 ARCHITECTURE.md and source-bound receipts; do not infer tool/host/provider access
 from a manifest. Claude Code availability must be tested separately from Codex.
+
+For scoped tool-output context preparation, discover
+`skills/headroom-context-engineering/SKILL.md` and
+`docs/headroom-context-engineering.md`. Headroom is an optional reviewed local SDK
+capability; preserve protected/short inputs and verified originals. Do not infer
+native host/MCP activation, exact token/billing savings or production authority.

@@ -68,7 +68,7 @@ class EvidenceTests(unittest.TestCase):
         self.assertTrue(all(item["imported"] is False for item in data["deferred"]))
         self.assertEqual(data["deferred"][0]["id"], "catalog-media-tools")
         packs = json.loads((ROOT / "catalog/packs.json").read_text())["packs"]
-        self.assertEqual(set(packs), {"motion-runtime", "engineering-sdk", "motion-sdk"})
+        self.assertEqual(set(packs), {"motion-runtime", "engineering-sdk", "motion-sdk", "headroom-context"})
         self.assertEqual(packs["engineering-sdk"]["version"], "1.0.0")
         self.assertNotIn("catalog-media-tools", packs)
 
