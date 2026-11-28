@@ -1,0 +1,1270 @@
+{
+ "schema": "gaie.scenario-i/1",
+ "scenario": "I",
+ "title": "GAIE install in a fresh HOME and an independent Git project",
+ "kind": "measured",
+ "simulated": false,
+ "model_calls": 0,
+ "network": "no step reaches a host; the CLI runs with HTTP(S)_PROXY at a refused local port",
+ "produced_by": "python3 tests/test_gaie_install_scenario_i.py record",
+ "checked_by": "python3 -m unittest tests.test_gaie_install_scenario_i",
+ "recorded_on": "2026-11-28",
+ "hub_revision": "3526b16ce97d4c653f60f551a26ff2ab4d2158e5",
+ "hub_worktree_clean": false,
+ "sources": {
+  "digest": "77572725aae0279894021d54237b31591dc8e3c8ac43550d11e5999d11c0f23f",
+  "files": {
+   ".claude-plugin/marketplace.json": "81f55caa3712bacbd824a557f1d357cbb23ce3bb853c358705194d6e8d3a6c73",
+   ".claude-plugin/plugin.json": "542273ea9a0d0695c6fe685d5c47ea9919ec930e7aa30953af118ae1adf41afa",
+   "agents/gaie-verifier.md": "fb0eb10632d5e671c03bf2f3b1205309f2101d8d173f8790408d8357ee089c93",
+   "catalog/packs.json": "753e9764ecfb39003c95d5f5709327b312f04533295493df0a9185396de2f4f2",
+   "engineering_os/gaie_inventory.py": "2081ddf7804a0766918a8c6b426d19b0529e5ecee8a7234cc54297a3b2a08225",
+   "engineering_os/gaie_memory.py": "288640e3636b5ae12f2f3c072e29f1d3c5ec01f6e23edfa0556d9c82c68c0651",
+   "engineering_os/gaie_router.py": "cd8859945ad4dd7ecef212556e7e747e88e7d7f43f0263077b8986e45b305b56",
+   "engineering_os/memory.py": "924fe7ab3b141f38a39503f9abf13ee4537b2720a2a39d82efb2bb83a02e9526",
+   "engineering_os/orchestration.py": "e1378e3aaaaf8b249522f945daab451acf42b14f2af03205df9bf5ec124587c1",
+   "engineering_os/project_registry.py": "a3e4a2f02e327bbb4a672ef583d2654725ce40124f17d0688d39a239b8651537",
+   "engineering_os/workspace_policy.py": "a0de796b17459d38287acdf349fdc90cafab20386f41501e94fe54a666589eca",
+   "governance/policies/gaie-routes.json": "58f443a61e6996e5dc7c0ce4c8f2e20875942b180080142a1b3cc19849f7def6",
+   "hub.py": "47ad183f53e9636198bebc761de48246057937fe06b6ba11fe5625040d2d3a7d",
+   "projects/aliases.json": "18cfae39b9c6b0be4615e59fe6029edf77f9ad52f67e30c9ca4cdb2aa503c3a1",
+   "projects/registry.json": "48164120535956b8f90956be62256f4b53cceb6d57a0e7ea4264644cab5eb901",
+   "prompts/MASTER_BUILD.md": "88f82081aec59fcdadc1303471480defa7f7229d9737b7c07a77c5c5d23f43f8",
+   "prompts/MASTER_UPGRADE.md": "f50bd5eead682dae57410689496805383a1581601274bb06be79693f383fe3cf",
+   "scripts/gaie_bootstrap.py": "292e5f5e93ee9f167984b527847cd7857f1753ca74f14d912df5948ce6795bc6",
+   "scripts/security_scan.py": "dc337fa07d1facce3244e25c21ba00d2a2aba66f93e91b2b55b646d1ba53baac",
+   "skills/gaie-audit/SKILL.md": "456c76fe24992fab3b205f05b6ffbe02f94cb42043e9a96dc26e96d5c9e8fe51",
+   "skills/gaie-build/SKILL.md": "951ba38089b2844fe308afd77db9325d172ea05fc6ba679b8b97e99d3ffd4533",
+   "skills/gaie-cinematic/SKILL.md": "bd192c033d371a87fcc48d26f207c8ffbfe0d33a88048d56daa81a763b2a30a9",
+   "skills/gaie-master-router/SKILL.md": "e8004dc75a22e6a705f2bc0a2dcca6595153e3392a12e4514e010f58ccb558bc",
+   "skills/gaie-release/SKILL.md": "a2f92b95c03f888b1aedd50d0a9c334033f6cc2a8ba5f96886b5bf37bcfd76b3",
+   "skills/gaie-upgrade/SKILL.md": "4d44a70f3c8e03bd6410c937e9a34ba48d1857951f1a3ac41d0e0f4d4aed78c1",
+   "tests/test_gaie_install_scenario_i.py": "9cf5bc2f67cc1b2b6aa2e34659f18816c4f85259411a6c00a80e07b0142867f1"
+  }
+ },
+ "host": {
+  "python": "3.13.18",
+  "system": "linux",
+  "git": "git version 2.43.0",
+  "claude_cli": "2.1.332 (Claude Code)"
+ },
+ "isolation": {
+  "lab": "one new short temporary directory, removed afterwards",
+  "homes": "a new empty HOME per mode (project, user, plugin)",
+  "projects": "git init plus one empty commit, outside the hub",
+  "environment": [
+   "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+   "DISABLE_AUTOUPDATER",
+   "DISABLE_TELEMETRY",
+   "GAIE_HOME",
+   "GIT_CONFIG_NOSYSTEM",
+   "HOME",
+   "HTTPS_PROXY",
+   "HTTP_PROXY",
+   "LANG",
+   "NO_PROXY",
+   "PATH",
+   "TMPDIR",
+   "http_proxy",
+   "https_proxy"
+  ],
+  "cli": "only --version and plugin validate|marketplace add|install|list|details; HTTP(S)_PROXY point at a refused local port"
+ },
+ "steps": {
+  "project.install.dry-run": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "would create",
+    "skills/gaie-audit/SKILL.md": "would create",
+    "skills/gaie-build/MASTER_BUILD.md": "would create",
+    "skills/gaie-build/SKILL.md": "would create",
+    "skills/gaie-cinematic/SKILL.md": "would create",
+    "skills/gaie-master-router/SKILL.md": "would create",
+    "skills/gaie-master-router/engine/aliases.json": "would create",
+    "skills/gaie-master-router/engine/gaie-routes.json": "would create",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "would create",
+    "skills/gaie-master-router/engine/gaie_memory.py": "would create",
+    "skills/gaie-master-router/engine/gaie_router.py": "would create",
+    "skills/gaie-master-router/engine/memory.py": "would create",
+    "skills/gaie-master-router/engine/orchestration.py": "would create",
+    "skills/gaie-master-router/engine/project_registry.py": "would create",
+    "skills/gaie-master-router/engine/projects.json": "would create",
+    "skills/gaie-master-router/engine/security_scan.py": "would create",
+    "skills/gaie-master-router/engine/workspace_policy.py": "would create",
+    "skills/gaie-release/SKILL.md": "would create",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "would create",
+    "skills/gaie-upgrade/SKILL.md": "would create"
+   },
+   "stderr": null,
+   "claude_dir_created": false
+  },
+  "project.install.apply": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "created",
+    "skills/gaie-audit/SKILL.md": "created",
+    "skills/gaie-build/MASTER_BUILD.md": "created",
+    "skills/gaie-build/SKILL.md": "created",
+    "skills/gaie-cinematic/SKILL.md": "created",
+    "skills/gaie-master-router/SKILL.md": "created",
+    "skills/gaie-master-router/engine/aliases.json": "created",
+    "skills/gaie-master-router/engine/gaie-routes.json": "created",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "created",
+    "skills/gaie-master-router/engine/gaie_memory.py": "created",
+    "skills/gaie-master-router/engine/gaie_router.py": "created",
+    "skills/gaie-master-router/engine/memory.py": "created",
+    "skills/gaie-master-router/engine/orchestration.py": "created",
+    "skills/gaie-master-router/engine/project_registry.py": "created",
+    "skills/gaie-master-router/engine/projects.json": "created",
+    "skills/gaie-master-router/engine/security_scan.py": "created",
+    "skills/gaie-master-router/engine/workspace_policy.py": "created",
+    "skills/gaie-release/SKILL.md": "created",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "created",
+    "skills/gaie-upgrade/SKILL.md": "created"
+   },
+   "stderr": null
+  },
+  "project.verify": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "verify",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "current",
+    "skills/gaie-audit/SKILL.md": "current",
+    "skills/gaie-build/MASTER_BUILD.md": "current",
+    "skills/gaie-build/SKILL.md": "current",
+    "skills/gaie-cinematic/SKILL.md": "current",
+    "skills/gaie-master-router/SKILL.md": "current",
+    "skills/gaie-master-router/engine/aliases.json": "current",
+    "skills/gaie-master-router/engine/gaie-routes.json": "current",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "current",
+    "skills/gaie-master-router/engine/gaie_memory.py": "current",
+    "skills/gaie-master-router/engine/gaie_router.py": "current",
+    "skills/gaie-master-router/engine/memory.py": "current",
+    "skills/gaie-master-router/engine/orchestration.py": "current",
+    "skills/gaie-master-router/engine/project_registry.py": "current",
+    "skills/gaie-master-router/engine/projects.json": "current",
+    "skills/gaie-master-router/engine/security_scan.py": "current",
+    "skills/gaie-master-router/engine/workspace_policy.py": "current",
+    "skills/gaie-release/SKILL.md": "current",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "current",
+    "skills/gaie-upgrade/SKILL.md": "current"
+   },
+   "stderr": null
+  },
+  "project.install.rerun": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "unchanged",
+    "skills/gaie-audit/SKILL.md": "unchanged",
+    "skills/gaie-build/MASTER_BUILD.md": "unchanged",
+    "skills/gaie-build/SKILL.md": "unchanged",
+    "skills/gaie-cinematic/SKILL.md": "unchanged",
+    "skills/gaie-master-router/SKILL.md": "unchanged",
+    "skills/gaie-master-router/engine/aliases.json": "unchanged",
+    "skills/gaie-master-router/engine/gaie-routes.json": "unchanged",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "unchanged",
+    "skills/gaie-master-router/engine/gaie_memory.py": "unchanged",
+    "skills/gaie-master-router/engine/gaie_router.py": "unchanged",
+    "skills/gaie-master-router/engine/memory.py": "unchanged",
+    "skills/gaie-master-router/engine/orchestration.py": "unchanged",
+    "skills/gaie-master-router/engine/project_registry.py": "unchanged",
+    "skills/gaie-master-router/engine/projects.json": "unchanged",
+    "skills/gaie-master-router/engine/security_scan.py": "unchanged",
+    "skills/gaie-master-router/engine/workspace_policy.py": "unchanged",
+    "skills/gaie-release/SKILL.md": "unchanged",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "unchanged",
+    "skills/gaie-upgrade/SKILL.md": "unchanged"
+   },
+   "stderr": null
+  },
+  "project.locations": {
+   "router": {
+    "named_as": "${CLAUDE_SKILL_DIR}/engine/gaie_router.py",
+    "path": "<lab>/project/.claude/skills/gaie-master-router/engine/gaie_router.py",
+    "exists": true
+   },
+   "build": {
+    "named_as": "${CLAUDE_SKILL_DIR}/MASTER_BUILD.md",
+    "path": "<lab>/project/.claude/skills/gaie-build/MASTER_BUILD.md",
+    "exists": true
+   },
+   "upgrade": {
+    "named_as": "${CLAUDE_SKILL_DIR}/MASTER_UPGRADE.md",
+    "path": "<lab>/project/.claude/skills/gaie-upgrade/MASTER_UPGRADE.md",
+    "exists": true
+   },
+   "inventory": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../gaie-master-router/engine/gaie_inventory.py",
+    "path": "<lab>/project/.claude/skills/gaie-master-router/engine/gaie_inventory.py",
+    "exists": true
+   }
+  },
+  "project.router.0": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/project/.claude/skills/gaie-master-router/engine/gaie_router.py",
+    "route",
+    "طور فيديوهات سديد"
+   ],
+   "cwd": "<lab>/project",
+   "rc": 0,
+   "status": "routed",
+   "engine": "CINEMATIC",
+   "targets": [
+    "biz-pulse-ar"
+   ],
+   "write_allowed": false,
+   "read_only": false,
+   "gaie_skills_available": true,
+   "stderr": null
+  },
+  "project.router.1": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/project/.claude/skills/gaie-master-router/engine/gaie_router.py",
+    "route",
+    "upgrade Sadeed"
+   ],
+   "cwd": "<lab>/project",
+   "rc": 0,
+   "status": "routed",
+   "engine": "MASTER_UPGRADE",
+   "targets": [
+    "biz-pulse-ar"
+   ],
+   "write_allowed": false,
+   "read_only": false,
+   "gaie_skills_available": true,
+   "stderr": null
+  },
+  "project.memory": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/project/.claude/skills/gaie-master-router/engine/gaie_memory.py",
+    "--project",
+    "scenario-i-project",
+    "add|brief"
+   ],
+   "add_rc": 0,
+   "add_status": "stored",
+   "brief_rc": 0,
+   "brief_entries": 1,
+   "backend": "engine",
+   "store_files": [
+    "memory.jsonl",
+    "memory.lock"
+   ]
+  },
+  "project.registry": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/project/.claude/skills/gaie-master-router/engine/gaie_router.py",
+    "projects"
+   ],
+   "rc": 0,
+   "sources": [
+    "public-catalog",
+    "public-registry"
+   ]
+  },
+  "project.git-status": {
+   "argv": [
+    "git",
+    "status",
+    "--porcelain"
+   ],
+   "entries": [
+    "?? .claude/"
+   ]
+  },
+  "project.refuse.symlinked-target": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project-link",
+    "--apply"
+   ],
+   "rc": 1,
+   "ok": null,
+   "error": "symlinked target directory refused",
+   "files": null,
+   "stderr": null
+  },
+  "project.refuse.symlinked-claude": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project-linked-claude",
+    "--apply"
+   ],
+   "rc": 1,
+   "ok": null,
+   "error": "symlinked .claude directory refused",
+   "files": null,
+   "stderr": null,
+   "outside_untouched": true
+  },
+  "project.refuse.escaping-link": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project-escaping-skills",
+    "--apply"
+   ],
+   "rc": 1,
+   "ok": null,
+   "error": "symlink refused: skills/gaie-master-router/SKILL.md",
+   "files": null,
+   "stderr": null,
+   "outside_untouched": true,
+   "claude_entries": [
+    ".claude/skills"
+   ]
+  },
+  "project.uninstall.dry-run": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "uninstall",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "would remove",
+    "skills/gaie-audit/SKILL.md": "would remove",
+    "skills/gaie-build/MASTER_BUILD.md": "would remove",
+    "skills/gaie-build/SKILL.md": "would remove",
+    "skills/gaie-cinematic/SKILL.md": "would remove",
+    "skills/gaie-master-router/SKILL.md": "would remove",
+    "skills/gaie-master-router/engine/aliases.json": "would remove",
+    "skills/gaie-master-router/engine/gaie-routes.json": "would remove",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "would remove",
+    "skills/gaie-master-router/engine/gaie_memory.py": "would remove",
+    "skills/gaie-master-router/engine/gaie_router.py": "would remove",
+    "skills/gaie-master-router/engine/memory.py": "would remove",
+    "skills/gaie-master-router/engine/orchestration.py": "would remove",
+    "skills/gaie-master-router/engine/project_registry.py": "would remove",
+    "skills/gaie-master-router/engine/projects.json": "would remove",
+    "skills/gaie-master-router/engine/security_scan.py": "would remove",
+    "skills/gaie-master-router/engine/workspace_policy.py": "would remove",
+    "skills/gaie-release/SKILL.md": "would remove",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "would remove",
+    "skills/gaie-upgrade/SKILL.md": "would remove"
+   },
+   "stderr": null
+  },
+  "project.uninstall.apply": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "uninstall",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "removed",
+    "skills/gaie-audit/SKILL.md": "removed",
+    "skills/gaie-build/MASTER_BUILD.md": "removed",
+    "skills/gaie-build/SKILL.md": "removed",
+    "skills/gaie-cinematic/SKILL.md": "removed",
+    "skills/gaie-master-router/SKILL.md": "removed",
+    "skills/gaie-master-router/engine/aliases.json": "removed",
+    "skills/gaie-master-router/engine/gaie-routes.json": "removed",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "removed",
+    "skills/gaie-master-router/engine/gaie_memory.py": "removed",
+    "skills/gaie-master-router/engine/gaie_router.py": "removed",
+    "skills/gaie-master-router/engine/memory.py": "removed",
+    "skills/gaie-master-router/engine/orchestration.py": "removed",
+    "skills/gaie-master-router/engine/project_registry.py": "removed",
+    "skills/gaie-master-router/engine/projects.json": "removed",
+    "skills/gaie-master-router/engine/security_scan.py": "removed",
+    "skills/gaie-master-router/engine/workspace_policy.py": "removed",
+    "skills/gaie-release/SKILL.md": "removed",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "removed",
+    "skills/gaie-upgrade/SKILL.md": "removed"
+   },
+   "stderr": null,
+   "left_behind": [
+    "agents",
+    "skills"
+   ]
+  },
+  "project.uninstall.rerun": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "uninstall",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {},
+   "stderr": null
+  },
+  "project.reinstall.apply": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "created",
+    "skills/gaie-audit/SKILL.md": "created",
+    "skills/gaie-build/MASTER_BUILD.md": "created",
+    "skills/gaie-build/SKILL.md": "created",
+    "skills/gaie-cinematic/SKILL.md": "created",
+    "skills/gaie-master-router/SKILL.md": "created",
+    "skills/gaie-master-router/engine/aliases.json": "created",
+    "skills/gaie-master-router/engine/gaie-routes.json": "created",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "created",
+    "skills/gaie-master-router/engine/gaie_memory.py": "created",
+    "skills/gaie-master-router/engine/gaie_router.py": "created",
+    "skills/gaie-master-router/engine/memory.py": "created",
+    "skills/gaie-master-router/engine/orchestration.py": "created",
+    "skills/gaie-master-router/engine/project_registry.py": "created",
+    "skills/gaie-master-router/engine/projects.json": "created",
+    "skills/gaie-master-router/engine/security_scan.py": "created",
+    "skills/gaie-master-router/engine/workspace_policy.py": "created",
+    "skills/gaie-release/SKILL.md": "created",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "created",
+    "skills/gaie-upgrade/SKILL.md": "created"
+   },
+   "stderr": null
+  },
+  "project.reinstall.rerun": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "project",
+    "--target",
+    "<lab>/project",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "unchanged",
+    "skills/gaie-audit/SKILL.md": "unchanged",
+    "skills/gaie-build/MASTER_BUILD.md": "unchanged",
+    "skills/gaie-build/SKILL.md": "unchanged",
+    "skills/gaie-cinematic/SKILL.md": "unchanged",
+    "skills/gaie-master-router/SKILL.md": "unchanged",
+    "skills/gaie-master-router/engine/aliases.json": "unchanged",
+    "skills/gaie-master-router/engine/gaie-routes.json": "unchanged",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "unchanged",
+    "skills/gaie-master-router/engine/gaie_memory.py": "unchanged",
+    "skills/gaie-master-router/engine/gaie_router.py": "unchanged",
+    "skills/gaie-master-router/engine/memory.py": "unchanged",
+    "skills/gaie-master-router/engine/orchestration.py": "unchanged",
+    "skills/gaie-master-router/engine/project_registry.py": "unchanged",
+    "skills/gaie-master-router/engine/projects.json": "unchanged",
+    "skills/gaie-master-router/engine/security_scan.py": "unchanged",
+    "skills/gaie-master-router/engine/workspace_policy.py": "unchanged",
+    "skills/gaie-release/SKILL.md": "unchanged",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "unchanged",
+    "skills/gaie-upgrade/SKILL.md": "unchanged"
+   },
+   "stderr": null
+  },
+  "user.install.dry-run": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "user"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "would create",
+    "skills/gaie-audit/SKILL.md": "would create",
+    "skills/gaie-build/MASTER_BUILD.md": "would create",
+    "skills/gaie-build/SKILL.md": "would create",
+    "skills/gaie-cinematic/SKILL.md": "would create",
+    "skills/gaie-master-router/SKILL.md": "would create",
+    "skills/gaie-master-router/engine/aliases.json": "would create",
+    "skills/gaie-master-router/engine/gaie-routes.json": "would create",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "would create",
+    "skills/gaie-master-router/engine/gaie_memory.py": "would create",
+    "skills/gaie-master-router/engine/gaie_router.py": "would create",
+    "skills/gaie-master-router/engine/memory.py": "would create",
+    "skills/gaie-master-router/engine/orchestration.py": "would create",
+    "skills/gaie-master-router/engine/project_registry.py": "would create",
+    "skills/gaie-master-router/engine/projects.json": "would create",
+    "skills/gaie-master-router/engine/security_scan.py": "would create",
+    "skills/gaie-master-router/engine/workspace_policy.py": "would create",
+    "skills/gaie-release/SKILL.md": "would create",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "would create",
+    "skills/gaie-upgrade/SKILL.md": "would create"
+   },
+   "stderr": null,
+   "claude_dir_created": false
+  },
+  "user.install.apply": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "user",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "created",
+    "skills/gaie-audit/SKILL.md": "created",
+    "skills/gaie-build/MASTER_BUILD.md": "created",
+    "skills/gaie-build/SKILL.md": "created",
+    "skills/gaie-cinematic/SKILL.md": "created",
+    "skills/gaie-master-router/SKILL.md": "created",
+    "skills/gaie-master-router/engine/aliases.json": "created",
+    "skills/gaie-master-router/engine/gaie-routes.json": "created",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "created",
+    "skills/gaie-master-router/engine/gaie_memory.py": "created",
+    "skills/gaie-master-router/engine/gaie_router.py": "created",
+    "skills/gaie-master-router/engine/memory.py": "created",
+    "skills/gaie-master-router/engine/orchestration.py": "created",
+    "skills/gaie-master-router/engine/project_registry.py": "created",
+    "skills/gaie-master-router/engine/projects.json": "created",
+    "skills/gaie-master-router/engine/security_scan.py": "created",
+    "skills/gaie-master-router/engine/workspace_policy.py": "created",
+    "skills/gaie-release/SKILL.md": "created",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "created",
+    "skills/gaie-upgrade/SKILL.md": "created"
+   },
+   "stderr": null
+  },
+  "user.verify": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "verify",
+    "--scope",
+    "user"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "current",
+    "skills/gaie-audit/SKILL.md": "current",
+    "skills/gaie-build/MASTER_BUILD.md": "current",
+    "skills/gaie-build/SKILL.md": "current",
+    "skills/gaie-cinematic/SKILL.md": "current",
+    "skills/gaie-master-router/SKILL.md": "current",
+    "skills/gaie-master-router/engine/aliases.json": "current",
+    "skills/gaie-master-router/engine/gaie-routes.json": "current",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "current",
+    "skills/gaie-master-router/engine/gaie_memory.py": "current",
+    "skills/gaie-master-router/engine/gaie_router.py": "current",
+    "skills/gaie-master-router/engine/memory.py": "current",
+    "skills/gaie-master-router/engine/orchestration.py": "current",
+    "skills/gaie-master-router/engine/project_registry.py": "current",
+    "skills/gaie-master-router/engine/projects.json": "current",
+    "skills/gaie-master-router/engine/security_scan.py": "current",
+    "skills/gaie-master-router/engine/workspace_policy.py": "current",
+    "skills/gaie-release/SKILL.md": "current",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "current",
+    "skills/gaie-upgrade/SKILL.md": "current"
+   },
+   "stderr": null
+  },
+  "user.install.rerun": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "user",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "unchanged",
+    "skills/gaie-audit/SKILL.md": "unchanged",
+    "skills/gaie-build/MASTER_BUILD.md": "unchanged",
+    "skills/gaie-build/SKILL.md": "unchanged",
+    "skills/gaie-cinematic/SKILL.md": "unchanged",
+    "skills/gaie-master-router/SKILL.md": "unchanged",
+    "skills/gaie-master-router/engine/aliases.json": "unchanged",
+    "skills/gaie-master-router/engine/gaie-routes.json": "unchanged",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "unchanged",
+    "skills/gaie-master-router/engine/gaie_memory.py": "unchanged",
+    "skills/gaie-master-router/engine/gaie_router.py": "unchanged",
+    "skills/gaie-master-router/engine/memory.py": "unchanged",
+    "skills/gaie-master-router/engine/orchestration.py": "unchanged",
+    "skills/gaie-master-router/engine/project_registry.py": "unchanged",
+    "skills/gaie-master-router/engine/projects.json": "unchanged",
+    "skills/gaie-master-router/engine/security_scan.py": "unchanged",
+    "skills/gaie-master-router/engine/workspace_policy.py": "unchanged",
+    "skills/gaie-release/SKILL.md": "unchanged",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "unchanged",
+    "skills/gaie-upgrade/SKILL.md": "unchanged"
+   },
+   "stderr": null
+  },
+  "user.locations": {
+   "router": {
+    "named_as": "${CLAUDE_SKILL_DIR}/engine/gaie_router.py",
+    "path": "<lab>/home-user/.claude/skills/gaie-master-router/engine/gaie_router.py",
+    "exists": true
+   },
+   "build": {
+    "named_as": "${CLAUDE_SKILL_DIR}/MASTER_BUILD.md",
+    "path": "<lab>/home-user/.claude/skills/gaie-build/MASTER_BUILD.md",
+    "exists": true
+   },
+   "upgrade": {
+    "named_as": "${CLAUDE_SKILL_DIR}/MASTER_UPGRADE.md",
+    "path": "<lab>/home-user/.claude/skills/gaie-upgrade/MASTER_UPGRADE.md",
+    "exists": true
+   },
+   "inventory": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../gaie-master-router/engine/gaie_inventory.py",
+    "path": "<lab>/home-user/.claude/skills/gaie-master-router/engine/gaie_inventory.py",
+    "exists": true
+   }
+  },
+  "user.router.0": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/home-user/.claude/skills/gaie-master-router/engine/gaie_router.py",
+    "route",
+    "طور فيديوهات سديد"
+   ],
+   "cwd": "<lab>/empty",
+   "rc": 0,
+   "status": "routed",
+   "engine": "CINEMATIC",
+   "targets": [
+    "biz-pulse-ar"
+   ],
+   "write_allowed": false,
+   "read_only": false,
+   "gaie_skills_available": true,
+   "stderr": null
+  },
+  "user.router.1": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/home-user/.claude/skills/gaie-master-router/engine/gaie_router.py",
+    "route",
+    "upgrade Sadeed"
+   ],
+   "cwd": "<lab>/empty",
+   "rc": 0,
+   "status": "routed",
+   "engine": "MASTER_UPGRADE",
+   "targets": [
+    "biz-pulse-ar"
+   ],
+   "write_allowed": false,
+   "read_only": false,
+   "gaie_skills_available": true,
+   "stderr": null
+  },
+  "user.memory": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/home-user/.claude/skills/gaie-master-router/engine/gaie_memory.py",
+    "--project",
+    "scenario-i-user",
+    "add|brief"
+   ],
+   "add_rc": 0,
+   "add_status": "stored",
+   "brief_rc": 0,
+   "brief_entries": 1,
+   "backend": "engine",
+   "store_files": [
+    "memory.jsonl",
+    "memory.lock"
+   ]
+  },
+  "user.refuse.symlinked-claude": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "user",
+    "--apply"
+   ],
+   "rc": 1,
+   "ok": null,
+   "error": "symlinked .claude directory refused",
+   "files": null,
+   "stderr": null
+  },
+  "user.uninstall.apply": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "uninstall",
+    "--scope",
+    "user",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "removed",
+    "skills/gaie-audit/SKILL.md": "removed",
+    "skills/gaie-build/MASTER_BUILD.md": "removed",
+    "skills/gaie-build/SKILL.md": "removed",
+    "skills/gaie-cinematic/SKILL.md": "removed",
+    "skills/gaie-master-router/SKILL.md": "removed",
+    "skills/gaie-master-router/engine/aliases.json": "removed",
+    "skills/gaie-master-router/engine/gaie-routes.json": "removed",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "removed",
+    "skills/gaie-master-router/engine/gaie_memory.py": "removed",
+    "skills/gaie-master-router/engine/gaie_router.py": "removed",
+    "skills/gaie-master-router/engine/memory.py": "removed",
+    "skills/gaie-master-router/engine/orchestration.py": "removed",
+    "skills/gaie-master-router/engine/project_registry.py": "removed",
+    "skills/gaie-master-router/engine/projects.json": "removed",
+    "skills/gaie-master-router/engine/security_scan.py": "removed",
+    "skills/gaie-master-router/engine/workspace_policy.py": "removed",
+    "skills/gaie-release/SKILL.md": "removed",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "removed",
+    "skills/gaie-upgrade/SKILL.md": "removed"
+   },
+   "stderr": null
+  },
+  "user.uninstall.rerun": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "uninstall",
+    "--scope",
+    "user",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {},
+   "stderr": null
+  },
+  "user.reinstall.apply": {
+   "argv": [
+    "python3",
+    "<hub>/scripts/gaie_bootstrap.py",
+    "install",
+    "--scope",
+    "user",
+    "--apply"
+   ],
+   "rc": 0,
+   "ok": true,
+   "error": null,
+   "files": {
+    "agents/gaie-verifier.md": "created",
+    "skills/gaie-audit/SKILL.md": "created",
+    "skills/gaie-build/MASTER_BUILD.md": "created",
+    "skills/gaie-build/SKILL.md": "created",
+    "skills/gaie-cinematic/SKILL.md": "created",
+    "skills/gaie-master-router/SKILL.md": "created",
+    "skills/gaie-master-router/engine/aliases.json": "created",
+    "skills/gaie-master-router/engine/gaie-routes.json": "created",
+    "skills/gaie-master-router/engine/gaie_inventory.py": "created",
+    "skills/gaie-master-router/engine/gaie_memory.py": "created",
+    "skills/gaie-master-router/engine/gaie_router.py": "created",
+    "skills/gaie-master-router/engine/memory.py": "created",
+    "skills/gaie-master-router/engine/orchestration.py": "created",
+    "skills/gaie-master-router/engine/project_registry.py": "created",
+    "skills/gaie-master-router/engine/projects.json": "created",
+    "skills/gaie-master-router/engine/security_scan.py": "created",
+    "skills/gaie-master-router/engine/workspace_policy.py": "created",
+    "skills/gaie-release/SKILL.md": "created",
+    "skills/gaie-upgrade/MASTER_UPGRADE.md": "created",
+    "skills/gaie-upgrade/SKILL.md": "created"
+   },
+   "stderr": null
+  },
+  "hub-checkout.locations": {
+   "router": {
+    "named_as": "hub.py",
+    "path": "<hub>/hub.py",
+    "exists": true
+   },
+   "build": {
+    "named_as": "prompts/MASTER_BUILD.md",
+    "path": "<hub>/prompts/MASTER_BUILD.md",
+    "exists": true
+   },
+   "upgrade": {
+    "named_as": "prompts/MASTER_UPGRADE.md",
+    "path": "<hub>/prompts/MASTER_UPGRADE.md",
+    "exists": true
+   },
+   "inventory": {
+    "named_as": "hub.py",
+    "path": "<hub>/hub.py",
+    "exists": true
+   }
+  },
+  "hub-checkout.router": {
+   "argv": [
+    "python3",
+    "-s",
+    "<hub>/hub.py",
+    "route",
+    "upgrade Sadeed"
+   ],
+   "cwd": "<hub>",
+   "rc": 0,
+   "status": "routed",
+   "engine": "MASTER_UPGRADE",
+   "targets": [
+    "biz-pulse-ar"
+   ],
+   "write_allowed": false,
+   "read_only": false,
+   "gaie_skills_available": true,
+   "stderr": null
+  },
+  "plugin-layout.locations": {
+   "router": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../hub.py",
+    "path": "<hub>/hub.py",
+    "exists": true
+   },
+   "build": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../prompts/MASTER_BUILD.md",
+    "path": "<hub>/prompts/MASTER_BUILD.md",
+    "exists": true
+   },
+   "upgrade": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../prompts/MASTER_UPGRADE.md",
+    "path": "<hub>/prompts/MASTER_UPGRADE.md",
+    "exists": true
+   },
+   "inventory": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../hub.py",
+    "path": "<hub>/hub.py",
+    "exists": true
+   }
+  },
+  "plugin-layout.router": {
+   "argv": [
+    "python3",
+    "-s",
+    "<hub>/skills/gaie-master-router/../../hub.py",
+    "route",
+    "طور فيديوهات سديد"
+   ],
+   "cwd": "<lab>/project",
+   "rc": 0,
+   "status": "routed",
+   "engine": "CINEMATIC",
+   "targets": [
+    "biz-pulse-ar"
+   ],
+   "write_allowed": false,
+   "read_only": false,
+   "gaie_skills_available": true,
+   "stderr": null
+  }
+ },
+ "cli": {
+  "status": "run",
+  "cli.version": {
+   "argv": [
+    "claude",
+    "--version"
+   ],
+   "rc": 0,
+   "version": "2.1.332 (Claude Code)"
+  },
+  "cli.validate": {
+   "argv": [
+    "claude",
+    "plugin",
+    "validate",
+    "--json",
+    "<hub>"
+   ],
+   "rc": 0,
+   "success": true,
+   "skills": [
+    "gaie:ai-integration",
+    "gaie:chromium-engineering",
+    "gaie:cinematic-production",
+    "gaie:digital-motion",
+    "gaie:engineering-sdk",
+    "gaie:gaie-audit",
+    "gaie:gaie-build",
+    "gaie:gaie-cinematic",
+    "gaie:gaie-master-router",
+    "gaie:gaie-release",
+    "gaie:gaie-upgrade",
+    "gaie:headroom-context-engineering",
+    "gaie:hub-capabilities",
+    "gaie:nextgen-intelligence",
+    "gaie:priority-capability-selection",
+    "gaie:project-onboarding",
+    "gaie:release-engineering",
+    "gaie:saas-platform",
+    "gaie:security-review",
+    "gaie:system-builder",
+    "gaie:ultra-context-optimization",
+    "gaie:universal-motion"
+   ],
+   "agents": [
+    "gaie:gaie-verifier",
+    "gaie:orchestrator:README"
+   ],
+   "findings": [
+    {
+     "kind": "warnings",
+     "file": "<hub>/CLAUDE.md",
+     "message": "CLAUDE.md at the plugin root is not loaded as project context. To ship context with your plugin, use a skill (skills/<name>/SKILL.md) instead."
+    },
+    {
+     "kind": "warnings",
+     "file": "<hub>/agents/orchestrator/README.md",
+     "message": "No frontmatter block found. Add YAML frontmatter between --- delimiters at the top of the file to set description and other metadata."
+    }
+   ],
+   "directory_checks": [
+    "ICON_MISSING"
+   ]
+  },
+  "cli.validate.strict": {
+   "argv": [
+    "claude",
+    "plugin",
+    "validate",
+    "--strict",
+    "--json",
+    "<hub>"
+   ],
+   "rc": 1,
+   "success": false,
+   "skills": [
+    "gaie:ai-integration",
+    "gaie:chromium-engineering",
+    "gaie:cinematic-production",
+    "gaie:digital-motion",
+    "gaie:engineering-sdk",
+    "gaie:gaie-audit",
+    "gaie:gaie-build",
+    "gaie:gaie-cinematic",
+    "gaie:gaie-master-router",
+    "gaie:gaie-release",
+    "gaie:gaie-upgrade",
+    "gaie:headroom-context-engineering",
+    "gaie:hub-capabilities",
+    "gaie:nextgen-intelligence",
+    "gaie:priority-capability-selection",
+    "gaie:project-onboarding",
+    "gaie:release-engineering",
+    "gaie:saas-platform",
+    "gaie:security-review",
+    "gaie:system-builder",
+    "gaie:ultra-context-optimization",
+    "gaie:universal-motion"
+   ],
+   "agents": [
+    "gaie:gaie-verifier",
+    "gaie:orchestrator:README"
+   ],
+   "findings": [
+    {
+     "kind": "warnings",
+     "file": "<hub>/CLAUDE.md",
+     "message": "CLAUDE.md at the plugin root is not loaded as project context. To ship context with your plugin, use a skill (skills/<name>/SKILL.md) instead."
+    },
+    {
+     "kind": "warnings",
+     "file": "<hub>/agents/orchestrator/README.md",
+     "message": "No frontmatter block found. Add YAML frontmatter between --- delimiters at the top of the file to set description and other metadata."
+    }
+   ],
+   "directory_checks": [
+    "ICON_MISSING"
+   ]
+  },
+  "cli.marketplace.add": {
+   "argv": [
+    "claude",
+    "plugin",
+    "marketplace",
+    "add",
+    "--scope",
+    "project",
+    "--json",
+    "<hub>"
+   ],
+   "rc": 0,
+   "result": {
+    "command": "marketplace-add",
+    "outcome": "ok",
+    "marketplace": "gaie-hub",
+    "message": "Successfully added marketplace: gaie-hub (declared in project settings)"
+   }
+  },
+  "cli.install": {
+   "argv": [
+    "claude",
+    "plugin",
+    "install",
+    "gaie@gaie-hub",
+    "--scope",
+    "project",
+    "--json"
+   ],
+   "rc": 0,
+   "result": {
+    "command": "install",
+    "outcome": "ok",
+    "plugin": "gaie@gaie-hub",
+    "pluginId": "gaie@gaie-hub",
+    "scope": "project",
+    "message": "Successfully installed plugin: gaie@gaie-hub (scope: project)"
+   }
+  },
+  "cli.list": {
+   "argv": [
+    "claude",
+    "plugin",
+    "list",
+    "--json"
+   ],
+   "rc": 0,
+   "gaie": {
+    "version": "1.1.0",
+    "scope": "project",
+    "enabled": true,
+    "projectPath": "<lab>/plugin-project",
+    "installPath": "<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0"
+   }
+  },
+  "cli.details": {
+   "argv": [
+    "claude",
+    "plugin",
+    "details",
+    "gaie@gaie-hub"
+   ],
+   "rc": 0,
+   "skills": [
+    "ai-integration",
+    "chromium-engineering",
+    "cinematic-production",
+    "digital-motion",
+    "engineering-sdk",
+    "gaie-audit",
+    "gaie-build",
+    "gaie-cinematic",
+    "gaie-master-router",
+    "gaie-release",
+    "gaie-upgrade",
+    "headroom-context-engineering",
+    "hub-capabilities",
+    "nextgen-intelligence",
+    "priority-capability-selection",
+    "project-onboarding",
+    "release-engineering",
+    "saas-platform",
+    "security-review",
+    "system-builder",
+    "ultra-context-optimization",
+    "universal-motion"
+   ],
+   "agents": [
+    "gaie-verifier"
+   ]
+  },
+  "cli.project-settings": {
+   "extraKnownMarketplaces": {
+    "gaie-hub": {
+     "source": {
+      "source": "directory",
+      "path": "<hub>"
+     }
+    }
+   },
+   "enabledPlugins": {
+    "gaie@gaie-hub": true
+   }
+  },
+  "cli.plugin-root.locations": {
+   "router": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../hub.py",
+    "path": "<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0/hub.py",
+    "exists": true
+   },
+   "build": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../prompts/MASTER_BUILD.md",
+    "path": "<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0/prompts/MASTER_BUILD.md",
+    "exists": true
+   },
+   "upgrade": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../prompts/MASTER_UPGRADE.md",
+    "path": "<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0/prompts/MASTER_UPGRADE.md",
+    "exists": true
+   },
+   "inventory": {
+    "named_as": "${CLAUDE_SKILL_DIR}/../../hub.py",
+    "path": "<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0/hub.py",
+    "exists": true
+   }
+  },
+  "cli.plugin-root.router": {
+   "argv": [
+    "python3",
+    "-s",
+    "<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0/skills/gaie-master-router/../../hub.py",
+    "route",
+    "upgrade Sadeed"
+   ],
+   "cwd": "<lab>/plugin-project",
+   "rc": 0,
+   "status": "routed",
+   "engine": "MASTER_UPGRADE",
+   "targets": [
+    "biz-pulse-ar"
+   ],
+   "write_allowed": false,
+   "read_only": false,
+   "gaie_skills_available": true,
+   "stderr": null
+  },
+  "cli.cache": {
+   "files": 747,
+   "bytes": 12868805,
+   "has_pycache": true
+  },
+  "cli.home": [
+   "backups",
+   "plugins"
+  ]
+ },
+ "fresh_session": {
+  "status": "pending",
+  "reason": "Model-backed: it starts one billed Claude Code session. Lane agents never start one; the integrator runs it once on the final head, after re-recording the no-model steps there.",
+  "prepare": "python3 tests/test_gaie_install_scenario_i.py prepare-session --root <empty short dir>",
+  "command": "cd '<root>/project' && env -i PATH=\"$PATH\" HOME='<root>/home' LANG=C.UTF-8 claude -p 'Reply with two lists and nothing else: the names of the skills you can invoke whose names contain '\"'\"'gaie'\"'\"', and the names of the agents (subagent types) you can delegate to. Do not call any tool.' --output-format stream-json --verbose --strict-mcp-config --no-session-persistence --max-budget-usd 0.25 --disallowedTools Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch > '<root>/session.jsonl'",
+  "record": "python3 tests/test_gaie_install_scenario_i.py record-session --root <root>",
+  "proves": "that a new Claude Code process started in an independent project, with a fresh HOME, discovers the six gaie-* skills and gaie-verifier from a project-scope bootstrap (un-namespaced) and from a project-scope plugin install (gaie: prefix), as listed by the harness's own init event",
+  "does_not_prove": [
+   "that a model follows the skills correctly",
+   "user-scope persistence across sessions",
+   "interactive /plugin install or trust prompts",
+   "an install from the GitHub default branch"
+  ]
+ },
+ "observations": [
+  {
+   "label": "observation, not a new-session proof",
+   "text": "In the cloud Claude Code session that ran this recovery (cwd = the hub checkout), the six gaie-* skills and the gaie-verifier agent were discovered from the committed .claude/ directory after the checkout put them on disk, as reported by the session that orchestrated the recovery; the six skills also appear un-namespaced in the skill list of the lane session that recorded this file. That session began on main, which has no GAIE files, so this shows discovery from a committed .claude/ directory, not discovery by a new process in an independent project."
+  }
+ ],
+ "not_proven": [
+  "User-scope persistence across cloud sessions: a cloud container starts with a fresh ~/.claude, so only a workstation or a second session on the same machine can show it.",
+  "Interactive /plugin install, marketplace trust prompts and plugin enablement on a claude.ai account: interactive or account-level, not reachable from a no-model test.",
+  "Anything installed from the GitHub default branch: main does not contain these files before the integration branch is merged; see the post-merge checklist in docs/specs/gaie-20-layers/INSTALL.md.",
+  "That a model follows the skills: the fresh_session section covers discovery only.",
+  "A local-folder marketplace reads the plugin from the hub checkout; it says nothing about the GitHub source or network allowlists."
+ ]
+}
