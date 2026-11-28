@@ -355,12 +355,16 @@ def main():
     layers_parser.add_argument("--layer", action="append", default=[])
     layers_parser.add_argument("--state")
     layers_parser.add_argument("--json", action="store_true")
-    capability_parser = commands.add_parser("capabilities")
+    recorded = ("catalogue entries with their recorded review values; installed and operational are recorded, not detected"
+                " on this host (what ran on a host: docs/evidence/gaie-20-layers/activation.json)")
+    capability_parser = commands.add_parser("capabilities", help=recorded, description=recorded)
     capability_parser.add_argument("--query", default="")
     capability_parser.add_argument("--state", choices=control.STATES)
     health_parser = commands.add_parser("health")
     health_parser.add_argument("--project")
-    commands.add_parser("motions")
+    recorded = ("motion counts from recorded, source-bound receipts; runtime_verified is recorded, not re-run on this host"
+                " (live_recheck_performed stays false)")
+    commands.add_parser("motions", help=recorded, description=recorded)
     commands.add_parser("integrations")
     search = commands.add_parser("search")
     search.add_argument("query")
