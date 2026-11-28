@@ -125,8 +125,8 @@ medium 8, low 9, info 3. Open critical or high: none, so the audit exits 0.
 
 Static hits that were reviewed and accepted (rule, enclosing function, reason in the JSON). Re-examined at this
 revision; each acceptance still holds:
-- `authority-from-payload` in `adapters.security_governor` (high), `engineering_os/adapters.py:989` and `:1004`.
-  `:989` passes `payload["grant"]` to `contracts.validate_grant` and returns only `{valid, reason}`. `:1004` passes it to
+- `authority-from-payload` in `adapters.security_governor` (high), `engineering_os/adapters.py:991` and `:1006`.
+  `:991` passes `payload["grant"]` to `contracts.validate_grant` and returns only `{valid, reason}`. `:1006` passes it to
   `governor.check`, which is pure (no audit write, no state, no subprocess): the action spec comes from
   `control_plane.load_registry()`, never from the payload, and `approval_token=None`, so a gated side effect is always
   refused with `approval-missing`. The result is marked `dry_run` and no code in `engineering_os` consumes it. The control

@@ -11,8 +11,9 @@ rejects the result (``validate_decision``), ``memory`` keeps stage checkpoints a
 
 Every change happens in a copy of the target inside ``workdir``; the target is never written
 (its SHA-256 snapshot is compared before and after). The target's own test suite runs in
-disposable copies through ``detectors.Sandbox`` (child process, fixed driver, loopback-only
-socket guard; not an OS sandbox). A step is kept only when every test that passed at baseline
+disposable copies through ``detectors.Sandbox``: the governor's OS sandbox where the host has its
+full tier, refused otherwise unless the audited process-only mode is chosen; every report records
+the tier used in its ``sandbox`` field. A step is kept only when every test that passed at baseline
 still passes, its new tests fail before it and pass after it, every pre-existing table keeps its
 rows (count and SHA-256 over the original columns) and nothing is deleted without proof of
 non-use and a recoverable backup; otherwise it is rolled back and the rollback is verified.
@@ -2547,8 +2548,8 @@ def _usage(run, started):
             "basis": "measured wall clock of local test runs; tokens and money are zero because no model or provider is called"}
 
 
-GUARANTEES = {"applied_in_place": False, "isolated_copy": True, "network": "refused (policy) and loopback-only socket guard for target code",
-              "deployment_allowed": False, "production_mutations": 0, "shell_used": False, "model_calls": 0, "os_sandbox_claimed": False,
+GUARANTEES = {"applied_in_place": False, "isolated_copy": True, "network": "refused (policy); network_guard names the boundary target code ran behind",
+              "deployment_allowed": False, "production_mutations": 0, "shell_used": False, "model_calls": 0,
               "data": "every baseline table keeps its row count and SHA-256 over its original columns after every migration",
               "functions": "every baseline top-level function, class, method and route still exists",
               "assets": "an asset leaves the copy only with a no-internal-reference proof and a verified backup",
@@ -2558,8 +2559,17 @@ LIMITS = ("Generators are a bounded deterministic catalogue: spec-derived input 
           "dispatch convention, template accessibility/RTL fixes, SQLite indexes for filtered full scans, asset backups, "
           "self-healing via healing.heal, and caller-declared steps. Anything else is reported, not guessed. Proof of asset "
           "non-use is static (internal references only; external links cannot be ruled out, hence the backup). Data proofs "
-          "cover SQLite files only. Tests prove only what they check; a passing run is not a release approval. The socket "
-          "guard is Python-level, not an OS sandbox. Timings are measured and noisy; plans are deterministic.")
+          "cover SQLite files only. Tests prove only what they check; a passing run is not a release approval. Timings are "
+          "measured and noisy; plans are deterministic.")
+
+
+def _isolation(run):
+    """(sandbox summary, guarantees, limits) from the tier target code actually ran in (healing's helpers, SEC-07)."""
+    sandbox = run.sandbox.summary() if run.sandbox is not None else {"mode": None, "tiers": {}, "os_sandbox": False,
+                                                                      "audit_log": None}
+    guarantees = {**GUARANTEES, "os_sandbox_claimed": sandbox["os_sandbox"], "network_guard": healing._network_guard(sandbox)}
+    limit = healing._isolation_limit(sandbox) if sandbox["tiers"] else "No target code ran in this run (no sandbox tier was used)."
+    return sandbox, guarantees, LIMITS + " " + limit
 
 
 def _summary(run, status, applied):
@@ -2593,6 +2603,7 @@ def _audit_report(run, extra, started):
     proof = {"target_unchanged": unchanged, "workdir_untouched": workdir_untouched, "files_written": written, "tests_executed": False,
              "memory_written": False}
     run.receipt("REPORT", {"mode": "audit"}, proof, "audited" if unchanged and workdir_untouched else "failed")
+    sandbox, guarantees, limits = _isolation(run)
     result = {"schema_version": VERSION, "engine": ENGINE, "layers": list(LAYERS), "mode": "audit",
               "status": "audited" if unchanged and workdir_untouched else "audit-changed-something", "project": run.project,
               "route": run.route, "command": run.route_command, "language": run.route["language"],
@@ -2601,7 +2612,7 @@ def _audit_report(run, extra, started):
               "steps": [], "applied": [], "changes_made": False, "no_change_proof": proof, "patch": None, "artifacts": {},
               "memory": {"written": False, "reason": "audit is read-only"}, "usage": _usage(run, started),
               "receipts": run.receipts, "receipt_chain_valid": verify_receipts(run.receipts),
-              "guarantees": {**GUARANTEES, "read_only": True}, "limits": LIMITS,
+              "sandbox": sandbox, "guarantees": {**guarantees, "read_only": True}, "limits": limits,
               "evidence": {"deterministic": ["route", "inventory", "static detectors", "audit findings", "plan"], "measured": [],
                            "simulated": [], "ai_reasoning": []},
               "summary": {"en": f"Audit only: {len(run.opportunities)} upgrade opportunities and {len(run.defects)} defect(s) found; "
@@ -2658,6 +2669,7 @@ def _final_report(run, started):
             run.memory_report.setdefault("errors", []).append(f"checkpoint: {type(error).__name__}")
     run.receipt("REPORT", {"status": status}, {"applied": [s["id"] for s in applied], "patch_sha256": hashlib.sha256(run.patch.encode("utf-8")).hexdigest()},
                 status, "workspace-write")
+    sandbox, guarantees, limits = _isolation(run)
     result = {
         "schema_version": VERSION, "engine": ENGINE, "layers": list(LAYERS), "mode": "upgrade", "status": status, "project": run.project,
         "route": run.route, "command": run.route_command, "language": run.route["language"],
@@ -2670,7 +2682,8 @@ def _final_report(run, started):
         "patch": run.patch if keep else None, "rejected_patch": None if keep or not run.changed else run.patch,
         "patch_sha256": hashlib.sha256(run.patch.encode("utf-8")).hexdigest(), "rollback": rollback, "artifacts": artifacts,
         "memory": run.memory_report, "usage": _usage(run, started), "receipts": run.receipts, "receipt_chain_valid": verify_receipts(run.receipts),
-        "guarantees": {**GUARANTEES, "original_unchanged": regression["checks"]["original-unchanged"]}, "limits": LIMITS,
+        "sandbox": sandbox, "guarantees": {**guarantees, "original_unchanged": regression["checks"]["original-unchanged"]},
+        "limits": limits,
         "evidence": {"deterministic": ["route", "inventory", "detectors", "audit findings", "plan order", "trade-offs", "test outcomes",
                                        "data checksums", "asset proofs", "patch", "decision"],
                      "measured": ["test run durations"], "simulated": [], "ai_reasoning": []},

@@ -170,5 +170,16 @@ class SandboxTierReportTests(unittest.TestCase):
         self.check(result, "os", {"refused"}, False, "target-code-not-run", "target code was not run")
 
 
+class HealthTextTests(unittest.TestCase):
+    def test_the_self_healing_health_detail_names_the_recorded_tier_not_a_fixed_claim(self):
+        """heal-fixes-2 request: adapters' health text predated SEC-07 and contradicted the heal report."""
+        from engineering_os import adapters
+        report = adapters.self_healing_health()
+        self.assertTrue(report["ok"], report)
+        self.assertNotIn("not an OS sandbox", report["detail"])
+        self.assertIn("sandbox field", report["detail"])
+        self.assertIn("refuses where the host lacks", report["detail"])
+
+
 if __name__ == "__main__":
     unittest.main()

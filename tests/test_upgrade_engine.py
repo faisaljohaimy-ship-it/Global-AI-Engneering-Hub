@@ -121,6 +121,22 @@ class ScenarioB(_Temp):
         self.assertFalse(self.result["guarantees"]["deployment_allowed"])
         self.assertEqual(self.result["usage"]["model_calls"], 0)
 
+    def test_the_report_records_the_sandbox_tier_target_code_ran_in(self):
+        """heal-fixes-2 request: the claim follows Sandbox.summary(), never a fixed False or 'not an OS sandbox'."""
+        from engineering_os import detectors, governor
+        sandbox, guarantees = self.result["sandbox"], self.result["guarantees"]
+        self.assertTrue(sandbox["tiers"])
+        self.assertEqual(guarantees["os_sandbox_claimed"], sandbox["os_sandbox"])
+        self.assertNotIn("not an OS sandbox", self.result["limits"])
+        if governor.isolation_probe()["tier"] == "full" and detectors.DEFAULT_ISOLATION == "os":
+            self.assertEqual(set(sandbox["tiers"]), {"governor-full"})
+            self.assertTrue(guarantees["os_sandbox_claimed"])
+            self.assertEqual(guarantees["network_guard"], "os-network-namespace-private-loopback+python-socket-guard")
+        else:  # the module's explicit process-only opt-in (tests/_target_code_mode.py)
+            self.assertEqual(set(sandbox["tiers"]), {"process-only"})
+            self.assertFalse(guarantees["os_sandbox_claimed"])
+            self.assertEqual(guarantees["network_guard"], "python-socket-loopback-only")
+
     def test_weaknesses_are_found_by_the_audit(self):
         kinds = {row["kind"] for row in self.result["audit"]["opportunities"]}
         self.assertTrue({"missing-input-validation", "html-missing-lang-dir", "unlabelled-control", "unindexed-filter", "unused-asset"} <= kinds)
@@ -290,6 +306,9 @@ class AuditOnly(_Temp):
                                                      "tests_executed": False, "memory_written": False})
         self.assertFalse(result["changes_made"])
         self.assertIsNone(result["patch"])
+        self.assertEqual((result["sandbox"]["tiers"], result["guarantees"]["os_sandbox_claimed"],
+                          result["guarantees"]["network_guard"]), ({}, False, "target-code-not-run"))
+        self.assertIn("No target code ran in this run", result["limits"])
         planned = {s["id"] for s in result["plan"]["steps"] if s["status"] == "planned"}
         self.assertTrue(set(IMPROVEMENTS[:4]) <= planned)
         self.assertTrue(engine.verify_receipts(result["receipts"]))

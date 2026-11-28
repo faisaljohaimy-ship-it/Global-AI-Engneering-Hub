@@ -684,7 +684,9 @@ def self_healing_health():
         if healing.VERSION != 1 or not all(callable(f) for f in (healing.verify_repair, healing.heal, detectors.run_all)):
             raise AdapterError("healing API changed")
         return ("repair analysis, disposable-copy verification, static detectors and the isolated-copy heal loop importable; "
-                "heal runs target tests in child processes (Python-level guard, not an OS sandbox)")
+                "heal runs target code in the governor's full OS sandbox by default and refuses where the host lacks "
+                "that tier (an audited process-only opt-in has no OS isolation); each heal report records the tier "
+                "used in its sandbox field")
     return _healthy(check)
 
 

@@ -160,10 +160,14 @@ class Sec07Tests(Case):
         if not FULL:
             self.assertFalse(REQUIRED, "GAIE_REQUIRE_FULL_SANDBOX=1 but the full tier is missing")
             self.assertIn("refused", report["blocked"])
+            self.assertEqual((report["sandbox"]["os_sandbox"], report["guarantees"]["network_guard"]),
+                             (False, "target-code-not-run"))
             return
         outcomes = report["baseline"]["tests"]["outcomes"]
         self.assertEqual(len(outcomes), 7, outcomes)
         self.assertEqual(set(outcomes.values()), {"passed"}, outcomes)
+        self.assertEqual(set(report["sandbox"]["tiers"]), {"governor-full"})
+        self.assertTrue(report["sandbox"]["os_sandbox"] and report["guarantees"]["os_sandbox_claimed"])
 
     def test_heal_runs_target_tests_inside_the_walls(self):
         from engineering_os import healing
