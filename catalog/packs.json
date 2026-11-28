@@ -106,7 +106,11 @@
         "projects/aliases.json": ".engineering/gaie/aliases.json",
         "prompts/MASTER_BUILD.md": ".engineering/gaie/MASTER_BUILD.md",
         "prompts/MASTER_UPGRADE.md": ".engineering/gaie/MASTER_UPGRADE.md",
-        "agents/gaie-verifier.md": ".claude/agents/gaie-verifier.md"
+        "agents/gaie-verifier.md": ".claude/agents/gaie-verifier.md",
+        "agents/gaie-specialist.md": ".claude/agents/gaie-specialist.md",
+        "engineering_os/agent_team.py": ".engineering/gaie/agent_team.py",
+        "governance/policies/agent-team.json": ".engineering/gaie/agent-team.json",
+        "governance/agent-roles.json": ".engineering/gaie/agent-roles.json"
       },
       "requires": [
         "Python 3.10+",

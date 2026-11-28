@@ -602,7 +602,7 @@ class ScenarioIClaudeCode(unittest.TestCase):
     def test_validate_install_and_details_list_the_skills_and_agents(self):
         problems = [p for p in failures({}, self.cli) if p.startswith("cli")]
         self.assertEqual(problems, [])
-        self.assertEqual(self.cli["cli.details"]["agents"], ["gaie-verifier"])
+        self.assertEqual(self.cli["cli.details"]["agents"], agents())
 
     def test_cli_runner_refuses_model_backed_commands(self):
         for args in (("-p", "hi"), ("plugin", "install", "x", "-p", "hi"), ("--print", "x"), ("auth", "status"), ()):
