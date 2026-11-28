@@ -116,21 +116,29 @@ def _stage_summary(operation, payload, value, project):
             raise MasterWorkflowError("Expected the twenty-layer contract")
         return {"layer_count": len(layers)}
     if operation == "reasoning-plan":
-        if value.get("project") != project or value.get("status") != "provisional":
+        if (value.get("project") != project or value.get("status") != "provisional"
+                or value.get("request_sha256") != sha(payload) or not _bound_digest(value, "plan_sha256")):
             raise MasterWorkflowError("Reasoning did not find a feasible local plan")
         return {"plan_sha256": value["plan_sha256"], "status": value["status"]}
     if operation == "factory-plan":
-        if value["request"]["project"] != project:
-            raise MasterWorkflowError("Factory plan targets another project")
+        from .factory import _request as normalize_requirements
+
+        if (value["request"]["project"] != project
+                or value.get("request_sha256") != sha(normalize_requirements(payload))
+                or not _bound_digest(value, "plan_sha256")):
+            raise MasterWorkflowError("Factory plan does not match these requirements")
         return {"plan_sha256": value["plan_sha256"], "stage_count": len(value["stages"])}
     if operation == "factory-evaluate":
         if value.get("project") != project or value.get("delivery_review_ready") is not True:
             raise MasterWorkflowError("Existing artifact evidence has incomplete stages")
         return {"plan_sha256": value["plan_sha256"], "verified_count": value["verified_count"]}
     if operation == "factory-generate":
+        from .factory_generate import _request as normalize_generation
+
         verification = value.get("verification")
         if (value.get("project") != project or value.get("profile") != "private-sqlite-crud"
                 or value.get("source_revision") != payload["source_revision"]
+                or value.get("request_sha256") != sha(normalize_generation(payload))
                 or not isinstance(verification, dict) or verification.get("status") != "passed"
                 or not _bound_digest(value, "manifest_sha256")):
             raise MasterWorkflowError("Generated output lacks a verified local manifest")

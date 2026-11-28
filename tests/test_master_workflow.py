@@ -181,6 +181,20 @@ class MasterWorkflowTests(unittest.TestCase):
         self.assertEqual(self.calls, ["architecture", "reasoning-plan"])
         self.assertFalse(self.destination.exists())
 
+    def test_manifest_from_different_resources_cannot_prove_the_current_request(self):
+        old = fixture_generation()
+        old["resources"][0]["name"] = "other_tasks"
+        receipt = dispatch("factory-generate", old, artifact_root=self.root / "other-app")
+
+        def stale_dispatch(operation, payload):
+            return receipt if operation == "factory-generate" else self.invoke(operation, payload)
+
+        result = self.run_workflow(fixture_route(), fixture_request(generation=fixture_generation()),
+                                   invoke=stale_dispatch)
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["stages"][-1]["status"], "failed")
+        self.assertFalse(self.destination.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
