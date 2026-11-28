@@ -129,6 +129,23 @@
     "physics-voronoi-structure": "no stated purpose: Voronoi cells follow moving sites; a geometric construction with no digital service shown",
     "physics-terrain-evolution": "no stated purpose: a height grid diffuses to flat; no digital service is shown"
    }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-compositions.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "05eee2e207bb95dcc8d50b908d59980a5333e6ef",
+   "from_blob": "00cbcd333926a4f5775fd259d32cc6121a564a45",
+   "ids": [
+    "compositions-spatial-operating-system",
+    "compositions-audio-reactive-neural",
+    "compositions-holographic-city",
+    "compositions-ai-command-center",
+    "compositions-infinite-storytelling"
+   ],
+   "left_out": {
+    "compositions-adaptive-universe": "no stated purpose: a starfield thins or fills with the viewport and detail setting; no digital service is shown",
+    "compositions-scene-assembly": "no stated purpose: unlabelled planes slide together into a stack; no digital service is shown"
+   }
   }
  ],
  "not_ported": {
