@@ -539,7 +539,10 @@ def review_assignment(task, *, roles=None, root=ROOT):
         _need(requested in by_id, f"{task.get('id')}: unknown reviewer {requested}")
     panel = {}
     for capacity in CAPACITIES:
-        panel[capacity] = next(rid for rid in PANEL_CANDIDATES[capacity] if rid != implementer and rid in by_id)
+        panel[capacity] = next((rid for rid in PANEL_CANDIDATES[capacity] if rid != implementer and rid in by_id), None)
+        _need(panel[capacity] is not None,
+              f"{task.get('id')}: no independent {capacity} reviewer: the role document lacks every candidate "
+              f"other than the implementer ({', '.join(PANEL_CANDIDATES[capacity])})", ReviewIndependenceError)
     flagged = [rid for rid in by_id if by_id[rid]["reviewer"] and rid != implementer]
     reviewer = requested or (flagged[0] if flagged else panel["testing"])
     _need(reviewer != implementer and implementer not in panel.values() and len(set(panel.values())) == len(CAPACITIES),
