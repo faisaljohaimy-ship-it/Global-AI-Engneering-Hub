@@ -35,6 +35,11 @@ adoption and dependency updates require reviewed PRs.
 
 ## Release gates
 
+Native runtime claims require the exact reviewed receipt SHA256 in addition to
+source hashes, strict benchmark checks and the existing 24-hour expiry. Missing,
+malformed or changed receipt bytes, including a refreshed timestamp, withdraw the
+claim. Test this using disposable copies; preserve all published raw evidence.
+
 Work in isolated branches/worktrees; never concurrent ownership of the same branch
 and files. Review licenses/security and exact dependency locks. Run unit, negative,
 integration/browser, security and performance checks appropriate to each module;

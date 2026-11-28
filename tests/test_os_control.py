@@ -54,6 +54,43 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(len(report['programs']),22)
         self.assertIn('not implemented',report['protocols']['a2a'])
 
+    def test_native_runtime_requires_reviewed_bytes_and_cannot_refresh_expired_proof(self):
+        """Temporary copies exercise integrity; published evidence is never rewritten."""
+        import datetime
+        import shutil
+        from unittest import mock
+        record,receipt=reviewed_native_receipt()
+        actual_root=control.ROOT
+        recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
+        original=(actual_root/record['runtime_receipt']).read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            target=root/record['runtime_receipt'];target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(original)
+            for name in receipt['inputs']:
+                relative=pathlib.Path(record['module_root'])/name
+                destination=root/relative;destination.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(actual_root/relative,destination)
+            with mock.patch.object(control,'ROOT',root):
+                self.assertEqual(control.runtime_review(record,recorded),record)
+                for expected in (None,'','0'*64,'A'*64,True,123):
+                    amended=copy.deepcopy(record)
+                    if expected is None:amended.pop('runtime_receipt_sha256')
+                    else:amended['runtime_receipt_sha256']=expected
+                    with self.subTest(expected=expected):
+                        self.assertIsNone(control.runtime_review(amended,recorded))
+                expired=recorded+datetime.timedelta(seconds=86401)
+                self.assertIsNone(control.runtime_review(record,expired))
+                relabeled=copy.deepcopy(receipt)
+                relabeled['recorded_at_utc']=(expired-datetime.timedelta(seconds=10)).isoformat()
+                target.write_text(json.dumps(relabeled))
+                self.assertNotEqual(hashlib.sha256(target.read_bytes()).hexdigest(),record['runtime_receipt_sha256'])
+                self.assertIsNone(control.runtime_review(record,expired))
+                target.write_bytes(original+b'\n')
+                self.assertIsNone(control.runtime_review(record,recorded))
+                target.write_bytes(original)
+                self.assertEqual(control.runtime_review(record,recorded),record)
+
     def test_partial_or_failed_browser_evidence_never_advances_lifecycle(self):
         import copy
         import datetime
@@ -77,12 +114,45 @@ class ControlTests(unittest.TestCase):
             with self.subTest(item=item.keys()),mock.patch.object(control,'read',return_value=item):
                 self.assertIsNone(control.runtime_review(record,recorded))
 
+    def test_native_hash_and_parser_share_one_buffer_under_receipt_replacement(self):
+        import datetime
+        import shutil
+        from unittest import mock
+        record,receipt=reviewed_native_receipt()
+        actual_root=control.ROOT
+        recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
+        expired=recorded+datetime.timedelta(seconds=86401)
+        original=(actual_root/record['runtime_receipt']).read_bytes()
+        relabeled={**receipt,'recorded_at_utc':(expired-datetime.timedelta(seconds=10)).isoformat()}
+        real_read_bytes=pathlib.Path.read_bytes
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            target=root/record['runtime_receipt'];target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(original)
+            for name in receipt['inputs']:
+                relative=pathlib.Path(record['module_root'])/name
+                destination=root/relative;destination.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(actual_root/relative,destination)
+            reads=[]
+            def replace_after_read(path):
+                data=real_read_bytes(path)
+                if path==target:
+                    reads.append(path)
+                    path.write_text(json.dumps(relabeled))
+                return data
+            with mock.patch.object(control,'ROOT',root),mock.patch.object(pathlib.Path,'read_bytes',new=replace_after_read):
+                self.assertIsNone(control.runtime_review(record,expired))
+            self.assertEqual(reads,[target])
+            self.assertEqual(json.loads(target.read_text()),relabeled)
+
     def test_evidence_json_rejects_duplicate_and_overflowed_numbers(self):
         with tempfile.TemporaryDirectory() as folder:
             target=pathlib.Path(folder)/'receipt.json'
             for text in ('{"a":1,"a":2}','{"a":1e9999}','{"a":NaN}'):
                 target.write_text(text)
                 with self.assertRaises(ValueError):control.read(target)
+                digest=hashlib.sha256(target.read_bytes()).hexdigest()
+                with self.assertRaises(ValueError):control.read(target,expected_sha256=digest)
 
     def test_motion_proof_withdraws_for_partial_sources_duplicate_profiles_or_failed_budgets(self):
         import copy

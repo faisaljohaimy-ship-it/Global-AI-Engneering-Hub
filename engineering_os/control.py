@@ -24,7 +24,11 @@ LAYERS = [
 ]
 
 
-def read(path):
+def read(path, expected_sha256=None):
+    data=pathlib.Path(path).read_bytes()
+    if expected_sha256 is not None:
+        if not isinstance(expected_sha256,str) or not re.fullmatch('[a-f0-9]{64}',expected_sha256):raise ValueError('invalid receipt digest')
+        if hashlib.sha256(data).hexdigest()!=expected_sha256:raise ValueError('changed receipt bytes')
     def pairs(items):
         result={}
         for key,value in items:
@@ -35,7 +39,7 @@ def read(path):
         number=float(value)
         if not math.isfinite(number):raise ValueError('invalid number')
         return number
-    return json.loads(pathlib.Path(path).read_text(),object_pairs_hook=pairs,parse_float=finite,
+    return json.loads(data.decode('utf-8'),object_pairs_hook=pairs,parse_float=finite,
                       parse_constant=lambda _: (_ for _ in ()).throw(ValueError('invalid number')))
 
 
@@ -98,7 +102,10 @@ def capabilities(query='', state=None):
 def runtime_review(record, now=None):
     """Withdraw a recorded runtime claim when source or time-bound evidence changes."""
     try:
-        receipt=read(safe_path(record['runtime_receipt']))
+        path=safe_path(record['runtime_receipt'])
+        expected=record.get('runtime_receipt_sha256')
+        if not isinstance(expected,str) or not re.fullmatch('[a-f0-9]{64}',expected):return None
+        receipt=read(path,expected_sha256=expected)
         if receipt.get('status')!='passed' or receipt.get('functional_status')!='passed':return None
         required={'package.json','package-lock.json','options.mjs','native-probes.mjs','smoke.mjs','harness.html'}
         if set(receipt['inputs'])!=required or record['module_root']!='motion-library/chromium-stack':return None
