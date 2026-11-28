@@ -589,6 +589,28 @@ class RepositoryGateTests(Workspace):
         self.assertTrue((clone / "app/server.py").is_file())
         self.assertEqual(len(git(clone, "log", "--oneline").stdout.splitlines()), 2)
 
+    def test_an_application_outside_the_grant_paths_is_not_pushed(self):
+        """W2-BU-08: the grant's paths bind the approval; nothing is read, written or pushed outside them."""
+        elsewhere = copy.deepcopy(self.grant)
+        elsewhere["paths"] = [str(self.workspace / "some-other-approved-app")]
+        link = self.tmp / "inside"
+        link.mkdir()
+        (link / "app").symlink_to(self.app, target_is_directory=True)
+        through_link = copy.deepcopy(self.grant)
+        through_link["paths"] = [str(link)]
+        request = self.app / ".gaie/repository-request.json"
+        before = request.read_bytes()
+        for label, grant, app in (("grant for another path", elsewhere, self.app),
+                                  ("symlink inside the grant to an app outside it", through_link, link / "app")):
+            with self.subTest(label):
+                with self.assertRaises(engine.ApprovalRequired) as refused:
+                    engine.publish(app, remote=str(self.bare), grant=grant, token=self.token, now=NOW)
+                self.assertIn("outside the grant", str(refused.exception))
+                self.assertEqual(self.refs(), "", "nothing reached the bare repository")
+        self.assertEqual(request.read_bytes(), before)
+        self.assertEqual(engine.publish(self.app, remote=str(self.bare), grant=self.grant, token=self.token,
+                                       now=NOW)["status"], "pushed")
+
     def test_unsafe_remotes_are_refused_even_with_approval(self):
         not_bare = self.tmp / "plain"
         not_bare.mkdir()

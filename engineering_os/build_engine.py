@@ -2120,14 +2120,28 @@ def request_repository(app_dir, *, spec=None, moment=None):
     return request
 
 
-def check_approval(grant, token, *, now=None):
-    """Validate an owner approval for master-build/publish (external-write). Raise ApprovalRequired."""
+def check_approval(grant, token, *, now=None, app_dir=None):
+    """Validate an owner approval for master-build/publish (external-write). Raise ApprovalRequired.
+
+    With `app_dir`, the application directory (symlinks resolved) must lie inside one of the
+    grant's `paths` (CONTRACTS.md §4; relative grant paths resolve against the current
+    directory, as in engineering_os.governor); otherwise the refusal carries
+    `outside_grant = True` and the caller writes nothing there.
+    """
     if grant is None or token is None:
         raise ApprovalRequired("publishing is external-write: an owner approval grant and token are required")
     try:
         contracts.validate_grant(grant)
     except contracts.ContractError as error:
         raise ApprovalRequired(f"invalid grant: {error}") from None
+    if app_dir is not None:
+        from . import governor
+        try:
+            governor._check_paths(grant, [os.fspath(app_dir)], None)
+        except governor.GovernorDenied:
+            refused = ApprovalRequired("the application directory is outside the grant's paths")
+            refused.outside_grant = True
+            raise refused from None
     moment = _now(now)
     expires = datetime.datetime.strptime(grant["expires_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
     if expires <= moment:
@@ -2179,13 +2193,13 @@ def publish(app_dir, *, remote, grant=None, token=None, now=None, environ=None):
     GitHub the project is recorded in the private registry.
     """
     app_dir = pathlib.Path(app_dir)
-    spec = json.loads((app_dir / ".gaie/spec.json").read_text(encoding="utf-8"))
-    try:
-        approval = check_approval(grant, token, now=now)
-    except ApprovalRequired:
-        if not (app_dir / REQUEST_FILE).is_file():
-            request_repository(app_dir, spec=spec)
+    try:  # the grant (and its paths) are checked before the application is read or written
+        approval = check_approval(grant, token, now=now, app_dir=app_dir)
+    except ApprovalRequired as refused:
+        if not getattr(refused, "outside_grant", False) and not (app_dir / REQUEST_FILE).is_file():
+            request_repository(app_dir, spec=json.loads((app_dir / ".gaie/spec.json").read_text(encoding="utf-8")))
         raise
+    spec = json.loads((app_dir / ".gaie/spec.json").read_text(encoding="utf-8"))
     url, kind = _remote(remote, spec["slug"])
     if _git(app_dir, "status", "--porcelain").stdout.strip():
         raise BuildError("the application working tree is not clean; commit before publishing")
