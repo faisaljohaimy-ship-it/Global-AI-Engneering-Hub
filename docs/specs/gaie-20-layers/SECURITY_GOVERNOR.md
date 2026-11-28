@@ -1,7 +1,8 @@
 # Security Governor (layers L01 and L09)
 
-Code: `engineering_os/governor.py`. Evidence: `tests/test_governor.py` (acceptance Scenario E)
-and `docs/evidence/gaie-20-layers/isolation.json` (what this host enforces, measured).
+Code: `engineering_os/governor.py`. Evidence: `tests/test_governor.py` (acceptance Scenario E),
+`tests/test_isolation_enforcement.py` and `docs/evidence/gaie-20-layers/isolation.json` (what this
+host enforces, measured with real children per launcher; see §10).
 Contracts: `docs/specs/gaie-20-layers/CONTRACTS.md` §2–§4, validators in `engineering_os/contracts.py`.
 
 The governor is the code that stands between an agent and an engine action. It is deny by
@@ -22,7 +23,8 @@ verify_audit(state_dir) -> int             # records in an intact chain
 approval_token_sha256(token) -> str        # the digest a grant's approval stores
 payload_sha256(payload) -> str
 sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
-            cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256)
+            cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
+            require_fs_isolation=False, read_only=False, loopback=False)
     -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated"}
 isolation_probe() -> dict                  # measured once per process; decides the sandbox tier
 isolation_report() -> dict                 # public-safe form written to isolation.json
@@ -46,7 +48,7 @@ Callers that use only the arguments of the shared brief get the defaults shown.
 | `invalid-path` / `path-outside-grant` | a path is malformed / resolves (realpath) outside every granted path |
 | `secret-in-payload`, `invalid-payload`, `payload-too-large` | `check_payload` found a credential, cannot scan the value, or the value exceeds 8 MiB of text |
 | `invalid-audit-event`, `audit-in-repository`, `audit-failed`, `audit-tampered` | `audit`/`verify_audit` refusals |
-| `invalid-command`, `invalid-env-name`, `invalid-limit`, `allowed-path-too-broad`, `network-isolation-unavailable`, `sandbox-setup-failed` | `sandbox_run` preconditions |
+| `invalid-command`, `invalid-env-name`, `invalid-limit`, `allowed-path-too-broad`, `network-isolation-unavailable`, `sandbox-setup-failed`, `invalid-sandbox-mode`, `filesystem-isolation-unavailable` | `sandbox_run` preconditions and refusals (§7) |
 
 ## 3. `check` — decision order
 
@@ -107,10 +109,14 @@ record_sha256`.
   as `[redacted]`. Fields are truncated, and non-text values are written as `[invalid]`.
 - `decision` is `allow`/`deny`, or is derived from `allowed: bool` (so a `check` result plus
   `engine`/`action` is a valid event). Anything else is `invalid-audit-event`.
-- Append-only: `O_APPEND|O_NOFOLLOW`, mode 0600, an exclusive `flock` around read-tail and
-  append, `fsync`. Each record carries the previous record's hash. `verify_audit` recomputes the
-  chain and raises `audit-tampered` on an edited, removed, reordered or truncated line. An
-  incomplete last line also blocks further appends.
+- Append-only: the log is opened with `O_NOFOLLOW` relative to a descriptor of `state_dir`, which
+  must not pass through a symlink and must be caller-owned with no group/other bits (created 0700
+  when missing). The log must be a regular, caller-owned, single-link file without group/other
+  bits, checked after open and again under the exclusive `flock` (`audit-failed`); the append is
+  `O_APPEND` and is followed by `fsync`. Each record carries the previous record's hash.
+  `verify_audit` opens the log the same way under a shared `flock` (`audit-tampered`), returns 0
+  when it is missing, recomputes the chain and raises `audit-tampered` on an edited, removed,
+  reordered or truncated line. An incomplete last line also blocks further appends.
 - `state_dir` must not lie inside a Git work tree (`audit-in-repository`). The log is private
   state, never repository content.
 
@@ -124,6 +130,22 @@ Tests: `AuditTests.*` (no payload text, no token, no path in the file; chain; ta
 `allowed_paths` and `read_paths` exist. They may not be `/`, contain a system directory, or lie in
 `/proc`, `/sys` or `/dev`. `cwd` (realpath'ed, so a symlink cannot escape) is a directory inside an
 allowed directory. `env_allow` holds variable names. Tests: `SandboxArgumentTests.*`.
+
+**Strict profiles** (`require_fs_isolation=True` for governed execution, `read_only=True` for
+audits) refuse with `invalid-sandbox-mode`: `network=True` or any `env_allow`; `/tmp`, `/var/tmp`
+or the caller's home as an allowed or read path; anything but exactly one private (caller-owned,
+no group/other bits) writable workspace that does not overlap a read path; with `read_only`, any
+writable path, and `cwd` must lie under `read_paths`; a hard-linked file or a special file (FIFO,
+socket, device) in the scope, and a `.git` that is not a single-link pointer file. They never run
+on the plain tier (`filesystem-isolation-unavailable`). Tests: `StrictSandboxTests.*`.
+
+**`loopback=True`** (non-strict full tier only) gives the sandbox's own network namespace a
+working `lo`: a server and a client inside one sandbox reach each other on 127.0.0.1, while the
+host's loopback and every host address stay unreachable (errno 101). It is the profile for
+untrusted target code, so `/etc` is hidden there as in the strict profiles. It is refused with
+`network=True` or a strict profile (`invalid-sandbox-mode`; the strict seccomp filter denies
+sockets anyway) and on the plain tier (`network-isolation-unavailable`). Tests:
+`LoopbackSandboxTests.*`.
 
 ### Environment
 Empty, then `PATH=/usr/local/bin:/usr/bin:/bin` and `LANG=C` (cage's environment),
@@ -143,34 +165,54 @@ namespaces, it runs the full sandbox on a probe program and checks the walls fro
 from the host. If every wall holds, the tier is **full**. Otherwise it is **plain**.
 
 **Full tier** (this host). The command line is
-`unshare --user --map-root-user --mount --propagation private --pid --fork --kill-child [--net] -- python3 -I -S -c <governor._sandbox_init> <spec>`.
+`unshare --user --map-root-user --mount --propagation private --pid --fork --kill-child [--net] -- python3 -I -B -S -c <governor._sandbox_init> <spec>`.
 As pid 1 of the new pid namespace, `_sandbox_init`:
 
 1. opens every bind source as an `O_PATH` handle and checks that its real path is exactly the
    expected realpath (a path swapped for a symlink after the caller's check is refused);
 2. builds a new root on a private tmpfs. It contains: `/usr /etc /bin /sbin /lib*` and
    `read_paths` bound read-only, `nosuid,nodev`; the install prefix of `cmd[0]`
-   when it is outside the system directories (e.g. `/opt/node22` for `node`), read-only;
+   when it is outside the system directories (e.g. `/opt/node22` for `node`), read-only.
+   Strict calls omit `/etc` and the `cmd[0]` install prefix and mount a linked worktree's `.git`
+   pointer read-only;
    `allowed_paths` bound read-write, `nosuid,nodev`; a fresh `/proc` of the pid namespace,
    read-only; a private `/dev` holding only null, zero, full, random, urandom, tty (no block
    devices) and a private `/dev/shm`; and a private 64 MiB `/tmp`;
 3. `pivot_root`s into it and detaches the old root, so the host tree is not in the namespace at all,
    then remounts `/` read-only;
-4. empties the bounding set, sets locked securebits (no root privilege on exec), clears ambient
-   and all capability sets, and sets `no_new_privs`;
-5. forks the command (as pid 2), marks itself non-dumpable, reaps every child, reports the
-   command's real wait status through a close-on-exec pipe, and exits. That ends the pid namespace,
-   which kills anything the command left behind.
+4. with `loopback=True`, sets `IFF_UP` on `lo` (one `SIOCSIFFLAGS` ioctl) and detaches the `/etc`
+   bind mount; strict calls re-inspect the mounted workspace;
+5. empties the bounding set, sets locked securebits (no root privilege on exec), clears ambient
+   and all capability sets, and sets `PR_SET_DUMPABLE 0` and `no_new_privs`; strict calls then
+   install a seccomp filter that denies `socket` and `io_uring_setup` (EPERM);
+6. forks the command (as pid 2), reaps every child, reports the command's real wait status
+   through a close-on-exec pipe, and exits. That ends the pid namespace, which kills anything the
+   command left behind.
 
-Without `network=True` the namespace has only a down loopback: no host port, no public host,
-no DNS, and the abstract unix sockets of the host are not reachable.
+Without `network=True` the namespace has only loopback, down unless `loopback=True`: no host
+port, no public host, no DNS, and the abstract unix sockets of the host are not reachable.
 
 **Plain tier** (hosts without user namespaces, e.g. AppArmor-restricted CI). The same
 preconditions, environment, limits and process group. The network is cut with cage's root
 network namespace or `unshare --user --map-root-user --net`. If neither works and
 `network=False`, the call is refused (`network-isolation-unavailable`): it never runs silently
 with network. `fs_isolated` is `False`: there writes are limited only by ordinary file
-permissions of the calling user. Tests: `SandboxArgumentTests.test_fallback_tier_reports_no_filesystem_isolation_honestly`.
+permissions of the calling user. Strict calls are refused (`filesystem-isolation-unavailable`)
+and so is `loopback=True` (`network-isolation-unavailable`); neither enters the plain runner.
+Tests: `SandboxArgumentTests.test_fallback_tier_reports_no_filesystem_isolation_honestly`,
+`StrictSandboxTests.test_strict_audit_and_agent_never_enter_plain_runner`,
+`LoopbackSandboxTests.test_loopback_argument_is_checked_on_every_host`.
+
+### Callers that run target code
+
+| caller | profile | where the full tier is missing |
+|---|---|---|
+| `quality-assurance.run-tests` (`adapters.py`) | strict, hub read-only, one private temp workspace | refused |
+| `WorkspaceSupervisor.run` (`workspace_policy.py`) | strict, the assigned worktree as the one workspace | refused |
+| `detectors.Sandbox` (self-healing, upgrade, runtime detectors; SEC-07) | loopback: target read-only, one fresh writable directory per run, exact environment via `env -i`, HTTP probes sent from inside the sandbox | each run returns `status: "refused"` and executes nothing; `isolation="process-only"` is an explicit opt-in that writes an allow record to the governor audit log in the sandbox scratch directory and is recorded in every result |
+| `layers._run` (`layers.verify`; SEC-12) | strict (repository and linked-worktree git metadata read-only, `/etc/ld.so.cache` and `/etc/alternatives` only), exact environment (PATH, private HOME and TMPDIR, LANG) | the same scrubbed environment as a plain subprocess; every test row and the receipt's `execution` record the profile, tier and reason. Files on `layers.PROCESS_ONLY_TESTS` (measured: the cage's chown, and tests whose subject builds its own governor sandbox, which cannot be nested) run that way on every host |
+
+Tests: `tests/test_isolation_enforcement.py` (`Sec07Tests`, `Sec12Tests`, `PropertyMatrixTests`).
 
 ### What the tests prove on this host (full tier)
 
@@ -209,13 +251,23 @@ in the environment and on disk, and the integrity of the audit trail.
   which the kernel exempts from RLIMIT_NPROC. A fork bomb is bounded only by the timeout, the
   memory limit per process and the pid-namespace teardown. `test_known_limitation_process_count_is_not_capped`
   records this. A cgroup `pids.max` would close it. It is not attempted here.
-- **Unix sockets that are visible can be connected to.** A socket inside `allowed_paths` or
-  `read_paths` is reachable even on a read-only bind. Do not expose directories that hold daemon sockets.
-- **`network=True` is the host network**, including loopback services and abstract sockets.
-- **System directories are readable** (`/usr`, `/etc`, `/bin`, `/sbin`, `/lib*`). `/etc` may hold
-  host configuration. Credentials in `/root`, `/home` and `/tmp` are not visible.
-- **No seccomp filter.** The kernel's system-call surface is reachable from the sandbox. Kernel
-  bugs are out of scope.
+- **Legacy (non-strict) calls can connect to visible unix sockets.** A socket inside
+  `allowed_paths` or `read_paths` is reachable even on a read-only bind; strict calls deny
+  `socket` and refuse special files in their scope. Do not expose directories that hold daemon sockets.
+- **`network=True` (legacy calls only) is the host network**, including loopback services and abstract sockets.
+- **System directories are readable.** `/usr`, `/bin`, `/sbin`, `/lib*` in every profile; legacy
+  calls without `loopback` also see `/etc`, which may hold host configuration (and, for a root
+  caller, root-owned files such as `/etc/shadow`, because the sandbox's uid 0 maps to the caller).
+  Credentials in `/root`, `/home` and `/tmp` are not visible.
+- **Seccomp only in the strict profiles**, and there only for `socket` and `io_uring_setup`.
+  Legacy and loopback calls reach the kernel's whole system-call surface; kernel bugs are out of scope.
+- **The loopback profile's writable paths are the caller's choice.** A `.git` pointer inside a
+  writable workspace stays writable there (measured: `git_pointer_write` not-enforced for that
+  launcher); `detectors.Sandbox` keeps the target directory read-only for this reason.
+- **The process-only mode of `detectors.Sandbox` and `layers._run` is not a boundary.** It keeps
+  the exact environment, the Python socket guard, timeouts, the output bound and (in
+  `detectors.Sandbox`) the sweep of marked processes; files, network and processes of the host
+  are reachable, and the evidence records them as not-enforced.
 - **Path checks are point-in-time.** `check` resolves paths when called. An engine that later
   opens a path must still do so inside the sandbox (or re-check), or a swapped symlink can win the race.
 - **`check` trusts `action_spec`** to come from the engine registry.
@@ -229,7 +281,23 @@ in the environment and on disk, and the integrity of the audit trail.
 
 ## 10. Evidence
 
-`python3 -m engineering_os.governor > docs/evidence/gaie-20-layers/isolation.json` rewrites
-the evidence from a fresh measurement (`measured: true`, `simulated: false`). It holds no host
-name, user or path. `EvidenceTests` checks that it is public-safe and has the same shape as the
-live report. The governor makes no model calls: everything above is deterministic code.
+`python3 scripts/isolation_evidence.py --out docs/evidence/gaie-20-layers/isolation.json`
+rewrites the evidence from a fresh measurement (`measured: true`, `simulated: false`). The file
+is `isolation_report()` (the base namespace probe; `python3 -m engineering_os.governor` prints
+that part alone) plus the isolation property matrix: every launcher above runs one fixed probe
+program as a real child, and each property (write outside, read a planted file, `/etc/passwd`,
+the caller's home, an ambient variable, AF_INET to the host's loopback and address, AF_INET6,
+an outside AF_UNIX socket, `.git` pointer write, host pid visibility, capabilities, a child, a
+`setsid` descendant) is recorded as `enforced`, `not-enforced`, `refused` or `not-available`
+with what was observed. The refusal rows force the probe to the plain tier inside the generator.
+The file states the host it was measured on (kernel, uid, IPv6, libseccomp, user-namespace
+sysctls); it is not re-asserted on other hosts. It holds no host name, user or path.
+`sources` holds function-level digests of the measured code; `tests/test_isolation_enforcement.py`
+fails when that code changes without a regeneration, and on a matching host compares a live
+measurement with the file. `--require-full` exits 2 unless the full tier is built (for CI).
+
+Positive enforcement has been measured only on hosts like the one in the file (full tier, as
+root and, for the governor, as uid 65534). In GitHub CI the tier was plain, so the positive
+tests skipped or took their refusal branch; a CI job that enables user namespaces and runs with
+`GAIE_REQUIRE_FULL_SANDBOX=1` fails instead. The governor makes no model calls: everything above
+is deterministic code.

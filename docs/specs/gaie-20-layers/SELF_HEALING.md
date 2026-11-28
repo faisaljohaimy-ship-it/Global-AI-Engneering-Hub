@@ -41,7 +41,7 @@ contains a matched secret value. Each detector report carries `status`
 | Detector | Method (deterministic unless noted) | Kinds |
 |---|---|---|
 | broken-routes | AST of the literal route table vs module definitions/imports vs `routes.json` vs `href/src/action` in HTML | `missing-route-handler`, `route-missing-from-table`, `undeclared-route`, `broken-internal-link`, `duplicate-route` |
-| broken-apis | start the app via `Sandbox.app` on a free 127.0.0.1 port, probe declared GET routes, check status and JSON shape | `app-start-failed`, `api-unreachable`, `api-error-status`, `api-status-mismatch`, `api-shape-mismatch` |
+| broken-apis | start the app via `Sandbox.http` on 127.0.0.1 and probe declared GET routes from inside the same sandbox, check status and JSON shape | `app-start-failed`, `api-unreachable`, `api-error-status`, `api-status-mismatch`, `api-shape-mismatch` |
 | integrations | consumer contract runner (`contracts.json`) against the same loopback app: status, shape, exact JSON | `contract-failed` |
 | dead-code | top-level definitions with no reference in code, string literals, `__all__` or text files; self-references ignored | `dead-code` with `proof: no-static-reference` or `unproven-dynamic-access` |
 | duplicates | SHA-256 of the AST with name, docstring and local names alpha-renamed (min size 24 nodes) | `duplicate-component` |
@@ -52,12 +52,24 @@ contains a matched secret value. Each detector report carries `status`
 | database | declared schema into an in-memory SQLite DB, `EXPLAIN` every SQL literal (never executed), `PRAGMA quick_check` on DB files opened read-only | `schema-error`, `query-error`, `database-integrity` |
 | media | magic-byte signatures always; decoding with `ffprobe` when installed, otherwise `status: partial` with the reason (never a silent pass) | `media-signature-mismatch`, `broken-media` |
 
-`Sandbox` runs target code with `python -s -B -c <fixed driver> <json>` (never a shell),
-a constructed environment (PATH, private HOME/TMPDIR, `PYTHONHASHSEED=0`, no proxies,
-no `PYTHONPATH`), a loopback-only socket guard (connect, connect_ex, sendto and
-getaddrinfo refuse non-loopback addresses), a timeout, and kills the whole process
-group afterwards. The test driver records per-test outcomes, failure frames,
-functions executed (`sys.settrace`) and files opened (audit hook) for localization.
+`Sandbox` runs target code with `python -s -B -c <fixed driver> <json>` (never a shell)
+in the governor's OS sandbox (`governor.sandbox_run`, full tier, loopback profile; see
+SECURITY_GOVERNOR.md §7): own user, mount, pid and network namespaces, no capabilities,
+a private loopback, `/etc` hidden, the target directory read-only, one fresh writable
+directory per run (HOME, TMPDIR, the result), and exactly the constructed environment
+(PATH, private HOME/TMPDIR, `PYTHONHASHSEED=0`, no proxies, no `PYTHONPATH`) set with
+`env -i`. Inside it the Python socket guard (connect, connect_ex, sendto, sendmsg and
+getaddrinfo refuse non-loopback addresses) still runs; the OS boundary does not depend on
+it. Output is capped at 32 MiB per file and only its tail is read; the run ends with its
+pid namespace, so nothing it started survives. Where the host cannot build the full tier,
+every run returns `status: "refused"`, executes nothing, and the runtime detectors report
+`refused`; `heal` then stops as `blocked`. `Sandbox(..., isolation="process-only")` (or
+`detectors.DEFAULT_ISOLATION`) is the explicit opt-in for such hosts: an ordinary child
+process with the same environment, guard, timeout and output cap, whose marked processes are
+all killed afterwards; it writes an allow record to `governor-audit.jsonl` in the sandbox
+scratch directory, and every result's `isolation` field records the mode and tier used.
+The test driver records per-test outcomes, failure frames, functions executed
+(`sys.settrace`) and files opened (audit hook) for localization.
 
 ## 3. The governed loop
 
@@ -158,9 +170,19 @@ initial defect to its root causes and `repaired | resolved-indirectly | unrepair
   errors (constraints, triggers) and f-string/dynamic SQL are not checked.
 - Media decoding requires ffprobe; without it only signatures are checked
   (`status: partial`).
-- The socket guard is a Python-level check, not an OS sandbox: native code,
-  `ctypes` or child processes can bypass it, and a test that knows the target's
-  absolute path could write there (detected afterwards by the unchanged-target check,
-  not prevented).
+- Isolation is as strong as the tier the host provides. With the full tier target code
+  cannot read or write outside its read-only copy and its per-run directory, reach the
+  host network or host processes, or keep a process alive after the run (measured per
+  property in `docs/evidence/gaie-20-layers/isolation.json`). It still sees the system
+  directories read-only (`/usr`, `/bin`, `/sbin`, `/lib*`), runs as uid 0 of a user namespace
+  mapped to the caller (all capabilities dropped), can use the whole system-call surface
+  (no seccomp in the loopback profile) and is not limited in process count. Without the
+  full tier nothing runs unless the process-only mode is chosen; that mode is no boundary:
+  the Python guard is bypassable by native code, `ctypes` or `_socket`, and files and
+  processes of the host are reachable (recorded as not-enforced in the evidence).
+- The heal report does not yet carry the sandbox summary (`Sandbox.summary()`); its
+  `guarantees.os_sandbox_claimed` stays `false` until healing.py records it (requested from
+  that file's owner). The per-run `isolation` records are in each `Sandbox` result and in the
+  runtime detector reports; the heal report does not copy them yet.
 - Only Python `unittest` suites are run; flaky tests are detected by two baseline
   runs only.

@@ -469,5 +469,82 @@ class LoopSafetyTests(unittest.TestCase):
         self.assertEqual(result["validation"]["final_failing"], ["case_mixed.Tests.test_greeting"])
 
 
+# --------------------------------------------------------------------------- isolation of target code (SEC-07)
+
+from engineering_os import detectors, governor  # noqa: E402
+
+PLAIN_TIER = {"tier": "plain", "root_netns": False, "userns_netns": False, "unshare": True, "root": False, "full_checks": None}
+
+
+def setUpModule():
+    """Real boundary or explicit opt-in. Where the governor's full sandbox cannot be built (for example
+    a GitHub runner without user namespaces) this module opts into the audited process-only mode
+    explicitly, so the loop is still proven there; OSSandboxTests proves that without the opt-in such
+    a host refuses. With GAIE_REQUIRE_FULL_SANDBOX=1 a missing full tier fails instead."""
+    if governor.isolation_probe()["tier"] == "full":
+        return
+    if os.environ.get("GAIE_REQUIRE_FULL_SANDBOX") == "1":
+        raise AssertionError("GAIE_REQUIRE_FULL_SANDBOX=1 but the governor's full sandbox tier is missing")
+    patcher = mock.patch.object(detectors, "DEFAULT_ISOLATION", "process-only")
+    patcher.start()
+    unittest.addModuleCleanup(patcher.stop)
+
+
+class OSSandboxTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="gaie-heal-iso-")
+        self.addCleanup(self.tmp.cleanup)
+        self.base = pathlib.Path(self.tmp.name)
+        self.target = make_target(self.base / "target", {
+            "calc.py": """
+                def double(n):
+                    return n * 2
+            """,
+            "suite/case_calc.py": """
+                import unittest
+                from calc import double
+
+
+                class Tests(unittest.TestCase):
+                    def test_double(self):
+                        self.assertEqual(double(4), 8)
+            """,
+        })
+
+    def runs(self, **kw):
+        seen, real = [], detectors.Sandbox._record
+
+        def spy(box, tier, **extra):
+            seen.append(real(box, tier, **extra))
+            return seen[-1]
+        with mock.patch.object(detectors.Sandbox, "_record", spy):
+            result = heal(self.target, workdir=self.base / "work", tests=TESTS, now=NOW, **kw)
+        return result, seen
+
+    def test_target_code_runs_with_the_isolation_this_host_provides(self):
+        result, seen = self.runs()
+        self.assertTrue(seen)
+        self.assertEqual(result["status"], "no-defects-found")
+        if governor.isolation_probe()["tier"] == "full":
+            self.assertEqual({row["tier"] for row in seen}, {"governor-full"})
+            self.assertTrue(all(row["fs_isolated"] for row in seen))
+        else:  # the explicit module opt-in above: recorded and audited, never presented as an OS sandbox
+            self.assertEqual({(row["tier"], row["opt_in"]) for row in seen}, {("process-only", True)})
+            run_dir = pathlib.Path(result["run_dir"])
+            self.assertEqual(governor.verify_audit(run_dir / "sandbox"), 1)
+
+    def test_without_the_os_sandbox_the_default_refuses_and_the_loop_is_blocked(self):
+        before = tree_digest(self.target)
+        with mock.patch.object(detectors, "DEFAULT_ISOLATION", "os"), \
+                mock.patch.object(governor, "isolation_probe", return_value=PLAIN_TIER):
+            result, seen = self.runs()
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual({row["tier"] for row in seen}, {"refused"})
+        self.assertEqual(result["baseline_tests"], {})
+        self.assertEqual(tree_digest(self.target), before)
+        runtime = {row["detector"]: row["status"] for row in result["detectors"] if row["detector"] in detectors.RUNTIME}
+        self.assertTrue(set(runtime.values()) <= {"refused", "not-configured"}, runtime)
+
+
 if __name__ == "__main__":
     unittest.main()
