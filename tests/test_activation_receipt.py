@@ -244,3 +244,23 @@ class ToolTableTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WorkflowTests(unittest.TestCase):
+    """A release-gating CI job checks the committed receipt and a fresh no-tools receipt on every change."""
+
+    def test_a_gating_job_validates_the_committed_and_a_fresh_receipt(self):
+        from scripts.verify_release import WORKFLOWS
+        from tests.test_ci_coverage import commands, load_workflows, parse_yaml, unconditional_steps
+        workflows, seen = load_workflows(), []
+        for path, jobs in WORKFLOWS.items():
+            for job_id, job, step in unconditional_steps(parse_yaml(workflows[path])):
+                if job.get("name", job_id) in jobs:
+                    seen += [tokens for tokens in commands(step.get("run") or "")
+                             if tokens[:2] == ["python3", "scripts/activation_receipt.py"]]
+        self.assertIn(["python3", "scripts/activation_receipt.py", "--validate", gen.RECEIPT], seen)
+        fresh = next((tokens for tokens in seen if "--no-tools" in tokens and "--out" in tokens), None)
+        self.assertIsNotNone(fresh, "a fresh receipt is produced without tools")
+        written = fresh[fresh.index("--out") + 1]
+        self.assertNotEqual(written, gen.RECEIPT, "CI never rewrites the committed receipt")
+        self.assertIn(["python3", "scripts/activation_receipt.py", "--validate", written], seen)
