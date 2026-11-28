@@ -99,6 +99,36 @@
     "transitions-liquid-screen": "no stated purpose: a wave edge wipes a page into an empty frame; a wipe effect with no service step shown",
     "transitions-perspective-portal": "no stated purpose: nested frames recede into a vanishing point; a tunnel effect with no service step shown"
    }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-physics.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "9f77420162efe5ae4434f5510da63dcaf6f968a7",
+   "from_blob": "822d2726e44c3f657b96cecae4b720ccf2ccfdae",
+   "ids": [
+    "twin-construction",
+    "twin-asset-synchronization",
+    "twin-exploded-assembly",
+    "twin-layer-isolation",
+    "twin-blueprint-transformation",
+    "twin-system-flythrough",
+    "twin-terrain-reconstruction",
+    "twin-asset-condition"
+   ],
+   "left_out": {
+    "twin-sensor-propagation": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/twin/sensor-propagation.mjs)",
+    "twin-risk-heatmap": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/twin/risk-heatmap.mjs)",
+    "physics-gravitational-orbit": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/physics/gravitational-orbit.mjs)",
+    "physics-spring-motion": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/physics/spring-motion.mjs)",
+    "physics-metaball-fusion": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/physics/metaball-fusion.mjs)",
+    "physics-cloth-simulation": "no stated purpose: a pinned cloth lattice in wind; the owner dropped the cloth motion as decorative (NATIVE_MOTIONS.md)",
+    "physics-rigid-collision": "no stated purpose: two disks collide; the owner dropped the rigid-collision motion as decorative (NATIVE_MOTIONS.md)",
+    "physics-soft-body": "no stated purpose: an elastic ball compresses and rebounds; no digital service is shown",
+    "physics-fluid-surface": "no stated purpose: two wave packets cross a water surface; no digital service is shown",
+    "physics-geometry-growth": "no stated purpose: a recursive branch figure grows; no digital service is shown",
+    "physics-voronoi-structure": "no stated purpose: Voronoi cells follow moving sites; a geometric construction with no digital service shown",
+    "physics-terrain-evolution": "no stated purpose: a height grid diffuses to flat; no digital service is shown"
+   }
   }
  ],
  "not_ported": {
