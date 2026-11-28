@@ -1,0 +1,4 @@
+Second phase. Stages recorded: p1 c1 c2 c3 s10 s20 s25 s50 s75 s100 g10 m1 m10h m10s m25 m50 l1 l5r l5l l10 l25.
+Stages left in the plan: none.
+To go on, in a session that has the swarm-* agent types: python3 swarm/phase2/stage.py setup, then prep, launch the card, finish.
+Read swarm/phase2/RUNBOOK.md first. The private task store does not travel with the repository; a new session starts a new one.
