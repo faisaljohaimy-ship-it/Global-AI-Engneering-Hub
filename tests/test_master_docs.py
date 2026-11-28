@@ -104,6 +104,33 @@ def allowed_references(record):
     return forms
 
 
+# Placeholders that install documentation and the Scenario I evidence put in front of a declared location
+# (scripts/gaie_bootstrap.py LOCATIONS, docs/specs/gaie-20-layers/INSTALL.md), with the form each stands for.
+SKILL_DIR = "${CLAUDE_SKILL_DIR}/"  # the directory of the SKILL.md naming the path (Claude Code fills it in)
+PLACEHOLDERS = (
+    (re.compile(r"<lab>/home-[a-z]+/\.claude/plugins/cache/[^/]+/[^/]+/[0-9]+\.[0-9]+\.[0-9]+/"), "${CLAUDE_PLUGIN_ROOT}/"),
+    (re.compile(r"<lab>/home-[a-z]+/"), "~/"),  # a Scenario I user home
+    (re.compile(r"<lab>/project/"), ""),  # the Scenario I project directory
+    (re.compile(r"<hub>/"), ""),  # a hub checkout's root
+)
+
+
+def normalized(token, records):
+    """The location a placeholder token stands for; any other token unchanged. ${CLAUDE_SKILL_DIR} resolves
+    against the skill directory the bootstrap installs that document into, so only the declared copy or
+    the canonical path (from a plugin's skills/<name>/ two levels down) resolves."""
+    for pattern, replacement in PLACEHOLDERS:
+        match = pattern.match(token)
+        if match:
+            return replacement + token[match.end():]
+    if token.startswith(SKILL_DIR):
+        for record in records.values():
+            if posixpath.basename(record["path"]) == posixpath.basename(token):
+                skill = posixpath.dirname(record["installed_as"]["claude"])
+                return posixpath.normpath(posixpath.join(skill, token[len(SKILL_DIR):]))
+    return token
+
+
 def declared_copies(record):
     """Locations inside a checkout where a byte-identical copy may legitimately exist."""
     return {record["path"], record["installed_as"]["pack"], f".claude/{record['installed_as']['claude']}"}
@@ -218,19 +245,38 @@ class ReferenceTests(Base):
         canonical = {record["path"] for record in records().values()}
         named = named_token()
         unresolved = []
+        documents = records()
         for relative in tree_files():
             text = text_of(relative)
             if text is None:
                 continue
             for number, line in enumerate(text.splitlines(), 1):
                 for token in {*named.findall(line), *PROMPT.findall(line)}:
-                    if token in allowed:
+                    if token in allowed or normalized(token, documents) in allowed:
                         continue
                     if token.startswith(("./", "../")) and posixpath.normpath(
                             posixpath.join(posixpath.dirname(relative), token)) in canonical:
                         continue
                     unresolved.append(f"{relative}:{number}: {token}")
         self.assertEqual(unresolved, [], "every MASTER path must be the canonical path or a declared install destination")
+
+    def test_placeholders_resolve_only_to_declared_locations(self):
+        documents = records()
+        allowed = {form for record in documents.values() for form in allowed_references(record)}
+        for token in ("${CLAUDE_SKILL_DIR}/MASTER_BUILD.md", "${CLAUDE_SKILL_DIR}/../../prompts/MASTER_UPGRADE.md",
+                      "<lab>/project/.claude/skills/gaie-build/MASTER_BUILD.md",
+                      "<lab>/home-user/.claude/skills/gaie-upgrade/MASTER_UPGRADE.md", "<hub>/prompts/MASTER_BUILD.md",
+                      "<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0/prompts/MASTER_UPGRADE.md"):
+            with self.subTest(token=token):
+                self.assertIn(normalized(token, documents), allowed)
+        build, upgrade = "MASTER_BUILD.md", "MASTER_UPGRADE.md"  # built at run time so the tree scan sees no stray
+        for stray in (f"${{CLAUDE_SKILL_DIR}}/../{build}", f"${{CLAUDE_SKILL_DIR}}/../gaie-build/{upgrade}",
+                      f"${{CLAUDE_SKILL_DIR}}/prompts/{build}", f"<lab>/project/docs/{build}",
+                      f"<lab>/home-user/.claude/skills/gaie-upgrade/{build}", f"<hub>/docs/prompts/{build}",
+                      f"<lab>/home-plugin/.claude/plugins/cache/gaie-hub/gaie/1.1.0/skills/{build}",
+                      f"<elsewhere>/prompts/{build}"):
+            with self.subTest(stray=stray):
+                self.assertNotIn(normalized(stray, documents), allowed)
 
     def test_every_master_prompt_file_is_pinned(self):
         pinned = {record["path"] for record in records().values()}
