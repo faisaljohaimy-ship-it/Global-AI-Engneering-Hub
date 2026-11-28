@@ -95,6 +95,10 @@ def phases(root):
         out += [na(FILES["ladder"]) + " (first phase ladder)", ""]
     out += table(["phase", "agents registered", "real agents started", "most at once", "tasks", "tasks verified by withheld tests", "input tokens"], rows)
     out += ["", "Registered counts, tasks and verified tasks are summed over the stages that ran; a cell says `not recorded` where the file has no such field."]
+    for path in sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("*-not-closed.json")):
+        doc = load(root, str(path.relative_to(root))) or {}
+        out += ["", f"The third phase's row holds the stages the scripts closed. Stage {doc.get('stage')} ran "
+                    f"{num((doc.get('reported_by_the_orchestrating_session') or {}).get('agents_started'))} more agents and is not in that row, because it was not closed: see section 11."]
     return out
 
 
@@ -117,7 +121,12 @@ def kinds(root):
     if cap:
         rows.append(["simulated agents (a simulation, never added to a real agent)", sim_agents(cap), FILES["capacity"]])
     else:
-        rows.append(["simulated agents", na(FILES["capacity"]), "-"])
+        decided = [d for d in (load(root, "swarm/phase3/DECISIONS.json") or {}).get("decisions", []) if d.get("cancels") == FILES["capacity"]]
+        rows.append(["simulated agents", "0: the simulation was cancelled by the owner and never run" if decided else na(FILES["capacity"]), "swarm/phase3/DECISIONS.json" if decided else "-"])
+    for path in sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("*-not-closed.json")):
+        doc = load(root, str(path.relative_to(root))) or {}
+        said = doc.get("reported_by_the_orchestrating_session", {})
+        rows.append([f"real agents of stage {doc.get('stage')}, which ran and was not closed (reported, not measured by the scripts)", num(said.get("agents_started")), str(path.relative_to(root))])
     return out + table(["kind", "count", "from"], rows)
 
 
@@ -266,6 +275,28 @@ def missing_section(root):
     return out
 
 
+def unclosed_section(root):
+    """A stage whose agents ran and whose closing failed: what was reported about it, kept apart from what the scripts measured."""
+    found = sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("*-not-closed.json"))
+    out = ["## 11. A stage that ran and was not closed", ""]
+    if not found:
+        return out + ["none: every stage that ran was closed by the scripts"]
+    for path in found:
+        rel = str(path.relative_to(root))
+        doc = load(root, rel) or {}
+        said = doc.get("reported_by_the_orchestrating_session", {})
+        queue = said.get("queue_before_closing", {})
+        out += [f"Stage {doc.get('stage')} (`{rel}`): {doc.get('state')}.", "",
+                "Reported by the orchestrating session in words, not measured by the scripts:", ""]
+        out += table(["item", "reported"], [["agents started", num(said.get("agents_started"))], ["agents that returned", num(said.get("agents_that_returned"))],
+                                            ["messages", num(said.get("messages"))], ["Agent calls in one message", num(said.get("agent_calls_per_message"))],
+                                            ["tasks handed in with their examples passing", num(queue.get("handed_in"))],
+                                            ["tasks claimed and not handed in", num(queue.get("claimed_and_not_handed_in"))], ["tasks left waiting", num(queue.get("waiting"))]])
+        out += ["", "Not measured for this stage: " + "; ".join(doc.get("not_measured", [])) + ".", "", str(doc.get("why_it_was_not_closed", "")), "",
+                str(doc.get("about_the_queue_figures", "")), ""]
+    return out
+
+
 def attempts_section(root):
     """Attempts of the gated run that ended early. Their evidence and their plan are kept beside the final run's."""
     out = ["## 10. Earlier attempts of the gated run", ""]
@@ -299,7 +330,7 @@ def attempts_section(root):
 def build(root=ROOT):
     parts = [["# Final report of the swarm experiment", "", "Made only from the evidence files named in each section. No figure here was measured by this script."],
              phases(root), kinds(root), gate(root), ledger_section(root), ladder_section(root), capacity_section(root),
-             limits_section(root), counted_section(root), missing_section(root), attempts_section(root)]
+             limits_section(root), counted_section(root), missing_section(root), attempts_section(root), unclosed_section(root)]
     return "\n\n".join("\n".join(p) for p in parts) + "\n"
 
 

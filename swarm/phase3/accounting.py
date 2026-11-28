@@ -83,6 +83,7 @@ def build(root: Path = ROOT) -> dict:
         **{f"third_phase_{name.replace('-', '_')}_inside_stage_windows": sum(orchestrator(s) for s in rows) for name, rows in attempts.items()},
         "third_phase_final_run_inside_stage_windows": sum(orchestrator(s) for s in final),
     }
+    unclosed = [json.loads(path.read_text()) for path in sorted(evidence.glob("*-not-closed.json"))]
     flat = lambda group: sum(sum(v.values()) if isinstance(v, dict) else v for v in group.values())  # noqa: E731
     counted = flat(workers) + flat(probes) + flat(reviewers) + flat(builders)
     limit = ((final_document or {}).get("caps") or {}).get("cumulative_input_tokens") or (load(root, "swarm/phase3/PLAN3.json") or {}).get("caps", {}).get("cumulative_input_tokens")
@@ -99,6 +100,10 @@ def build(root: Path = ROOT) -> dict:
         "within_the_limit_as_defined": None if limit is None else counted <= limit,
         "everything_measured": {"total": everything, "what": "agents, reviewers, development agents and the measured part of the orchestrators"},
         "everything_measured_is_over_the_limit": None if limit is None else everything > limit,
+        "stages_that_ran_and_are_in_no_figure": [
+            {"stage": doc.get("stage"), "agents_reported": (doc.get("reported_by_the_orchestrating_session") or {}).get("agents_started"),
+             "projected_input_tokens_before_the_stage": (doc.get("printed_by_the_scripts_before_the_stage") or {}).get("projected_input_tokens_for_the_stage"),
+             "why": "the stage was not closed, so the scripts measured neither its agents nor its orchestrator"} for doc in unclosed],
     }
 
 
@@ -119,6 +124,11 @@ def render(account: dict) -> list[str]:
         out.append("Everything measured, orchestrators included: " + ("over the limit by " + money(account["everything_measured"]["total"] - account["limit"]) + "." if account["everything_measured_is_over_the_limit"]
                                                                    else "under the limit."))
     out += ["", "Not measured, and in no figure above:", ""] + [f"- {item}" for item in account["orchestrators"]["not_measured_and_in_no_figure"]]
+    for stage in account.get("stages_that_ran_and_are_in_no_figure", []):
+        out.append(f"- stage {stage['stage']}: {money(stage['agents_reported'])} agents ran and the stage was not closed, so neither its agents nor its orchestrator is in any figure above. "
+                   f"The scripts projected {money(stage['projected_input_tokens_before_the_stage'])} input tokens for its agents before it began. "
+                   "With that projection added, the figure counted against the limit would be "
+                   f"{money(account['counted_against_the_limit']['total'] + (stage['projected_input_tokens_before_the_stage'] or 0))}; that sum is an estimate, not a measurement.")
     return out
 
 

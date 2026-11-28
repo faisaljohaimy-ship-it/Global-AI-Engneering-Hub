@@ -59,5 +59,13 @@
   "total": 125569364,
   "what": "agents, reviewers, development agents and the measured part of the orchestrators"
  },
- "everything_measured_is_over_the_limit": false
+ "everything_measured_is_over_the_limit": false,
+ "stages_that_ran_and_are_in_no_figure": [
+  {
+   "stage": "q1000",
+   "agents_reported": 1000,
+   "projected_input_tokens_before_the_stage": 24565350,
+   "why": "the stage was not closed, so the scripts measured neither its agents nor its orchestrator"
+  }
+ ]
 }

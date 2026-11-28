@@ -1,0 +1,19 @@
+{
+ "about": "The last stage of the gated run, q1000. Its agents ran; closing it failed, so the scripts wrote no evidence for it. What is here is what the orchestrating session reported in words and what the scripts printed before the failure. It is not a measurement by the scripts, and no figure here was checked against the host's records.",
+ "stage": "q1000",
+ "state": "every agent ran and returned; the stage was not closed",
+ "reported_by_the_orchestrating_session": {
+  "agents_started": 1000,
+  "agents_that_returned": 1000,
+  "messages": 50,
+  "agent_calls_per_message": 20,
+  "queue_before_closing": {"tasks": 1000, "waiting": 0, "claimed_and_not_handed_in": 126, "handed_in": 874, "given_up": 0},
+  "usage_or_rate_limit_message_seen": false
+ },
+ "printed_by_the_scripts_before_the_stage": {"projected_input_tokens_for_the_stage": 24565350},
+ "not_measured": ["tasks verified by the withheld tests", "wall seconds and tasks per minute", "input and output tokens of the stage's agents", "the ledger of the stage's tool calls",
+                  "whether the gate saw every call of the stage"],
+ "why_it_was_not_closed": "The stage took about 36 minutes. The leases its tasks hold in the hub's task store lasted 30. Closing the stage hands each task in to that store; the store refused the first one and nothing caught the refusal. The stage was left open in the orchestrating session's own folders, which are not in the repository.",
+ "what_was_done_about_it": "Closing a stage now counts a task whose lease ran out and goes on, and the lease is one hour (swarm/scheduler.py). The orchestrating session was asked to close the open stage with the corrected script. It declined to act on a request from another session, as its instructions say, and waits for the owner's word. If the stage is closed, swarm/phase3/evidence/stages.json gains a stage q1000 and this file is removed.",
+ "about_the_queue_figures": "A hand-in counts as handed in when its examples passed at hand-in. In this run the cage for worker-written code could report a correct hand-in as failed when several were made at once (corrected since: swarm/phase3/evidence/cage-concurrency.json). In the stage of 200 agents the queue counted 176 and the withheld tests verified 197. So 874 is a lower bound on correct hand-ins, not the number verified."
+}
