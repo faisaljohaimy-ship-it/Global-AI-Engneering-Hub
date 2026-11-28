@@ -8,3 +8,7 @@ Git for task leases/handover; coordinate exact branches/paths before editing.
 Leases are advisory coordination, not authenticated OS access control. Review
 ARCHITECTURE.md and source-bound receipts; do not infer tool/host/provider access
 from a manifest. Claude Code availability must be tested separately from Codex.
+
+Before a large task, and whenever a command prints a lot or code must be explored, read
+`skills/ultra-context-optimization/SKILL.md`: compress output with the original kept
+retrievable, query code by symbol, one measured tool per kind of content.

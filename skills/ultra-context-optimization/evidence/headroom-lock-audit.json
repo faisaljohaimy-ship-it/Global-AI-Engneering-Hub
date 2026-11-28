@@ -1,0 +1,8 @@
+{
+ "measured": "2026-11-28",
+ "source": "PyPI JSON API, field vulnerabilities, one request per pinned package",
+ "lock": "locks/headroom.lock",
+ "packages": 68,
+ "with_known_advisories": [],
+ "note": "OSV and GitHub advisory APIs were not reachable from the test machine; this is PyPI's own advisory data only."
+}

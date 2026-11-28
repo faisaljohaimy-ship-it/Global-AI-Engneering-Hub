@@ -1,0 +1,48 @@
+{
+ "system": "Linux",
+ "machine": "x86_64",
+ "cpus": 4,
+ "memory_gb": 15.7,
+ "python": "3.13.18",
+ "versions": {
+  "uv": "uv 0.11.32 (x86_64-unknown-linux-gnu)",
+  "node": "v22.23.5",
+  "npm": "10.9.9",
+  "git": "git version 2.43.0",
+  "ripgrep": "ripgrep 14.1.0",
+  "pyright": "WARNING: there is a new pyright version available (v1.1.403 -> v1.1.414).",
+  "docker": "Docker version 29.9.3, build 5457199"
+ },
+ "no_network_namespace": true,
+ "installed_here": {
+  "headroom": true,
+  "serena": true,
+  "repomix": true,
+  "context-mode": true,
+  "node24": true
+ },
+ "reachable": {
+  "pypi.org": true,
+  "registry.npmjs.org": true,
+  "nodejs.org": true,
+  "mcp.context7.com": false
+ },
+ "support": {
+  "headroom in-process (hr)": "SUPPORTED",
+  "compression without network": "SUPPORTED",
+  "serena one-shot (sym)": "SUPPORTED",
+  "context-mode server": "SUPPORTED",
+  "context7": "REQUIRES OWNER ACTION",
+  "ripgrep": "SUPPORTED"
+ },
+ "notes": [
+  "`sg` on PATH is not ast-grep; use the ast-grep launcher",
+  "system Node is v22.23.5; Context Mode 2.x needs Node 24.15 or newer"
+ ],
+ "ask_the_host": [
+  "Can an MCP server or plugin be attached to the running session, or only after a restart?",
+  "Does the host expose a native language-server tool?",
+  "Does the host load tool definitions on demand?",
+  "Who manages prompt caching and context compaction: the host, or the agent?"
+ ]
+}
