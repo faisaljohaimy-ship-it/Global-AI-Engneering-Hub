@@ -1,0 +1,143 @@
+{
+  "schema": "gaie.domain/1",
+  "id": "project-management",
+  "version": 1,
+  "title": {"ar": "نظام إدارة المشاريع", "en": "Project Management System"},
+  "summary": {"ar": "تخطيط المشاريع وتوزيع المهام على الأعضاء ومتابعة الحالة والمواعيد والمعالم الرئيسية.",
+              "en": "Plan projects, assign tasks to members, and track status, due dates and milestones."},
+  "keywords": {"ar": ["إدارة مشاريع", "إدارة مشروعات", "إدارة مشروع", "متابعة مشاريع", "تخطيط مشاريع", "إدارة المهام", "إدارة مهام"],
+               "en": ["project management", "project tracker", "project tracking", "manage projects", "project planning", "task management", "task tracker"]},
+  "product_type": "web-app",
+  "primary": "Task",
+  "rationale": {
+    "ar": "اخترنا المعالم الرئيسية (Milestone) كيانًا أساسيًا بدل التعليقات: المعلم يربط المهام بنتيجة قابلة للتسليم وتاريخ، فيمكن قياس تقدم المشروع وتأخره آليًا، بينما التعليقات نص حر لا يغيّر حالة المشروع وتضيف مخاطر محتوى؛ لذلك التعليقات كيان اختياري يُفعَّل عند ذكرها في الأمر.",
+    "en": "Milestone is a default entity instead of Comment: a milestone ties tasks to a dated deliverable, so schedule progress and slippage are machine-checkable, while comments are free text that never changes project state and add content-moderation risk. Comment is an optional entity, activated when the command mentions comments."
+  },
+  "roles": [
+    {"id": "admin", "label": {"ar": "مدير النظام", "en": "Administrator"}, "permissions": ["*"]},
+    {"id": "manager", "label": {"ar": "مدير المشروع", "en": "Project manager"}, "permissions": ["read", "write", "delete", "export"]},
+    {"id": "member", "label": {"ar": "عضو الفريق", "en": "Team member"}, "permissions": ["read", "write:own"]}
+  ],
+  "entities": [
+    {"name": "Project", "label": {"ar": "مشروع", "en": "Project"}, "plural": "projects",
+     "synonyms": {"ar": ["مشروع", "مشاريع", "مشروعات"], "en": ["project"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 200, "label": {"ar": "اسم المشروع", "en": "Name"}},
+       {"name": "description", "type": "text", "required": false, "max": 2000, "label": {"ar": "الوصف", "en": "Description"}},
+       {"name": "status", "type": "enum", "values": ["planned", "active", "on_hold", "done"], "default": "planned", "required": true,
+        "label": {"ar": "الحالة", "en": "Status"}},
+       {"name": "start_date", "type": "date", "required": false, "label": {"ar": "تاريخ البدء", "en": "Start date"}},
+       {"name": "end_date", "type": "date", "required": false, "label": {"ar": "تاريخ الانتهاء", "en": "End date"}}]},
+    {"name": "Task", "label": {"ar": "مهمة", "en": "Task"}, "plural": "tasks",
+     "synonyms": {"ar": ["مهمة", "مهام", "مهمات"], "en": ["task", "todo"]},
+     "fields": [
+       {"name": "title", "type": "text", "required": true, "max": 200, "label": {"ar": "العنوان", "en": "Title"}},
+       {"name": "description", "type": "text", "required": false, "max": 2000, "label": {"ar": "الوصف", "en": "Description"}},
+       {"name": "status", "type": "enum", "values": ["todo", "in_progress", "done"], "default": "todo", "required": true,
+        "label": {"ar": "الحالة", "en": "Status"}},
+       {"name": "priority", "type": "enum", "values": ["low", "medium", "high"], "default": "medium", "required": true,
+        "label": {"ar": "الأولوية", "en": "Priority"}},
+       {"name": "due_date", "type": "date", "required": false, "label": {"ar": "تاريخ الاستحقاق", "en": "Due date"}}]},
+    {"name": "Member", "label": {"ar": "عضو", "en": "Member"}, "plural": "members",
+     "synonyms": {"ar": ["عضو", "أعضاء", "فريق", "أعضاء فريق"], "en": ["member", "team member"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 120, "label": {"ar": "الاسم", "en": "Name"}},
+       {"name": "email", "type": "email", "required": true, "max": 254, "unique": true, "label": {"ar": "البريد الإلكتروني", "en": "Email"}},
+       {"name": "role", "type": "enum", "values": ["admin", "manager", "member"], "default": "member", "required": true,
+        "label": {"ar": "الدور", "en": "Role"}}]},
+    {"name": "Milestone", "label": {"ar": "معلم رئيسي", "en": "Milestone"}, "plural": "milestones",
+     "synonyms": {"ar": ["معلم", "معالم", "مرحلة رئيسية", "مراحل رئيسية", "مرحلة", "مراحل"], "en": ["milestone", "phase"]},
+     "fields": [
+       {"name": "title", "type": "text", "required": true, "max": 200, "label": {"ar": "العنوان", "en": "Title"}},
+       {"name": "due_date", "type": "date", "required": true, "label": {"ar": "تاريخ الاستحقاق", "en": "Due date"}},
+       {"name": "status", "type": "enum", "values": ["open", "reached"], "default": "open", "required": true,
+        "label": {"ar": "الحالة", "en": "Status"}}]},
+    {"name": "Comment", "label": {"ar": "تعليق", "en": "Comment"}, "plural": "comments", "optional": true, "portable": true,
+     "synonyms": {"ar": ["تعليق", "تعليقات", "نقاش", "نقاشات"], "en": ["comment", "discussion"]},
+     "fields": [
+       {"name": "body", "type": "text", "required": true, "max": 2000, "label": {"ar": "نص التعليق", "en": "Body"}}]}
+  ],
+  "relations": [
+    {"from": "Task", "to": "Project", "kind": "many-to-one", "required": true, "field": "project"},
+    {"from": "Task", "to": "Member", "kind": "many-to-one", "required": false, "field": "assignee"},
+    {"from": "Task", "to": "Milestone", "kind": "many-to-one", "required": false, "field": "milestone"},
+    {"from": "Milestone", "to": "Project", "kind": "many-to-one", "required": true, "field": "project"},
+    {"from": "Project", "to": "Member", "kind": "many-to-many", "required": false, "field": "members"},
+    {"from": "Comment", "to": "Task", "kind": "many-to-one", "required": true, "field": "task"},
+    {"from": "Comment", "to": "Member", "kind": "many-to-one", "required": true, "field": "author"}
+  ],
+  "features": [
+    {"id": "assign-tasks", "requires": ["Task", "Member"],
+     "title": {"ar": "إسناد المهام إلى الأعضاء", "en": "Assign tasks to members"},
+     "acceptance": [
+       {"en": "PATCH /api/tasks/{id} with assignee_id of an existing member returns 200 and the updated record",
+        "ar": "إسناد مهمة إلى عضو موجود يعيد 200 والمهمة المحدثة"},
+       {"en": "PATCH /api/tasks/{id} with an assignee_id that does not exist returns 400",
+        "ar": "إسناد مهمة إلى عضو غير موجود يعيد 400"},
+       {"en": "GET /api/tasks?assignee_id={member_id} returns 200 and only tasks assigned to that member",
+        "ar": "تصفية المهام حسب العضو تعيد 200 ومهام ذلك العضو فقط"}]},
+    {"id": "track-task-status", "requires": ["Task"],
+     "title": {"ar": "متابعة حالة المهام", "en": "Track task status"},
+     "acceptance": [
+       {"en": "PATCH /api/tasks/{id} with status=done returns 200 and the updated record",
+        "ar": "تغيير حالة المهمة إلى منجزة يعيد 200 والمهمة المحدثة"},
+       {"en": "PATCH /api/tasks/{id} with status=archived returns 400",
+        "ar": "تعيين حالة غير معرفة للمهمة يعيد 400"},
+       {"en": "GET /api/tasks?status=done returns 200 and only tasks with status done",
+        "ar": "تصفية المهام بالحالة منجزة تعيد 200 والمهام المنجزة فقط"}]},
+    {"id": "task-due-dates", "requires": ["Task"],
+     "title": {"ar": "مواعيد استحقاق المهام والمتأخرات", "en": "Task due dates and overdue work"},
+     "acceptance": [
+       {"en": "POST /api/tasks with due_date=2026-02-30 returns 400",
+        "ar": "إنشاء مهمة بتاريخ استحقاق غير صالح يعيد 400"},
+       {"en": "GET /api/tasks?overdue=true returns 200 and only tasks with due_date before today and status not done",
+        "ar": "عرض المهام المتأخرة يعيد 200 والمهام التي فات موعدها ولم تُنجز فقط"},
+       {"en": "GET /api/tasks?sort=due_date returns 200 and tasks ordered by due_date ascending with empty due dates last",
+        "ar": "ترتيب المهام بتاريخ الاستحقاق يعيد 200 مرتبة تصاعديًا والمهام بلا تاريخ في الآخر"}]},
+    {"id": "project-tasks", "requires": ["Project", "Task"],
+     "title": {"ar": "مهام كل مشروع", "en": "Tasks of a project"},
+     "acceptance": [
+       {"en": "GET /api/projects/{id}/tasks returns 200 and only that project's tasks",
+        "ar": "عرض مهام مشروع يعيد 200 ومهام ذلك المشروع فقط"},
+       {"en": "POST /api/tasks without project_id returns 400",
+        "ar": "إنشاء مهمة بدون مشروع يعيد 400"}]},
+    {"id": "project-progress", "requires": ["Project", "Task"],
+     "title": {"ar": "نسبة إنجاز المشروع", "en": "Project progress"},
+     "acceptance": [
+       {"en": "GET /api/projects/{id}/progress returns 200 and total_tasks, done_tasks and percent equal to done_tasks * 100 / total_tasks rounded down",
+        "ar": "نسبة إنجاز المشروع تعيد 200 وعدد المهام الكلي والمنجز والنسبة المئوية مقربة للأسفل"},
+       {"en": "GET /api/projects/{id}/progress for a project without tasks returns 200 and percent 0",
+        "ar": "نسبة إنجاز مشروع بلا مهام تعيد 200 والنسبة صفر"}]},
+    {"id": "milestones", "requires": ["Milestone", "Project", "Task"],
+     "title": {"ar": "المعالم الرئيسية للمشروع", "en": "Project milestones"},
+     "acceptance": [
+       {"en": "GET /api/projects/{id}/milestones returns 200 and only that project's milestones ordered by due_date",
+        "ar": "عرض معالم المشروع يعيد 200 ومعالم ذلك المشروع فقط مرتبة بالتاريخ"},
+       {"en": "PATCH /api/milestones/{id} with status=reached while a linked task is not done returns 409",
+        "ar": "تعليم المعلم كمتحقق مع وجود مهمة مرتبطة غير منجزة يعيد 409"}]},
+    {"id": "project-membership", "requires": ["Project", "Member"],
+     "title": {"ar": "أعضاء المشروع", "en": "Project membership"},
+     "acceptance": [
+       {"en": "POST /api/projects/{id}/members with an existing member_id returns 201 and the membership",
+        "ar": "إضافة عضو موجود إلى المشروع يعيد 201"},
+       {"en": "POST /api/projects/{id}/members with a member already in the project returns 409",
+        "ar": "إضافة عضو موجود مسبقًا في المشروع يعيد 409"}]},
+    {"id": "task-comments", "requires": ["Comment", "Task", "Member"],
+     "title": {"ar": "التعليقات على المهام", "en": "Comments on tasks"},
+     "acceptance": [
+       {"en": "POST /api/tasks/{id}/comments with a body returns 201 and the comment with its author",
+        "ar": "إضافة تعليق على مهمة يعيد 201 والتعليق مع كاتبه"},
+       {"en": "POST /api/tasks/{id}/comments with an empty body returns 400",
+        "ar": "إضافة تعليق فارغ يعيد 400"},
+       {"en": "GET /api/tasks/{id}/comments returns 200 and comments ordered by creation time",
+        "ar": "عرض تعليقات المهمة يعيد 200 مرتبة بوقت الإنشاء"},
+       {"en": "DELETE /api/comments/{id} as member who is not the author returns 403",
+        "ar": "حذف تعليق من عضو ليس كاتبه يعيد 403"}]}
+  ],
+  "nfr": {
+    "security": ["members see only projects they belong to"],
+    "performance": ["project progress computed with one aggregate query"],
+    "accessibility": [],
+    "i18n": []
+  }
+}
