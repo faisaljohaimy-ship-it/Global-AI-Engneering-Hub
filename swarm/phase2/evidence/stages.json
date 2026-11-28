@@ -1,0 +1,69 @@
+{
+ "about": "Second phase of the swarm experiment. Counts, times and tool names from the host's records of real agents; no record content.",
+ "plan_sha256": "a55faa7f9713afa68a7fa0ff86f64d3687547b1f28c44338cc35e2aba695bf07",
+ "caps": {
+  "cumulative_input_tokens": 150000000,
+  "spent_before_phase2": 36168638,
+  "preflight_input_tokens": 2219321,
+  "preflight_note": "spent_before_phase2 is the first phase's total. preflight_input_tokens is what the agents used that were started in the authoring session to try this phase's worker command before the plan ran; evidence/preflight.json has their record. Both count against the limit.",
+  "phase2_agent_runs": 600,
+  "phase2_output_tokens": 3000000
+ },
+ "figures": {
+  "input_tokens_counted": 38435936,
+  "cap": 150000000,
+  "agents_started_in_phase_2": 2,
+  "projected_for_stage": null
+ },
+ "stages": [
+  {
+   "label": "p1",
+   "actual_agents": 2,
+   "agents_with_limit_error": 0,
+   "agent_tokens": {
+    "input_uncached": 8,
+    "cache_write": 37187,
+    "cache_read": 10782,
+    "input_total": 47977,
+    "output": 510,
+    "total": 48487
+   },
+   "wall_seconds": 4.67,
+   "kind": "probe",
+   "size": null,
+   "agent_type": "swarm-probe",
+   "model": "haiku",
+   "effort": "low",
+   "mode": null,
+   "delivery": null,
+   "registered_agents": 2,
+   "started": "2026-11-28T03:52:58.692408Z",
+   "finished": "2026-11-28T03:53:11.762443Z",
+   "first_request_context": {
+    "median": 5393,
+    "least": 5390,
+    "most": 5396
+   },
+   "first_request_read_from_cache": 0.0,
+   "cache_written": {
+    "five_minutes": 37187,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 50120,
+   "swk_calls": 1,
+   "refused_calls": 0,
+   "foreign_calls": 1,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-probe"
+   ],
+   "replies_per_agent": {
+    "median": 2.0,
+    "most": 2
+   },
+   "guard_enforced": false,
+   "allowed_command_ran": true
+  }
+ ]
+}
