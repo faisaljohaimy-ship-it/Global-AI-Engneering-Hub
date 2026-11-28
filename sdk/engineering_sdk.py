@@ -28,7 +28,9 @@ GIT_ENV = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_OPT
            "GIT_TERMINAL_PROMPT": "0", "GIT_NO_LAZY_FETCH": "1", "GIT_ALLOW_PROTOCOL": ""}
 FILTER_SETTING = re.compile(r"filter\..+\.(?:clean|smudge|process)", re.I)  # `git status` runs these on changed files
 # Config keys (as `git config --list` prints them) that make an object lookup fetch from a promisor remote.
-PARTIAL_CLONE_SETTING = re.compile(r"extensions\.partialclone|remote\..+\.(?:promisor|partialclonefilter)",
+# The remote name may be empty or absent: Git also makes a promisor of [remote ""] (remote..promisor) and of
+# [remote] (remote.promisor) (recheck-release-2 N1).
+PARTIAL_CLONE_SETTING = re.compile(r"extensions\.partialclone|remote\.(?:.*\.)?(?:promisor|partialclonefilter)",
                                    re.I | re.A | re.S)
 
 

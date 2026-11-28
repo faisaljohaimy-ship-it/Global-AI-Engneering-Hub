@@ -30,6 +30,10 @@ from sdk import engineering_sdk as sdk  # noqa: E402
 
 PARTIAL = "partial clone"
 ACTIONS = ("eligibility", "plan", "record", "verify-record")
+NAMELESS_REMOTES = {"no remote name": "[remote]\n\tpromisor = true\n",
+                    "empty remote name": "[remote \"\"]\n\tpromisor = true\n",
+                    "no remote name, filter": "[remote]\n\tpartialCloneFilter = blob:none\n",
+                    "empty remote name, filter": "[remote \"\"]\n\tpartialclonefilter = blob:none\n"}
 
 
 def fixture():
@@ -188,8 +192,16 @@ class PartialCloneNeverFetches(unittest.TestCase):
                 module.mkdir(parents=True)
                 (module / "HEAD").write_text("ref: refs/heads/main\n")
                 (module / "config").write_text("[extensions]\n\tpartialClone = origin\n")
+            elif change in NAMELESS_REMOTES:  # recheck-release-2 N1: [remote] and [remote ""] are promisors too
+                with open(repo / ".git/config", "a") as config:
+                    config.write(NAMELESS_REMOTES[change])
+            elif change == "submodule empty remote name":
+                module = repo / ".git/modules/sub"
+                module.mkdir(parents=True)
+                (module / "HEAD").write_text("ref: refs/heads/main\n")
+                (module / "config").write_text(NAMELESS_REMOTES["empty remote name"])
         for change in ("extension", "promisor", "filter", "mixed-case remote", "include", "worktree config",
-                       "submodule config"):
+                       "submodule config", *NAMELESS_REMOTES, "submodule empty remote name"):
             with self.subTest(change=change):
                 f = self.checkout()
                 configure(f, change)
@@ -203,7 +215,7 @@ class PartialCloneNeverFetches(unittest.TestCase):
                     sdk.checkout_guard(f["repo"])
                 self.assertNotIn("ls-files", calls, change)
                 self.assertEqual(calls[0], "config", "the config is the first thing read")
-                if change != "submodule config":
+                if not change.startswith("submodule"):
                     self.assertEqual(calls, ["config"], "refused before any other Git command")
                 result = engine.engine("eligibility", self.payload(f), {})
                 self.assertEqual([row["code"] for row in result["refusals"]], ["checkout-unsafe"], change)
@@ -213,6 +225,8 @@ class PartialCloneNeverFetches(unittest.TestCase):
         repo = f["repo"]
         F.fixture_git(repo, "config", "remote.promisor.url", str(f["origin"]))  # a remote named "promisor"
         F.fixture_git(repo, "config", "branch.partialclone.remote", "origin")
+        F.fixture_git(repo, "config", "remote.partialclonefilter.url", str(f["origin"]))  # recheck-release-2 N1
+        F.fixture_git(repo, "config", "remote.pushDefault", "origin")
         F.fixture_git(repo, "config", "extensions.worktreeConfig", "true")
         self.assertIsNone(sdk.checkout_guard(repo))
         result = engine.engine("eligibility", self.payload(f), {})
