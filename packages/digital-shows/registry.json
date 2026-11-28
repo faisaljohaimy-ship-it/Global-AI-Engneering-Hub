@@ -1,0 +1,959 @@
+{
+ "schema": "gaie.digital-shows/1",
+ "kit_version": "1.0.0",
+ "kit": "packages/digital-shows/kit.mjs",
+ "fonts": {
+  "directory": "packages/digital-shows/fonts",
+  "notice": "NOTICE-FONTS-V2.txt",
+  "license": "SIL Open Font License 1.1",
+  "files": [
+   {
+    "family": "IBM Plex Sans Arabic",
+    "weight": 400,
+    "file": "IBMPlexSansArabic-400.ttf",
+    "sha256": "02609c5ef845ef511676c8badb24d1fc8b4aed3dc3b9d8bbdab22c14431b7c16"
+   },
+   {
+    "family": "IBM Plex Sans Arabic",
+    "weight": 600,
+    "file": "IBMPlexSansArabic-600.ttf",
+    "sha256": "9e8b030f3326946e481c874a2f751c1321cb0708cba81b79e6c3f9ffacc931df"
+   },
+   {
+    "family": "IBM Plex Sans Arabic",
+    "weight": 700,
+    "file": "IBMPlexSansArabic-700.ttf",
+    "sha256": "05616a64c5dca137a327b30b1fe7f4fcd1e16892a332e1665b49d52038858044"
+   },
+   {
+    "family": "Alexandria",
+    "weight": 700,
+    "file": "Alexandria-700.ttf",
+    "sha256": "9063ada724216e555b07470342770d45d8be12108294891c5863580d1a61b109"
+   },
+   {
+    "family": "Alexandria",
+    "weight": 800,
+    "file": "Alexandria-800.ttf",
+    "sha256": "9df136196e84f3c42dc020584affa87ae80ca36a450936b2820b3e19dc9ad66b"
+   },
+   {
+    "family": "IBM Plex Sans",
+    "weight": 400,
+    "file": "IBMPlexSans-400.ttf",
+    "sha256": "6dbe082463cf749cfa057d45c3048c90f4df031496498e5b5bdfd0b6babb9d16"
+   },
+   {
+    "family": "IBM Plex Sans",
+    "weight": 600,
+    "file": "IBMPlexSans-600.ttf",
+    "sha256": "5311c66fd6d04ae45671236f7eae667b671c06c1dc7e88d52c206e5fadd0fb21"
+   },
+   {
+    "family": "IBM Plex Mono",
+    "weight": 500,
+    "file": "IBMPlexMono-500.ttf",
+    "sha256": "249a8ba4a836742e86a7465dcfa30ea433a8c50b5d1ec7eaeecab28403409760"
+   }
+  ],
+  "notice_sha256": "26d0fe369212ccb33a4fe444afe9409e7f68b7f8a0c9eeead4a864eec9e3c482"
+ },
+ "themes": {
+  "digital-transformation": {
+   "title": {
+    "ar": "التحول الرقمي",
+    "en": "Digital transformation"
+   },
+   "statement": {
+    "ar": "كل مشهد يحمل معنى واحدًا مسجّلًا من معاني التحول الرقمي، بما ينسجم مع رؤية المملكة 2030.",
+    "en": "Every scene carries one registered digital-transformation meaning, in step with Saudi Vision 2030."
+   },
+   "palette": {
+    "bg0": "#040a14",
+    "bg1": "#08162a",
+    "panel": "#0c1c31",
+    "panelHi": "#12294a",
+    "line": "#24405f",
+    "dim": "#5c7594",
+    "text": "#eef4fb",
+    "soft": "#bccadb",
+    "cyan": "#27d3f5",
+    "blue": "#3b8bff",
+    "green": "#35d39a",
+    "gold": "#e6b450",
+    "dark": "#04101c"
+   },
+   "fonts": {
+    "head": "Alexandria",
+    "body": "IBM Plex Sans Arabic",
+    "latin": "IBM Plex Sans",
+    "mono": "IBM Plex Mono",
+    "fallback": "DejaVu Sans"
+   },
+   "grade": "gaie-digital",
+   "on_screen_language": "primary",
+   "excluded": [
+    "flags",
+    "emblems",
+    "logos",
+    "maps",
+    "portraits"
+   ]
+  }
+ },
+ "scenes": [
+  {
+   "id": "paper-to-digital",
+   "meaning": {
+    "ar": "يتحوّل الإجراء الورقي إلى خدمة رقمية بالحقول نفسها، ويُتحقَّق من كل حقل عند إدخاله.",
+    "en": "A paper procedure becomes a digital service with the same fields, each validated as it is entered."
+   },
+   "params": {
+    "paper_label": {
+     "type": "label",
+     "max_chars": 18,
+     "required": false,
+     "label_in": 0.12
+    },
+    "digital_label": {
+     "type": "label",
+     "max_chars": 18,
+     "required": false,
+     "label_in": 0.4
+    },
+    "fields": {
+     "type": "labels",
+     "min": 2,
+     "max": 3,
+     "max_chars": 14,
+     "required": false,
+     "label_in": [
+      0.5,
+      0.66
+     ]
+    },
+    "submit_label": {
+     "type": "label",
+     "max_chars": 14,
+     "required": false,
+     "label_in": 0.8
+    }
+   },
+   "defaults": {
+    "ar": {
+     "paper_label": "نموذج ورقي",
+     "digital_label": "خدمة رقمية",
+     "fields": [
+      "الهوية",
+      "الطلب",
+      "المرفقات"
+     ],
+     "submit_label": "إرسال"
+    },
+    "en": {
+     "paper_label": "Paper form",
+     "digital_label": "Digital service",
+     "fields": [
+      "Identity",
+      "Request",
+      "Attachments"
+     ],
+     "submit_label": "Submit"
+    }
+   }
+  },
+  {
+   "id": "service-journey",
+   "meaning": {
+    "ar": "تُقدَّم الخدمة رحلةً رقمية واحدة يمكن تتبّعها خطوة بخطوة، من الطلب إلى الإشعار.",
+    "en": "A service is delivered as one traceable digital journey, step by step, from request to notification."
+   },
+   "params": {
+    "title": {
+     "type": "label",
+     "max_chars": 30,
+     "required": false,
+     "label_in": 0.08
+    },
+    "steps": {
+     "type": "labels",
+     "min": 3,
+     "max": 5,
+     "max_chars": 14,
+     "required": false,
+     "label_in": [
+      0.16,
+      0.62
+     ]
+    },
+    "done_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.78
+    }
+   },
+   "defaults": {
+    "ar": {
+     "title": "رحلة الخدمة الرقمية",
+     "steps": [
+      "طلب",
+      "تحقّق",
+      "قرار",
+      "إشعار"
+     ],
+     "done_label": "مكتملة"
+    },
+    "en": {
+     "title": "Digital service journey",
+     "steps": [
+      "Request",
+      "Verification",
+      "Decision",
+      "Notification"
+     ],
+     "done_label": "Completed"
+    }
+   }
+  },
+  {
+   "id": "data-pipeline",
+   "meaning": {
+    "ar": "لا تمرّ البيانات إلا عبر مراحل محكومة: تُتحقَّق وتُصنَّف وتُحمى قبل أن تُخزَّن.",
+    "en": "Data moves only through governed stages: validated, classified and protected before it is stored."
+   },
+   "params": {
+    "policy_label": {
+     "type": "label",
+     "max_chars": 26,
+     "required": false,
+     "label_in": 0.1
+    },
+    "stages": {
+     "type": "labels",
+     "min": 3,
+     "max": 4,
+     "max_chars": 12,
+     "required": false,
+     "label_in": [
+      0.14,
+      0.3
+     ]
+    },
+    "quarantine_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.46
+    },
+    "stored_label": {
+     "type": "label",
+     "max_chars": 18,
+     "required": false,
+     "label_in": 0.62
+    },
+    "records": {
+     "type": "int",
+     "min": 4,
+     "max": 8,
+     "default": 6
+    }
+   },
+   "defaults": {
+    "ar": {
+     "policy_label": "حوكمة البيانات",
+     "stages": [
+      "تحقّق",
+      "تصنيف",
+      "حماية",
+      "تخزين"
+     ],
+     "quarantine_label": "مرفوض",
+     "stored_label": "سجلات موثوقة",
+     "records": 6
+    },
+    "en": {
+     "policy_label": "Data governance",
+     "stages": [
+      "Validate",
+      "Classify",
+      "Protect",
+      "Store"
+     ],
+     "quarantine_label": "Rejected",
+     "stored_label": "Trusted records",
+     "records": 6
+    }
+   }
+  },
+  {
+   "id": "integration-mesh",
+   "meaning": {
+    "ar": "تتبادل الأنظمة بياناتها عبر واجهات برمجية موثّقة وطبقة تكامل واحدة، لا عبر التسليم اليدوي.",
+    "en": "Systems exchange data through documented APIs and one integration layer instead of manual hand-offs."
+   },
+   "params": {
+    "hub_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.12
+    },
+    "systems": {
+     "type": "labels",
+     "min": 4,
+     "max": 6,
+     "max_chars": 14,
+     "required": false,
+     "label_in": [
+      0.1,
+      0.24
+     ]
+    },
+    "contract_label": {
+     "type": "label",
+     "max_chars": 22,
+     "required": false,
+     "label_in": 0.8
+    }
+   },
+   "defaults": {
+    "ar": {
+     "hub_label": "طبقة التكامل",
+     "systems": [
+      "الهوية",
+      "المدفوعات",
+      "السجلات",
+      "الإشعارات"
+     ],
+     "contract_label": "واجهات موثّقة"
+    },
+    "en": {
+     "hub_label": "Integration layer",
+     "systems": [
+      "Identity",
+      "Payments",
+      "Records",
+      "Notifications"
+     ],
+     "contract_label": "Documented APIs"
+    }
+   }
+  },
+  {
+   "id": "approval-gate",
+   "meaning": {
+    "ar": "الإجراء الحسّاس ينتظر موافقة بشرية مسمّاة، ولا يعبر البوابة شيء قبلها.",
+    "en": "A sensitive action waits for a named human approval; nothing passes the gate before it."
+   },
+   "params": {
+    "request_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.1
+    },
+    "gate_label": {
+     "type": "label",
+     "max_chars": 18,
+     "required": false,
+     "label_in": 0.2
+    },
+    "approver_label": {
+     "type": "label",
+     "max_chars": 18,
+     "required": false,
+     "label_in": 0.26
+    },
+    "approved_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.56
+    },
+    "action_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.14
+    }
+   },
+   "defaults": {
+    "ar": {
+     "request_label": "طلب تنفيذ",
+     "gate_label": "بوابة الموافقة",
+     "approver_label": "المسؤول المعتمِد",
+     "approved_label": "تمّت الموافقة",
+     "action_label": "التنفيذ"
+    },
+    "en": {
+     "request_label": "Change request",
+     "gate_label": "Approval gate",
+     "approver_label": "Named approver",
+     "approved_label": "Approved",
+     "action_label": "Execution"
+    }
+   }
+  },
+  {
+   "id": "kpi-gauge",
+   "meaning": {
+    "ar": "يُحسب المؤشر من معادلته المعلنة وأرقام مصدره، فيمكن إعادة اشتقاق كل رقم.",
+    "en": "An indicator is computed from its published formula and source numbers, so every figure can be re-derived."
+   },
+   "params": {
+    "kpi_label": {
+     "type": "label",
+     "max_chars": 24,
+     "required": false,
+     "label_in": 0.08
+    },
+    "numerator_label": {
+     "type": "label",
+     "max_chars": 20,
+     "required": false,
+     "label_in": 0.16
+    },
+    "denominator_label": {
+     "type": "label",
+     "max_chars": 20,
+     "required": false,
+     "label_in": 0.22
+    },
+    "numerator": {
+     "type": "int",
+     "min": 0,
+     "max": 999999999,
+     "default": 0
+    },
+    "denominator": {
+     "type": "int",
+     "min": 1,
+     "max": 999999999,
+     "default": 1
+    },
+    "verified_label": {
+     "type": "label",
+     "max_chars": 24,
+     "required": false,
+     "label_in": 0.84
+    }
+   },
+   "defaults": {
+    "ar": {
+     "kpi_label": "نسبة الخدمات الرقمية",
+     "numerator_label": "خدمات رقمية",
+     "denominator_label": "إجمالي الخدمات",
+     "numerator": 0,
+     "denominator": 1,
+     "verified_label": "يُعاد حسابه من المصدر"
+    },
+    "en": {
+     "kpi_label": "Digital service ratio",
+     "numerator_label": "Digital services",
+     "denominator_label": "All services",
+     "numerator": 0,
+     "denominator": 1,
+     "verified_label": "Recomputed from source"
+    }
+   }
+  },
+  {
+   "id": "audit-trail",
+   "meaning": {
+    "ar": "كل إجراء يترك إيصالًا موقّعًا ومتسلسلًا يمكن تدقيقه لاحقًا.",
+    "en": "Every action leaves a signed, chained receipt that can be audited later."
+   },
+   "params": {
+    "title": {
+     "type": "label",
+     "max_chars": 26,
+     "required": false,
+     "label_in": 0.08
+    },
+    "entries": {
+     "type": "labels",
+     "min": 3,
+     "max": 4,
+     "max_chars": 22,
+     "required": false,
+     "label_in": [
+      0.16,
+      0.56
+     ]
+    },
+    "seal_label": {
+     "type": "label",
+     "max_chars": 24,
+     "required": false,
+     "label_in": 0.8
+    }
+   },
+   "defaults": {
+    "ar": {
+     "title": "سجل التدقيق",
+     "entries": [
+      "استلام الطلب",
+      "التحقق من الهوية",
+      "اعتماد القرار",
+      "إشعار المستفيد"
+     ],
+     "seal_label": "سلسلة إيصالات مختومة"
+    },
+    "en": {
+     "title": "Audit trail",
+     "entries": [
+      "Request received",
+      "Identity verified",
+      "Decision approved",
+      "Beneficiary notified"
+     ],
+     "seal_label": "Sealed receipt chain"
+    }
+   }
+  },
+  {
+   "id": "zero-trust-shield",
+   "meaning": {
+    "ar": "الوصول مرفوض افتراضيًا، ولا يبلغ المورد إلا مسار واحد متحقَّق منه ومطابق للسياسة.",
+    "en": "Access is denied by default; only one verified, policy-checked path reaches the resource."
+   },
+   "params": {
+    "deny_label": {
+     "type": "label",
+     "max_chars": 20,
+     "required": false,
+     "label_in": 0.36
+    },
+    "checks": {
+     "type": "labels",
+     "min": 2,
+     "max": 3,
+     "max_chars": 12,
+     "required": false,
+     "label_in": [
+      0.48,
+      0.66
+     ]
+    },
+    "allow_label": {
+     "type": "label",
+     "max_chars": 20,
+     "required": false,
+     "label_in": 0.76
+    },
+    "resource_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.12
+    }
+   },
+   "defaults": {
+    "ar": {
+     "deny_label": "مرفوض افتراضيًا",
+     "checks": [
+      "الهوية",
+      "الجهاز",
+      "الصلاحية"
+     ],
+     "allow_label": "مسار واحد مصرّح",
+     "resource_label": "المورد المحمي"
+    },
+    "en": {
+     "deny_label": "Denied by default",
+     "checks": [
+      "Identity",
+      "Device",
+      "Permission"
+     ],
+     "allow_label": "One allowed path",
+     "resource_label": "Protected resource"
+    }
+   }
+  },
+  {
+   "id": "command-to-spec",
+   "meaning": {
+    "ar": "أمرٌ واحد يتحوّل إلى مواصفة قابلة للمراجعة: كيانات وميزات ومعايير قبول.",
+    "en": "One command is expanded into a reviewable specification: entities, features and acceptance criteria."
+   },
+   "params": {
+    "command": {
+     "type": "code",
+     "max_chars": 30,
+     "required": false,
+     "label_in": 0.3
+    },
+    "root_label": {
+     "type": "label",
+     "max_chars": 16,
+     "required": false,
+     "label_in": 0.38
+    },
+    "branches": {
+     "type": "labels",
+     "min": 3,
+     "max": 3,
+     "max_chars": 16,
+     "required": false,
+     "label_in": [
+      0.46,
+      0.6
+     ]
+    },
+    "leaves_a": {
+     "type": "labels",
+     "min": 1,
+     "max": 3,
+     "max_chars": 14,
+     "required": false,
+     "label_in": [
+      0.52,
+      0.58
+     ]
+    },
+    "leaves_b": {
+     "type": "labels",
+     "min": 1,
+     "max": 3,
+     "max_chars": 14,
+     "required": false,
+     "label_in": [
+      0.6,
+      0.66
+     ]
+    },
+    "leaves_c": {
+     "type": "labels",
+     "min": 1,
+     "max": 3,
+     "max_chars": 14,
+     "required": false,
+     "label_in": [
+      0.68,
+      0.74
+     ]
+    }
+   },
+   "defaults": {
+    "ar": {
+     "command": "gaie build \"service\"",
+     "root_label": "المواصفة",
+     "branches": [
+      "الكيانات",
+      "الميزات",
+      "معايير القبول"
+     ],
+     "leaves_a": [
+      "مستفيد",
+      "طلب",
+      "قرار"
+     ],
+     "leaves_b": [
+      "تقديم",
+      "تتبّع",
+      "إشعار"
+     ],
+     "leaves_c": [
+      "اختبار",
+      "أمان",
+      "أداء"
+     ]
+    },
+    "en": {
+     "command": "gaie build \"service\"",
+     "root_label": "Specification",
+     "branches": [
+      "Entities",
+      "Features",
+      "Acceptance criteria"
+     ],
+     "leaves_a": [
+      "Beneficiary",
+      "Request",
+      "Decision"
+     ],
+     "leaves_b": [
+      "Submit",
+      "Track",
+      "Notify"
+     ],
+     "leaves_c": [
+      "Tests",
+      "Security",
+      "Performance"
+     ]
+    }
+   }
+  },
+  {
+   "id": "layer-stack",
+   "meaning": {
+    "ar": "عشرون طبقة هندسية، لكل طبقة عمل واحد، ولا تُعتمد طبقة قبل التحقق منها.",
+    "en": "Twenty engineering layers each do one job, and no layer counts before it is verified."
+   },
+   "params": {
+    "count": {
+     "type": "int",
+     "min": 4,
+     "max": 24,
+     "default": 20
+    },
+    "groups": {
+     "type": "labels",
+     "min": 2,
+     "max": 4,
+     "max_chars": 14,
+     "required": false,
+     "label_in": [
+      0.16,
+      0.56
+     ]
+    },
+    "counter_label": {
+     "type": "label",
+     "max_chars": 22,
+     "required": false,
+     "label_in": 0.2
+    }
+   },
+   "defaults": {
+    "ar": {
+     "count": 20,
+     "groups": [
+      "فهم",
+      "بناء",
+      "تحقّق",
+      "تشغيل"
+     ],
+     "counter_label": "طبقة متحقَّق منها"
+    },
+    "en": {
+     "count": 20,
+     "groups": [
+      "Understand",
+      "Build",
+      "Verify",
+      "Operate"
+     ],
+     "counter_label": "verified layers"
+    }
+   }
+  },
+  {
+   "id": "test-matrix",
+   "meaning": {
+    "ar": "لا يُقبل النظام إلا حين ينجح كل اختبار في المصفوفة، وما يفشل يُصلَح ثم يُعاد اختباره.",
+    "en": "The system is accepted only when every test in the matrix passes; a failure is fixed and re-tested."
+   },
+   "params": {
+    "rows": {
+     "type": "labels",
+     "min": 3,
+     "max": 5,
+     "max_chars": 16,
+     "required": false,
+     "label_in": [
+      0.1,
+      0.2
+     ]
+    },
+    "columns": {
+     "type": "int",
+     "min": 4,
+     "max": 9,
+     "default": 6
+    },
+    "summary_label": {
+     "type": "label",
+     "max_chars": 20,
+     "required": false,
+     "label_in": 0.24
+    }
+   },
+   "defaults": {
+    "ar": {
+     "rows": [
+      "وظائف",
+      "أمان",
+      "أداء",
+      "وصول"
+     ],
+     "columns": 6,
+     "summary_label": "اختبارًا ناجحًا"
+    },
+    "en": {
+     "rows": [
+      "Functions",
+      "Security",
+      "Performance",
+      "Access"
+     ],
+     "columns": 6,
+     "summary_label": "tests passing"
+    }
+   }
+  },
+  {
+   "id": "checkpoint-resume",
+   "meaning": {
+    "ar": "يُختم العمل عند نقاط حفظ، فإذا انقطع التشغيل استُؤنف من آخر ختم لا من البداية.",
+    "en": "Work is sealed at checkpoints, so an interrupted run resumes from the last seal instead of starting over."
+   },
+   "params": {
+    "steps": {
+     "type": "int",
+     "min": 4,
+     "max": 8,
+     "default": 6
+    },
+    "checkpoint_at": {
+     "type": "int",
+     "min": 1,
+     "max": 6,
+     "default": 3
+    },
+    "checkpoint_label": {
+     "type": "label",
+     "max_chars": 20,
+     "required": false,
+     "label_in": 0.4
+    },
+    "interrupt_label": {
+     "type": "label",
+     "max_chars": 14,
+     "required": false,
+     "label_in": 0.56
+    },
+    "resume_label": {
+     "type": "label",
+     "max_chars": 22,
+     "required": false,
+     "label_in": 0.68
+    },
+    "done_label": {
+     "type": "label",
+     "max_chars": 14,
+     "required": false,
+     "label_in": 0.9
+    }
+   },
+   "defaults": {
+    "ar": {
+     "steps": 6,
+     "checkpoint_at": 3,
+     "checkpoint_label": "نقطة حفظ مختومة",
+     "interrupt_label": "انقطاع",
+     "resume_label": "استئناف من الختم",
+     "done_label": "اكتمل"
+    },
+    "en": {
+     "steps": 6,
+     "checkpoint_at": 3,
+     "checkpoint_label": "Sealed checkpoint",
+     "interrupt_label": "Interruption",
+     "resume_label": "Resume from the seal",
+     "done_label": "Complete"
+    }
+   }
+  },
+  {
+   "id": "title-card",
+   "meaning": {
+    "ar": "يحدّد الإطار الذي يخدمه العمل الرقمي بكلمات صريحة مطبوعة، دون شعارات أو رموز.",
+    "en": "States in plain typography the goal the digital work serves, with no emblem or logo."
+   },
+   "params": {
+    "kicker": {
+     "type": "label",
+     "max_chars": 40,
+     "required": false,
+     "label_in": 0.12
+    },
+    "heading": {
+     "type": "label",
+     "max_chars": 30,
+     "required": true,
+     "label_in": 0.32
+    },
+    "chips": {
+     "type": "labels",
+     "min": 0,
+     "max": 4,
+     "max_chars": 16,
+     "required": false,
+     "label_in": [
+      0.5,
+      0.7
+     ]
+    }
+   },
+   "defaults": {
+    "ar": {
+     "kicker": "",
+     "heading": "",
+     "chips": []
+    },
+    "en": {
+     "kicker": "",
+     "heading": "",
+     "chips": []
+    }
+   }
+  },
+  {
+   "id": "call-to-action",
+   "meaning": {
+    "ar": "يُختم العرض بخطوة واحدة واضحة يستطيع المشاهد أن يبدأ بها.",
+    "en": "The show closes with one clear next step the viewer can take."
+   },
+   "params": {
+    "heading": {
+     "type": "label",
+     "max_chars": 30,
+     "required": true,
+     "label_in": 0.14
+    },
+    "points": {
+     "type": "labels",
+     "min": 0,
+     "max": 3,
+     "max_chars": 22,
+     "required": false,
+     "label_in": [
+      0.3,
+      0.52
+     ]
+    },
+    "action_label": {
+     "type": "label",
+     "max_chars": 22,
+     "required": true,
+     "label_in": 0.68
+    },
+    "footer": {
+     "type": "label",
+     "max_chars": 34,
+     "required": false,
+     "label_in": 0.8
+    }
+   },
+   "defaults": {
+    "ar": {
+     "heading": "",
+     "points": [],
+     "action_label": "",
+     "footer": ""
+    },
+    "en": {
+     "heading": "",
+     "points": [],
+     "action_label": "",
+     "footer": ""
+    }
+   }
+  }
+ ],
+ "kit_sha256": "be20b6f2df89201ad2ed14c9542f1384b7d359b05bc079a8131c9f2b789b70bf"
+}

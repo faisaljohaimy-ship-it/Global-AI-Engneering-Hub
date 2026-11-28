@@ -1,0 +1,12 @@
+{
+  "name": "@global-ai-hub/digital-shows",
+  "version": "1.0.0",
+  "description": "Digital-transformation show kit: original, deterministic Canvas2D scene types that each carry one stated meaning, OFL fonts for Arabic typography, and show storyboards for the GAIE cinematic pipeline. No runtime dependencies.",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": { ".": "./kit.mjs", "./registry.json": "./registry.json" },
+  "scripts": { "registry": "node tools/build_registry.mjs", "check": "node tools/build_registry.mjs --check" },
+  "license": "MIT",
+  "engines": { "node": ">=20" }
+}
