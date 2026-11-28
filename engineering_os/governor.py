@@ -10,7 +10,7 @@ machine-readable `reason`; nothing is allowed because a text says so.
     verify_audit(state_dir) -> int                                    (records; GovernorDenied "audit-tampered")
     sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
                 cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
-                require_fs_isolation=False, read_only=False)
+                require_fs_isolation=False, read_only=False, loopback=False)
         -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated"}
     isolation_probe() -> dict                                          (measured once per process)
 
@@ -39,6 +39,7 @@ import shutil
 import signal
 import socket
 import stat
+import struct
 import subprocess
 import sys
 import tempfile
@@ -425,6 +426,9 @@ MS_RDONLY, MS_NOSUID, MS_NODEV, MS_NOEXEC, MS_REMOUNT = 1, 2, 4, 8, 32
 MS_NOATIME, MS_NODIRATIME, MS_BIND = 1024, 2048, 4096
 MS_RELATIME, MS_STRICTATIME = 1 << 21, 1 << 24
 MNT_DETACH = 2
+# netdevice(7): bring the sandbox's own loopback interface up (loopback=True)
+SIOCGIFFLAGS, SIOCSIFFLAGS, IFF_UP = 0x8913, 0x8914, 0x1
+_IFREQ = "16sH22x"  # struct ifreq: interface name, then ifr_flags at the start of the union
 SYS_PIVOT_ROOT = {"x86_64": 155, "amd64": 155, "aarch64": 41, "arm64": 41, "riscv64": 41,
                   "loongarch64": 41, "ppc64le": 203, "ppc64": 203, "s390x": 217, "i686": 217,
                   "i386": 217, "armv7l": 218, "armv6l": 218}
@@ -541,14 +545,16 @@ def _classify(code, limit, cpu_used, cpu_seconds):
     return None
 
 
-def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, strict=False):
-    """Run cmd inside user+mount+pid(+net) namespaces under a minimal read-only root."""
+def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, strict=False, loopback=False):
+    """Run cmd inside user+mount+pid(+net) namespaces under a minimal read-only root.
+    loopback=True brings up lo of the sandbox's own network namespace (127.0.0.1 and ::1 inside
+    the sandbox only; the host network, host loopback included, stays unreachable)."""
     unshare = shutil.which("unshare", path=_cage().ENV["PATH"])
     if not strict:
         readable = sorted(set(readable) | set(_exec_prefix(cmd[0], env["PATH"], cwd, allowed + readable)))
     status_r, status_w = os.pipe()
     spec = {"cmd": list(cmd), "cwd": cwd, "allowed": allowed, "readable": readable,
-            "env_names": sorted(env), "status_fd": status_w, "strict": strict}
+            "env_names": sorted(env), "status_fd": status_w, "strict": strict, "loopback": loopback}
     argv = [unshare, "--user", "--map-root-user", "--mount", "--propagation", "private",
             "--pid", "--fork", "--kill-child"] + ([] if network else ["--net"]) + [
             "--", sys.executable, "-I", "-B", "-S", "-c", _BOOT, ROOT, json.dumps(spec)]
@@ -655,7 +661,7 @@ def _inspect_scope(paths, *, writable):
 
 def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
                 cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
-                require_fs_isolation=False, read_only=False):
+                require_fs_isolation=False, read_only=False, loopback=False):
     """Run argv `cmd` (no shell) isolated; GovernorDenied when a precondition fails.
 
     Environment: empty except PATH, HOME (= cwd), LANG and the names in env_allow.
@@ -667,7 +673,12 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
     Use require_fs_isolation for governed execution. It refuses the plain tier, network
     and inherited environment, and permits writes only to one private workspace.
     read_only implies those restrictions and exposes no writable host mounts; cwd then
-    lies under read_paths. Both modes keep ephemeral /tmp and deny socket creation."""
+    lies under read_paths. Both modes keep ephemeral /tmp and deny socket creation.
+
+    loopback=True (full tier, non-strict, network=False only) brings up the loopback interface
+    of the sandbox's own network namespace, so a test can run a local server and a client inside
+    one sandbox. The host's loopback and every other host address stay unreachable. It is refused
+    where the full sandbox cannot be built; the default is unchanged (no interface is up)."""
     if isinstance(cmd, (str, bytes)) or not isinstance(cmd, (list, tuple)) or not cmd or not all(
             isinstance(a, str) and "\0" not in a for a in cmd) or not cmd[0]:
         raise GovernorDenied("invalid-command", "argv list of text, no shell string")
@@ -683,7 +694,12 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
         raise GovernorDenied("invalid-sandbox-mode", "isolation mode flags must be boolean")
     if not isinstance(network, bool):
         raise GovernorDenied("invalid-limit", "network: True or False")
+    if not isinstance(loopback, bool):
+        raise GovernorDenied("invalid-limit", "loopback: True or False")
     strict = require_fs_isolation or read_only
+    if loopback and (network or strict):
+        raise GovernorDenied("invalid-sandbox-mode", "loopback applies to the private network namespace of the "
+                                                     "non-strict full sandbox (strict profiles deny sockets)")
     if strict:
         if network or env_allow:
             raise GovernorDenied("invalid-sandbox-mode", "strict execution is offline without environment passthrough")
@@ -703,9 +719,11 @@ def sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths
     probe = isolation_probe()
     if probe["tier"] == "full":
         return _run_full(cmd, cwd=real_cwd, timeout=timeout, network=network, env=env,
-                         allowed=allowed, readable=readable, limits=limits, strict=strict)
+                         allowed=allowed, readable=readable, limits=limits, strict=strict, loopback=loopback)
     if strict:
         raise GovernorDenied("filesystem-isolation-unavailable", "the full namespace sandbox is required")
+    if loopback:
+        raise GovernorDenied("network-isolation-unavailable", "a private loopback needs the full namespace sandbox")
     return _run_plain(cmd, cwd=real_cwd, timeout=timeout, network=network, env=env, limits=limits, probe=probe)
 
 
@@ -741,6 +759,14 @@ def _disable_socket_creation():
             raise OSError(-result, "seccomp could not be enabled")
     finally:
         library.seccomp_release(context)
+
+
+def _loopback_up():
+    """Set IFF_UP on lo of the current network namespace (needs CAP_NET_ADMIN there)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as handle:
+        current = fcntl.ioctl(handle.fileno(), SIOCGIFFLAGS, struct.pack(_IFREQ, b"lo", 0))
+        flags = struct.unpack(_IFREQ, current)[1]
+        fcntl.ioctl(handle.fileno(), SIOCSIFFLAGS, struct.pack(_IFREQ, b"lo", flags | IFF_UP))
 
 
 def _sandbox_init(raw):
@@ -854,6 +880,9 @@ def _sandbox_init(raw):
             step = "inspect mounted workspace"
             _inspect_scope(spec["allowed"], writable=True)
             _inspect_scope(spec["readable"], writable=False)
+        if spec.get("loopback"):
+            step = "loopback up"
+            _loopback_up()
         step = "drop capabilities"
         for cap in range(last_cap + 1):
             call(libc.prctl(24, cap, 0, 0, 0), "PR_CAPBSET_DROP")
