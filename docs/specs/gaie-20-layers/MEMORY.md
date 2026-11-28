@@ -192,6 +192,13 @@ the old repository paths, and a deliberate control read is detected.
   `scripts/security_scan.py` beside `gaie_memory.py` in `scripts/gaie_bootstrap.py`
   (`ENGINE`) and in `catalog/packs.json` (`gaie-factory.files`, as `memory.py`,
   `orchestration.py`, `security_scan.py`); then the portable journal can be removed.
-- Register `memory.ENGINE_RECORD` in `governance/engines.json` and list
-  `tests/test_memory_unified.py` for L14 (Scenario D) in `governance/layers.json`.
+- The control plane reaches memory only through `engineering_os/adapters.py`
+  (`memory_store`, `record_checkpoint`, `memory`, `memory_health`; the `memory` record in
+  `governance/engines.json`: put, search, graph, index, checkpoint, restore, verify). That
+  adapter opens the multi-project `MemoryStore(<state>/memory)` (isolation rule 6) and
+  detects an existing store by the engine's own file names. `memory.invoke` /
+  `memory.ENGINE_RECORD` offer the wider, always project-isolated action set (adr-add,
+  why, brief, task-progress, failure-record, where, …); exposing those to the control
+  plane means adding them to the engines.json `memory` record and the adapter.
+- List `tests/test_memory_unified.py` for L14 (Scenario D) in `governance/layers.json`.
 - `docs/GAIE_FACTORY.md` still describes the PR #26 journal format.

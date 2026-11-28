@@ -408,13 +408,16 @@ def reasoning_health():
 # ---------------------------------------------------------------- L14 memory
 
 def memory_store(ctx):
-    """The single place that opens engineering memory for the control plane."""
+    """The single place that opens engineering memory (the unified L14 engine) for the control plane."""
     from .memory import MemoryStore
     return MemoryStore(_state(ctx) / MEMORY_DIR)
 
 
 def _memory_exists(ctx):
-    return (_state(ctx) / MEMORY_DIR / "memory.json").is_file()
+    """A store exists in the engine's schema-2 file, or a schema-1 file it migrates on open; reads never create one."""
+    from .memory import LEGACY_STATE_FILE, STATE_FILE
+    directory = _state(ctx) / MEMORY_DIR
+    return any((directory / name).is_file() for name in (STATE_FILE, LEGACY_STATE_FILE))
 
 
 def record_checkpoint(ctx, *, task_id, project, host, engine, action, receipt):
@@ -466,7 +469,10 @@ def memory_health():
         from . import memory as module
         if not {"checkpoint", "solution"} <= module.KINDS or not callable(module.MemoryStore):
             raise AdapterError("memory store API changed")
-        return "MemoryStore API present (private state directory outside Git; opened per invocation)"
+        engine = module.health()  # side-effect free: secret guard and state serialization checked in memory
+        if not engine["ok"]:
+            raise AdapterError(f"memory engine unhealthy: {engine['detail']}")
+        return "MemoryStore API present (private state directory outside Git; opened per invocation); " + engine["detail"]
     return _healthy(check)
 
 
