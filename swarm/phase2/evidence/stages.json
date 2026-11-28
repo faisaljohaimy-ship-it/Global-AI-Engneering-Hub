@@ -10,9 +10,9 @@
   "phase2_output_tokens": 3000000
  },
  "figures": {
-  "input_tokens_counted": 62689101,
+  "input_tokens_counted": 62795680,
   "cap": 150000000,
-  "agents_started_in_phase_2": 399,
+  "agents_started_in_phase_2": 400,
   "projected_for_stage": null
  },
  "stages": [
@@ -1755,6 +1755,123 @@
    "per_verified_task_cost_units": 36396,
    "guard_enforced": false,
    "index_cross_check": null
+  },
+  {
+   "label": "l1",
+   "actual_agents": 1,
+   "peak_concurrent_agents": 1,
+   "tasks": 1,
+   "verified_tasks": 1,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 5,
+   "hidden_tests_total": 5,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 2.0,
+   "agents_replying_done": 1,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 15.57,
+   "sum_of_agent_seconds": 15.57,
+   "effective_concurrency": 1.0,
+   "tasks_per_minute": 3.85,
+   "models": [
+    "sonnet"
+   ],
+   "agent_tokens": {
+    "input_uncached": 12,
+    "cache_write": 18616,
+    "cache_read": 87951,
+    "input_total": 106579,
+    "output": 920,
+    "total": 107499
+   },
+   "cache_read_share": 0.8252,
+   "model_roundtrips": 6,
+   "tool_calls": 10,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 3616,
+   "per_verified_task": {
+    "input_total": 106579,
+    "output": 920,
+    "roundtrips": 6.0,
+    "agent_seconds": 15.57
+   },
+   "helper_calls": {},
+   "orchestrator_tokens": {
+    "input_uncached": 6,
+    "cache_write": 1672,
+    "cache_read": 1018875,
+    "input_total": 1020553,
+    "output": 537,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.905,
+   "machine": {
+    "samples": 24,
+    "peak_load_1m": 0.5,
+    "least_memory_available_mb": 15311,
+    "peak_host_process_rss_mb": 498,
+    "host_process_cpu_seconds": 1.0
+   },
+   "kind": "task",
+   "size": "large",
+   "agent_type": "swarm-large",
+   "model": "sonnet",
+   "effort": "medium",
+   "mode": "lean",
+   "delivery": "id",
+   "registered_agents": 1,
+   "started": "2026-11-28T04:11:22.255514Z",
+   "finished": "2026-11-28T04:11:45.829370Z",
+   "first_request_context": {
+    "median": 5395,
+    "least": 5395,
+    "most": 5395
+   },
+   "first_request_read_from_cache": 0.4569,
+   "cache_written": {
+    "five_minutes": 18616,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 36677,
+   "swk_calls": 9,
+   "refused_calls": 0,
+   "foreign_calls": 0,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-large"
+   ],
+   "replies_per_agent": {
+    "median": 6,
+    "most": 6
+   },
+   "ownership": {
+    "submitted": 1,
+    "approved": 1,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 398
+    },
+    "revision": 1592
+   },
+   "not_verified": [],
+   "worker_command": {
+    "hand_ins": 0,
+    "calls": 9,
+    "characters_printed": 3556,
+    "headroom_views": 1
+   },
+   "per_verified_task_cost_units": 36677,
+   "guard_enforced": false,
+   "index_cross_check": {
+    "tool": "serena",
+    "answered": true,
+    "callers_in_the_index": 4,
+    "of_them_named_by_the_language_server": 4,
+    "seconds": 5.3
+   }
   }
  ]
 }
