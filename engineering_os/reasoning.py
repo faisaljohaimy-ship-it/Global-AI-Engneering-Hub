@@ -840,7 +840,8 @@ def analyze_root_causes(request):
     for row in logs.values():
         if _id(row['node']) not in edges:
             raise ReasoningError("Log names an unknown node")
-        _number(row['reliability'], 0, 1)
+        if _number(row['reliability'], 0, 1) <= 0:
+            raise ReasoningError("Log reliability must be positive; drop a log that carries no evidence")
         for line in _rows(row['lines'], 5000):
             _log_line(line)
     rules = _indexed(request['rules'], {'id', 'contains', 'hypothesis', 'effect', 'weight'}, 64)
@@ -849,11 +850,13 @@ def analyze_root_causes(request):
         if _id(row['hypothesis']) not in hypotheses:
             raise ReasoningError("Evidence names an unknown hypothesis")
         _choice(row['effect'], ('supports', 'refutes'), "evidence effect")
-        _number(row['weight'], 0, 1)
+        if _number(row['weight'], 0, 1) <= 0:
+            raise ReasoningError("Evidence and rule weights must be positive; drop a row that carries no weight")
     for row in rules.values():
         _needle(row['contains'])
     for row in evidence.values():
-        _number(row['reliability'], 0, 1)
+        if _number(row['reliability'], 0, 1) <= 0:
+            raise ReasoningError("Evidence reliability must be positive; drop a row that carries no evidence")
         _digest(row['sha256'])
     ancestors = _ancestors(edges)
     roots = structural['candidate_roots']
@@ -894,7 +897,11 @@ def analyze_root_causes(request):
         refute = _r(-sum(item['delta'] for item in direct if item['delta'] < 0))
         log_odds = math.log(row['prior'] / (1 - row['prior'])) + STRUCTURE[position] + sum(item['delta'] for item in direct)
         score = 1 / (1 + math.exp(-max(-50, min(50, log_odds))))
-        status = ('unsupported' if not direct else 'conflicting' if support >= 1 and refute >= 1
+        # Status follows the evidence weight, not the presence of rows: no weight either way is
+        # unsupported, equal weight both ways is conflicting, and only more support than
+        # refutation is supported (so a refuting or weightless row never reads as support).
+        status = ('unsupported' if support <= 0 and refute <= 0
+                  else 'conflicting' if support >= 1 and refute >= 1 or support == refute
                   else 'refuted' if refute > support else 'supported')
         ranked.append({'id': key, 'node': node, 'node_status': state, 'prior': row['prior'],
                        'structure': {'position': position, 'delta': STRUCTURE[position]},
