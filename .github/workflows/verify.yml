@@ -38,6 +38,11 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/headroom-venv/bin/python" -m unittest discover -s tests -p 'test_headroom*.py' -v
       - run: python3 hub.py audit
+      - name: Verify callable local capabilities
+        run: |
+          python3 scripts/verify_operational_capabilities.py \
+            --only engineering-sdk --only agent-orchestration \
+            --only model-router --only motion-sdk
       - run: python3 motion-library/compile.py motion-library/specs/fade-in.json --output /tmp/fade-in.css
       - run: test -s /tmp/fade-in.css
       - run: python3 motion-library/springs.py
