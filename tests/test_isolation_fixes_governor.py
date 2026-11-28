@@ -4,6 +4,8 @@ F4: strict mode hides /etc and /opt. The requested program is resolved on the ho
 executed (so /etc/alternatives links cannot dangle), and the install prefixes of that program and of the
 sandbox's own interpreter (pid 1 imports C modules such as resource after pivot_root) are mounted
 read-only in both tiers. A whole top-level directory such as /opt is never mounted.
+
+F7: every audit-log ownership check compares with the effective uid, the owner of files the process creates.
 """
 
 import json
@@ -109,6 +111,29 @@ class StrictProgramTests(Workspace):
         tool.chmod(0o755)
         with self.assertRaisesRegex(GovernorDenied, "overlap a program prefix"):
             self.strict([str(tool)])
+
+
+class AuditOwnerTests(Workspace):
+    def test_audit_log_owner_is_compared_with_the_effective_uid(self):
+        state = self.base / "state"
+        euid = os.geteuid()
+        with mock.patch.object(os, "getuid", return_value=euid + 1):  # ruid != euid, e.g. after os.seteuid
+            governor.audit(state, {"decision": "deny", "reason": "fixture"})
+            governor.audit(state, {"decision": "allow", "reason": "fixture"})
+            self.assertEqual(governor.verify_audit(state), 2)
+        self.assertEqual((state / governor.AUDIT_FILE).stat().st_uid, euid)
+        with mock.patch.object(os, "geteuid", return_value=euid + 1), self.assertRaises(GovernorDenied) as caught:
+            governor.audit(state, {"decision": "deny", "reason": "foreign"})  # someone else's log is refused
+        self.assertEqual(caught.exception.reason, "audit-failed")
+        self.assertEqual(governor.verify_audit(state), 2)
+        fd = os.open(state / governor.AUDIT_FILE, os.O_RDONLY)
+        try:
+            with mock.patch.object(os, "getuid", return_value=euid + 1):
+                governor._private_log(fd)
+            with mock.patch.object(os, "geteuid", return_value=euid + 1), self.assertRaises(GovernorDenied):
+                governor._private_log(fd)
+        finally:
+            os.close(fd)
 
 
 if __name__ == "__main__":

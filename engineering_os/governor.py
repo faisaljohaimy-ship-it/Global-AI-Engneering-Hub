@@ -321,7 +321,7 @@ def _private_log(fd):
     info = os.fstat(fd)
     if not stat.S_ISREG(info.st_mode):
         raise GovernorDenied("audit-failed", "the audit log is not a regular file")
-    if info.st_uid != os.getuid() or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077:
+    if info.st_uid != os.geteuid() or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077:
         raise GovernorDenied("audit-failed", "the audit log is not a private file of the caller (owner, mode 0600, one link)")
 
 
