@@ -1,0 +1,1121 @@
+{
+ "audio": {
+  "bpm": 120,
+  "chords": [
+   {
+    "chord": "Dm9",
+    "scene": "one-command"
+   },
+   {
+    "chord": "Bbmaj9",
+    "scene": "twenty-layers"
+   },
+   {
+    "chord": "Fmaj9",
+    "scene": "verified"
+   },
+   {
+    "chord": "C6/9",
+    "scene": "working-system"
+   },
+   {
+    "chord": "Dm(add9)",
+    "scene": "gaie-os"
+   }
+  ],
+  "cut_markers": [
+   {
+    "kind": "impact",
+    "ms": 2500.0,
+    "sample": 120000,
+    "scene": "twenty-layers"
+   },
+   {
+    "kind": "impact",
+    "ms": 6000.0,
+    "sample": 288000,
+    "scene": "verified"
+   },
+   {
+    "kind": "impact",
+    "ms": 8500.0,
+    "sample": 408000,
+    "scene": "working-system"
+   },
+   {
+    "kind": "impact",
+    "ms": 11000.0,
+    "sample": 528000,
+    "scene": "gaie-os"
+   }
+  ],
+  "license": "Procedurally synthesised by engineering_os/video_pipeline.py (MIT, this repository): additive wavetables, xorshift noise and closed-form envelopes. No samples, loops, recordings or third-party audio are used.",
+  "master": {
+   "input_i": -19.19,
+   "input_tp": -7.96,
+   "normalization_type": "linear",
+   "output_i": -15.91,
+   "output_tp": -4.77
+  },
+  "music": "procedural",
+  "sound_design": true,
+  "voiceover": {
+   "capability": {
+    "ar": {
+     "available": false,
+     "reason": "not available here: no local Arabic TTS (espeak, espeak-ng, pico2wave absent; Flite has no Arabic voice)"
+    },
+    "binaries": {
+     "espeak": false,
+     "espeak-ng": false,
+     "festival": false,
+     "flite": false,
+     "pico2wave": false,
+     "piper": false
+    },
+    "en": {
+     "available": true,
+     "engine": "ffmpeg-libflite",
+     "license": "CMU Flite via ffmpeg libflite (BSD-style permissive licence, voices from CMU ARCTIC under the same terms); synthesised locally, no network or provider."
+    },
+    "ffmpeg_libflite": true,
+    "paid_or_network_tts_used": false
+   },
+   "license": "CMU Flite via ffmpeg libflite (BSD-style permissive licence, voices from CMU ARCTIC under the same terms); synthesised locally, no network or provider.",
+   "placed": [
+    {
+     "clip_sha256": "33395df3b908976fb2613f80cecc18a7c791dbabe4e391c4df1fa4dd76e34bf3",
+     "end_ms": 1020.1,
+     "scene": "one-command",
+     "start_ms": 300.0,
+     "text": "One command."
+    },
+    {
+     "clip_sha256": "e1b7941bcc98434b46e14b5a984bc9c5a99671cbbdbfaaa676375d83dac390e8",
+     "end_ms": 4922.9,
+     "scene": "twenty-layers",
+     "start_ms": 2800.0,
+     "text": "Twenty layers plan, build and test."
+    },
+    {
+     "clip_sha256": "c3255027804533019f39333a4173bb908799796ce96414021ed15a6fe823ed14",
+     "end_ms": 7810.2,
+     "scene": "verified",
+     "start_ms": 6300.0,
+     "text": "Every step verified."
+    },
+    {
+     "clip_sha256": "9418391440c8c1a4d8c7be675fd671529447281b0e587272da073f03eec39991",
+     "end_ms": 9932.2,
+     "scene": "working-system",
+     "start_ms": 8800.0,
+     "text": "A working system."
+    },
+    {
+     "clip_sha256": "ef0cfb32396f47078ee76b95ee654cf096686ac90138ca8d61c7ce060e01ddbf",
+     "end_ms": 13138.0,
+     "scene": "gaie-os",
+     "start_ms": 11300.0,
+     "text": "One command, a working system."
+    }
+   ]
+  }
+ },
+ "camera_moves": [
+  {
+   "cover": 1.0,
+   "id": "cinema-dolly-in",
+   "scene": "one-command",
+   "source": "motion-library/specs/cinema-dolly-in.json",
+   "source_sha256": "57c1da1112b67b8b08dd341fd8b3582c678f396fc6ad8ebf52238a6e093e70da"
+  },
+  {
+   "cover": 1.08,
+   "id": "cinema-truck-left",
+   "scene": "twenty-layers",
+   "source": "motion-library/specs/cinema-truck-left.json",
+   "source_sha256": "3adc8cb226054d2482e11ad7c90df29088605242d4236a020d5a310ae1732244"
+  },
+  {
+   "cover": 1.08,
+   "id": "cinema-crane-rise",
+   "scene": "verified",
+   "source": "motion-library/specs/cinema-crane-rise.json",
+   "source_sha256": "78afbea8c9ee6f337061fe832241c27e0b4afbb190e043a8b6e9747c3475fce1"
+  },
+  {
+   "cover": 1.0,
+   "id": "static",
+   "scene": "working-system",
+   "source": null,
+   "source_sha256": null
+  },
+  {
+   "cover": 1.0,
+   "id": "cinema-dolly-out",
+   "scene": "gaie-os",
+   "source": "motion-library/specs/cinema-dolly-out.json",
+   "source_sha256": "b5f8c1a499d83a57052992af3df391dfb1eb841885361d3e5c0972b30872ae7c"
+  }
+ ],
+ "direction": {
+  "checks": 121,
+  "contrast_min": 5.95,
+  "failed": [],
+  "passed": true,
+  "thresholds": {
+   "max_cps": {
+    "ar": 17.0,
+    "en": 20.0
+   },
+   "max_shot_ms": 10000,
+   "min_contrast": 4.5,
+   "min_reading_ms": 1000,
+   "min_shot_ms": 1000,
+   "min_text_shot_ms": 1500,
+   "min_text_size": 0.03,
+   "primary_size": 0.074,
+   "scrim_alpha": 0.72,
+   "secondary_size": 0.046,
+   "slide_px": 0.022,
+   "subtitle_gap_frames": 2,
+   "subtitle_line_chars": 42,
+   "subtitle_lines": 2,
+   "subtitle_max_ms": 7000,
+   "subtitle_min_ms": 833,
+   "text_fade_in_ms": 400,
+   "text_fade_out_ms": 300,
+   "text_in_ms": 300,
+   "text_out_ms": 150,
+   "title_safe": 0.9,
+   "vo_offset_ms": 300,
+   "vo_tail_ms": 150
+  },
+  "warnings": []
+ },
+ "fonts": {
+  "ar": {
+   "css": "\"DejaVu Sans\"",
+   "family": "DejaVu Sans",
+   "license": "Bitstream Vera / DejaVu (free)"
+  },
+  "en": {
+   "css": "\"Inter\"",
+   "family": "Inter",
+   "license": "SIL Open Font License 1.1"
+  }
+ },
+ "frames": {
+  "chain_sha256": "243a62bf86b4c5b94c8d66bcf60c2238d8fe6731acc88a9c72efd6525f98b624",
+  "count": 420,
+  "distinct": 419,
+  "first": "d7489c5f92e95426f405806b89a221d798c8dd31992b20de26caf7a97789fc99",
+  "hash": "sha256 of RGBA pixels per frame (in-browser crypto.subtle)",
+  "last": "d7489c5f92e95426f405806b89a221d798c8dd31992b20de26caf7a97789fc99"
+ },
+ "generated_at_utc": "2026-11-28T06:26:56.960505Z",
+ "gpu_probe": {
+  "hardware_gpu": false,
+  "note": "GPU APIs executed on a CPU software rasteriser (SwiftShader); no hardware GPU was used.",
+  "webgl2_executed": true,
+  "webgl2_renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "webgpu_adapter": {
+   "architecture": "swiftshader",
+   "description": "",
+   "device": "",
+   "fallback": true,
+   "vendor": "google"
+  },
+  "webgpu_compute_executed": true
+ },
+ "grade": {
+  "colour_pipeline": "RGB grade -> BT.709 limited-range YUV 4:2:0",
+  "name": "gaie-teal-amber",
+  "rgb": [
+   "curves=master='0/0.012 0.25/0.235 0.75/0.77 1/0.985'",
+   "colorbalance=rs=-0.035:gs=-0.008:bs=0.045:rh=0.035:gh=0.008:bh=-0.03",
+   "vignette=angle=0.38"
+  ],
+  "summary": "Filmic lift/roll-off curve, teal shadows + warm highlights, gentle vignette, +8 % saturation.",
+  "yuv": [
+   "eq=contrast=1.03:saturation=1.08"
+  ]
+ },
+ "inventory": {
+  "gpu_hardware_claimed": false,
+  "motion_library_components": {
+   "catalog_indexed": 142,
+   "implemented": 30,
+   "source": "motion-library/components.json"
+  },
+  "native_3d_scene_engines": [],
+  "native_engine_motions": {
+   "by_engine": {
+    "canvas2d": 5,
+    "composition": 1,
+    "dom": 1,
+    "svg": 1,
+    "webgl2-glsl": 23,
+    "webgl2-points": 2,
+    "webgpu-wgsl": 1
+   },
+   "count": 34,
+   "cpu_motions": 8,
+   "gpu_api_motions": 26,
+   "source": "packages/motion-engines (PR #16)",
+   "source_bound_to_registry": 34,
+   "source_files": 34
+  },
+  "native_total": 37,
+  "nextgen_camera_motions": {
+   "count": 3,
+   "engine": "canvas2d",
+   "ids": [
+    "camera-drone-approach",
+    "camera-infinite-flythrough",
+    "camera-macro-to-micro"
+   ],
+   "projection": "CPU perspective projection; no WebGL or 3D engine",
+   "source": "motion-library/expansion/nextgen-camera.mjs"
+  },
+  "notes": "Native engine motions and Canvas2D reference recipes are separate namespaces and are never added together. Nextgen camera scenes project 3D geometry on the CPU. No Three.js/Babylon-class 3D engine is installed. GPU-API motions use WebGL2/WebGPU; hardware execution is a probed fact, not implied by a count.",
+  "reference_canvas2d_motions": {
+   "by_tier": {
+    "advanced": 200,
+    "basic": 200
+   },
+   "count": 400,
+   "engine": "canvas2d",
+   "source": "motion-library/expansion (portable 2D reference recipes, not native engines)"
+  },
+  "schema_version": 1
+ },
+ "motions": [
+  {
+   "engine": "webgl2-glsl",
+   "fallback_used": null,
+   "id": "quantum-light-tunnel",
+   "kind": "native motion engine (webgl2-glsl)",
+   "loaded_by_browser": true,
+   "render_size": [
+    1440,
+    810
+   ],
+   "scene": "one-command",
+   "source": "engine",
+   "source_files": {
+    "packages/motion-engines/motions/quantum/light-tunnel.mjs": "9b09cce27391c838a0fa4b5f2c685b778373ea456a4d80ac4c459b0dd5ec2179"
+   }
+  },
+  {
+   "engine": "canvas2d",
+   "fallback_used": null,
+   "id": "os-networks-b01",
+   "kind": "Canvas2D reference recipe (motion-library/expansion, 400-recipe set)",
+   "loaded_by_browser": true,
+   "render_size": [
+    1920,
+    1080
+   ],
+   "scene": "twenty-layers",
+   "source": "reference",
+   "source_files": {
+    "motion-library/expansion/catalog.mjs": "2af27634e1f9416912854b5e6c9cb5740e3a2ee8275989f6ae02dc1f66c31f9c",
+    "motion-library/expansion/families.mjs": "753a7d0e81df964ae557dd66ad54a586a9c2db679db1f87f500773b9c24877c1",
+    "motion-library/expansion/geometry.mjs": "653b44b798500481f49fa853f1458ad8b2941567bed4e4a736ff34e73e9db57b",
+    "motion-library/expansion/systems.mjs": "5e7f36610c28b950d538a38a37810242839b1ab95da21b38e21a0e169d5796aa"
+   }
+  },
+  {
+   "engine": "canvas2d",
+   "fallback_used": null,
+   "id": "os-storytelling-b09",
+   "kind": "Canvas2D reference recipe (motion-library/expansion, 400-recipe set)",
+   "loaded_by_browser": true,
+   "render_size": [
+    1920,
+    1080
+   ],
+   "scene": "verified",
+   "source": "reference",
+   "source_files": {
+    "motion-library/expansion/catalog.mjs": "2af27634e1f9416912854b5e6c9cb5740e3a2ee8275989f6ae02dc1f66c31f9c",
+    "motion-library/expansion/families.mjs": "753a7d0e81df964ae557dd66ad54a586a9c2db679db1f87f500773b9c24877c1",
+    "motion-library/expansion/geometry.mjs": "653b44b798500481f49fa853f1458ad8b2941567bed4e4a736ff34e73e9db57b",
+    "motion-library/expansion/systems.mjs": "5e7f36610c28b950d538a38a37810242839b1ab95da21b38e21a0e169d5796aa"
+   }
+  },
+  {
+   "engine": "canvas2d",
+   "fallback_used": null,
+   "id": "camera-drone-approach",
+   "kind": "nextgen camera scene (CPU perspective projection drawn with Canvas2D)",
+   "loaded_by_browser": true,
+   "render_size": [
+    1920,
+    1080
+   ],
+   "scene": "working-system",
+   "source": "camera",
+   "source_files": {
+    "motion-library/expansion/nextgen-camera.mjs": "30c5c65698392c1694cd477e86820c7bb4c436aa1636775b5b3b07cfac80f0d0"
+   }
+  },
+  {
+   "engine": "webgl2-glsl",
+   "fallback_used": null,
+   "id": "atmosphere-core-ignition",
+   "kind": "native motion engine (webgl2-glsl)",
+   "loaded_by_browser": true,
+   "render_size": [
+    1440,
+    810
+   ],
+   "scene": "gaie-os",
+   "source": "engine",
+   "source_files": {
+    "packages/motion-engines/motions/atmosphere/core-ignition.mjs": "5d4056b6027e5fcbb0bc67ef6ae2f1ab28dc474db81534e7c0f38657430655d0"
+   }
+  }
+ ],
+ "not_proven": [
+  "Hardware GPU rendering: WebGL2/WebGPU executed on SwiftShader (CPU) in this environment.",
+  "Arabic voiceover: no local Arabic TTS here; English voiceover is CMU Flite (robotic, not broadcast quality).",
+  "Licensed/commercial music: none used; the bed is procedural and only as good as its synthesis.",
+  "Real-device playback, HDR, broadcast (EBU R128 -23 LUFS) delivery, burned-in or embedded subtitles.",
+  "Byte-identical MP4 across machines (frames and QA are deterministic here; encoder builds differ)."
+ ],
+ "outputs": [
+  {
+   "atoms": [
+    "ftyp",
+    "moov",
+    "free",
+    "mdat"
+   ],
+   "bytes": 7168115,
+   "duration_s": 14.0,
+   "file": "gaie-sample.mp4",
+   "qa": {
+    "audio.codec": {
+     "expected": [
+      "aac",
+      "LC"
+     ],
+     "passed": true,
+     "value": [
+      "aac",
+      "LC"
+     ]
+    },
+    "audio.duration": {
+     "expected": 14.0,
+     "passed": true,
+     "value": 14.0
+    },
+    "audio.format": {
+     "expected": [
+      48000,
+      2
+     ],
+     "passed": true,
+     "value": [
+      "48000",
+      2
+     ]
+    },
+    "audio.loudness": {
+     "expected": [
+      -17.0,
+      -15.0
+     ],
+     "passed": true,
+     "value": -15.9
+    },
+    "audio.present": {
+     "expected": 1,
+     "passed": true,
+     "value": 1
+    },
+    "audio.true_peak": {
+     "expected": -1.0,
+     "passed": true,
+     "value": -4.0
+    },
+    "container.faststart": {
+     "expected": "moov before mdat",
+     "passed": true,
+     "value": [
+      "ftyp",
+      "moov",
+      "free",
+      "mdat"
+     ]
+    },
+    "container.mp4": {
+     "expected": "mov,mp4,...",
+     "passed": true,
+     "value": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "edit.cuts_at_planned_frames": {
+     "expected": [
+      [
+       75,
+       ">=3.0"
+      ],
+      [
+       180,
+       ">=3.0"
+      ],
+      [
+       255,
+       ">=3.0"
+      ],
+      [
+       330,
+       ">=3.0"
+      ]
+     ],
+     "passed": true,
+     "value": [
+      [
+       75,
+       13.81
+      ],
+      [
+       180,
+       22.3
+      ],
+      [
+       255,
+       21.24
+      ],
+      [
+       330,
+       11.56
+      ]
+     ]
+    },
+    "subtitles.no_stream": {
+     "expected": 0,
+     "passed": true,
+     "value": 0
+    },
+    "subtitles.not_burned": {
+     "expected": false,
+     "passed": true,
+     "value": false
+    },
+    "sync.audio_on_cuts": {
+     "expected": "|offset| <= 33.33 ms",
+     "passed": true,
+     "value": [
+      2.0,
+      1.0,
+      0.0,
+      1.0
+     ]
+    },
+    "video.bitrate": {
+     "expected": 16000,
+     "passed": true,
+     "value": 3888.7
+    },
+    "video.codec": {
+     "expected": "h264",
+     "passed": true,
+     "value": "h264"
+    },
+    "video.color_bt709": {
+     "expected": "bt709",
+     "passed": true,
+     "value": [
+      "bt709",
+      "bt709",
+      "bt709"
+     ]
+    },
+    "video.dimensions": {
+     "expected": [
+      1920,
+      1080
+     ],
+     "passed": true,
+     "value": [
+      1920,
+      1080
+     ]
+    },
+    "video.duration": {
+     "expected": 14.0,
+     "passed": true,
+     "value": 14.0
+    },
+    "video.fps": {
+     "expected": "30/1",
+     "passed": true,
+     "value": [
+      "30/1",
+      "30/1"
+     ]
+    },
+    "video.frame_count": {
+     "expected": 420,
+     "passed": true,
+     "value": 420
+    },
+    "video.pix_fmt": {
+     "expected": "yuv420p",
+     "passed": true,
+     "value": "yuv420p"
+    },
+    "video.present": {
+     "expected": 1,
+     "passed": true,
+     "value": 1
+    },
+    "video.profile": {
+     "expected": "High",
+     "passed": true,
+     "value": "High"
+    }
+   },
+   "qa_passed": true,
+   "sha256": "90614bd21d6fc907c8ef9d8783eb42fce7a7f05fa49633beed6bef4e134a5c29",
+   "stored_outside_git": true,
+   "streams": [
+    {
+     "bit_rate": "3888697",
+     "codec_name": "h264",
+     "codec_type": "video",
+     "duration": "14.000000",
+     "height": 1080,
+     "index": 0,
+     "nb_read_frames": "420",
+     "pix_fmt": "yuv420p",
+     "profile": "High",
+     "r_frame_rate": "30/1",
+     "width": 1920
+    },
+    {
+     "bit_rate": "197946",
+     "channels": 2,
+     "codec_name": "aac",
+     "codec_type": "audio",
+     "duration": "14.000000",
+     "index": 1,
+     "nb_read_frames": "657",
+     "profile": "LC",
+     "r_frame_rate": "0/0",
+     "sample_rate": "48000"
+    }
+   ],
+   "sync": [
+    {
+     "audio_onset_ms": 2502,
+     "cut_strength": 13.81,
+     "expected_frame": 75,
+     "offset_ms": 2.0,
+     "onset_ratio": 3.21,
+     "video_frame": 75
+    },
+    {
+     "audio_onset_ms": 6001,
+     "cut_strength": 22.3,
+     "expected_frame": 180,
+     "offset_ms": 1.0,
+     "onset_ratio": 3.72,
+     "video_frame": 180
+    },
+    {
+     "audio_onset_ms": 8500,
+     "cut_strength": 21.24,
+     "expected_frame": 255,
+     "offset_ms": 0.0,
+     "onset_ratio": 3.21,
+     "video_frame": 255
+    },
+    {
+     "audio_onset_ms": 11001,
+     "cut_strength": 11.56,
+     "expected_frame": 330,
+     "offset_ms": 1.0,
+     "onset_ratio": 4.51,
+     "video_frame": 330
+    }
+   ],
+   "variant": "main"
+  },
+  {
+   "atoms": [
+    "ftyp",
+    "moov",
+    "free",
+    "mdat"
+   ],
+   "bytes": 2707392,
+   "duration_s": 14.0,
+   "file": "gaie-sample-720p.mp4",
+   "qa": {
+    "audio.codec": {
+     "expected": [
+      "aac",
+      "LC"
+     ],
+     "passed": true,
+     "value": [
+      "aac",
+      "LC"
+     ]
+    },
+    "audio.duration": {
+     "expected": 14.0,
+     "passed": true,
+     "value": 14.0
+    },
+    "audio.format": {
+     "expected": [
+      48000,
+      2
+     ],
+     "passed": true,
+     "value": [
+      "48000",
+      2
+     ]
+    },
+    "audio.loudness": {
+     "expected": [
+      -17.0,
+      -15.0
+     ],
+     "passed": true,
+     "value": -16.0
+    },
+    "audio.present": {
+     "expected": 1,
+     "passed": true,
+     "value": 1
+    },
+    "audio.true_peak": {
+     "expected": -1.0,
+     "passed": true,
+     "value": -4.3
+    },
+    "container.faststart": {
+     "expected": "moov before mdat",
+     "passed": true,
+     "value": [
+      "ftyp",
+      "moov",
+      "free",
+      "mdat"
+     ]
+    },
+    "container.mp4": {
+     "expected": "mov,mp4,...",
+     "passed": true,
+     "value": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "edit.cuts_at_planned_frames": {
+     "expected": [
+      [
+       75,
+       ">=3.0"
+      ],
+      [
+       180,
+       ">=3.0"
+      ],
+      [
+       255,
+       ">=3.0"
+      ],
+      [
+       330,
+       ">=3.0"
+      ]
+     ],
+     "passed": true,
+     "value": [
+      [
+       75,
+       13.78
+      ],
+      [
+       180,
+       22.6
+      ],
+      [
+       255,
+       21.0
+      ],
+      [
+       330,
+       11.75
+      ]
+     ]
+    },
+    "subtitles.no_stream": {
+     "expected": 0,
+     "passed": true,
+     "value": 0
+    },
+    "subtitles.not_burned": {
+     "expected": false,
+     "passed": true,
+     "value": false
+    },
+    "sync.audio_on_cuts": {
+     "expected": "|offset| <= 33.33 ms",
+     "passed": true,
+     "value": [
+      2.0,
+      1.0,
+      2.0,
+      1.0
+     ]
+    },
+    "video.bitrate": {
+     "expected": 8000,
+     "passed": true,
+     "value": 1405.5
+    },
+    "video.codec": {
+     "expected": "h264",
+     "passed": true,
+     "value": "h264"
+    },
+    "video.color_bt709": {
+     "expected": "bt709",
+     "passed": true,
+     "value": [
+      "bt709",
+      "bt709",
+      "bt709"
+     ]
+    },
+    "video.dimensions": {
+     "expected": [
+      1280,
+      720
+     ],
+     "passed": true,
+     "value": [
+      1280,
+      720
+     ]
+    },
+    "video.duration": {
+     "expected": 14.0,
+     "passed": true,
+     "value": 14.0
+    },
+    "video.fps": {
+     "expected": "30/1",
+     "passed": true,
+     "value": [
+      "30/1",
+      "30/1"
+     ]
+    },
+    "video.frame_count": {
+     "expected": 420,
+     "passed": true,
+     "value": 420
+    },
+    "video.pix_fmt": {
+     "expected": "yuv420p",
+     "passed": true,
+     "value": "yuv420p"
+    },
+    "video.present": {
+     "expected": 1,
+     "passed": true,
+     "value": 1
+    },
+    "video.profile": {
+     "expected": "Main",
+     "passed": true,
+     "value": "Main"
+    }
+   },
+   "qa_passed": true,
+   "sha256": "c2325592c607735b52bc00b3c285a529a4d384c3be778323208073be073be3ca",
+   "stored_outside_git": true,
+   "streams": [
+    {
+     "bit_rate": "1405507",
+     "codec_name": "h264",
+     "codec_type": "video",
+     "duration": "14.000000",
+     "height": 720,
+     "index": 0,
+     "nb_read_frames": "420",
+     "pix_fmt": "yuv420p",
+     "profile": "Main",
+     "r_frame_rate": "30/1",
+     "width": 1280
+    },
+    {
+     "bit_rate": "132224",
+     "channels": 2,
+     "codec_name": "aac",
+     "codec_type": "audio",
+     "duration": "14.000000",
+     "index": 1,
+     "nb_read_frames": "657",
+     "profile": "LC",
+     "r_frame_rate": "0/0",
+     "sample_rate": "48000"
+    }
+   ],
+   "sync": [
+    {
+     "audio_onset_ms": 2502,
+     "cut_strength": 13.78,
+     "expected_frame": 75,
+     "offset_ms": 2.0,
+     "onset_ratio": 3.22,
+     "video_frame": 75
+    },
+    {
+     "audio_onset_ms": 6001,
+     "cut_strength": 22.6,
+     "expected_frame": 180,
+     "offset_ms": 1.0,
+     "onset_ratio": 3.45,
+     "video_frame": 180
+    },
+    {
+     "audio_onset_ms": 8502,
+     "cut_strength": 21.0,
+     "expected_frame": 255,
+     "offset_ms": 2.0,
+     "onset_ratio": 2.97,
+     "video_frame": 255
+    },
+    {
+     "audio_onset_ms": 11001,
+     "cut_strength": 11.75,
+     "expected_frame": 330,
+     "offset_ms": 1.0,
+     "onset_ratio": 4.35,
+     "video_frame": 330
+    }
+   ],
+   "variant": "mobile"
+  }
+ ],
+ "pipeline_version": "1.0.0",
+ "proven": [
+  "Frames rendered headlessly in Chromium from repository motion sources by stepping plan time (no wall clock).",
+  "Same storyboard -> same frame hashes (tests/test_video_pipeline.py renders twice and compares).",
+  "MP4 outputs measured with ffprobe/ebur128: codec, dimensions, fps, frame count, duration, faststart, AAC audio, loudness, true peak, no subtitle stream, cuts at planned frames, audio transients on cuts.",
+  "Arabic text: shaped glyphs, RTL paragraph order and canvas direction checked in the browser."
+ ],
+ "qa_passed": true,
+ "renderer": {
+  "browser": "chromium",
+  "browser_version": "158.0.8127.36",
+  "chromium_args": [
+   "--enable-unsafe-webgpu",
+   "--enable-features=Vulkan,WebGPU",
+   "--use-webgpu-adapter=swiftshader",
+   "--ignore-gpu-blocklist",
+   "--enable-precise-memory-info",
+   "--js-flags=--expose-gc"
+  ],
+  "compositor_html_sha256": "38c6d4e6c5a729ca3112be291796ae1bf25e7c097c2e84905f4f3b9d821df641",
+  "compositor_js_sha256": "447f4f64d83a6e85d3b83360d1763318e93ff11d21bb88b3bc90078149b6cdb1",
+  "external_requests": 0,
+  "page_errors": 0,
+  "pipeline_sha256": "8504a5a020a88593ec89121e365afc788120a3db80a502e8b3782641e9cd5ba0",
+  "playwright": "1.63.0",
+  "renderer_js_sha256": "1291ed1ba33f99ac833483b08b19cd3b4cd54f63f2e57727029e62f9de193150",
+  "time_source": "plan.timeline frame index (no wall clock)",
+  "tools": {
+   "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+   "ffprobe": "ffprobe version 6.1.1-3ubuntu5 Copyright (c) 2007-2023 the FFmpeg developers",
+   "node": "v22.23.5"
+  }
+ },
+ "scenario": "C",
+ "schema": "gaie.video-evidence/1",
+ "storyboard": {
+  "document": {
+   "audio": {
+    "bpm": 120,
+    "music": true,
+    "sound_design": true,
+    "voiceover": {
+     "language": "en",
+     "voice": "slt"
+    }
+   },
+   "fade_in_ms": 500,
+   "fade_out_ms": 700,
+   "format": {
+    "fps": 30,
+    "height": 1080,
+    "width": 1920
+   },
+   "grade": "gaie-teal-amber",
+   "id": "gaie-os-one-command",
+   "languages": [
+    "ar",
+    "en"
+   ],
+   "primary_language": "ar",
+   "scenes": [
+    {
+     "camera": "cinema-dolly-in",
+     "duration_ms": 2500,
+     "id": "one-command",
+     "motion": {
+      "id": "quantum-light-tunnel",
+      "params": {
+       "speed": 1.2
+      },
+      "render_scale": 0.75,
+      "source": "engine"
+     },
+     "text": {
+      "ar": "أمرٌ واحد.",
+      "en": "One command."
+     },
+     "text_position": "center",
+     "transition_in": "cut"
+    },
+    {
+     "camera": "cinema-truck-left",
+     "duration_ms": 3500,
+     "id": "twenty-layers",
+     "motion": {
+      "id": "os-networks-b01",
+      "render_scale": 1.0,
+      "source": "reference"
+     },
+     "text": {
+      "ar": "عشرون طبقة تخطّط وتبني وتختبر.",
+      "en": "Twenty layers plan, build and test."
+     },
+     "text_position": "lower-third",
+     "transition_in": "cut"
+    },
+    {
+     "camera": "cinema-crane-rise",
+     "duration_ms": 2500,
+     "id": "verified",
+     "motion": {
+      "id": "os-storytelling-b09",
+      "render_scale": 1.0,
+      "source": "reference"
+     },
+     "text": {
+      "ar": "كل خطوة مُتحقَّق منها.",
+      "en": "Every step verified."
+     },
+     "text_position": "lower-third",
+     "transition_in": "cut"
+    },
+    {
+     "camera": "static",
+     "duration_ms": 2500,
+     "id": "working-system",
+     "motion": {
+      "id": "camera-drone-approach",
+      "render_scale": 1.0,
+      "source": "camera"
+     },
+     "text": {
+      "ar": "نظامٌ يعمل.",
+      "en": "A working system."
+     },
+     "text_position": "upper-third",
+     "transition_in": "cut"
+    },
+    {
+     "camera": "cinema-dolly-out",
+     "duration_ms": 3000,
+     "id": "gaie-os",
+     "motion": {
+      "id": "atmosphere-core-ignition",
+      "params": {},
+      "render_scale": 0.75,
+      "source": "engine"
+     },
+     "text": {
+      "ar": "GAIE OS — أمرٌ واحد، ونظامٌ يعمل.",
+      "en": "GAIE OS — one command, a working system."
+     },
+     "text_position": "center",
+     "transition_in": "cut",
+     "voiceover": {
+      "en": "One command, a working system."
+     }
+    }
+   ],
+   "schema": "gaie.storyboard/1",
+   "subtitles": {
+    "burn_in": false,
+    "embed": false
+   },
+   "title": {
+    "ar": "GAIE OS: أمرٌ واحد، ونظامٌ يعمل",
+    "en": "GAIE OS: one command, a working system"
+   }
+  },
+  "duration_ms": 14000.000000000002,
+  "format": {
+   "fps": 30,
+   "height": 1080,
+   "width": 1920
+  },
+  "frames": 420,
+  "id": "gaie-os-one-command",
+  "languages": [
+   "ar",
+   "en"
+  ],
+  "sha256": "c2dcbedae3f28c262f88711985746928c942134b3dbce188aa0b51cf208bd4b5",
+  "title": {
+   "ar": "GAIE OS: أمرٌ واحد، ونظامٌ يعمل",
+   "en": "GAIE OS: one command, a working system"
+  }
+ },
+ "subtitles": [
+  {
+   "cues": 5,
+   "file": "gaie-sample.ar.vtt",
+   "format": "vtt",
+   "language": "ar",
+   "qa_passed": true,
+   "sha256": "2ede546e4e2d26bf3462281555b98c98c423681685c1f902bc3b2cd19183ead0"
+  },
+  {
+   "cues": 5,
+   "file": "gaie-sample.ar.srt",
+   "format": "srt",
+   "language": "ar",
+   "qa_passed": true,
+   "sha256": "d57542fec639485c750987a999e215c7f9ea7cc1e70da6efb2ebeb99be01f9e3"
+  },
+  {
+   "cues": 5,
+   "file": "gaie-sample.en.vtt",
+   "format": "vtt",
+   "language": "en",
+   "qa_passed": true,
+   "sha256": "1d4dab95e2923913c36693e35f365ab969da2a0c3a0d4895db03a76aba2b028e"
+  },
+  {
+   "cues": 5,
+   "file": "gaie-sample.en.srt",
+   "format": "srt",
+   "language": "en",
+   "qa_passed": true,
+   "sha256": "c6e1aa286a021b1123819687cd4d9319a26af25c3e363b1c7eff16b80d7f3a34"
+  }
+ ]
+}
