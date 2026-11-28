@@ -11,3 +11,7 @@ Select `skills/headroom-context-engineering/SKILL.md` only for scoped local
 tool-output preparation; follow `docs/headroom-context-engineering.md` for private
 original retrieval and measurement limits. SDK subprocess evidence does not prove
 native Claude/MCP activation or authorize proxy/wrapper/account changes.
+
+GAIE factory skills are installed for this checkout under `.claude/skills/gaie-*`
+(generated from `skills/gaie-*` by `scripts/gaie_bootstrap.py`; edit the source,
+then re-run the bootstrap). Start owner commands with `gaie-master-router`.

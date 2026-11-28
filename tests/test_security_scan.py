@@ -62,6 +62,34 @@ class SecretTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertIn(expected, self.rules(value))
 
+    def test_keys_touching_arabic_letters_or_underscores_are_detected(self):
+        """`\\b` saw an Arabic letter or "_" as part of the word, so these keys were missed (review-fixes M2)."""
+        aws = "AK" + "IA" + "IOSFODNN7EXAMPLE"
+        samples = [
+            ("و" + aws, "aws-access-key"),
+            (aws + "هنا", "aws-access-key"),
+            ("aws_" + aws, "aws-access-key"),
+            ("مفتاح" + "AI" + "za" + "A" * 35, "google-api-key"),
+            ("مفتاح" + key("sk_" + "live_"), "stripe-secret"),
+            ("مفتاح" + "sk" + "_" + "a" * 48, "elevenlabs-key"),
+            ("رمز" + key("xox" + "b-"), "slack-token"),
+            ("رمز" + key("gh" + "p_"), "github-token"),
+            ("الرمز" + "Bearer " + key("opaque-"), "bearer-token"),
+            ("مفتاح" + key("sk-" + "proj-"), "openai-or-anthropic-key"),
+            ("مفتاح" + key("sb_" + "secret_"), "supabase-secret"),
+            ("رمز" + privileged_jwt(), "privileged-jwt"),
+        ]
+        for value, expected in samples:
+            with self.subTest(expected=expected, value=value[:8]):
+                self.assertIn(expected, self.rules(value))
+        ascii_words = ["disk-usage-monitoring-dashboard-panel-view-0123456789",
+                       "X" + aws + "YZ",
+                       "risk_live_dashboard_metrics_view_extra_columns",
+                       "task_" + "a" * 48]
+        for source in ascii_words:
+            with self.subTest(source=source):
+                self.assertEqual(self.rules(source), set())
+
     def test_private_key_markers_cover_encrypted_and_openssh(self):
         for kind in ("", "RSA ", "EC ", "OPENSSH ", "ENCRYPTED ", "PGP "):
             value = "-----BEGIN " + kind + "PRIVATE KEY" + (" BLOCK" if kind == "PGP " else "") + "-----"

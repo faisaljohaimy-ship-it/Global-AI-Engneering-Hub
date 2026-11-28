@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "policy_version": "1.0.0",
+  "implementation": "engineering_os/agent_team.py",
+  "authority": "Owner order of 2026-11-28: every build and every upgrade is staffed by a standing team of up to twenty specialist roles that work in parallel within the security and resource policy. This file is the one place to change that team: edit it, raise policy_version, and run python3 -m unittest tests.test_agent_team. A team listed here is a staffing plan; it does not start an agent.",
+  "registry": "governance/agent-roles.json",
+  "roles": [
+    "chief-engineering-architect",
+    "twenty-layer-architecture-engineer",
+    "control-plane-integration-engineer",
+    "engineering-reasoning-engineer",
+    "persistent-memory-engineer",
+    "knowledge-intelligence-integration-engineer",
+    "master-build-engine-engineer",
+    "master-upgrade-engine-engineer",
+    "nl-router-project-registry-engineer",
+    "adaptive-agent-orchestration-engineer",
+    "context-token-economics-engineer",
+    "cinematic-production-engineer",
+    "motion-sdk-animation-engineer",
+    "gpu-3d-digital-twin-engineer",
+    "agent-isolation-security-engineer",
+    "enterprise-security-privacy-engineer",
+    "testing-self-healing-engineer",
+    "independent-assurance-engineer",
+    "github-integration-release-engineer",
+    "claude-code-integration-engineer"
+  ],
+  "rosters": {
+    "build": [
+      "chief-engineering-architect",
+      "twenty-layer-architecture-engineer",
+      "control-plane-integration-engineer",
+      "engineering-reasoning-engineer",
+      "persistent-memory-engineer",
+      "knowledge-intelligence-integration-engineer",
+      "master-build-engine-engineer",
+      "master-upgrade-engine-engineer",
+      "nl-router-project-registry-engineer",
+      "adaptive-agent-orchestration-engineer",
+      "context-token-economics-engineer",
+      "cinematic-production-engineer",
+      "motion-sdk-animation-engineer",
+      "gpu-3d-digital-twin-engineer",
+      "agent-isolation-security-engineer",
+      "enterprise-security-privacy-engineer",
+      "testing-self-healing-engineer",
+      "independent-assurance-engineer",
+      "github-integration-release-engineer",
+      "claude-code-integration-engineer"
+    ],
+    "upgrade": [
+      "chief-engineering-architect",
+      "twenty-layer-architecture-engineer",
+      "control-plane-integration-engineer",
+      "engineering-reasoning-engineer",
+      "persistent-memory-engineer",
+      "knowledge-intelligence-integration-engineer",
+      "master-build-engine-engineer",
+      "master-upgrade-engine-engineer",
+      "nl-router-project-registry-engineer",
+      "adaptive-agent-orchestration-engineer",
+      "context-token-economics-engineer",
+      "cinematic-production-engineer",
+      "motion-sdk-animation-engineer",
+      "gpu-3d-digital-twin-engineer",
+      "agent-isolation-security-engineer",
+      "enterprise-security-privacy-engineer",
+      "testing-self-healing-engineer",
+      "independent-assurance-engineer",
+      "github-integration-release-engineer",
+      "claude-code-integration-engineer"
+    ]
+  },
+  "intents_without_roster": {
+    "audit": "Read-only review by the gaie-verifier agent; no implementer team.",
+    "accelerate": "Scoped pass: staffed from the route's workstreams, at most session_limit, until the owner adds a roster here.",
+    "repair": "Scoped pass: staffed from the route's workstreams, at most session_limit, until the owner adds a roster here.",
+    "cinematic": "Media pass: staffed from the route's workstreams, at most session_limit, until the owner adds a roster here.",
+    "release": "Gated release under a separate owner approval; no implementer team."
+  },
+  "mandatory_roles": [
+    "independent-assurance-engineer"
+  ],
+  "session_limit": 20,
+  "concurrency": {
+    "agents_per_cpu": 2,
+    "start": 4,
+    "workflow_runner": {
+      "cap": 16,
+      "reserved_cpus": 2
+    },
+    "rule": "The roster is how many specialists a plan staffs; concurrency is how many run at the same moment. effective = min(session_limit, cpus x agents_per_cpu); inside the workflow runner also min(cap, cpus - reserved_cpus). The first wave uses min(start, effective) agents. The live number is never above effective.",
+    "labels": {
+      "session_limit": "measured: the host refused agent calls past the twentieth",
+      "agents_per_cpu": "policy, not a measured optimum: chosen from host pressure at 11 and 16 concurrent agents on 4 CPUs",
+      "start": "policy: the first-wave size the economics recommender starts from",
+      "workflow_runner": "documented by the host and observed at 2 on a 4-CPU machine"
+    },
+    "evidence": [
+      {"supports": "session_limit", "kind": "measured", "file": "swarm/evidence/host-limits.json", "pointer": ["agent_tool", "peak_concurrent_measured"], "value": 20},
+      {"supports": "session_limit", "kind": "measured", "file": "swarm/phase2/README.md", "contains": "The host runs at most 20 agents at once"},
+      {"supports": "session_limit", "kind": "measured", "file": "swarm/phase3/evidence/team.json", "pointer": ["totals", "ran_at_once"], "value": 20},
+      {"supports": "session_limit", "kind": "measured", "file": "swarm/phase3/capacity.py", "contains": "SESSION = 20"},
+      {"supports": "session_limit", "kind": "policy", "file": "docs/evidence/gaie-20-layers/scenario-h.json", "pointer": ["host_cap_policy", "session_limit"], "value": 20},
+      {"supports": "agents_per_cpu", "kind": "policy", "file": "docs/evidence/gaie-20-layers/scenario-h.json", "pointer": ["host_cap_policy", "agents_per_cpu"], "value": 2},
+      {"supports": "agents_per_cpu", "kind": "policy", "file": "docs/evidence/gaie-20-layers/scenario-h.json", "pointer": ["host_cap_policy", "cap"], "value": 8},
+      {"supports": "agents_per_cpu", "kind": "measured", "file": "docs/evidence/gaie-20-layers/scenario-h.json", "pointer": ["results", "agents_started_together"], "value": 11},
+      {"supports": "agents_per_cpu", "kind": "measured", "file": "docs/evidence/gaie-20-layers/scenario-h.json", "pointer": ["host_pressure", 2, "note"], "contains": "fork EAGAIN"},
+      {"supports": "agents_per_cpu", "kind": "measured", "file": "swarm/phase3/evidence/team2.json", "pointer": ["totals", "ran_at_once"], "value": 16},
+      {"supports": "agents_per_cpu", "kind": "measured", "file": "swarm/phase3/evidence/team2.json", "pointer": ["suite_after_joining", "passed"], "value": false},
+      {"supports": "agents_per_cpu", "kind": "measured", "file": "docs/specs/gaie-20-layers/ECONOMICS.md", "contains": "shrink to 8 (`conflict-shrink`)"},
+      {"supports": "start", "kind": "policy", "file": "docs/evidence/gaie-20-layers/scenario-h.json", "pointer": ["results", "next_wave", "limits", "start"], "value": 4},
+      {"supports": "start", "kind": "policy", "file": "docs/evidence/gaie-20-layers/scenario-h.json", "pointer": ["simulated_20_agent_schedule", "first_wave", "recommended_agents"], "value": 4},
+      {"supports": "workflow_runner", "kind": "documented", "file": "swarm/evidence/host-limits.json", "pointer": ["workflow_tool", "documented_cap"], "contains": "min(16, cores - 2)"},
+      {"supports": "workflow_runner", "kind": "measured", "file": "swarm/evidence/host-limits.json", "pointer": ["workflow_tool", "peak_concurrent_measured"], "value": 2},
+      {"supports": "workflow_runner", "kind": "measured", "file": "swarm/evidence/host-limits.json", "pointer": ["machine", "cores"], "value": 4}
+    ]
+  },
+  "waves": {
+    "order": "Dependency waves of engineering_os.orchestrator.plan: team A first, teams B to F in parallel, then G, then H.",
+    "size": "A wave holds at most effective agents, one task per agent. A ready set larger than that runs as successive waves and is never started at once: 13 ready tasks on a 4-CPU host run 4+4+4+1 at the start size or 8+5 at the cap.",
+    "next": "engineering_os.economics.recommend_concurrency over the measured waves: stop on a limit error, halve on any conflict, grow only when verified tasks per million tokens improved, never above effective.",
+    "implementation": "engineering_os/orchestrator.py schedule"
+  },
+  "omission": {
+    "rule": "Every roster role is either staffed with at least one work item or listed in omitted with a reason. A role is never dropped silently, and a team never has more than session_limit roles.",
+    "default_reason": "no work item in this plan is assigned to this role",
+    "implementation": "engineering_os/agent_team.py check_staffing"
+  },
+  "review": {
+    "rule": "The reviewer of a work item is never its producer. The first role with the registry's reviewer flag reviews; when that role produced the item, the first other testing reviewer does.",
+    "testing_reviewers": [
+      "independent-assurance-engineer",
+      "testing-self-healing-engineer"
+    ],
+    "approvals": [
+      "testing",
+      "security",
+      "release"
+    ],
+    "implementation": "engineering_os/orchestrator.py review_assignment and engineering_os/orchestration.py TaskStore.review"
+  },
+  "consumers": [
+    {"file": "engineering_os/orchestrator.py", "reads": ["session_limit", "concurrency.agents_per_cpu", "concurrency.start"]}
+  ],
+  "declared_vs_enforced": {
+    "enforced_in_ci": [
+      {"claim": "The policy loads only as strict JSON without duplicate keys and with schema_version, policy_version and implementation.", "tests": ["tests.test_agent_team.LoadTests.test_duplicate_keys_and_bad_json_are_refused", "tests.test_agent_team.LoadTests.test_schema_and_bounds"]},
+      {"claim": "The role list equals governance/agent-roles.json and layers.ROLE_IDS, in order; the build and upgrade rosters are the full twenty.", "tests": ["tests.test_agent_team.PolicyTests.test_roles_equal_the_registry", "tests.test_agent_team.PolicyTests.test_build_and_upgrade_staff_all_twenty"]},
+      {"claim": "No roster has more than session_limit roles, session_limit is never above 20, and an unknown, duplicate or missing mandatory role is refused.", "tests": ["tests.test_agent_team.NegativeTests.test_policies_that_break_the_bounds_are_refused"]},
+      {"claim": "Every concurrency number equals the evidence file it cites.", "tests": ["tests.test_agent_team.EvidenceTests.test_numbers_equal_the_cited_evidence"]},
+      {"claim": "The orchestrator's session limit, agents per CPU and start come from this policy, and the router's maximum equals session_limit.", "tests": ["tests.test_agent_team.DriftTests.test_orchestrator_constants_come_from_the_policy", "tests.test_agent_team.DriftTests.test_router_maximum_equals_the_session_limit"]},
+      {"claim": "A staffing check refuses more than session_limit agents or an unknown role and lists every unstaffed roster role with a reason.", "tests": ["tests.test_agent_team.StaffingTests.test_twenty_role_plan_staffs_everyone", "tests.test_agent_team.StaffingTests.test_spec_plan_lists_omitted_roles_with_reasons", "tests.test_agent_team.StaffingTests.test_staffing_fails_closed"]},
+      {"claim": "A wave never exceeds the host cap of min(20, CPUs x 2).", "tests": ["tests.test_orchestrator.ScheduleTests.test_start_and_host_cap", "tests.test_agent_team.ConcurrencyTests.test_effective_start_and_runner"]},
+      {"claim": "The reviewer of a work item is never its producer.", "tests": ["tests.test_orchestrator.ReviewTests.test_reviewer_is_never_the_implementer_for_any_role", "tests.test_agent_team.DriftTests.test_reviewer_rule_matches_the_orchestrator"]},
+      {"claim": "The specialist agent definition and its .claude mirror are identical, name this policy, and cannot start agents.", "tests": ["tests.test_agent_team.SpecialistTests.test_definition_and_mirror"]}
+    ],
+    "declared_only": [
+      {"claim": "A live session starts the team this policy names.", "why": "The lead session decides which agents to start; no code in this repository starts an agent."},
+      {"claim": "An agent is the role it claims.", "why": "Roles are caller assertions (governance/policies/orchestration.json authority); no identity provider authenticates them."},
+      {"claim": "Live concurrency stays at or below effective.", "why": "A session-level count guard needs a PreToolUse hook in .claude/settings.json, which is frozen (swarm/phase3/FREEZE.json), so none is installed. The host itself refuses agent calls past the twentieth (swarm/phase2/README.md finding 2)."},
+      {"claim": "A specialist writes only inside its work item's paths.", "why": "agents/gaie-specialist.md instructs it and gives it no Agent tool; no hook confines its writes (docs/specs/gaie-20-layers/ORCHESTRATION.md section 9)."},
+      {"claim": "Sessions outside this repository follow this policy.", "why": "An installed or vendored project carries the policy only once the bootstrap and the pack ship it with the router."}
+    ]
+  }
+}

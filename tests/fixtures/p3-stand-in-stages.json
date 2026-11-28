@@ -1,0 +1,325 @@
+{
+ "about": "Third phase of the swarm experiment: the run that opens with a security gate stage. Counts, times and tool names from the host's records of real agents and from the gate's own record; no record content.",
+ "plan_sha256": "4efb950a7b50b04bf53f73618db28a18094eb643584e40a0a6af23afac53a7e3",
+ "caps": {
+  "cumulative_input_tokens": 150000000,
+  "spent_before_phase2": 72125176,
+  "preflight_input_tokens": 0,
+  "first_phase_input_tokens": 36168638,
+  "phase2_agent_runs": 2000,
+  "phase2_output_tokens": 6000000
+ },
+ "figures": {
+  "input_tokens_counted": 72224356,
+  "cap": 150000000,
+  "agents_started_in_phase_2": 7,
+  "projected_for_stage": null
+ },
+ "stages": [
+  {
+   "label": "g0",
+   "actual_agents": 3,
+   "agents_with_limit_error": 0,
+   "agent_tokens": {
+    "input_uncached": 60,
+    "cache_write": 3000,
+    "cache_read": 30000,
+    "input_total": 33060,
+    "output": 360,
+    "total": 33420
+   },
+   "wall_seconds": 0.17,
+   "kind": "probe",
+   "size": null,
+   "agent_type": "swarm-probe",
+   "model": "haiku",
+   "effort": "low",
+   "mode": null,
+   "delivery": null,
+   "registered_agents": 3,
+   "started": "2026-11-28T04:50:40.770203Z",
+   "finished": "2026-11-28T04:50:41.049435Z",
+   "first_request_context": {
+    "median": 5510,
+    "least": 5510,
+    "most": 5510
+   },
+   "first_request_read_from_cache": 0.9074,
+   "cache_written": {
+    "five_minutes": 0,
+    "one_hour": 0,
+    "lifetime_not_reported": 3000
+   },
+   "cost_units": 8610,
+   "swk_calls": 1,
+   "refused_calls": 1,
+   "foreign_calls": 0,
+   "other_tool_calls": 1,
+   "agent_types_in_records": [
+    "swarm-probe",
+    "swarm-probe-wide"
+   ],
+   "replies_per_agent": {
+    "median": 2,
+    "most": 2
+   },
+   "guard_enforced": true,
+   "allowed_command_ran": true,
+   "ledger": {
+    "agents": 3,
+    "tool_calls": 3,
+    "by_class": {
+     "refused by the gate": 2,
+     "worker command": 1
+    },
+    "by_tool": {
+     "Bash": 2,
+     "Read": 1
+    },
+    "calls_a_gate_must_have_seen_by_agent_type": {
+     "swarm-probe": 2,
+     "swarm-probe-wide": 1
+    },
+    "calls_outside_the_contract_that_ran": {},
+    "clean": true,
+    "gate": {
+     "calls_the_gate_saw_by_agent_type": {
+      "swarm-probe": 2,
+      "swarm-probe-wide": 1
+     },
+     "calls_in_records_the_gate_did_not_see": {},
+     "refused_by_the_gate_in_its_own_record": 2,
+     "reconciled": true
+    },
+    "agents_of_other_types_started_during_the_stage": 0
+   },
+   "security_gate": {
+    "passed": true,
+    "why": [],
+    "probes": [
+     {
+      "what": "read a file with a command of its own",
+      "agent_type": "swarm-probe",
+      "must_be": "refused",
+      "agents": 1,
+      "calls_refused": 1,
+      "of_them_by_the_gate": 1,
+      "calls_outside_the_contract_that_ran": 0,
+      "worker_commands_that_ran": 0,
+      "held": true
+     },
+     {
+      "what": "run its own command",
+      "agent_type": "swarm-probe",
+      "must_be": "let through",
+      "agents": 1,
+      "calls_refused": 0,
+      "of_them_by_the_gate": 0,
+      "calls_outside_the_contract_that_ran": 0,
+      "worker_commands_that_ran": 1,
+      "held": true
+     },
+     {
+      "what": "read a file with a file tool",
+      "agent_type": "swarm-probe-wide",
+      "must_be": "refused",
+      "agents": 1,
+      "calls_refused": 1,
+      "of_them_by_the_gate": 1,
+      "calls_outside_the_contract_that_ran": 0,
+      "worker_commands_that_ran": 0,
+      "held": true
+     }
+    ]
+   },
+   "counted_before_this_run": {
+    "total": 72125176,
+    "parts": {
+     "first_phase": 36168638,
+     "second_phase_trial_in_the_authoring_session": 2219321,
+     "second_phase_stages": 29793041,
+     "third_phase_development_agents": 3896199,
+     "allowance_for_probe_agents_of_the_team_sessions": 47977
+    },
+    "reported_apart": {
+     "orchestrator_of_the_second_phase_run": 19656431,
+     "note": "The limit has counted the input tokens of the experiment's agents since the first phase. What the orchestrating sessions read is measured per stage and reported beside it, not inside it."
+    }
+   }
+  },
+  {
+   "label": "q4",
+   "actual_agents": 4,
+   "peak_concurrent_agents": 1,
+   "tasks": 4,
+   "verified_tasks": 4,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 70,
+   "hidden_tests_total": 70,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 57.8,
+   "agents_replying_done": 4,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 0.86,
+   "sum_of_agent_seconds": 0.0,
+   "effective_concurrency": 0.0,
+   "tasks_per_minute": 279.02,
+   "models": [
+    "haiku"
+   ],
+   "agent_tokens": {
+    "input_uncached": 120,
+    "cache_write": 6000,
+    "cache_read": 60000,
+    "input_total": 66120,
+    "output": 720,
+    "total": 66840
+   },
+   "cache_read_share": 0.9074,
+   "model_roundtrips": 12,
+   "tool_calls": 8,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 9360,
+   "per_verified_task": {
+    "input_total": 16530,
+    "output": 180,
+    "roundtrips": 3.0,
+    "agent_seconds": 0.0
+   },
+   "helper_calls": {},
+   "orchestrator_tokens": {
+    "input_uncached": 0,
+    "cache_write": 0,
+    "cache_read": 0,
+    "input_total": 0,
+    "output": 0,
+    "roundtrips": 0
+   },
+   "orchestrator_share_of_all_tokens": 0.0,
+   "machine": {
+    "samples": 2,
+    "peak_load_1m": 0.44,
+    "least_memory_available_mb": 15400,
+    "peak_host_process_rss_mb": 0,
+    "host_process_cpu_seconds": 0.0
+   },
+   "kind": "task",
+   "size": "medium",
+   "agent_type": "swarm-queue-1",
+   "model": "haiku",
+   "effort": "low",
+   "mode": null,
+   "delivery": "queue",
+   "registered_agents": 4,
+   "started": "2026-11-28T04:50:41.872476Z",
+   "finished": "2026-11-28T04:50:43.058119Z",
+   "first_request_context": {
+    "median": 5510,
+    "least": 5510,
+    "most": 5510
+   },
+   "first_request_read_from_cache": 0.9074,
+   "cache_written": {
+    "five_minutes": 0,
+    "one_hour": 0,
+    "lifetime_not_reported": 6000
+   },
+   "cost_units": 17220,
+   "swk_calls": 8,
+   "refused_calls": 0,
+   "foreign_calls": 0,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-queue-1"
+   ],
+   "replies_per_agent": {
+    "median": 3.0,
+    "most": 3
+   },
+   "ownership": {
+    "submitted": 4,
+    "approved": 4,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 4
+    },
+    "revision": 16
+   },
+   "not_verified": [],
+   "worker_command": {
+    "hand_ins": 4,
+    "calls": 8,
+    "characters_printed": 9248,
+    "headroom_views": 0
+   },
+   "per_verified_task_cost_units": 4305,
+   "guard_enforced": true,
+   "index_cross_check": null,
+   "ledger": {
+    "agents": 4,
+    "tool_calls": 8,
+    "by_class": {
+     "worker command": 8
+    },
+    "by_tool": {
+     "Bash": 8
+    },
+    "calls_a_gate_must_have_seen_by_agent_type": {
+     "swarm-queue-1": 8
+    },
+    "calls_outside_the_contract_that_ran": {},
+    "clean": true,
+    "gate": {
+     "calls_the_gate_saw_by_agent_type": {
+      "swarm-queue-1": 8
+     },
+     "calls_in_records_the_gate_did_not_see": {},
+     "refused_by_the_gate_in_its_own_record": 0,
+     "reconciled": true
+    },
+    "agents_of_other_types_started_during_the_stage": 0
+   },
+   "queue": {
+    "tasks": 4,
+    "left_waiting": 0,
+    "claimed_and_not_handed_in": 0,
+    "handed_in": 4,
+    "given_up": 0,
+    "workers_that_drew_a_task": 4,
+    "most_tasks_one_worker_took": 1,
+    "batch_allowed": 1,
+    "agent_calls_per_message": 4
+   },
+   "counted_before_this_run": {
+    "total": 72125176,
+    "parts": {
+     "first_phase": 36168638,
+     "second_phase_trial_in_the_authoring_session": 2219321,
+     "second_phase_stages": 29793041,
+     "third_phase_development_agents": 3896199,
+     "allowance_for_probe_agents_of_the_team_sessions": 47977
+    },
+    "reported_apart": {
+     "orchestrator_of_the_second_phase_run": 19656431,
+     "note": "The limit has counted the input tokens of the experiment's agents since the first phase. What the orchestrating sessions read is measured per stage and reported beside it, not inside it."
+    }
+   }
+  }
+ ],
+ "counted_before_this_run": {
+  "total": 72125176,
+  "parts": {
+   "first_phase": 36168638,
+   "second_phase_trial_in_the_authoring_session": 2219321,
+   "second_phase_stages": 29793041,
+   "third_phase_development_agents": 3896199,
+   "allowance_for_probe_agents_of_the_team_sessions": 47977
+  },
+  "reported_apart": {
+   "orchestrator_of_the_second_phase_run": 19656431,
+   "note": "The limit has counted the input tokens of the experiment's agents since the first phase. What the orchestrating sessions read is measured per stage and reported beside it, not inside it."
+  }
+ }
+}

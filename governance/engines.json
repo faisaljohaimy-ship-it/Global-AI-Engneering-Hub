@@ -1,0 +1,1284 @@
+[
+  {
+    "id": "security-governor",
+    "layer": "L01",
+    "title": {
+      "en": "Security Governor",
+      "ar": "حاكم الأمان"
+    },
+    "entrypoint": "engineering_os.adapters:security_governor",
+    "health": "engineering_os.adapters:security_governor_health",
+    "actions": {
+      "check": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Dry-run a grant against a registered engine action through governor.check; never uses an approval token and runs nothing."
+      },
+      "validate-grant": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Validate a grant record against the shared contract."
+      }
+    },
+    "supersedes": []
+  },
+  {
+    "id": "context-intelligence",
+    "layer": "L02",
+    "title": {
+      "en": "Context Intelligence",
+      "ar": "ذكاء السياق"
+    },
+    "entrypoint": "engineering_os.adapters:context_intelligence",
+    "health": "engineering_os.adapters:context_intelligence_health",
+    "actions": {
+      "status": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Report the pinned Headroom SDK requirement and whether it is installed; imports no SDK."
+      },
+      "view": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Return a plain head/tail view of supplied text with every error line kept verbatim (ultra-context hr view); no SDK or tokenizer."
+      },
+      "retrieve": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Read a stored original back from the private context store, verified against its SHA-256."
+      },
+      "optimize": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "write:state",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Store an input file's original in the private context store and run the pinned SDK worker behind its no-IP boundary; passthrough when the SDK is absent."
+      }
+    },
+    "supersedes": [
+      "tools/headroom_context.py CLI (kept)",
+      "skills/ultra-context-optimization/scripts/hr.py CLI (kept)"
+    ]
+  },
+  {
+    "id": "master-router",
+    "layer": "L03",
+    "title": {
+      "en": "Master Router",
+      "ar": "الموجّه الرئيسي"
+    },
+    "entrypoint": "engineering_os.adapters:master_router",
+    "health": "engineering_os.adapters:master_router_health",
+    "actions": {
+      "route": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "read:state",
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Classify an owner command (Arabic or English) into one engine, skill, workstreams and gates; unknown, ambiguous or negated targets stop with needs-clarification."
+      },
+      "projects": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "List public registry and private-overlay projects with their aliases."
+      }
+    },
+    "supersedes": [
+      "hub.py route (kept as facade)"
+    ]
+  },
+  {
+    "id": "agent-swarm",
+    "layer": "L03",
+    "title": {
+      "en": "Agent Swarm Scheduler",
+      "ar": "مجدول سرب الوكلاء"
+    },
+    "entrypoint": "engineering_os.adapters:agent_swarm",
+    "health": "engineering_os.adapters:agent_swarm_health",
+    "actions": {
+      "plan": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Plan waves of (task, agent) pairs: duplicates dropped, dependencies first, no agent or write path twice in a wave."
+      },
+      "simulate": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Simulate a wave plan over swarm/agents.json; starts no agent and calls no model."
+      }
+    },
+    "supersedes": []
+  },
+  {
+    "id": "adaptive-scheduler",
+    "layer": "L03",
+    "title": {
+      "en": "Adaptive Wave Scheduler",
+      "ar": "المجدول التكيفي للموجات"
+    },
+    "entrypoint": "engineering_os.adapters:adaptive_scheduler",
+    "health": "engineering_os.adapters:adaptive_scheduler_health",
+    "actions": {
+      "next-wave": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Choose the next wave's agent count and batch from measured history and limits; zero agents means stop."
+      }
+    },
+    "supersedes": []
+  },
+  {
+    "id": "orchestrator",
+    "layer": "L03",
+    "title": {
+      "en": "Adaptive Agent Orchestration",
+      "ar": "التنسيق التكيّفي للوكلاء"
+    },
+    "entrypoint": "engineering_os.adapters:orchestrator",
+    "health": "engineering_os.adapters:orchestrator_health",
+    "actions": {
+      "plan": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Plan a goal or gaie.spec/1 into milestones, tasks, roles, waves, least-privilege task grants and independent reviewers; nothing is started."
+      },
+      "schedule": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Size the next wave of a verified plan from measured wave history and the host cap; nothing is started."
+      },
+      "review-assignment": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Name the independent reviewer and approval panel of one plan task; never its implementer."
+      },
+      "worktree-plan": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Return git worktree and branch commands (argv lists) per agent outside the repository; nothing is executed."
+      },
+      "scenario-h": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Compute Scenario H figures from caller-supplied measured wave metrics; no file or clock is read."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.orchestrator plan|scenario-h (kept as an ungoverned CLI)"
+    ]
+  },
+  {
+    "id": "capability-registry",
+    "layer": "L04",
+    "title": {
+      "en": "Capability Registry",
+      "ar": "سجل القدرات"
+    },
+    "entrypoint": "engineering_os.adapters:capability_registry",
+    "health": "engineering_os.adapters:capability_registry_health",
+    "actions": {
+      "list": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "List catalog tools and local skills with lifecycle state; file presence is not operational proof."
+      },
+      "search": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Search the validated external capability catalog."
+      },
+      "recommend": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Recommend catalog capabilities, motions and skills that match a query."
+      },
+      "integrations": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Report integration programs, protocols and their last recorded probes."
+      },
+      "architecture": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Report the operating-system layer projection and its available sources."
+      }
+    },
+    "supersedes": [
+      "hub.py capabilities/search/recommend/integrations/architecture (kept as facades)"
+    ]
+  },
+  {
+    "id": "layers",
+    "layer": "L04",
+    "title": {
+      "en": "Twenty-Layer Architecture Registry",
+      "ar": "سجل معمارية الطبقات العشرين"
+    },
+    "entrypoint": "engineering_os.adapters:layers",
+    "health": "engineering_os.adapters:layers_health",
+    "actions": {
+      "status": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Report each layer's status from its latest receipt bound to current sources; runs nothing."
+      },
+      "verify": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:repo",
+          "write:state",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Run each layer's listed tests in subprocesses (not the governor sandbox) and write source-bound receipts to the private state directory."
+      }
+    },
+    "supersedes": []
+  },
+  {
+    "id": "master-upgrade",
+    "layer": "L06",
+    "title": {
+      "en": "Master Upgrade Engine",
+      "ar": "محرك التطوير الرئيسي"
+    },
+    "entrypoint": "engineering_os.adapters:master_upgrade",
+    "health": "engineering_os.adapters:master_upgrade_health",
+    "actions": {
+      "spec": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Return the upgrade route for a scope (comprehensive, performance, self-healing) bound to the SHA-256 of the MASTER_UPGRADE prompt and gaie-upgrade skill."
+      },
+      "plan": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Plan the factory stage graph and artifact/check contracts for an upgrade; this action generates no code (upgrade does)."
+      },
+      "evaluate": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Revalidate supplied stage receipts against artifact bytes under artifact_root; artifacts are never executed."
+      },
+      "audit": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Read-only audit of an existing system (route, inventory, detectors, upgrade plan) for an audit command; writes nothing, not even workdir."
+      },
+      "upgrade": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Upgrade an existing system in an isolated copy under workdir with per-step receipts, regression proof, patch and rollback; the target is never written and nothing is deployed."
+      }
+    },
+    "supersedes": []
+  },
+  {
+    "id": "motion-sdk",
+    "layer": "L08",
+    "title": {
+      "en": "Motion SDK",
+      "ar": "حزمة الحركة"
+    },
+    "entrypoint": "engineering_os.adapters:motion_sdk",
+    "health": "engineering_os.adapters:motion_sdk_health",
+    "actions": {
+      "catalog": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Search the validated motion catalog."
+      },
+      "components": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "List implemented motion-lab components mapped to the catalog."
+      },
+      "runtime": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Report motion runtime evidence (legacy and expansion) from reviewed, source-bound receipts only."
+      }
+    },
+    "supersedes": [
+      "hub.py motions (kept as facade)"
+    ]
+  },
+  {
+    "id": "quality-assurance",
+    "layer": "L09",
+    "title": {
+      "en": "Quality Assurance",
+      "ar": "ضمان الجودة"
+    },
+    "entrypoint": "engineering_os.adapters:quality_assurance",
+    "health": "engineering_os.adapters:quality_assurance_health",
+    "actions": {
+      "run-tests": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Run named hub unittest modules through governor.sandbox_run without network; tests may write temporary files and caches."
+      },
+      "contracts": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Validate governance/engines.json (and governance/layers.json when present) against the shared contracts with imports resolved."
+      }
+    },
+    "supersedes": []
+  },
+  {
+    "id": "security-audit",
+    "layer": "L09",
+    "title": {
+      "en": "Enterprise Security Audit",
+      "ar": "تدقيق الأمان المؤسسي"
+    },
+    "entrypoint": "engineering_os.adapters:security_audit",
+    "health": "engineering_os.adapters:security_audit_health",
+    "actions": {
+      "scan": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Static rules over the tracked files of this checkout (one hardened git ls-files read); hits by path, line and rule, never by value."
+      },
+      "audit": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Static rules plus every registered finding's probe, re-run in private temporary directories (child processes, Python-level checks, not an OS sandbox)."
+      },
+      "anchor": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Record count and last record digest of the control plane's intact governor audit log; keep the anchor outside the state directory."
+      },
+      "verify-anchor": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Check that the governor audit log is intact and still holds an anchored record (detects removal from its end)."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.security_audit (kept as an ungoverned CLI)"
+    ]
+  },
+  {
+    "id": "master-release",
+    "layer": "L11",
+    "title": {
+      "en": "Master Release Engine",
+      "ar": "محرك الإصدار الرئيسي"
+    },
+    "entrypoint": "engineering_os.adapters:master_release",
+    "health": "engineering_os.adapters:master_release_health",
+    "actions": {
+      "spec": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Return the registered release route (engine, skill, prompt, workstreams, gates, hub commands) bound to the SHA-256 of its skill and prompt files."
+      },
+      "provenance": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Bind caller-supplied CI workflow-run and job metadata to the exact commit and required workflows; nothing is fetched."
+      },
+      "eligibility": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Check a project's release evidence against its verified identity and clean checkout HEAD; reports eligibility and never deploys."
+      }
+    },
+    "supersedes": []
+  },
+  {
+    "id": "master-audit",
+    "layer": "L12",
+    "title": {
+      "en": "Master Audit Engine",
+      "ar": "محرك التدقيق الرئيسي"
+    },
+    "entrypoint": "engineering_os.adapters:master_audit",
+    "health": "engineering_os.adapters:master_audit_health",
+    "actions": {
+      "spec": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Return the registered audit route (engine, skill, prompt, workstreams, gates, hub commands) bound to the SHA-256 of its skill and prompt files."
+      },
+      "inventory": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Bounded read-only inventory and upgrade coverage matrix of a project checkout; project code is never executed."
+      },
+      "health": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Hub health projection, or a private project's offline capability integrity and manifests."
+      },
+      "hub-audit": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Hub audit counts for catalog, skills, motions and integrations from their tested surfaces."
+      }
+    },
+    "supersedes": [
+      "hub.py audit/health/inventory (kept as facades)"
+    ]
+  },
+  {
+    "id": "reasoning",
+    "layer": "L13",
+    "title": {
+      "en": "Engineering Reasoning",
+      "ar": "الاستدلال الهندسي"
+    },
+    "entrypoint": "engineering_os.adapters:reasoning",
+    "health": "engineering_os.adapters:reasoning_health",
+    "actions": {
+      "plan": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Rank caller-supplied alternatives against declared constraints and compute a dependency wave schedule."
+      },
+      "review": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Decide a plan review from supplied independent reviews and verification receipts."
+      },
+      "root-causes": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Rank root-cause candidates from supplied observations and dependencies."
+      },
+      "strategy": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "choose quick, standard or deep reasoning with the reason"
+      },
+      "decompose": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "expand goal, milestones and tasks into planner nodes"
+      },
+      "plan-goal": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "decompose a goal and schedule it with the wave planner"
+      },
+      "constraints": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "check hard constraints and score soft constraints"
+      },
+      "dependencies": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "critical path, slack, ready and blocked items"
+      },
+      "rca": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "rank competing root-cause hypotheses by weighted evidence"
+      },
+      "counterfactual": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "evaluate what changes when assumptions or decisions flip"
+      },
+      "uncertainty": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "flag missing, stale or conflicting evidence"
+      },
+      "perspectives": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "architecture, security, quality, cost and operability findings"
+      },
+      "validate-decision": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "accept a decision only with evidence for critical criteria"
+      },
+      "trade-off": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "weighted criteria matrix with weight sensitivity"
+      },
+      "route-model": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "routing decision for a step that needs a model; no call"
+      }
+    },
+    "supersedes": [
+      "intelligence.dispatch:reasoning-plan",
+      "intelligence.dispatch:reasoning-review",
+      "intelligence.dispatch:root-causes"
+    ]
+  },
+  {
+    "id": "memory",
+    "layer": "L14",
+    "title": {
+      "en": "Engineering Memory",
+      "ar": "الذاكرة الهندسية"
+    },
+    "entrypoint": "engineering_os.adapters:memory",
+    "health": "engineering_os.adapters:memory_health",
+    "actions": {
+      "put": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Store a curated project-scoped record (deduplicated, credential-shaped text refused)."
+      },
+      "search": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Lexical/concept retrieval within one project; recorded verification rechecked against source_root."
+      },
+      "graph": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Return one project's knowledge graph."
+      },
+      "index": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:repo",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Index Python symbols of one source file as memory records; source bodies are never stored."
+      },
+      "checkpoint": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Write a checksummed snapshot of the memory store to a new private file."
+      },
+      "restore": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Restore a checksummed snapshot into an empty memory store."
+      },
+      "verify": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Attach a passed, source-bound test receipt to a stored solution."
+      },
+      "retrieve": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Ranked retrieval over entries and indexed symbols."
+      },
+      "neighbours": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Typed neighbours of a graph node."
+      },
+      "path": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Shortest path between two graph nodes."
+      },
+      "adr-get": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Read one ADR with its evidence status."
+      },
+      "why": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Why a decision was taken, from recorded text."
+      },
+      "solutions": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Verified-solutions registry; unverified ones marked."
+      },
+      "failure-recall": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Known failures for a signature."
+      },
+      "next-steps": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Done, remaining and next steps per task."
+      },
+      "brief": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Resume briefing for a new session."
+      },
+      "where": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Locate a symbol from the index."
+      },
+      "evidence-status": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Fresh, stale or missing source evidence."
+      },
+      "adr-add": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Record an architecture decision record."
+      },
+      "adr-status": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Accept a proposed ADR."
+      },
+      "failure-record": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Record a failure signature, root cause and fix."
+      },
+      "task-progress": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Record a new version of task progress."
+      }
+    },
+    "supersedes": [
+      "intelligence.dispatch:memory-*"
+    ]
+  },
+  {
+    "id": "requirements",
+    "layer": "L15",
+    "title": {
+      "en": "Requirements & Specification Intelligence",
+      "ar": "ذكاء المتطلبات والمواصفات"
+    },
+    "entrypoint": "engineering_os.adapters:requirements",
+    "health": "engineering_os.adapters:requirements_health",
+    "actions": {
+      "parse": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Owner command or brief (Arabic or English) to gaie.spec/1 by deterministic lexicon matching; unknowns become open questions."
+      },
+      "refine": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "Resolve a spec's open questions with the owner's answers."
+      },
+      "validate": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Validate a gaie.spec/1 document."
+      },
+      "diff": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Change set between two specs for an upgrade, with breaking changes flagged."
+      },
+      "acceptance": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Structured acceptance checks of a spec."
+      },
+      "packs": {
+        "side_effect": "none",
+        "permissions": [
+          "read:registry",
+          "secrets:none"
+        ],
+        "summary": "List the validated domain packs."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.requirements (kept as an ungoverned CLI)"
+    ]
+  },
+  {
+    "id": "master-build",
+    "layer": "L16",
+    "title": {
+      "en": "Master Build Engine",
+      "ar": "محرك البناء الرئيسي"
+    },
+    "entrypoint": "engineering_os.adapters:master_build",
+    "health": "engineering_os.adapters:master_build_health",
+    "actions": {
+      "spec": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Return the build route bound to the SHA-256 of the MASTER_BUILD prompt and gaie-build skill."
+      },
+      "plan": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Plan the factory stage graph and artifact/check contracts for a new system; this action generates no code (build does)."
+      },
+      "evaluate": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Revalidate supplied stage receipts against artifact bytes under artifact_root; artifacts are never executed."
+      },
+      "plan-app": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Validate a gaie.spec/1 and describe the application, tests and factory stages without writing."
+      },
+      "build": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Generate, locally commit, test and evidence an independent application in out_dir, a new direct child of the explicit workspace (outside the hub and every Git tree); never pushes."
+      },
+      "evaluate-app": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Re-validate a built application's factory receipts against its bytes; nothing is executed."
+      },
+      "request-repository": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "write:workspace",
+          "secrets:none"
+        ],
+        "summary": "Write .gaie/repository-request.json in a built application for the owner; never contacts GitHub."
+      }
+    },
+    "supersedes": [
+      "intelligence.dispatch:factory-plan",
+      "intelligence.dispatch:factory-evaluate"
+    ]
+  },
+  {
+    "id": "self-healing",
+    "layer": "L17",
+    "title": {
+      "en": "Self-Healing",
+      "ar": "الإصلاح الذاتي"
+    },
+    "entrypoint": "engineering_os.adapters:self_healing",
+    "health": "engineering_os.adapters:self_healing_health",
+    "actions": {
+      "analyze": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Propose evidence-bound repair hypotheses from supplied failures; no command or candidate code is executed."
+      },
+      "verify-repair": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "write:workspace",
+          "secrets:none"
+        ],
+        "summary": "Check baseline, candidate and rollback copies in a disposable temporary workspace with fixed declarative checks; supplied code is never executed."
+      },
+      "detect": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Static defect detectors over a target directory; target code is never executed (runtime detectors are reported skipped)."
+      },
+      "heal": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Run the bounded self-healing loop on an isolated copy under workdir (target tests in child processes, Python-level guard, not an OS sandbox); the target is never written."
+      }
+    },
+    "supersedes": [
+      "intelligence.dispatch:healing-analyze",
+      "intelligence.dispatch:healing-verify"
+    ]
+  },
+  {
+    "id": "master-cinematic",
+    "layer": "L18",
+    "title": {
+      "en": "Master Cinematic Engine",
+      "ar": "المحرك السينمائي الرئيسي"
+    },
+    "entrypoint": "engineering_os.adapters:master_cinematic",
+    "health": "engineering_os.adapters:master_cinematic_health",
+    "actions": {
+      "spec": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Return the registered cinematic route (engine, skill, prompt, workstreams, gates, hub commands) bound to the SHA-256 of its skill and prompt files."
+      },
+      "audit": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Source-bound cinematic inventory; runtime eligibility only with fresh receipts for every requested browser."
+      }
+    },
+    "supersedes": [
+      "intelligence.dispatch:cinematic"
+    ]
+  },
+  {
+    "id": "cinematic-production",
+    "layer": "L18",
+    "title": {
+      "en": "Cinematic Production Pipeline",
+      "ar": "خط الإنتاج السينمائي"
+    },
+    "entrypoint": "engineering_os.adapters:cinematic_production",
+    "health": "engineering_os.adapters:cinematic_production_health",
+    "actions": {
+      "inventory": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Count native engine motions (packages/motion-engines/registry.json) apart from Canvas2D reference motions."
+      },
+      "validate": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Validate a gaie.storyboard/1 document and count its frames."
+      },
+      "direct": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Static cinematic direction checks (reading time, pacing, language) of a storyboard."
+      },
+      "subtitles": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "WebVTT and SRT text of a storyboard for each language."
+      },
+      "probe": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Probe headless Chromium (WebGL2, WebGPU, Arabic shaping) and local TTS in child processes; temporary files only."
+      },
+      "render": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Render, encode and QA media into out_dir outside the repository (headless Chromium and ffmpeg child processes)."
+      },
+      "qa": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Measure one MP4 against an expected delivery format with ffprobe/ffmpeg child processes; temporary files only."
+      }
+    },
+    "supersedes": [
+      "python3 -m engineering_os.video_pipeline (kept as an ungoverned CLI)"
+    ]
+  },
+  {
+    "id": "economics",
+    "layer": "L19",
+    "title": {
+      "en": "Engineering Economics",
+      "ar": "اقتصاديات الهندسة"
+    },
+    "entrypoint": "engineering_os.adapters:economics",
+    "health": "engineering_os.adapters:economics_health",
+    "actions": {
+      "summarize": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Aggregate a supplied ledger: tokens, estimates and charges kept separate; nothing is billed."
+      },
+      "recommend-model": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Recommend a model through the gated model router from supplied registry and evidence; host credentials are never consulted."
+      },
+      "ledger": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Read the control plane's private usage ledger rows."
+      },
+      "assess": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Typed L19 metrics of a ledger, with units and unknowns."
+      },
+      "recommend-concurrency": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Next agent count and batch from measured waves. (swarm/phase3/adaptive.py loaded read-only by path)"
+      },
+      "estimate-scope": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE for a feature, an MVP or an enterprise system. Planning figures, not measurements."
+      },
+      "estimate-infrastructure": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE of infrastructure cost from supplied ranges. Planning figures, not measurements."
+      },
+      "estimate-maintenance": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE of maintenance from a build estimate. Planning figures, not measurements."
+      },
+      "estimate-rework": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE of rework from a build estimate. Planning figures, not measurements."
+      },
+      "context-footprint": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Re-measure the repository context a session loads. Counts files and characters by a stated method; no tokenizer or model."
+      },
+      "measured-baseline": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Measured inputs from the swarm evidence, with sources. Each figure cites its source path."
+      }
+    },
+    "supersedes": [
+      "intelligence.dispatch:economics"
+    ]
+  }
+]

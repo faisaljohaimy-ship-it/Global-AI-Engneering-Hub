@@ -1,0 +1,804 @@
+{
+  "schema_version": 1,
+  "teams": {
+    "A": {
+      "en": "Architecture & Control Plane",
+      "ar": "المعمارية ومستوى التحكم"
+    },
+    "B": {
+      "en": "Reasoning, Memory & Knowledge",
+      "ar": "الاستدلال والذاكرة والمعرفة"
+    },
+    "C": {
+      "en": "Build, Upgrade & Routing",
+      "ar": "البناء والتطوير والتوجيه"
+    },
+    "D": {
+      "en": "Orchestration & Economics",
+      "ar": "التنسيق والاقتصاديات"
+    },
+    "E": {
+      "en": "Cinematic, Motion & GPU",
+      "ar": "السينما والحركة والرسوميات"
+    },
+    "F": {
+      "en": "Security & Isolation",
+      "ar": "الأمن والعزل"
+    },
+    "G": {
+      "en": "Testing, Healing & Assurance",
+      "ar": "الاختبار والإصلاح والضمان"
+    },
+    "H": {
+      "en": "Delivery & Host Integration",
+      "ar": "التسليم وتكامل المضيف"
+    }
+  },
+  "roles": [
+    {
+      "id": "chief-engineering-architect",
+      "team": "A",
+      "title": {
+        "en": "Chief Engineering Architect",
+        "ar": "كبير المعماريين الهندسيين"
+      },
+      "summary": "Owns the shared contracts and the boundaries every engine and layer must respect.",
+      "layers": [
+        "L01",
+        "L04"
+      ],
+      "owns": [
+        "docs/specs/gaie-20-layers/CONTRACTS.md",
+        "engineering_os/contracts.py",
+        "tests/test_contracts.py",
+        "AGENTS.md"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "layers": [
+            "status"
+          ],
+          "capability-registry": [
+            "architecture"
+          ],
+          "reasoning": [
+            "plan",
+            "review"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "twenty-layer-architecture-engineer",
+      "team": "A",
+      "title": {
+        "en": "Twenty-Layer Architecture Engineer",
+        "ar": "مهندس معمارية الطبقات العشرين"
+      },
+      "summary": "Keeps the machine-checked twenty-layer registry, the role registry and the layer verifier.",
+      "layers": [
+        "L01",
+        "L04",
+        "L20"
+      ],
+      "owns": [
+        "governance/layers.json",
+        "governance/agent-roles.json",
+        "engineering_os/layers.py",
+        "tests/test_layers.py",
+        "ARCHITECTURE.md",
+        "docs/specs/gaie-20-layers/LAYERS.md"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "layers": [
+            "status",
+            "verify"
+          ],
+          "capability-registry": [
+            "architecture"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "state-write"
+      }
+    },
+    {
+      "id": "control-plane-integration-engineer",
+      "team": "A",
+      "title": {
+        "en": "Control Plane Integration Engineer",
+        "ar": "مهندس تكامل مستوى التحكم"
+      },
+      "summary": "Integrates engines behind one control-plane invocation path and the hub CLI.",
+      "layers": [
+        "L04",
+        "L05"
+      ],
+      "owns": [
+        "engineering_os/control.py",
+        "engineering_os/control_plane.py",
+        "engineering_os/intelligence.py",
+        "governance/engines.json",
+        "hub.py",
+        "tests/test_os_control.py",
+        "tests/test_control_plane.py",
+        "tests/test_intelligence.py"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "layers": [
+            "status"
+          ],
+          "capability-registry": [
+            "list",
+            "integrations",
+            "architecture"
+          ],
+          "master-audit": [
+            "health"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "engineering-reasoning-engineer",
+      "team": "B",
+      "title": {
+        "en": "Engineering Reasoning Engineer",
+        "ar": "مهندس الاستدلال الهندسي"
+      },
+      "summary": "Owns constraint planning, decision review and root-cause ranking.",
+      "layers": [
+        "L13",
+        "L15"
+      ],
+      "owns": [
+        "engineering_os/reasoning.py",
+        "tests/test_reasoning.py"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "reasoning": [
+            "plan",
+            "review",
+            "root-causes",
+            "strategy",
+            "decompose",
+            "plan-goal",
+            "constraints",
+            "dependencies",
+            "rca",
+            "counterfactual",
+            "uncertainty",
+            "perspectives",
+            "validate-decision",
+            "trade-off",
+            "route-model"
+          ],
+          "master-router": [
+            "route"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "persistent-memory-engineer",
+      "team": "B",
+      "title": {
+        "en": "Persistent Memory Engineer",
+        "ar": "مهندس الذاكرة الدائمة"
+      },
+      "summary": "Owns private project memory, checkpoints and restore.",
+      "layers": [
+        "L14"
+      ],
+      "owns": [
+        "engineering_os/memory.py",
+        "engineering_os/gaie_memory.py",
+        "tests/test_engineering_memory.py"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "memory": [
+            "search",
+            "graph",
+            "put",
+            "checkpoint",
+            "restore",
+            "retrieve",
+            "neighbours",
+            "path",
+            "adr-get",
+            "why",
+            "solutions",
+            "failure-recall",
+            "next-steps",
+            "brief",
+            "where",
+            "evidence-status"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "state-write"
+      }
+    },
+    {
+      "id": "knowledge-intelligence-integration-engineer",
+      "team": "B",
+      "title": {
+        "en": "Knowledge Intelligence Integration Engineer",
+        "ar": "مهندس تكامل ذكاء المعرفة"
+      },
+      "summary": "Integrates knowledge discovery and continuous technology intelligence.",
+      "layers": [
+        "L07",
+        "L12"
+      ],
+      "owns": [
+        "scripts/discover_technology.py",
+        "tests/test_technology_discovery.py",
+        "catalog/discoveries/*"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "memory": [
+            "search",
+            "graph",
+            "retrieve",
+            "why",
+            "brief",
+            "where"
+          ],
+          "context-intelligence": [
+            "view",
+            "retrieve"
+          ],
+          "capability-registry": [
+            "search",
+            "recommend"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "master-build-engine-engineer",
+      "team": "C",
+      "title": {
+        "en": "Master Build Engine Engineer",
+        "ar": "مهندس محرك البناء الرئيسي"
+      },
+      "summary": "Owns the factory's build path from requirements to a verified artifact set.",
+      "layers": [
+        "L06",
+        "L16"
+      ],
+      "owns": [
+        "engineering_os/factory.py",
+        "tests/test_factory.py",
+        "prompts/MASTER_BUILD.md",
+        "skills/gaie-build/*"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "master-build": [
+            "spec",
+            "plan",
+            "evaluate",
+            "plan-app",
+            "evaluate-app"
+          ],
+          "master-router": [
+            "route"
+          ],
+          "requirements": [
+            "parse",
+            "refine",
+            "validate",
+            "acceptance"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "master-upgrade-engine-engineer",
+      "team": "C",
+      "title": {
+        "en": "Master Upgrade Engine Engineer",
+        "ar": "مهندس محرك التطوير الرئيسي"
+      },
+      "summary": "Owns the upgrade path of an existing project from its measured inventory.",
+      "layers": [
+        "L06",
+        "L16"
+      ],
+      "owns": [
+        "engineering_os/gaie_inventory.py",
+        "prompts/MASTER_UPGRADE.md",
+        "skills/gaie-upgrade/*",
+        "skills/gaie-audit/*"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "master-upgrade": [
+            "spec",
+            "plan",
+            "evaluate",
+            "audit"
+          ],
+          "master-audit": [
+            "inventory"
+          ],
+          "requirements": [
+            "validate",
+            "diff"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "nl-router-project-registry-engineer",
+      "team": "C",
+      "title": {
+        "en": "Natural-Language Router & Project Registry Engineer",
+        "ar": "مهندس الموجّه اللغوي وسجل المشاريع"
+      },
+      "summary": "Owns bilingual command routing and the project registries it resolves against.",
+      "layers": [
+        "L10",
+        "L15",
+        "L16"
+      ],
+      "owns": [
+        "engineering_os/gaie_router.py",
+        "governance/policies/gaie-routes.json",
+        "tests/test_gaie_router.py",
+        "projects/*",
+        "skills/gaie-master-router/*"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "master-router": [
+            "route",
+            "projects"
+          ],
+          "requirements": [
+            "parse",
+            "refine",
+            "validate",
+            "diff",
+            "acceptance",
+            "packs"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "adaptive-agent-orchestration-engineer",
+      "team": "D",
+      "title": {
+        "en": "Adaptive Agent Orchestration Engineer",
+        "ar": "مهندس التنسيق التكيّفي للوكلاء"
+      },
+      "summary": "Owns task leases, handovers and bounded agent scheduling.",
+      "layers": [
+        "L03"
+      ],
+      "owns": [
+        "engineering_os/orchestration.py",
+        "governance/policies/orchestration.json",
+        "tests/test_os_orchestration.py",
+        "swarm/scheduler.py",
+        "engineering_os/orchestrator.py",
+        "tests/test_orchestrator.py",
+        "docs/specs/gaie-20-layers/ORCHESTRATION.md",
+        "docs/evidence/gaie-20-layers/scenario-h.json"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "agent-swarm": [
+            "plan",
+            "simulate"
+          ],
+          "adaptive-scheduler": [
+            "next-wave"
+          ],
+          "orchestrator": [
+            "plan",
+            "schedule",
+            "review-assignment",
+            "worktree-plan",
+            "scenario-h"
+          ],
+          "economics": [
+            "recommend-concurrency"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "context-token-economics-engineer",
+      "team": "D",
+      "title": {
+        "en": "Context & Token Economics Engineer",
+        "ar": "مهندس اقتصاديات السياق والرموز"
+      },
+      "summary": "Owns model selection, usage accounting and context budgets.",
+      "layers": [
+        "L02",
+        "L19"
+      ],
+      "owns": [
+        "engineering_os/economics.py",
+        "engineering_os/model_router.py",
+        "tests/test_economics.py",
+        "tests/test_model_router.py",
+        "skills/ultra-context-optimization/*"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "economics": [
+            "summarize",
+            "recommend-model",
+            "ledger",
+            "assess",
+            "recommend-concurrency",
+            "estimate-scope",
+            "estimate-infrastructure",
+            "estimate-maintenance",
+            "estimate-rework",
+            "context-footprint",
+            "measured-baseline"
+          ],
+          "context-intelligence": [
+            "status",
+            "view"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "cinematic-production-engineer",
+      "team": "E",
+      "title": {
+        "en": "Cinematic Production Engineer",
+        "ar": "مهندس الإنتاج السينمائي"
+      },
+      "summary": "Owns cinematic intelligence: source-bound inventory and proof selection.",
+      "layers": [
+        "L08",
+        "L18"
+      ],
+      "owns": [
+        "engineering_os/cinematic.py",
+        "tests/test_cinematic_intelligence.py",
+        "skills/gaie-cinematic/*",
+        "skills/cinematic-production/*"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "master-cinematic": [
+            "spec",
+            "audit"
+          ],
+          "motion-sdk": [
+            "catalog"
+          ],
+          "cinematic-production": [
+            "inventory",
+            "validate",
+            "direct",
+            "subtitles"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "motion-sdk-animation-engineer",
+      "team": "E",
+      "title": {
+        "en": "Motion SDK & Animation Engineer",
+        "ar": "مهندس حزمة الحركة والرسوم المتحركة"
+      },
+      "summary": "Owns the Universal Motion SDK, the motion runtime and the expansion catalog.",
+      "layers": [
+        "L08"
+      ],
+      "owns": [
+        "packages/motion-sdk/*",
+        "motion-library/expansion/*",
+        "tests/test_universal_motion_sdk.mjs",
+        "tests/test_motion_expansion.mjs"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "motion-sdk": [
+            "catalog",
+            "components",
+            "runtime"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "gpu-3d-digital-twin-engineer",
+      "team": "E",
+      "title": {
+        "en": "GPU, 3D & Digital Twin Engineer",
+        "ar": "مهندس الرسوميات وثلاثي الأبعاد والتوائم الرقمية"
+      },
+      "summary": "Owns the native motion engines, the Chromium stack and GPU evidence.",
+      "layers": [
+        "L08",
+        "L18"
+      ],
+      "owns": [
+        "packages/motion-engines/*",
+        "motion-library/chromium-stack/*",
+        "tests/test_engine_motion_link.py"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "motion-sdk": [
+            "runtime"
+          ],
+          "master-cinematic": [
+            "audit"
+          ],
+          "cinematic-production": [
+            "inventory"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "agent-isolation-security-engineer",
+      "team": "F",
+      "title": {
+        "en": "Agent Isolation Security Engineer",
+        "ar": "مهندس أمن عزل الوكلاء"
+      },
+      "summary": "Owns the security governor, the execution cage and the lane guards.",
+      "layers": [
+        "L03",
+        "L09"
+      ],
+      "owns": [
+        "engineering_os/governor.py",
+        "tests/test_governor.py",
+        "swarm/phase3/cage.py",
+        "swarm/phase3/lane_guard.py",
+        "swarm/phase2/guard.py"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "security-governor": [
+            "check",
+            "validate-grant"
+          ],
+          "security-audit": [
+            "anchor",
+            "verify-anchor"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "enterprise-security-privacy-engineer",
+      "team": "F",
+      "title": {
+        "en": "Enterprise Security & Privacy Engineer",
+        "ar": "مهندس أمن المؤسسات والخصوصية"
+      },
+      "summary": "Owns secret and code scanning, dependency audits and privacy boundaries.",
+      "layers": [
+        "L01",
+        "L09"
+      ],
+      "owns": [
+        "scripts/security_scan.py",
+        "tests/test_security_scan.py",
+        "tests/test_security.py",
+        "SECURITY.md"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "security-governor": [
+            "validate-grant"
+          ],
+          "quality-assurance": [
+            "contracts"
+          ],
+          "security-audit": [
+            "scan",
+            "anchor",
+            "verify-anchor"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "testing-self-healing-engineer",
+      "team": "G",
+      "title": {
+        "en": "Testing & Self-Healing Engineer",
+        "ar": "مهندس الاختبار والإصلاح الذاتي"
+      },
+      "summary": "Owns repair proposals, repair verification and test coverage of failures.",
+      "layers": [
+        "L09",
+        "L17"
+      ],
+      "owns": [
+        "engineering_os/healing.py",
+        "tests/test_healing.py"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "self-healing": [
+            "analyze",
+            "verify-repair",
+            "detect"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "layers": [
+            "status"
+          ]
+        },
+        "paths": [
+          "workspace/*"
+        ],
+        "max_side_effect": "workspace-write"
+      }
+    },
+    {
+      "id": "independent-assurance-engineer",
+      "team": "G",
+      "title": {
+        "en": "Independent Assurance Engineer",
+        "ar": "مهندس الضمان المستقل"
+      },
+      "summary": "Reviews receipts independently; never reviews a change it produced.",
+      "layers": [
+        "L20"
+      ],
+      "owns": [
+        "engineering_os/assurance.py",
+        "tests/test_assurance.py"
+      ],
+      "reviewer": true,
+      "default_grant": {
+        "engines": {
+          "layers": [
+            "status",
+            "verify"
+          ],
+          "quality-assurance": [
+            "contracts"
+          ],
+          "reasoning": [
+            "review",
+            "validate-decision"
+          ],
+          "orchestrator": [
+            "review-assignment"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "state-write"
+      }
+    },
+    {
+      "id": "github-integration-release-engineer",
+      "team": "H",
+      "title": {
+        "en": "GitHub Integration & Release Engineer",
+        "ar": "مهندس تكامل GitHub والإصدارات"
+      },
+      "summary": "Owns release provenance, project linking and CI workflows; remote writes need owner approval.",
+      "layers": [
+        "L10",
+        "L11"
+      ],
+      "owns": [
+        "scripts/verify_release.py",
+        "tests/test_release_provenance.py",
+        ".github/workflows/*",
+        "hublink.py",
+        "tests/test_link.py",
+        "sdk/*"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "master-release": [
+            "spec",
+            "provenance",
+            "eligibility"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    },
+    {
+      "id": "claude-code-integration-engineer",
+      "team": "H",
+      "title": {
+        "en": "Claude Code Integration Engineer",
+        "ar": "مهندس تكامل Claude Code"
+      },
+      "summary": "Owns the Claude Code host integration: agents, skills installation and instructions.",
+      "layers": [
+        "L02",
+        "L05"
+      ],
+      "owns": [
+        ".claude/*",
+        "CLAUDE.md",
+        "scripts/gaie_bootstrap.py",
+        "tests/test_gaie_factory.py"
+      ],
+      "reviewer": false,
+      "default_grant": {
+        "engines": {
+          "master-router": [
+            "route"
+          ],
+          "capability-registry": [
+            "list"
+          ]
+        },
+        "paths": [],
+        "max_side_effect": "none"
+      }
+    }
+  ]
+}

@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "policy_version": "1.0.0",
+  "implementation": "engineering_os/motion_policy.py",
+  "effective_from": "2026-11-28",
+  "authority": "Owner direction of 2026-11-28: adopt purposeful digital motions and forbid random motions. This file is the one place the rule is edited. It is a repository policy checked by code and tests: it does not judge whether a stated meaning is true or well chosen, and it is not an access control.",
+  "rule": {
+    "en": "Every motion states, in one sentence per language, what it stands for in a digital service. A motion with no stated meaning is not added, and no motion draws from unseeded randomness.",
+    "ar": "كل حركة تذكر، في جملة واحدة بكل لغة، ما تمثّله في خدمة رقمية. لا تُضاف حركة بلا معنى معلن، ولا ترسم أي حركة من عشوائية بلا بذرة."
+  },
+  "meaning": {
+    "keys": [
+      "ar",
+      "en"
+    ],
+    "min_chars": 12,
+    "max_chars": 240,
+    "arabic_script_in": "ar",
+    "description": "An object with exactly the keys ar and en. Each value is one sentence of min_chars to max_chars characters saying what the motion stands for in a digital service (a data pipeline, an identity check, an approval gate ...); the ar value contains Arabic script. The code refuses limits looser than 12 and 240."
+  },
+  "classes": {
+    "purposeful": {
+      "en": "States a valid meaning in English and Arabic. The only class that may be counted, presented or recommended as a purposeful digital motion.",
+      "ar": "تذكر معنًى صحيحًا بالعربية والإنجليزية. وهي الفئة الوحيدة التي يجوز عدّها أو عرضها أو التوصية بها حركةً رقمية ذات معنى."
+    },
+    "legacy-unclassified": {
+      "en": "Built before the rule and proven to run, but no digital meaning has been stated for it. Pinned by id and never counted, presented or recommended as purposeful. It stays here until the owner promotes or withdraws it.",
+      "ar": "بُنيت قبل القاعدة وثبت تشغيلها، لكن لم يُذكر لها معنى رقمي. مثبّتة بمعرّفها، ولا تُعدّ ولا تُعرض ولا يُوصى بها حركةً ذات معنى. تبقى هنا حتى يرقّيها المالك أو يسحبها."
+    },
+    "reference-illustrative": {
+      "en": "A Canvas2D reference recipe that illustrates a drawing mechanism. It claims no digital meaning and no live data: reference material, not a purposeful motion.",
+      "ar": "وصفة مرجعية على Canvas2D توضّح آلية رسم. لا تدّعي معنًى رقميًّا ولا بيانات حيّة: مادة مرجعية وليست حركة ذات معنى."
+    },
+    "specification-index": {
+      "en": "A catalogue row: the name and status of a motion specification or interface primitive. An index row is not a statement of meaning.",
+      "ar": "صفّ في الفهرس: اسم مواصفة حركة أو عنصر واجهة وحالتها. صفّ الفهرس ليس بيانًا للمعنى."
+    },
+    "withdrawn": {
+      "en": "Removed because its meaning was only decorative. The id is recorded so that it is not rebuilt, and its source must not be on disk.",
+      "ar": "أُزيلت لأن معناها كان زخرفيًّا فقط. يُسجَّل معرّفها حتى لا تُبنى من جديد، ويجب ألا يكون مصدرها موجودًا."
+    }
+  },
+  "registries": {
+    "native-engine": {
+      "what": "The engine-native motions of packages/motion-engines. A motion with a valid meaning is purposeful. A motion without one is accepted only while its id is in legacy_ids; any other is refused when the registry is built.",
+      "record": "packages/motion-engines/registry.json",
+      "sources": "packages/motion-engines/motions",
+      "legacy_ids": [
+        "quantum-field-distortion",
+        "quantum-energy-collapse",
+        "quantum-particle-entanglement",
+        "quantum-wave-propagation",
+        "quantum-orbital-matrix",
+        "quantum-light-tunnel",
+        "quantum-singularity-reveal",
+        "quantum-probability-cloud",
+        "quantum-fractal-expansion",
+        "quantum-energy-pulse",
+        "glass-liquid-refraction",
+        "glass-dynamic-dispersion",
+        "glass-surface-ripple",
+        "glass-card-elevation",
+        "glass-metallic-flow",
+        "glass-titanium-sweep",
+        "glass-crystal-transformation",
+        "glass-iridescent-morphing",
+        "glass-frosted-focus",
+        "glass-lens-distortion",
+        "typography-bilingual-transition",
+        "micro-magnetic-button",
+        "shaders-wgsl-compute-particles",
+        "atmosphere-procedural-fog",
+        "atmosphere-electric-arc",
+        "atmosphere-plasma-flow",
+        "atmosphere-solar-flare",
+        "atmosphere-aurora-wave",
+        "atmosphere-energy-shield",
+        "atmosphere-electromagnetic-field",
+        "atmosphere-volumetric-clouds",
+        "atmosphere-core-ignition",
+        "atmosphere-shockwave",
+        "compositions-quantum-master-sequence"
+      ],
+      "withdrawn_ids": [
+        "lighting-lens-flare",
+        "lighting-studio-spotlight",
+        "lighting-volumetric-beams",
+        "shaders-raymarched-geometry",
+        "shaders-sdf-morph"
+      ]
+    },
+    "nextgen-camera": {
+      "what": "The three perspective camera scenes drawn by the universal SDK. Their source has no meaning field, only an 'illustrative' disclaimer, so all three are legacy-unclassified and the file may define no other scene.",
+      "source": "motion-library/expansion/nextgen-camera.mjs",
+      "legacy_ids": [
+        "camera-drone-approach",
+        "camera-infinite-flythrough",
+        "camera-macro-to-micro"
+      ],
+      "withdrawn_ids": []
+    },
+    "digital-shows": {
+      "what": "The scene types of the digital show kit. Its registry states one meaning per scene as meaning.ar and meaning.en; every scene must carry a valid one, with no legacy allowance.",
+      "record": "packages/digital-shows/registry.json",
+      "source": "packages/digital-shows/kit.mjs"
+    },
+    "reference-recipes": {
+      "what": "The 400 Canvas2D reference recipes. None states a meaning (data_semantics is one disclaimer shared by all of them), so every one is reference-illustrative and the set may not grow.",
+      "record": "motion-library/expansion/definitions.json",
+      "list": "definitions",
+      "class": "reference-illustrative",
+      "pinned_count": 400
+    },
+    "catalog": {
+      "what": "The motion catalogue: 156 rows (127 specification, 29 implemented), and every one of the 30 components of motion-library/components.json must have a row. No row states a meaning, so every row is specification-index and the catalogue may not grow.",
+      "record": "motion-library/MOTION_CATALOG.json",
+      "list": "entries",
+      "components": "motion-library/components.json",
+      "class": "specification-index",
+      "pinned_count": 156
+    },
+    "ported-sdk": {
+      "what": "Universal Motion SDK motions ported from earlier branches with git checkout (docs/evidence/ported-motions.json). Every one states a meaning; there is no legacy allowance. The meanings are read from the browser receipt, which is bound to each module's SHA-256.",
+      "record": "docs/evidence/ported-motions.json",
+      "receipt": "docs/evidence/ported-motions-chromium.json"
+    }
+  },
+  "owner_decisions": {
+    "how": "A legacy id leaves legacy_ids only with a record here. promoted: the owner states a meaning in the motion source, the motion is proven again in the browser and the registry is rebuilt, then the id is removed from legacy_ids. withdrawn: the source is deleted, and the id moves from legacy_ids to withdrawn_ids. With no record the id stays legacy-unclassified. Record shape: registry, id, decision (promoted or withdrawn), date (YYYY-MM-DD), note.",
+    "records": []
+  },
+  "sources": {
+    "comment_lines": "A line whose first non-space characters are // is a comment and is not scanned. Everything else is scanned as text, so a forbidden name inside a string or a block comment is refused too.",
+    "seeded_randomness": {
+      "en": "Allowed: a deterministic pseudo-random generator seeded from an explicit value, because the same seed draws the same frames. In this tree: mulberry32 in packages/motion-engines/core/util.mjs (given to motions as ctx.random(salt)), seeded(seed) in packages/digital-shows/kit.mjs and noise(i, seed) in motion-library/expansion/geometry.mjs. Forbidden: Math.random, crypto.getRandomValues, crypto.randomUUID, and a clock value used as a seed.",
+      "ar": "مسموح: مولّد شبه عشوائي حتمي يبدأ من بذرة صريحة، لأن البذرة نفسها ترسم الإطارات نفسها. ممنوع: Math.random و crypto.getRandomValues و crypto.randomUUID وأي قيمة ساعة تُستعمل بذرةً."
+    },
+    "patterns": {
+      "unseeded-randomness": [
+        "Math\\s*\\.\\s*random",
+        "getRandomValues",
+        "randomUUID",
+        "randomBytes",
+        "randomInt"
+      ],
+      "wall-clock": [
+        "Date\\s*\\.\\s*now",
+        "new\\s+Date\\b",
+        "performance\\s*\\.\\s*now"
+      ],
+      "timer": [
+        "requestAnimationFrame",
+        "setTimeout",
+        "setInterval"
+      ],
+      "clock-as-seed": [
+        "[sS]eed[^\\n;]*(?:Date\\s*\\.\\s*now|performance\\s*\\.\\s*now|new\\s+Date\\b)",
+        "(?:Date\\s*\\.\\s*now|performance\\s*\\.\\s*now|new\\s+Date\\b)[^\\n;]*[sS]eed",
+        "(?:mulberry32|seeded|noise1?|random)\\s*\\([^)\\n]*(?:Date\\s*\\.\\s*now|performance\\s*\\.\\s*now|new\\s+Date\\b)"
+      ]
+    },
+    "sets": {
+      "pure": {
+        "what": "Motion definitions: the frame is a function of the moment asked for and of nothing else. No random source, no clock and no timer.",
+        "roots": [
+          {
+            "path": "packages/motion-engines/motions",
+            "recursive": true
+          },
+          {
+            "path": "motion-library/expansion",
+            "recursive": false
+          },
+          {
+            "path": "packages/digital-shows/kit.mjs",
+            "recursive": false
+          }
+        ],
+        "forbidden": [
+          "unseeded-randomness",
+          "wall-clock",
+          "timer"
+        ]
+      },
+      "runtime": {
+        "what": "Playback code that schedules frames. It may read a clock to advance the timeline, never to seed or vary what is drawn. The clock-as-seed patterns are a text screen for a line that both reads a clock and names a seed or a generator.",
+        "roots": [
+          {
+            "path": "packages/motion-engines",
+            "recursive": false
+          },
+          {
+            "path": "packages/motion-engines/core",
+            "recursive": false
+          },
+          {
+            "path": "packages/motion-engines/engines",
+            "recursive": false
+          },
+          {
+            "path": "packages/motion-engines/shaders",
+            "recursive": false
+          },
+          {
+            "path": "packages/motion-engines/adapters",
+            "recursive": false
+          },
+          {
+            "path": "packages/motion-sdk",
+            "recursive": false
+          },
+          {
+            "path": "motion-library/runtime",
+            "recursive": false
+          }
+        ],
+        "forbidden": [
+          "unseeded-randomness",
+          "clock-as-seed"
+        ]
+      }
+    },
+    "not_covered": "Test, verify, render and build tools, the Motion Lab and Motion Studio pages, generated video, and code outside this repository. A source that builds a forbidden name at run time is not detected: this is a text screen, not a sandbox."
+  },
+  "invariants": [
+    "legacy_ids may only shrink: every id must be one of the ids fixed in engineering_os/motion_policy.py, which are the motions that existed before the rule.",
+    "An id leaves legacy_ids only with an owner_decisions record, and a promoted id must be purposeful and operational in the registry.",
+    "withdrawn_ids may only grow, and a withdrawn id has no source on disk and no registry row.",
+    "pinned_count equals the number of rows on disk and may only fall.",
+    "A motion without a valid meaning is never classed purposeful."
+  ],
+  "enforcement": [
+    {
+      "path": "engineering_os/motion_policy.py",
+      "what": "load_policy, classify, validate and report over every covered registry and source set; python3 -m engineering_os.motion_policy exits 1 on a violation."
+    },
+    {
+      "path": "packages/motion-engines/tools/build_registry.mjs",
+      "what": "scan() refuses a native motion without a meaning unless its id is in legacy_ids, and refuses a withdrawn id, so such a motion cannot be registered, proven or exported."
+    },
+    {
+      "path": "packages/motion-engines/orchestrator.mjs",
+      "what": "recommend() gives the meaning as the first reason, labels a motion without a valid one legacy-unclassified (policyClass), and leaves a row whose meaning is null out of an operational answer unless includeLegacy is set."
+    },
+    {
+      "path": "tests/test_motion_policy.py",
+      "what": "The real tree passes; each violation is produced on a temporary copy."
+    },
+    {
+      "path": "tests/test_native_motions_digital.mjs",
+      "what": "Registry motions without a meaning are exactly legacy_ids; the source scan covers every covered source set."
+    },
+    {
+      "path": "packages/motion-engines/test/purpose.test.mjs",
+      "what": "The registry builder and the orchestrator refuse or label what the policy says, on temporary copies."
+    },
+    {
+      "path": "tests/test_ported_motions.py",
+      "what": "Ported motions: valid meanings, no native, withdrawn or camera id, the pure source scan and a passing, current browser receipt; negative cases on temporary copies."
+    }
+  ]
+}

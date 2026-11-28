@@ -1,0 +1,1357 @@
+[
+  {
+    "id": "L01",
+    "name": {
+      "en": "Owner, Policy & Governance",
+      "ar": "المالك والسياسات والحوكمة"
+    },
+    "responsibilities": [
+      "Hold the owner's policy: lifecycle states, review gates and zero-budget defaults.",
+      "Validate layer, engine, grant and receipt records against the shared contracts.",
+      "Keep the agent-role registry and its least-privilege default grant templates.",
+      "Refuse catalog approvals that lack a pinned revision and license, security and commercial review."
+    ],
+    "interfaces": [
+      "engineering_os.contracts:validate_grant",
+      "engineering_os.contracts:validate_layers",
+      "engineering_os.contracts:side_effect_rank",
+      "engineering_os.layers:validate_roles",
+      "engineering_os.layers:instantiate_grant",
+      "hub:registry",
+      "engineering_os.governor:check",
+      "engineering_os.governor:check_payload",
+      "engineering_os.governor:audit",
+      "engineering_os.contracts:scenario_report"
+    ],
+    "inputs": [
+      "owner policy records",
+      "capability catalog entries",
+      "grant requests",
+      "agent-role registry"
+    ],
+    "outputs": [
+      "validated grants",
+      "contract errors naming the field at fault",
+      "approved catalog view"
+    ],
+    "depends_on": [],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "secrets:none",
+      "read:state",
+      "write:state"
+    ],
+    "skills": [
+      "skills/priority-capability-selection/SKILL.md",
+      "skills/hub-capabilities/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "chief-engineering-architect",
+      "twenty-layer-architecture-engineer",
+      "enterprise-security-privacy-engineer"
+    ],
+    "tests": [
+      "tests/test_contracts.py",
+      "tests/test_layers.py",
+      "tests/test_hub.py",
+      "tests/test_governor.py",
+      "tests/test_layer_scenarios.py"
+    ],
+    "scenarios": [
+      {
+        "id": "E",
+        "test": "tests/test_governor.py",
+        "case": "CheckTests"
+      },
+      {
+        "id": "E",
+        "test": "tests/test_governor.py",
+        "case": "PayloadTests"
+      },
+      {
+        "id": "E",
+        "test": "tests/test_governor.py",
+        "case": "AuditTests"
+      }
+    ],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L02",
+    "name": {
+      "en": "AI Intelligence & Model Routing",
+      "ar": "الذكاء الاصطناعي وتوجيه النماذج"
+    },
+    "responsibilities": [
+      "Select a model deterministically from a validated registry and the task's constraints.",
+      "Fail closed when operational, pricing or quality receipts are missing or stale.",
+      "Never invoke a provider, reserve quota or spend money while routing."
+    ],
+    "interfaces": [
+      "engineering_os.model_router:select_model",
+      "engineering_os.model_router:validate_registry"
+    ],
+    "inputs": [
+      "model registry",
+      "routing request (task, privacy, budget, latency)",
+      "evaluator receipts"
+    ],
+    "outputs": [
+      "selected model with reasons",
+      "routing refusal"
+    ],
+    "depends_on": [
+      "L01"
+    ],
+    "permissions": [
+      "read:registry",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/ai-integration/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "context-token-economics-engineer",
+      "claude-code-integration-engineer"
+    ],
+    "tests": [
+      "tests/test_model_router.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L03",
+    "name": {
+      "en": "Adaptive Agent Orchestration",
+      "ar": "التنسيق التكيّفي للوكلاء"
+    },
+    "responsibilities": [
+      "Coordinate specialist tasks through private, file-backed leases and handovers.",
+      "Plan which agent takes which task within a bounded concurrency limit.",
+      "Verify the coordination state on every load; refuse tampered or public state."
+    ],
+    "interfaces": [
+      "engineering_os.orchestration:TaskStore",
+      "engineering_os.orchestration:verify_state",
+      "swarm.scheduler:plan",
+      "swarm.scheduler:simulate",
+      "engineering_os.orchestrator:plan",
+      "engineering_os.orchestrator:schedule",
+      "engineering_os.orchestrator:lifecycle",
+      "engineering_os.orchestrator:review_assignment",
+      "engineering_os.orchestrator:worktree_plan"
+    ],
+    "inputs": [
+      "task definitions",
+      "agent roster",
+      "lease and handover requests"
+    ],
+    "outputs": [
+      "task leases",
+      "handover records with receipt hashes",
+      "schedules"
+    ],
+    "depends_on": [
+      "L01",
+      "L02"
+    ],
+    "permissions": [
+      "read:state",
+      "write:state",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/nextgen-intelligence/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "git"
+    ],
+    "agents": [
+      "adaptive-agent-orchestration-engineer",
+      "agent-isolation-security-engineer"
+    ],
+    "tests": [
+      "tests/test_os_orchestration.py",
+      "tests/test_swarm.py",
+      "tests/test_orchestrator.py",
+      "tests/test_w2_fixes_orchestration.py",
+      "tests/test_w2_fixes_orchestrator.py",
+      "tests/test_heal_fixes_2_orchestrator.py"
+    ],
+    "scenarios": [
+      {
+        "id": "H",
+        "test": "tests/test_orchestrator.py",
+        "case": "ScenarioHTests"
+      }
+    ],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L04",
+    "name": {
+      "en": "Engineering Control Plane",
+      "ar": "مستوى التحكم الهندسي"
+    },
+    "responsibilities": [
+      "Expose the hub's registries, architecture, capability and health projections.",
+      "Dispatch offline engine operations through one entry point shared by Codex and Claude Code.",
+      "Report the twenty-layer architecture and each layer's receipt-backed status.",
+      "Invoke every engine, the layer registry included, only under a grant the Security Governor allows."
+    ],
+    "interfaces": [
+      "engineering_os.control:architecture",
+      "engineering_os.control:capabilities",
+      "engineering_os.control:health",
+      "engineering_os.intelligence:dispatch",
+      "hub:audit",
+      "engineering_os.layers:architecture",
+      "engineering_os.layers:status",
+      "engineering_os.control_plane:invoke",
+      "engineering_os.adapters:layers"
+    ],
+    "inputs": [
+      "CLI commands",
+      "engine operation requests",
+      "registry files"
+    ],
+    "outputs": [
+      "JSON projections",
+      "layer status table",
+      "engine results"
+    ],
+    "depends_on": [
+      "L01",
+      "L03"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "read:state",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/hub-capabilities/SKILL.md",
+      "skills/nextgen-intelligence/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "chief-engineering-architect",
+      "twenty-layer-architecture-engineer",
+      "control-plane-integration-engineer"
+    ],
+    "tests": [
+      "tests/test_os_control.py",
+      "tests/test_hub.py",
+      "tests/test_intelligence.py",
+      "tests/test_layers.py",
+      "tests/test_control_plane.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L05",
+    "name": {
+      "en": "Universal Integration Intelligence",
+      "ar": "ذكاء التكامل الشامل"
+    },
+    "responsibilities": [
+      "Serve the read-only MCP and JSON-RPC surface of the engineering SDK.",
+      "Report each integration program from its own probe evidence, never from a catalog name.",
+      "Resolve a capability to exactly the pinned files it imports."
+    ],
+    "interfaces": [
+      "sdk.engineering_sdk:rpc",
+      "sdk.engineering_sdk:mcp",
+      "engineering_os.control:integrations",
+      "hublink:resolve"
+    ],
+    "inputs": [
+      "MCP/JSON-RPC requests",
+      "integration probe evidence",
+      "capability ids"
+    ],
+    "outputs": [
+      "read-only RPC responses",
+      "integration availability report",
+      "resolved file lists"
+    ],
+    "depends_on": [
+      "L04"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/engineering-sdk/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "control-plane-integration-engineer",
+      "claude-code-integration-engineer"
+    ],
+    "tests": [
+      "tests/test_sdk.py",
+      "tests/test_os_control.py",
+      "tests/test_engine_motion_link.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L06",
+    "name": {
+      "en": "Software Engineering",
+      "ar": "هندسة البرمجيات"
+    },
+    "responsibilities": [
+      "Discover a project's engineering surfaces without executing its code.",
+      "Recommend reviewed skills and capabilities for web, backend, mobile and SaaS work.",
+      "Onboard a project to the shared foundation without overwriting its files."
+    ],
+    "interfaces": [
+      "engineering_os.gaie_inventory:inventory",
+      "hub:recommend",
+      "hub:onboard"
+    ],
+    "inputs": [
+      "project checkout path",
+      "capability query",
+      "reviewed hub revision"
+    ],
+    "outputs": [
+      "surface inventory and upgrade matrix",
+      "recommendations",
+      "onboarding plan or files"
+    ],
+    "depends_on": [
+      "L04",
+      "L05"
+    ],
+    "permissions": [
+      "read:repo",
+      "write:workspace",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/system-builder/SKILL.md",
+      "skills/saas-platform/SKILL.md",
+      "skills/project-onboarding/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "master-build-engine-engineer",
+      "master-upgrade-engine-engineer"
+    ],
+    "tests": [
+      "tests/test_gaie_factory.py",
+      "tests/test_hub.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L07",
+    "name": {
+      "en": "Data & Knowledge Intelligence",
+      "ar": "ذكاء البيانات والمعرفة"
+    },
+    "responsibilities": [
+      "Read bounded JSON requests, refusing duplicate keys and non-finite numbers.",
+      "Search the capability catalog and skills as a discovery index, not an allowlist.",
+      "Route knowledge operations (memory search, index, graph) through the shared dispatcher."
+    ],
+    "interfaces": [
+      "engineering_os.intelligence:read_request",
+      "engineering_os.intelligence:dispatch",
+      "sdk.engineering_sdk:catalog",
+      "hub:recommend"
+    ],
+    "inputs": [
+      "knowledge queries",
+      "request files",
+      "catalog and skill text"
+    ],
+    "outputs": [
+      "ranked discovery results",
+      "knowledge operation results"
+    ],
+    "depends_on": [
+      "L04"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "read:state",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/ai-integration/SKILL.md",
+      "skills/hub-capabilities/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "knowledge-intelligence-integration-engineer"
+    ],
+    "tests": [
+      "tests/test_intelligence.py",
+      "tests/test_sdk.py",
+      "tests/test_hub.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L08",
+    "name": {
+      "en": "Cinematic, Motion & GPU",
+      "ar": "السينما والحركة ومعالجة الرسوميات"
+    },
+    "responsibilities": [
+      "Index motion recipes and report implemented, tested and runtime-verified counts separately.",
+      "Keep the Universal Motion SDK, motion runtime and expansion catalog deterministic and offline.",
+      "Treat a GPU API's presence as different from a successful render receipt."
+    ],
+    "interfaces": [
+      "engineering_os.control:motions",
+      "hub:audit"
+    ],
+    "inputs": [
+      "motion catalog and component manifests",
+      "motion runtime receipts"
+    ],
+    "outputs": [
+      "motion evidence report",
+      "deterministic motion samples"
+    ],
+    "depends_on": [
+      "L04",
+      "L06"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/universal-motion/SKILL.md",
+      "skills/digital-motion/SKILL.md",
+      "skills/chromium-engineering/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "node"
+    ],
+    "agents": [
+      "motion-sdk-animation-engineer",
+      "gpu-3d-digital-twin-engineer",
+      "cinematic-production-engineer"
+    ],
+    "tests": [
+      "tests/test_os_control.py",
+      "tests/test_hub.py",
+      "tests/test_motion_catalog.py",
+      "tests/test_motion.py",
+      "tests/test_motion_runtime.mjs",
+      "tests/test_universal_motion_sdk.mjs",
+      "tests/test_motion_expansion.mjs",
+      "tests/test_chromium_stack_options.mjs",
+      "tests/test_motion_lab.py",
+      "tests/test_motion_sdk_pack.py",
+      "tests/test_chromium_stack.py",
+      "tests/test_native_motions_digital.mjs",
+      "tests/test_ported_motions.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L09",
+    "name": {
+      "en": "Security & Quality Intelligence",
+      "ar": "ذكاء الأمن والجودة"
+    },
+    "responsibilities": [
+      "Scan tracked files for credential shapes and unsafe Python without printing values.",
+      "Audit dependency locks for pinned, integrity-checked packages.",
+      "Run worker-written code only inside a resource-limited, network-walled cage.",
+      "Gate agent shells and writes to their lane."
+    ],
+    "interfaces": [
+      "scripts.security_scan:scan",
+      "scripts.security_scan:secret_findings",
+      "scripts.security_scan:python_findings",
+      "scripts.security_scan:audit_locks",
+      "swarm.phase3.cage:run",
+      "swarm.phase3.lane_guard:allowed",
+      "swarm.phase2.guard:allowed",
+      "engineering_os.governor:sandbox_run",
+      "engineering_os.security_audit:run",
+      "engineering_os.security_audit:audit_anchor",
+      "engineering_os.workspace_policy:validate_workspace",
+      "engineering_os.workspace_policy:WorkspaceSupervisor"
+    ],
+    "inputs": [
+      "tracked file index",
+      "dependency locks",
+      "agent tool calls",
+      "worker commands"
+    ],
+    "outputs": [
+      "findings with rule ids and locations",
+      "allow/deny decisions",
+      "bounded run results"
+    ],
+    "depends_on": [
+      "L01",
+      "L04"
+    ],
+    "permissions": [
+      "read:repo",
+      "exec:sandbox",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/security-review/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "git"
+    ],
+    "agents": [
+      "agent-isolation-security-engineer",
+      "enterprise-security-privacy-engineer",
+      "testing-self-healing-engineer"
+    ],
+    "tests": [
+      "tests/test_security_scan.py",
+      "tests/test_security.py",
+      "tests/test_p3_cage.py",
+      "tests/test_p3_team.py",
+      "tests/test_swarm_phase2.py",
+      "tests/test_governor.py",
+      "tests/test_security_enterprise.py",
+      "tests/test_workspace_policy.py",
+      "tests/test_master_audit_permissions.py",
+      "tests/test_isolation_fixes_git.py",
+      "tests/test_isolation_fixes_planted_git.py",
+      "tests/test_isolation_fixes_relaunch.py",
+      "tests/test_isolation_fixes_governor.py",
+      "tests/test_recheck_fixes_remote_ascii.py",
+      "tests/test_recheck_fixes_repo_id.py",
+      "tests/test_isolation_fixes_mounts.py",
+      "tests/test_isolation_fixes_relaunch_binding.py",
+      "tests/test_isolation_fixes_build_git.py",
+      "tests/test_sec_fixes_2_layers.py",
+      "tests/test_sec_fixes_2_governor.py",
+      "tests/test_sec_fixes_2_sweep.py",
+      "tests/test_sec_fixes_2_prefix.py",
+      "tests/test_remote_fixes_authority.py",
+      "tests/test_remote_fixes_percent_host.py"
+    ],
+    "scenarios": [
+      {
+        "id": "E",
+        "test": "tests/test_governor.py",
+        "case": "StrictSandboxTests"
+      },
+      {
+        "id": "E",
+        "test": "tests/test_governor.py",
+        "case": "SandboxTests"
+      }
+    ],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L10",
+    "name": {
+      "en": "Independent Product Ecosystem",
+      "ar": "منظومة المنتجات المستقلة"
+    },
+    "responsibilities": [
+      "Keep every product in its own repository, data, permissions and runtime.",
+      "Register pinned capabilities into a project selectively and verify them offline.",
+      "Validate the public project registry; keep private inventories out of the hub."
+    ],
+    "interfaces": [
+      "hublink:projects",
+      "hublink:validate_projects",
+      "hublink:validate_manifest",
+      "hublink:register",
+      "hublink:verify",
+      "engineering_os.project_registry:resolve",
+      "engineering_os.project_registry:register",
+      "engineering_os.project_registry:get"
+    ],
+    "inputs": [
+      "project manifests",
+      "reviewed hub revision",
+      "capability ids"
+    ],
+    "outputs": [
+      "registration plan or files",
+      "verification findings",
+      "registry audit"
+    ],
+    "depends_on": [
+      "L01",
+      "L04",
+      "L06"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "write:workspace",
+      "secrets:none",
+      "read:state",
+      "write:state"
+    ],
+    "skills": [
+      "skills/project-onboarding/SKILL.md",
+      "skills/hub-capabilities/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "git"
+    ],
+    "agents": [
+      "nl-router-project-registry-engineer",
+      "github-integration-release-engineer"
+    ],
+    "tests": [
+      "tests/test_link.py",
+      "tests/test_engine_motion_link.py",
+      "tests/test_project_registry.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L11",
+    "name": {
+      "en": "Cloud & Deployment Intelligence",
+      "ar": "ذكاء السحابة والنشر"
+    },
+    "responsibilities": [
+      "Bind release eligibility to exact-commit workflow runs and required jobs.",
+      "Refuse spoofed, pending, failed or stale provenance.",
+      "Check deployment identity per project; never deploy across project boundaries."
+    ],
+    "interfaces": [
+      "scripts.verify_release:approved_runs",
+      "scripts.verify_release:approved_jobs",
+      "sdk.engineering_sdk:release",
+      "sdk.engineering_sdk:target"
+    ],
+    "inputs": [
+      "workflow run documents",
+      "release evidence",
+      "project identity"
+    ],
+    "outputs": [
+      "release eligibility decision",
+      "blocking reasons"
+    ],
+    "depends_on": [
+      "L09",
+      "L10"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/release-engineering/SKILL.md",
+      "skills/gaie-release/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "github-integration-release-engineer"
+    ],
+    "tests": [
+      "tests/test_release_provenance.py",
+      "tests/test_sdk.py",
+      "tests/test_review_fixes_sdk_submodules.py",
+      "tests/test_recheck_fixes_release_git.py",
+      "tests/test_recheck_fixes_sdk_nested.py",
+      "tests/test_recheck_fixes_sdk_promisor.py",
+      "tests/test_remote_fixes_sdk_promisor.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L12",
+    "name": {
+      "en": "Continuous Technology Intelligence",
+      "ar": "الذكاء التقني المستمر"
+    },
+    "responsibilities": [
+      "Discover technology candidates in bounded batches; never install or approve them.",
+      "Withdraw a recorded runtime claim when its source or time-bound evidence changes.",
+      "Report lifecycle states from reviewed records only."
+    ],
+    "interfaces": [
+      "scripts.discover_technology:discover",
+      "scripts.discover_technology:probe",
+      "engineering_os.control:runtime_review",
+      "engineering_os.control:capabilities"
+    ],
+    "inputs": [
+      "catalog entries",
+      "upstream metadata responses",
+      "runtime receipts"
+    ],
+    "outputs": [
+      "discovery candidates",
+      "lifecycle states",
+      "withdrawn claims"
+    ],
+    "depends_on": [
+      "L04",
+      "L09"
+    ],
+    "permissions": [
+      "read:registry",
+      "net:fetch",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/priority-capability-selection/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "knowledge-intelligence-integration-engineer"
+    ],
+    "tests": [
+      "tests/test_technology_discovery.py",
+      "tests/test_os_control.py",
+      "tests/test_capability_activation.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L13",
+    "name": {
+      "en": "Advanced Engineering Reasoning",
+      "ar": "الاستدلال الهندسي المتقدم"
+    },
+    "responsibilities": [
+      "Rank supplied alternatives against declared constraints and evaluator receipts.",
+      "Compute dependency schedules and refuse cycles and impossible budgets.",
+      "Review a planned decision against independent reviews and verification.",
+      "Order root-cause candidates from observations and declared dependencies."
+    ],
+    "interfaces": [
+      "engineering_os.reasoning:plan",
+      "engineering_os.reasoning:review_decision",
+      "engineering_os.reasoning:root_causes",
+      "engineering_os.reasoning:decompose",
+      "engineering_os.reasoning:analyze_dependencies",
+      "engineering_os.reasoning:trade_off",
+      "engineering_os.reasoning:validate_decision"
+    ],
+    "inputs": [
+      "planning request with nodes and constraints",
+      "reviews",
+      "verification receipts",
+      "observations"
+    ],
+    "outputs": [
+      "ranked plan and schedule",
+      "decision review",
+      "root-cause ranking"
+    ],
+    "depends_on": [
+      "L02",
+      "L03"
+    ],
+    "permissions": [
+      "read:state",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/nextgen-intelligence/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "engineering-reasoning-engineer"
+    ],
+    "tests": [
+      "tests/test_reasoning.py",
+      "tests/test_reasoning_cases.py",
+      "tests/test_w2_fixes_reasoning.py",
+      "tests/test_heal_fixes_2_reasoning.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L14",
+    "name": {
+      "en": "Persistent Engineering Memory",
+      "ar": "الذاكرة الهندسية الدائمة"
+    },
+    "responsibilities": [
+      "Keep private, project-scoped memory outside every Git repository.",
+      "Store decisions, failures, repairs and checkpoints; never mix projects.",
+      "Refuse credential-shaped content and detect tampering through checksums and hash chains."
+    ],
+    "interfaces": [
+      "engineering_os.memory:MemoryStore",
+      "engineering_os.gaie_memory:Memory"
+    ],
+    "inputs": [
+      "memory records",
+      "project id",
+      "search queries",
+      "checkpoints"
+    ],
+    "outputs": [
+      "retrieved records",
+      "knowledge-graph links",
+      "restored checkpoints"
+    ],
+    "depends_on": [
+      "L04",
+      "L07",
+      "L09"
+    ],
+    "permissions": [
+      "read:state",
+      "write:state",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/nextgen-intelligence/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "persistent-memory-engineer"
+    ],
+    "tests": [
+      "tests/test_engineering_memory.py",
+      "tests/test_gaie_factory.py",
+      "tests/test_memory_unified.py",
+      "tests/test_gaie_memory_journal.py",
+      "tests/test_review_fixes_memory_readonly.py",
+      "tests/test_review_fixes_memory_resume_cli.py",
+      "tests/test_review_fixes_memory_secrets.py",
+      "tests/test_recheck_fixes_memory_arabic.py",
+      "tests/test_recheck_fixes_memory_doc.py"
+    ],
+    "scenarios": [
+      {
+        "id": "D",
+        "test": "tests/test_memory_unified.py",
+        "case": "ScenarioDTests"
+      }
+    ],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L15",
+    "name": {
+      "en": "Requirements & Specification Intelligence",
+      "ar": "ذكاء المتطلبات والمواصفات"
+    },
+    "responsibilities": [
+      "Turn an owner's Arabic or English command into clauses, a task class and a target.",
+      "Stop with needs-clarification instead of guessing a project or repository.",
+      "Validate bounded request documents and stage contracts before work starts."
+    ],
+    "interfaces": [
+      "engineering_os.gaie_router:normalize",
+      "engineering_os.gaie_router:route",
+      "engineering_os.gaie_router:remote_slug",
+      "engineering_os.intelligence:read_request",
+      "engineering_os.factory:validate_stage",
+      "engineering_os.requirements:parse",
+      "engineering_os.requirements:refine",
+      "engineering_os.requirements:validate_spec",
+      "engineering_os.requirements:diff_specs",
+      "engineering_os.requirements:acceptance_checks"
+    ],
+    "inputs": [
+      "owner command text",
+      "project registries",
+      "request documents"
+    ],
+    "outputs": [
+      "normalized clauses",
+      "route or needs-clarification",
+      "stage validation result"
+    ],
+    "depends_on": [
+      "L06",
+      "L13",
+      "L14"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/gaie-master-router/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "nl-router-project-registry-engineer",
+      "engineering-reasoning-engineer"
+    ],
+    "tests": [
+      "tests/test_gaie_router.py",
+      "tests/test_intelligence.py",
+      "tests/test_factory.py",
+      "tests/test_requirements.py",
+      "tests/test_build_fixes_requirements.py",
+      "tests/test_build_fixes_recheck_requirements.py",
+      "tests/test_remote_fixes_remote_slug.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L16",
+    "name": {
+      "en": "Autonomous Software Factory",
+      "ar": "مصنع البرمجيات الذاتي"
+    },
+    "responsibilities": [
+      "Plan delivery stages for web, backend, mobile, AI, database and API targets.",
+      "Evaluate artifacts against supplied evaluator receipts and stage contracts.",
+      "Route build and upgrade commands to the GAIE skills and their gates.",
+      "Install the GAIE skills idempotently without touching foreign files."
+    ],
+    "interfaces": [
+      "engineering_os.factory:plan_factory",
+      "engineering_os.factory:evaluate_factory",
+      "engineering_os.factory:validate_stage",
+      "engineering_os.gaie_router:policy",
+      "engineering_os.gaie_router:route",
+      "scripts.gaie_bootstrap:install",
+      "scripts.gaie_bootstrap:verify",
+      "engineering_os.build_engine:plan",
+      "engineering_os.build_engine:build",
+      "engineering_os.build_engine:evaluate",
+      "engineering_os.upgrade_engine:upgrade"
+    ],
+    "inputs": [
+      "factory request",
+      "artifact receipts",
+      "owner command",
+      "GAIE route policy"
+    ],
+    "outputs": [
+      "factory plan",
+      "stage evaluation",
+      "routed engine and skills"
+    ],
+    "depends_on": [
+      "L06",
+      "L09",
+      "L11",
+      "L13",
+      "L14",
+      "L15"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "read:state",
+      "write:workspace",
+      "secrets:none",
+      "exec:sandbox"
+    ],
+    "skills": [
+      "skills/gaie-master-router/SKILL.md",
+      "skills/gaie-build/SKILL.md",
+      "skills/gaie-upgrade/SKILL.md",
+      "skills/gaie-audit/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "node",
+      "git"
+    ],
+    "agents": [
+      "master-build-engine-engineer",
+      "master-upgrade-engine-engineer",
+      "nl-router-project-registry-engineer"
+    ],
+    "tests": [
+      "tests/test_factory.py",
+      "tests/test_gaie_router.py",
+      "tests/test_gaie_factory.py",
+      "tests/test_build_engine.py",
+      "tests/test_build_engine_e2e.py",
+      "tests/test_upgrade_engine.py",
+      "tests/test_review_fixes_upgrade_scope.py",
+      "tests/test_build_fixes_app.py",
+      "tests/test_upgrade_fixes_clauses.py",
+      "tests/test_upgrade_fixes_journal.py",
+      "tests/test_upgrade_fixes_linked_db.py",
+      "tests/test_upgrade_fixes_origin.py",
+      "tests/test_upgrade_fixes_original.py",
+      "tests/test_upgrade_fixes_requests.py",
+      "tests/test_upgrade_fixes_schema_memory.py",
+      "tests/test_upgrade_fixes_schema_modules.py",
+      "tests/test_upgrade_fixes_sql.py",
+      "tests/test_upgrade_fixes_wal.py",
+      "tests/test_sec_fixes_2_build.py",
+      "tests/test_build_fixes_recheck_app.py",
+      "tests/test_remote_fixes_remote_slug.py"
+    ],
+    "scenarios": [
+      {
+        "id": "A",
+        "test": "tests/test_build_engine_e2e.py",
+        "case": "ScenarioATests"
+      },
+      {
+        "id": "B",
+        "test": "tests/test_upgrade_engine.py",
+        "case": "ScenarioB"
+      }
+    ],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L17",
+    "name": {
+      "en": "Self-Healing & Recovery Intelligence",
+      "ar": "ذكاء الإصلاح الذاتي والتعافي"
+    },
+    "responsibilities": [
+      "Turn bound failure evidence into ranked repair proposals.",
+      "Verify a repair with fixed declarative checks over disposable artifacts.",
+      "Never execute candidate code, shell commands or providers."
+    ],
+    "interfaces": [
+      "engineering_os.healing:analyze",
+      "engineering_os.healing:verify_repair",
+      "engineering_os.healing:artifact_digest",
+      "engineering_os.healing:heal",
+      "engineering_os.detectors:run_all"
+    ],
+    "inputs": [
+      "failure evidence",
+      "candidate repair files",
+      "declarative checks"
+    ],
+    "outputs": [
+      "repair proposals",
+      "repair verification result",
+      "artifact digests"
+    ],
+    "depends_on": [
+      "L09",
+      "L12",
+      "L13",
+      "L14"
+    ],
+    "permissions": [
+      "read:state",
+      "secrets:none",
+      "write:workspace",
+      "exec:sandbox"
+    ],
+    "skills": [
+      "skills/nextgen-intelligence/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "node"
+    ],
+    "agents": [
+      "testing-self-healing-engineer"
+    ],
+    "tests": [
+      "tests/test_healing.py",
+      "tests/test_self_healing_loop.py",
+      "tests/test_w2_fixes_healing.py",
+      "tests/test_w2_fixes_patch.py",
+      "tests/test_heal_fixes_2_findings.py",
+      "tests/test_heal_fixes_2_healing.py"
+    ],
+    "scenarios": [
+      {
+        "id": "F",
+        "test": "tests/test_self_healing_loop.py",
+        "case": "ScenarioF"
+      }
+    ],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L18",
+    "name": {
+      "en": "Advanced Cinematic Intelligence",
+      "ar": "الذكاء السينمائي المتقدم"
+    },
+    "responsibilities": [
+      "Keep the cinematic inventory source-bound and its namespaces distinct.",
+      "Withdraw a browser proof when its source, harness or budget changes.",
+      "Resolve an engine-native motion to exactly the engine files it imports."
+    ],
+    "interfaces": [
+      "engineering_os.cinematic:audit_inventory",
+      "hublink:resolve",
+      "engineering_os.video_pipeline:validate_storyboard",
+      "engineering_os.video_pipeline:render",
+      "engineering_os.video_pipeline:qa_media"
+    ],
+    "inputs": [
+      "cinematic inventory",
+      "browser proof receipts",
+      "engine-motion ids"
+    ],
+    "outputs": [
+      "inventory audit",
+      "activation status per browser",
+      "resolved engine files"
+    ],
+    "depends_on": [
+      "L08",
+      "L13"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:registry",
+      "secrets:none",
+      "write:workspace",
+      "exec:sandbox"
+    ],
+    "skills": [
+      "skills/gaie-cinematic/SKILL.md",
+      "skills/cinematic-production/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "node",
+      "ffmpeg",
+      "ffprobe"
+    ],
+    "agents": [
+      "cinematic-production-engineer",
+      "gpu-3d-digital-twin-engineer"
+    ],
+    "tests": [
+      "tests/test_cinematic_intelligence.py",
+      "tests/test_engine_motion_link.py",
+      "tests/test_nextgen_camera.mjs",
+      "tests/test_video_pipeline.py",
+      "tests/test_digital_show.py",
+      "tests/test_render_options.mjs"
+    ],
+    "scenarios": [
+      {
+        "id": "C",
+        "test": "tests/test_video_pipeline.py",
+        "case": "ScenarioCTests"
+      }
+    ],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L19",
+    "name": {
+      "en": "Engineering Economics & Resource Intelligence",
+      "ar": "اقتصاديات الهندسة وذكاء الموارد"
+    },
+    "responsibilities": [
+      "Summarize source-bound usage ledgers by feature, MVP and enterprise scope.",
+      "Keep tokens, price estimates, charged amounts and subscription quota separate.",
+      "Estimate a worker's starting context size and flag definitions over budget."
+    ],
+    "interfaces": [
+      "engineering_os.economics:summarize",
+      "engineering_os.economics:recommend_model",
+      "swarm.phase3.context_budget:budget",
+      "swarm.phase3.context_budget:check",
+      "engineering_os.economics:recommend_concurrency",
+      "engineering_os.economics:measured_baseline"
+    ],
+    "inputs": [
+      "usage ledgers",
+      "model registry",
+      "agent definitions"
+    ],
+    "outputs": [
+      "cost and usage summary",
+      "model recommendation",
+      "context budget report"
+    ],
+    "depends_on": [
+      "L01",
+      "L02",
+      "L12"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:state",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/ultra-context-optimization/SKILL.md",
+      "skills/headroom-context-engineering/SKILL.md"
+    ],
+    "tools": [
+      "python3"
+    ],
+    "agents": [
+      "context-token-economics-engineer"
+    ],
+    "tests": [
+      "tests/test_economics.py",
+      "tests/test_p3_context_budget.py",
+      "tests/test_economics_measured.py",
+      "tests/test_context_optimization.py",
+      "tests/test_headroom_context.py",
+      "tests/test_headroom_pack.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  },
+  {
+    "id": "L20",
+    "name": {
+      "en": "Independent Engineering Assurance",
+      "ar": "الضمان الهندسي المستقل"
+    },
+    "responsibilities": [
+      "Accept a claim only from a receipt bound to the SHA-256 of current sources.",
+      "Run each layer's listed tests and record a verification receipt in private state.",
+      "Check review decisions against independent reviews and release provenance.",
+      "Keep the reviewer of a change separate from its producer."
+    ],
+    "interfaces": [
+      "engineering_os.contracts:validate_receipt",
+      "engineering_os.control:runtime_review",
+      "engineering_os.reasoning:review_decision",
+      "scripts.verify_release:approved_runs",
+      "engineering_os.layers:verify",
+      "engineering_os.layers:receipt_status"
+    ],
+    "inputs": [
+      "layer records",
+      "test files",
+      "source files",
+      "review and provenance documents"
+    ],
+    "outputs": [
+      "verification receipts",
+      "VERIFIED/FAILED/INCOMPLETE/UNVERIFIED status",
+      "blocking reasons"
+    ],
+    "depends_on": [
+      "L01",
+      "L09",
+      "L11",
+      "L13"
+    ],
+    "permissions": [
+      "read:repo",
+      "read:state",
+      "write:state",
+      "exec:sandbox",
+      "secrets:none"
+    ],
+    "skills": [
+      "skills/gaie-audit/SKILL.md",
+      "skills/security-review/SKILL.md"
+    ],
+    "tools": [
+      "python3",
+      "node"
+    ],
+    "agents": [
+      "independent-assurance-engineer",
+      "twenty-layer-architecture-engineer"
+    ],
+    "tests": [
+      "tests/test_layers.py",
+      "tests/test_os_control.py",
+      "tests/test_reasoning.py",
+      "tests/test_release_provenance.py",
+      "tests/test_layer_scenarios.py",
+      "tests/test_evidence.py"
+    ],
+    "scenarios": [],
+    "evidence": {
+      "rule": "tests-pass"
+    }
+  }
+]

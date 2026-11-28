@@ -68,4 +68,71 @@ class HubTests(unittest.TestCase):
   self.assertEqual(result['integrations_probed'],22)
   self.assertEqual(result['integrations_available'],12)
   self.assertEqual(result['registered_public_projects'],3)
+  purpose=result['motion_purpose']
+  self.assertTrue(purpose['ok'])
+  self.assertEqual(purpose['policy'],'governance/policies/motion-purpose.json')
+  self.assertEqual(purpose['classes']['purposeful'],107)
+  self.assertEqual(purpose['classes']['legacy-unclassified'],37)
+  self.assertEqual((purpose['unclassified'],purpose['violations']),(0,0))
+ def test_audit_reports_a_broken_motion_policy_without_failing(self):
+  from engineering_os import motion_policy
+  broken=dict(motion_policy.report(),ok=False,violations=[{'code':'policy-invalid'}])
+  with mock.patch.object(motion_policy,'report',return_value=broken):
+   purpose=hub.audit()['motion_purpose']
+  self.assertEqual((purpose['ok'],purpose['violations']),(False,1))
+class HubCliTests(unittest.TestCase):
+ """hub.py subcommands run as the owner runs them: a subprocess, no mocks, private temporary state."""
+ def run_hub(self,*argv,cwd=None):
+  import os,subprocess,sys
+  env={k:v for k,v in os.environ.items() if not k.startswith('PYTHON')}
+  return subprocess.run([sys.executable,str(hub.ROOT/'hub.py'),*argv],capture_output=True,text=True,cwd=cwd or hub.ROOT,env=env,timeout=120)
+ def private(self):
+  import os
+  directory=tempfile.TemporaryDirectory(prefix='hub-');self.addCleanup(directory.cleanup)
+  os.chmod(directory.name,0o700);return pathlib.Path(directory.name)
+ def test_register_refusal_is_one_json_error_line(self):
+  project=self.private()
+  run=self.run_hub('register',str(project),'--revision','0'*40,'--capability','pack:gaie-factory')
+  self.assertEqual(run.returncode,1)
+  self.assertNotIn('Traceback',run.stderr)
+  self.assertEqual(len(run.stdout.strip().splitlines()),1)
+  self.assertEqual(json.loads(run.stdout)['status'],'error')
+  self.assertEqual(list(project.iterdir()),[])
+ def test_audit_anchor_detects_truncation_and_removal(self):
+  import os,stat
+  from engineering_os import governor
+  base=self.private();state=base/'state';state.mkdir(mode=0o700)
+  for number in range(3):governor.audit(str(state),{'decision':'allow','reason':f'record {number}'})
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--out',str(state/'anchor.json'))
+  self.assertEqual((run.returncode,json.loads(run.stdout)['status']),(1,'error'))
+  self.assertFalse((state/'anchor.json').exists())
+  anchor=base/'anchor.json'
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--out',str(anchor))
+  self.assertEqual(run.returncode,0,run.stdout+run.stderr)
+  self.assertEqual(json.loads(run.stdout)['records'],3)
+  self.assertEqual(stat.S_IMODE(anchor.stat().st_mode),0o600)
+  self.assertEqual(set(json.loads(anchor.read_text())),{'records','record_sha256'})
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--out',str(anchor))
+  self.assertEqual(run.returncode,1,'an existing anchor is never overwritten')
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--verify',str(anchor))
+  self.assertEqual((run.returncode,json.loads(run.stdout)),(0,{'status':'intact','records':3}))
+  log=state/governor.AUDIT_FILE
+  lines=log.read_bytes().splitlines(keepends=True);log.write_bytes(b''.join(lines[:-1]))
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--verify',str(anchor))
+  self.assertEqual(run.returncode,1);self.assertIn('audit-tampered',run.stdout)
+  log.unlink()
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--verify',str(anchor))
+  self.assertEqual(run.returncode,1);self.assertIn('audit-tampered',run.stdout)
+  fifo=base/'fifo';os.mkfifo(fifo)
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--verify',str(fifo))
+  self.assertEqual(run.returncode,1,'a FIFO is refused without blocking')
+  link=base/'link.json';link.symlink_to(anchor)
+  run=self.run_hub('audit-anchor','--state-dir',str(state),'--verify',str(link))
+  self.assertEqual(run.returncode,1,'a symlinked anchor is refused')
+ def test_assurance_delegates_to_the_module_cli(self):
+  run=self.run_hub('assurance','assign','--producer','master-build-engine-engineer','--json')
+  self.assertEqual(run.returncode,0,run.stderr)
+  self.assertEqual(json.loads(run.stdout)['reviewer'],'independent-assurance-engineer')
+  run=self.run_hub('assurance','assign','--producer','master-build-engine-engineer','--reviewer','master-build-engine-engineer')
+  self.assertEqual(run.returncode,2,'a producer never reviews its own work')
 if __name__=='__main__':unittest.main()

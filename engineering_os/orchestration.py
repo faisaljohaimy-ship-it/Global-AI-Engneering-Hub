@@ -26,7 +26,7 @@ ROLES = frozenset({"orchestrator", "architecture", "development", "database",
 ENGINES = frozenset({"codex", "claude-code"})
 SLUG = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}")
 DIGEST = re.compile(r"[a-f0-9]{64}")
-SECRET = re.compile(r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|\bgh[pousr]_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{40,}|\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|\bAKIA[0-9A-Z]{16}\b|\bsb_secret_[A-Za-z0-9_-]{20,}|\bxox[baprs]-[A-Za-z0-9-]{10,}|\b(?:sk|rk)_live_[A-Za-z0-9]{20,}|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}")
+SECRET = re.compile(r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|(?<![A-Za-z0-9])gh[pousr]_[A-Za-z0-9]{30,}|(?<![A-Za-z0-9])github_pat_[A-Za-z0-9_]{40,}|(?<![A-Za-z0-9])sk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])sb_secret_[A-Za-z0-9_-]{20,}|(?<![A-Za-z0-9])xox[baprs]-[A-Za-z0-9-]{10,}|(?<![A-Za-z0-9])(?:sk|rk)_live_[A-Za-z0-9]{20,}|(?<![A-Za-z0-9])eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}")
 MAX_BYTES = 8 * 1024 * 1024
 
 
@@ -148,7 +148,7 @@ def _safe_directory(path):
 
 
 def _open_private(path, flags):
-    fd = os.open(path, flags | os.O_NOFOLLOW, 0o600)
+    fd = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
     info = os.fstat(fd)
     if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077:
         os.close(fd)
@@ -194,6 +194,18 @@ def _read_private(path):
     return load_json(data)
 
 
+PRODUCING = frozenset({"claim", "renew", "handover", "submit", "fail"})
+
+
+def producers(state, task_id):
+    """Every actor id that ever held or worked ``task_id``: claim, renew, handover, submit or fail.
+
+    Read from the hash-chained audit events, so a handover or a fail-and-recover never
+    clears it; review independence is checked against all of them, not the current owner.
+    """
+    return {event["actor"]["id"] for event in state["events"] if event["task"] == task_id and event["operation"] in PRODUCING}
+
+
 def verify_state(state):
     if not isinstance(state, dict) or set(state) != {"schema_version", "revision", "tasks", "events"} or state["schema_version"] != 1:
         raise CoordinationError("Invalid state schema")
@@ -236,6 +248,13 @@ def verify_state(state):
             raise CoordinationError("Task data differs from audit receipt")
     elif state["tasks"]:
         raise CoordinationError("Tasks without audit evidence")
+    worked = {}
+    for event in state["events"]:
+        if event["operation"] in PRODUCING:
+            worked.setdefault(event["task"], set()).add(event["actor"]["id"])
+    for key, task in state["tasks"].items():
+        if any(row["actor"]["id"] in worked.get(key, ()) for row in task["approvals"].values()):
+            raise CoordinationError("A reviewer of this task also held or worked it")
     return True
 
 
@@ -449,6 +468,8 @@ class TaskStore:
         def change(state, task, reviewer, now):
             if task["status"] != "review" or reviewer["role"] not in {"testing", "security", "release"} or reviewer["id"] == task["owner"]["id"]:
                 raise CoordinationError("Independent testing/security/release reviewer required")
+            if reviewer["id"] in producers(state, task_id) | ({task["handover"]["from"]["id"]} if task["handover"] else set()):
+                raise CoordinationError("A reviewer may not have held or worked this task (claim, renew, handover, submit or fail)")
             if any(row["actor"]["id"] == reviewer["id"] for role, row in task["approvals"].items() if role != reviewer["role"]):
                 raise CoordinationError("A reviewer cannot approve multiple independent roles")
             task["approvals"][reviewer["role"]] = {"actor": reviewer, "decision": decision,

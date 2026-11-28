@@ -1,0 +1,195 @@
+{
+ "tool": "context-mode",
+ "version": "2.1.10",
+ "run_with": "Node v24.22.3, stdio MCP server, no network namespace, --agent claude-code",
+ "measured": "2026-11-28",
+ "calls": [
+  {
+   "tool": "ctx_index",
+   "arguments": {
+    "path": "test-log-fail.log",
+    "source": "test-log-fail"
+   },
+   "reply_chars": 65,
+   "seconds": 0.029,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "TimeoutError render did not settle"
+    ],
+    "source": "test-log-fail"
+   },
+   "reply_chars": 47,
+   "seconds": 0.007,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "AssertionError operational 13 14"
+    ],
+    "source": "test-log-fail"
+   },
+   "reply_chars": 47,
+   "seconds": 0.004,
+   "error": false
+  },
+  {
+   "tool": "ctx_index",
+   "arguments": {
+    "path": "dependency-lock.txt",
+    "source": "lock"
+   },
+   "reply_chars": 68,
+   "seconds": 0.028,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "litellm"
+    ],
+    "source": "lock"
+   },
+   "reply_chars": 47,
+   "seconds": 0.006,
+   "error": false
+  },
+  {
+   "tool": "ctx_index",
+   "arguments": {
+    "path": "github-response-synthetic.json",
+    "source": "prs"
+   },
+   "reply_chars": 79,
+   "seconds": 0.014,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "mergeable_state dirty"
+    ],
+    "source": "prs"
+   },
+   "reply_chars": 47,
+   "seconds": 0.008,
+   "error": false
+  },
+  {
+   "tool": "ctx_index",
+   "arguments": {
+    "path": "browser-diagnostics.json",
+    "source": "diag"
+   },
+   "reply_chars": 72,
+   "seconds": 0.01,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "failed check"
+    ],
+    "source": "diag"
+   },
+   "reply_chars": 47,
+   "seconds": 0.004,
+   "error": false
+  },
+  {
+   "tool": "ctx_execute",
+   "arguments": {
+    "language": "shell",
+    "code": "cat test-log-fail.log",
+    "intent": "which tests failed and why"
+   },
+   "reply_chars": 15648,
+   "seconds": 0.014,
+   "error": false
+  },
+  {
+   "tool": "ctx_execute",
+   "arguments": {
+    "language": "shell",
+    "code": "cat github-response-synthetic.json",
+    "intent": "which pull request is not mergeable"
+   },
+   "reply_chars": 2559,
+   "seconds": 0.018,
+   "error": false
+  },
+  {
+   "tool": "ctx_execute",
+   "arguments": {
+    "language": "python",
+    "code": "import json; d=json.load(open(\"github-response-synthetic.json\")); print([p[\"number\"] fo..."
+   },
+   "reply_chars": 5,
+   "seconds": 0.028,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "TimeoutError render did not settle"
+    ]
+   },
+   "reply_chars": 2334,
+   "seconds": 0.02,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "litellm"
+    ]
+   },
+   "reply_chars": 3984,
+   "seconds": 0.004,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "mergeable_state dirty"
+    ]
+   },
+   "reply_chars": 2610,
+   "seconds": 0.006,
+   "error": false
+  },
+  {
+   "tool": "ctx_search",
+   "arguments": {
+    "queries": [
+     "TimeoutError render did not settle"
+    ],
+    "source": "test-log-fail.log"
+   },
+   "reply_chars": 721,
+   "seconds": 0.008,
+   "error": false
+  }
+ ],
+ "findings": {
+  "server_ready_seconds": 0.3,
+  "tools": 9,
+  "index_accepts_only_paths_inside_the_project": true,
+  "search_returns_exact_error_line": true,
+  "search_finds_pinned_dependency": true,
+  "execute_on_63863_byte_json_returns_tail_only_chars": 2559,
+  "execute_reply_names_the_one_dirty_pull_request": false,
+  "execute_with_a_script_that_computes_the_answer_chars": 5
+ }
+}

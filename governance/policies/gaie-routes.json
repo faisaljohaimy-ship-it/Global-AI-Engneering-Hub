@@ -1,0 +1,949 @@
+{
+  "schema_version": 1,
+  "policy_version": "1.3.0",
+  "implementation": "engineering_os/gaie_router.py",
+  "authority": "Deterministic lexical routing of owner commands. A route is a plan, not proof that any step ran, that a repository is reachable or that a skill was invoked by a host.",
+  "max_agents": 20,
+  "verbs": {
+    "build": [
+      "ابن",
+      "ابني",
+      "انشئ",
+      "انشي",
+      "اصنع",
+      "اسس",
+      "build",
+      "create",
+      "scaffold",
+      "bootstrap"
+    ],
+    "upgrade": [
+      "طور",
+      "طوري",
+      "upgrade",
+      "develop",
+      "improve",
+      "enhance",
+      "modernize",
+      "modernise"
+    ],
+    "accelerate": [
+      "سرع",
+      "accelerate",
+      "speed",
+      "optimize",
+      "optimise"
+    ],
+    "audit": [
+      "افحص",
+      "دقق",
+      "راجع",
+      "قيم",
+      "تحقق",
+      "تفقد",
+      "audit",
+      "inspect",
+      "review",
+      "scan",
+      "assess",
+      "check",
+      "verify"
+    ],
+    "repair": [
+      "اصلح",
+      "عالج",
+      "صحح",
+      "fix",
+      "repair",
+      "heal",
+      "debug"
+    ],
+    "release": [
+      "انشر",
+      "اطلق",
+      "deploy",
+      "release",
+      "publish",
+      "ship"
+    ]
+  },
+  "negations": [
+    "لا",
+    "لن",
+    "لم",
+    "ما",
+    "ليس",
+    "لست",
+    "بدون",
+    "دون",
+    "عدم",
+    "ممنوع",
+    "يمنع",
+    "اياك",
+    "مش",
+    "غير",
+    "عدا",
+    "الا",
+    "not",
+    "dont",
+    "doesnt",
+    "didnt",
+    "wont",
+    "cant",
+    "cannot",
+    "shouldnt",
+    "mustnt",
+    "wouldnt",
+    "couldnt",
+    "isnt",
+    "arent",
+    "never",
+    "without",
+    "no",
+    "forbidden",
+    "avoid",
+    "stop",
+    "except",
+    "nor",
+    "neither"
+  ],
+  "all_projects": [
+    "جميع مشاريعي",
+    "كل مشاريعي",
+    "جميع المشاريع",
+    "كل المشاريع",
+    "all my projects",
+    "all projects",
+    "every project"
+  ],
+  "new_system": [
+    "جديد",
+    "جديده",
+    "new"
+  ],
+  "focus": {
+    "media": [
+      "فيديو",
+      "فيديوهات",
+      "فيلم",
+      "افلام",
+      "سينما",
+      "سينمائي",
+      "مونتاج",
+      "موسيقى",
+      "صوت",
+      "اصوات",
+      "تعليق صوتي",
+      "video",
+      "videos",
+      "film",
+      "films",
+      "cinematic",
+      "trailer",
+      "voiceover",
+      "audio",
+      "music"
+    ],
+    "motion": [
+      "حركه",
+      "حركات",
+      "انيميشن",
+      "ريموشن",
+      "motion",
+      "animation",
+      "animations",
+      "remotion"
+    ],
+    "performance": [
+      "اداء",
+      "سرعه",
+      "استهلاك",
+      "performance",
+      "latency",
+      "speed"
+    ],
+    "security": [
+      "امن",
+      "امان",
+      "صلاحيات",
+      "security",
+      "permissions",
+      "rls"
+    ],
+    "database": [
+      "قاعده بيانات",
+      "قواعد البيانات",
+      "قواعد بيانات",
+      "قاعده البيانات",
+      "database",
+      "databases",
+      "schema",
+      "migrations"
+    ],
+    "interface": [
+      "واجهه",
+      "واجهات",
+      "تصميم",
+      "ايقونات",
+      "بطاقات",
+      "ui",
+      "ux",
+      "design",
+      "frontend",
+      "dashboard"
+    ],
+    "ai": [
+      "ذكاء اصطناعي",
+      "الذكاء الاصطناعي",
+      "وكلاء",
+      "استدلال",
+      "ai",
+      "agents",
+      "rag",
+      "llm"
+    ],
+    "defects": [
+      "اخطاء",
+      "خطا",
+      "اعطال",
+      "عطل",
+      "bugs",
+      "bug",
+      "errors",
+      "defects"
+    ]
+  },
+  "engines": {
+    "build": {
+      "engine": "MASTER_BUILD",
+      "skill": "gaie-build",
+      "prompt": "prompts/MASTER_BUILD.md",
+      "write": true
+    },
+    "upgrade": {
+      "engine": "MASTER_UPGRADE",
+      "skill": "gaie-upgrade",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true
+    },
+    "accelerate": {
+      "engine": "MASTER_UPGRADE",
+      "skill": "gaie-upgrade",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true,
+      "scope": "performance"
+    },
+    "repair": {
+      "engine": "MASTER_UPGRADE",
+      "skill": "gaie-upgrade",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true,
+      "scope": "self-healing"
+    },
+    "cinematic": {
+      "engine": "CINEMATIC",
+      "skill": "gaie-cinematic",
+      "prompt": "prompts/MASTER_UPGRADE.md",
+      "write": true,
+      "scope": "media"
+    },
+    "audit": {
+      "engine": "AUDIT",
+      "skill": "gaie-audit",
+      "prompt": null,
+      "write": false
+    },
+    "release": {
+      "engine": "RELEASE",
+      "skill": "gaie-release",
+      "prompt": null,
+      "write": true
+    }
+  },
+  "subsumes": {
+    "upgrade": [
+      "accelerate",
+      "repair"
+    ],
+    "build": [
+      "upgrade",
+      "accelerate"
+    ]
+  },
+  "supporting_skills": {
+    "build": [
+      "system-builder",
+      "saas-platform",
+      "ai-integration",
+      "security-review",
+      "project-onboarding",
+      "priority-capability-selection"
+    ],
+    "upgrade": [
+      "hub-capabilities",
+      "security-review",
+      "universal-motion",
+      "digital-motion",
+      "chromium-engineering",
+      "headroom-context-engineering"
+    ],
+    "accelerate": [
+      "chromium-engineering",
+      "headroom-context-engineering"
+    ],
+    "repair": [
+      "security-review",
+      "chromium-engineering"
+    ],
+    "cinematic": [
+      "cinematic-production",
+      "universal-motion",
+      "digital-motion"
+    ],
+    "audit": [
+      "security-review",
+      "hub-capabilities",
+      "chromium-engineering"
+    ],
+    "release": [
+      "release-engineering",
+      "engineering-sdk",
+      "security-review"
+    ]
+  },
+  "hub_commands": {
+    "build": [
+      "capabilities",
+      "recommend",
+      "integrations",
+      "onboard",
+      "register",
+      "verify"
+    ],
+    "upgrade": [
+      "capabilities",
+      "health",
+      "motions",
+      "integrations",
+      "recommend",
+      "verify",
+      "inventory"
+    ],
+    "accelerate": [
+      "health",
+      "inventory",
+      "recommend"
+    ],
+    "repair": [
+      "health",
+      "inventory",
+      "verify"
+    ],
+    "cinematic": [
+      "motions",
+      "recommend",
+      "inventory"
+    ],
+    "audit": [
+      "audit",
+      "health",
+      "verify",
+      "inventory",
+      "capabilities"
+    ],
+    "release": [
+      "verify",
+      "health"
+    ]
+  },
+  "workstreams": {
+    "build": [
+      "architecture",
+      "backend",
+      "frontend",
+      "database",
+      "ai-intelligence",
+      "security",
+      "quality-assurance",
+      "design",
+      "devops",
+      "documentation"
+    ],
+    "upgrade": [
+      "architecture",
+      "backend",
+      "frontend",
+      "database",
+      "ai-intelligence",
+      "security",
+      "quality-assurance",
+      "performance",
+      "design",
+      "motion",
+      "cinematic",
+      "integration",
+      "documentation"
+    ],
+    "accelerate": [
+      "performance",
+      "frontend",
+      "backend",
+      "database"
+    ],
+    "repair": [
+      "software-engineering",
+      "quality-assurance",
+      "security"
+    ],
+    "cinematic": [
+      "cinematic",
+      "motion",
+      "voice-audio",
+      "quality-assurance"
+    ],
+    "audit": [
+      "architecture",
+      "security",
+      "quality-assurance",
+      "performance"
+    ],
+    "release": [
+      "release-management",
+      "security"
+    ]
+  },
+  "focus_workstreams": {
+    "media": [
+      "cinematic",
+      "voice-audio"
+    ],
+    "motion": [
+      "motion"
+    ],
+    "performance": [
+      "performance"
+    ],
+    "security": [
+      "security"
+    ],
+    "database": [
+      "database"
+    ],
+    "interface": [
+      "frontend",
+      "design"
+    ],
+    "ai": [
+      "ai-intelligence"
+    ],
+    "defects": [
+      "software-engineering",
+      "quality-assurance"
+    ]
+  },
+  "gates": {
+    "all": [
+      "Verify the target repository is reachable in this environment before any write.",
+      "Work on an isolated branch; never push to the default branch.",
+      "No paid service, API key or subscription without separate owner approval.",
+      "Keep project-private details out of the public hub."
+    ],
+    "audit": [
+      "Read-only: no file edits, commits, migrations, deployments or provider mutations."
+    ],
+    "release": [
+      "Explicit owner production authorization in the current conversation.",
+      "Exact repository, team, deployment target and tested commit verified (engineering SDK target).",
+      "All mandatory checks green on the exact head; no CI bypass.",
+      "Preview smoke-tested, rollback captured before promotion."
+    ],
+    "build": [
+      "Confirm no repository already exists for the project before creating one.",
+      "New repositories are private by default; creating one is a separate external-write step that needs explicit owner approval and a grant for the exact owner and repository, in addition to GitHub access."
+    ],
+    "upgrade": [
+      "Start from the current state; no deletion before proving non-use and preserving recovery.",
+      "Preserve data, permissions, identity and both languages."
+    ]
+  },
+  "fillers": [
+    "please",
+    "kindly",
+    "now",
+    "just",
+    "also",
+    "do",
+    "من",
+    "فضلك",
+    "رجاء",
+    "لطفا",
+    "لو",
+    "سمحت",
+    "الان",
+    "يا",
+    "هيا",
+    "fully",
+    "completely",
+    "entirely"
+  ],
+  "coordinators": [
+    "and",
+    "then",
+    "ثم",
+    "و",
+    "كذلك",
+    "ايضا"
+  ],
+  "clause_breaks": [
+    "but",
+    "however",
+    "instead",
+    "بل",
+    "لكن",
+    "انما"
+  ],
+  "noun_followers": [
+    "notes",
+    "note",
+    "page",
+    "pages",
+    "script",
+    "scripts",
+    "pipeline",
+    "history",
+    "log",
+    "logs",
+    "branch",
+    "of",
+    "date",
+    "process",
+    "plan",
+    "button"
+  ],
+  "control_plane": {
+    "authority": "Grant templates for the control plane. A template is not a grant: the control plane issues the grant, the Security Governor enforces it fail-closed, and external-write/production need a human approval token. The router itself executes nothing.",
+    "grant_ttl_hours": 8,
+    "workspace_root": "workspace",
+    "evidence_root": "$GAIE_HOME/evidence",
+    "role_ids": {
+      "registered": [
+        "chief-engineering-architect",
+        "cinematic-production-engineer",
+        "enterprise-security-privacy-engineer",
+        "github-integration-release-engineer",
+        "independent-assurance-engineer",
+        "master-build-engine-engineer",
+        "master-upgrade-engine-engineer",
+        "motion-sdk-animation-engineer",
+        "testing-self-healing-engineer"
+      ],
+      "provisional": [],
+      "source": "governance/agent-roles.json (the owner's 20 roles); tests check every id against that file whenever it is present."
+    },
+    "intents": {
+      "build": {
+        "engine_id": "master-build",
+        "engines": {
+          "master-build": [
+            "spec",
+            "plan",
+            "evaluate"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
+        "max_side_effect": "workspace-write",
+        "execution": "workspace",
+        "permissions": [
+          "read:registry",
+          "read:state",
+          "write:state",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "gated_steps": [
+          {
+            "engine": "master-build",
+            "action": "create-repository",
+            "side_effect": "external-write",
+            "permissions": [
+              "ext:github"
+            ],
+            "summary": "Create the new repository on GitHub (private by default) only after owner approval; never part of the workspace grant."
+          }
+        ],
+        "roles": {
+          "lead": "master-build-engine-engineer",
+          "support": [
+            "chief-engineering-architect",
+            "testing-self-healing-engineer"
+          ],
+          "verifier": "independent-assurance-engineer"
+        },
+        "capabilities": [
+          "gaie.router",
+          "gaie.build",
+          "gaie.registry",
+          "gaie.memory",
+          "gaie.inventory",
+          "gaie.verifier"
+        ],
+        "tests": [
+          "Requirements turned into acceptance tests before implementation (positive and negative).",
+          "The new system's unit, integration and build commands pass in the isolated workspace.",
+          "Security review: no secret in the tree, least-privilege configuration, private-by-default repository."
+        ],
+        "evidence": [
+          "Requirements and architecture decision record (gaie_memory decision entries).",
+          "Test receipt: commands, exit codes and SHA-256 of their output.",
+          "Workspace tree digest and the list of files created.",
+          "Independent verification report by the verifier role.",
+          "Owner approval token SHA-256 if, and only if, a repository was created."
+        ]
+      },
+      "upgrade": {
+        "engine_id": "master-upgrade",
+        "engines": {
+          "master-upgrade": [
+            "spec",
+            "plan",
+            "evaluate"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
+        "max_side_effect": "repo-write",
+        "execution": "repo-branch",
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "read:state",
+          "write:state",
+          "write:workspace",
+          "write:repo-branch",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "gated_steps": [],
+        "roles": {
+          "lead": "master-upgrade-engine-engineer",
+          "support": [
+            "chief-engineering-architect",
+            "testing-self-healing-engineer",
+            "cinematic-production-engineer"
+          ],
+          "verifier": "independent-assurance-engineer"
+        },
+        "capabilities": [
+          "gaie.router",
+          "gaie.upgrade",
+          "gaie.inventory",
+          "gaie.memory",
+          "gaie.registry",
+          "gaie.verifier"
+        ],
+        "tests": [
+          "Baseline: the project's own test, lint and build commands, recorded before any change.",
+          "The same commands on the isolated branch after the change; results compared with the baseline.",
+          "A regression test for every changed or repaired behaviour (positive and negative case)."
+        ],
+        "evidence": [
+          "Coverage matrix from gaie_inventory before the change.",
+          "Baseline and after receipts: commands, exit codes and SHA-256 of their output.",
+          "Branch name and head commit of the isolated branch (never the default branch).",
+          "Independent verification report by the verifier role.",
+          "gaie_memory checkpoint for the project."
+        ]
+      },
+      "accelerate": {
+        "engine_id": "master-upgrade",
+        "engines": {
+          "master-upgrade": [
+            "spec",
+            "plan",
+            "evaluate"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
+        "max_side_effect": "repo-write",
+        "execution": "repo-branch",
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "read:state",
+          "write:state",
+          "write:workspace",
+          "write:repo-branch",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "gated_steps": [],
+        "roles": {
+          "lead": "master-upgrade-engine-engineer",
+          "support": [
+            "testing-self-healing-engineer"
+          ],
+          "verifier": "independent-assurance-engineer"
+        },
+        "capabilities": [
+          "gaie.router",
+          "gaie.upgrade",
+          "gaie.inventory",
+          "gaie.memory",
+          "gaie.verifier"
+        ],
+        "tests": [
+          "Benchmark before and after on the same machine, input and command (build time, bundle size, response time as applicable).",
+          "Baseline: the project's own test, lint and build commands, recorded before any change.",
+          "The same commands on the isolated branch after the change; results compared with the baseline."
+        ],
+        "evidence": [
+          "Benchmark receipts before and after with the exact command and environment.",
+          "Baseline and after test receipts (SHA-256 of output).",
+          "Branch name and head commit of the isolated branch.",
+          "Independent verification report by the verifier role."
+        ]
+      },
+      "repair": {
+        "engine_id": "self-healing",
+        "engines": {
+          "self-healing": [
+            "analyze",
+            "verify-repair"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
+        "max_side_effect": "repo-write",
+        "execution": "repo-branch",
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "read:state",
+          "write:state",
+          "write:workspace",
+          "write:repo-branch",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "gated_steps": [],
+        "roles": {
+          "lead": "testing-self-healing-engineer",
+          "support": [
+            "master-upgrade-engine-engineer"
+          ],
+          "verifier": "independent-assurance-engineer"
+        },
+        "capabilities": [
+          "gaie.router",
+          "gaie.upgrade",
+          "gaie.inventory",
+          "gaie.memory",
+          "gaie.verifier"
+        ],
+        "tests": [
+          "Reproduce each defect with a failing test before the fix.",
+          "The same test passes after the fix; the full project suite shows no new failure.",
+          "Baseline: the project's own test, lint and build commands, recorded before any change."
+        ],
+        "evidence": [
+          "Failing-test receipt before the fix and passing receipt after (SHA-256 of output).",
+          "Root cause per defect (gaie_memory root-cause and repair entries).",
+          "Branch name and head commit of the isolated branch.",
+          "Independent verification report by the verifier role."
+        ]
+      },
+      "cinematic": {
+        "engine_id": "master-cinematic",
+        "engines": {
+          "master-cinematic": [
+            "spec",
+            "audit"
+          ],
+          "motion-sdk": [
+            "catalog",
+            "components"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
+        "max_side_effect": "repo-write",
+        "execution": "repo-branch",
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "read:state",
+          "write:state",
+          "write:workspace",
+          "write:repo-branch",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "gated_steps": [],
+        "roles": {
+          "lead": "cinematic-production-engineer",
+          "support": [
+            "motion-sdk-animation-engineer",
+            "testing-self-healing-engineer"
+          ],
+          "verifier": "independent-assurance-engineer"
+        },
+        "capabilities": [
+          "gaie.router",
+          "gaie.cinematic",
+          "gaie.inventory",
+          "gaie.memory",
+          "gaie.verifier"
+        ],
+        "tests": [
+          "Media inventory before the change (source, license, duration, resolution).",
+          "Rendered output checked frame-by-frame or by probe: duration, resolution, audio levels, no missing assets.",
+          "The same commands on the isolated branch after the change; results compared with the baseline."
+        ],
+        "evidence": [
+          "Render receipts: engine, command, SHA-256 of every output file (media stays outside Git unless small and licensed).",
+          "License record for every asset and voice.",
+          "Branch name and head commit for composition code.",
+          "Independent verification report by the verifier role."
+        ]
+      },
+      "audit": {
+        "engine_id": "master-audit",
+        "engines": {
+          "master-audit": [
+            "spec",
+            "inventory",
+            "health",
+            "hub-audit"
+          ]
+        },
+        "max_side_effect": "none",
+        "execution": "read-only",
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "secrets:none"
+        ],
+        "gated_steps": [],
+        "roles": {
+          "lead": "independent-assurance-engineer",
+          "support": [
+            "enterprise-security-privacy-engineer"
+          ],
+          "verifier": "chief-engineering-architect"
+        },
+        "capabilities": [
+          "gaie.router",
+          "gaie.audit",
+          "gaie.inventory",
+          "gaie.verifier"
+        ],
+        "tests": [
+          "Read-only checks only: static review, dependency and secret scan, configuration and permission review.",
+          "No write: the checkout's status and head are identical before and after the audit."
+        ],
+        "evidence": [
+          "Findings report with file:line references and severity.",
+          "Audited repository and exact head commit.",
+          "Proof of no write: status and head before and after."
+        ]
+      },
+      "release": {
+        "engine_id": "master-release",
+        "engines": {
+          "master-release": [
+            "spec",
+            "provenance",
+            "eligibility",
+            "preview",
+            "promote"
+          ]
+        },
+        "max_side_effect": "production",
+        "execution": "release-gated",
+        "approval_required": true,
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "exec:sandbox",
+          "ext:deploy",
+          "prod:deploy",
+          "secrets:none"
+        ],
+        "gated_steps": [
+          {
+            "engine": "master-release",
+            "action": "preview",
+            "side_effect": "external-write",
+            "permissions": [
+              "ext:deploy"
+            ],
+            "summary": "Deploy a preview of the exact tested commit to the registered target."
+          },
+          {
+            "engine": "master-release",
+            "action": "promote",
+            "side_effect": "production",
+            "permissions": [
+              "prod:deploy"
+            ],
+            "summary": "Promote the smoke-tested preview to production after explicit owner approval."
+          }
+        ],
+        "roles": {
+          "lead": "github-integration-release-engineer",
+          "support": [
+            "testing-self-healing-engineer",
+            "enterprise-security-privacy-engineer"
+          ],
+          "verifier": "independent-assurance-engineer"
+        },
+        "capabilities": [
+          "gaie.router",
+          "gaie.release",
+          "gaie.registry",
+          "gaie.verifier"
+        ],
+        "tests": [
+          "All mandatory checks green on the exact commit to be released.",
+          "Preview smoke test of the critical paths before promotion.",
+          "Post-release health check; rollback on a critical failure."
+        ],
+        "evidence": [
+          "Owner approval token SHA-256 for each gated action.",
+          "Exact repository, registered deployment target and tested commit.",
+          "Preview smoke result and the rollback reference captured before promotion.",
+          "Post-release health result appended to the private release history."
+        ]
+      }
+    },
+    "engine_actions_note": "Base actions are the control plane's governance/engines.json actions. master-build:create-repository and master-release:preview/promote are gated steps the control plane does not implement yet; until it does, they cannot run through it."
+  }
+}

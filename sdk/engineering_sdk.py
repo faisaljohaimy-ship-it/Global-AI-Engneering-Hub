@@ -7,15 +7,31 @@ MCP transport: newline-delimited JSON-RPC on stdio; all exposed tools are read-o
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import re
+import stat
 import subprocess
 import sys
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 HERE = pathlib.Path(__file__).resolve().parent
 SHA = re.compile(r"[a-f0-9]{40}")
 REPOSITORY = re.compile(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+# A checkout is not trusted: its own Git settings must not run programs during a read-only check.
+# protocol.allow=never, GIT_ALLOW_PROTOCOL="" (which overrides any protocol.<name>.allow of the checkout) and
+# GIT_NO_LAZY_FETCH=1 stop every transport, so a partial clone's lazy fetch of a missing object cannot start
+# the upload-pack, ssh or remote-helper program its config names (recheck-release item 1).
+GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null",
+                 "-c", "core.untrackedCache=false", "-c", "protocol.allow=never")
+GIT_ENV = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_OPTIONAL_LOCKS": "0",
+           "GIT_TERMINAL_PROMPT": "0", "GIT_NO_LAZY_FETCH": "1", "GIT_ALLOW_PROTOCOL": ""}
+FILTER_SETTING = re.compile(r"filter\..+\.(?:clean|smudge|process)", re.I)  # `git status` runs these on changed files
+# Config keys (as `git config --list` prints them) that make an object lookup fetch from a promisor remote.
+# The remote name may be empty or absent: Git also makes a promisor of [remote ""] (remote..promisor) and of
+# [remote] (remote.promisor) (recheck-release-2 N1).
+PARTIAL_CLONE_SETTING = re.compile(r"extensions\.partialclone|remote\.(?:.*\.)?(?:promisor|partialclonefilter)",
+                                   re.I | re.A | re.S)
 
 
 def pairs(items):
@@ -28,7 +44,11 @@ def pairs(items):
 
 
 def read_json(path):
-    return json.loads(path.read_text(), object_pairs_hook=pairs,
+    return decode_json(path.read_text())
+
+
+def decode_json(data):
+    return json.loads(data, object_pairs_hook=pairs,
                       parse_constant=lambda _: (_ for _ in ()).throw(ValueError("invalid number")))
 
 
@@ -41,12 +61,195 @@ def safe_path(root, name):
         current = current / part
         if current.is_symlink():
             raise ValueError("symlink refused")
+    if current.exists() and not current.is_file():
+        raise ValueError("regular file required")  # a FIFO or device would block or never end
     return current
+
+
+def read_audit_file(root, name):
+    """Read one bounded regular file through directory descriptors; never follow a link."""
+    path = pathlib.PurePosixPath(name)
+    if path.is_absolute() or not path.parts or ".." in path.parts or ".git" in path.parts:
+        raise ValueError("unsafe audit path")
+    if os.open not in os.supports_dir_fd or not hasattr(os, "O_NOFOLLOW"):
+        raise ValueError("safe audit file access unavailable")
+    root = pathlib.Path(root).absolute()
+    if ".." in root.parts:
+        raise ValueError("unsafe audit root")
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptor = os.open(root.anchor, directory_flags)
+    try:
+        for part in (*root.parts[1:], *path.parts[:-1]):
+            child = os.open(part, directory_flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        before = os.stat(path.name, dir_fd=descriptor, follow_symlinks=False)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise ValueError("audit accepts only regular files without aliases")
+        fd = os.open(path.name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=descriptor)
+        with os.fdopen(fd, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if not os.path.samestat(info, before) or info.st_nlink != 1:
+                raise ValueError("audit file changed during open")
+            limit = 32 * 1024 * 1024
+            data = handle.read(limit + 1)
+            if len(data) > limit:
+                raise ValueError("audit file exceeds the read limit")
+            return data
+    finally:
+        os.close(descriptor)
+
+
+def git(root, *args):
+    """Run Git in a checkout that may be hostile: its fsmonitor, hooks and untracked cache are off, system and
+    global config and inherited GIT_* variables are ignored, no transport or lazy fetch can start, the index
+    is never rewritten, nothing reads stdin and nothing prompts."""
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env.update(GIT_ENV)
+    try:
+        return subprocess.run(["git", *GIT_HARDENING, "-C", str(root), "--no-pager", *args], capture_output=True,
+                              check=True, env=env, stdin=subprocess.DEVNULL,
+                              timeout=120).stdout.decode("utf-8", "surrogateescape")
+    except subprocess.TimeoutExpired:
+        raise ValueError("Git did not finish in time") from None
+
+
+def _refuse_partial_clone(keys):
+    if any(PARTIAL_CLONE_SETTING.fullmatch(key) for key in keys):
+        raise ValueError("release checkout is a partial clone (a promisor remote, extensions.partialClone or "
+                         "partialCloneFilter): reading a missing object would fetch; refused")
+
+
+def _keys(listing, scopes=None):
+    items = listing.split("\0")
+    if scopes is None:
+        return [entry.split("\n", 1)[0] for entry in items if entry]
+    return [entry.split("\n", 1)[0] for scope, entry in zip(items[::2], items[1::2]) if scope in scopes]
+
+
+GITDIR_INTERNALS = frozenset({"objects", "refs", "logs", "hooks", "info", "lfs", "branches", "rr-cache", "svn"})
+
+
+def _config_keys(root, path):
+    """Keys of one stored submodule config. A link, a non-regular file, an unreadable file or a
+    conditional include (evaluated here against the wrong repository) cannot be checked: refused."""
+    if not stat.S_ISREG(path.lstat().st_mode):
+        raise ValueError("release checkout has a submodule Git config that is a link or not a regular file")
+    try:
+        keys = _keys(git(root, "config", "--file", str(path), "--list", "--includes", "-z"))
+    except subprocess.CalledProcessError:
+        raise ValueError("release checkout has a submodule Git config that cannot be read") from None
+    if any(key.startswith("includeif.") for key in keys):
+        raise ValueError("release checkout has a conditional include in a stored submodule Git config")
+    return keys
+
+
+def _module_configs(modules):
+    """Every config file Git keeps under .git/modules, nested submodules and worktrees included."""
+    if not os.path.lexists(modules):
+        return []
+    if modules.is_symlink() or not modules.is_dir():
+        raise ValueError("release checkout's .git/modules is a link or not a directory")
+    found = []
+    for current, directories, files in os.walk(modules):
+        here = pathlib.Path(current)
+        if "HEAD" in files:  # a Git directory: its objects, refs and logs hold no config
+            directories[:] = [name for name in directories if name not in GITDIR_INTERNALS]
+        if any((here / name).is_symlink() for name in (*directories, *files)):
+            raise ValueError("release checkout has a symbolic link in its submodule Git directories")
+        found += [here / name for name in files if name in ("config", "config.worktree")]
+    return sorted(found)
+
+
+def _submodule_keys(root, modules, name, recorded):
+    """Resolve one gitlink the way Git does and return the config keys Git would read there.
+    Refuse a link on the way, a gitfile that leaves .git/modules, a config that is a link or not a
+    regular file, and a submodule whose HEAD is not the recorded commit (`target` ignores submodules)."""
+    path = pathlib.Path(root)
+    for part in pathlib.PurePosixPath(name).parts:
+        path = path / part
+        if path.is_symlink():
+            raise ValueError("release checkout has a symbolic link on a submodule path")
+    marker = path / ".git"
+    if not os.path.lexists(marker):
+        return []  # not populated: Git reads nothing there
+    real_modules = modules.resolve()
+    if marker.is_symlink() or not (marker.is_dir() or marker.is_file()):
+        raise ValueError("release checkout has a submodule .git that is a link or not a file or directory")
+    if marker.is_dir():
+        allowed = expected = marker.resolve()  # a Git directory embedded in the submodule's own folder
+    else:
+        with marker.open("rb") as handle:
+            data = handle.read(4097)
+        text = data.decode("utf-8", "replace").rstrip("\r\n")
+        if len(data) > 4096 or not text.startswith("gitdir: ") or "\n" in text:
+            raise ValueError("release checkout has a submodule gitfile that cannot be resolved")
+        expected = pathlib.Path(os.path.normpath(path / text[len("gitdir: "):])).resolve()
+        allowed = real_modules
+        if expected == real_modules or not expected.is_relative_to(real_modules):
+            raise ValueError("release checkout has a submodule Git directory outside .git/modules")
+    try:
+        lines = git(path, "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-dir",
+                    "--git-common-dir", "HEAD").splitlines()
+    except subprocess.CalledProcessError:
+        lines = []
+    if len(lines) != 4:
+        raise ValueError("release checkout has a submodule that Git cannot resolve")
+    top, gitdir, commondir = (pathlib.Path(line).resolve() for line in lines[:3])
+    if top != path.resolve() or gitdir != expected or not commondir.is_relative_to(allowed):
+        raise ValueError("release checkout has a submodule that Git resolves elsewhere")
+    if lines[3] != recorded:
+        raise ValueError("release checkout has a submodule that is not at its recorded commit")
+    for config in sorted({gitdir / "config", gitdir / "config.worktree", commondir / "config",
+                          commondir / "config.worktree"}):
+        if os.path.lexists(config) and not stat.S_ISREG(config.lstat().st_mode):
+            raise ValueError("release checkout has a submodule Git config that is a link or not a regular file")
+    try:
+        return _keys(git(path, "config", "--list", "--show-scope", "--includes", "-z"), {"local", "worktree"})
+    except subprocess.CalledProcessError:
+        raise ValueError("release checkout has a submodule Git config that cannot be read") from None
+
+
+def checkout_guard(root):
+    """Refuse a checkout whose own Git settings would run a program or hide changes from `git status`.
+
+    Every submodule config Git would read is checked; one that cannot be resolved and checked is refused,
+    never skipped. `target` runs its status with submodules ignored, so a populated submodule must sit at
+    its recorded commit; changes inside a submodule's working files are not inspected. A populated
+    submodule that records submodules of its own is refused: nested gitlinks are not traversed, so their
+    Git directories (embedded, or reached through a gitfile anywhere) are never trusted (recheck-authz F1).
+    A partial clone is refused from its config alone, read first, before any command that reads the index or
+    objects; a submodule's config is checked the same way before its index is listed (recheck-release item 1)."""
+    keys = _keys(git(root, "config", "--list", "--show-scope", "--includes", "-z"), {"local", "worktree"})
+    _refuse_partial_clone(keys)
+    if pathlib.Path(git(root, "rev-parse", "--show-toplevel").strip()).resolve() != pathlib.Path(root).resolve():
+        raise ValueError("release checkout is not its own Git work tree root")
+    common = pathlib.Path(git(root, "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+    for path in _module_configs(common / "modules"):
+        keys += _config_keys(root, path)
+    _refuse_partial_clone(keys)
+    for entry in filter(None, git(root, "ls-files", "-v", "--stage", "-z").split("\0")):
+        info, name = entry.split("\t", 1)
+        tag, mode, recorded = info.split()[:3]
+        if tag != tag.upper() or tag == "S":
+            raise ValueError("release checkout hides changes (assume-unchanged or skip-worktree entries)")
+        if mode == "160000":
+            submodule = _submodule_keys(root, common / "modules", name, recorded)
+            _refuse_partial_clone(submodule)
+            keys += submodule
+            populated = pathlib.Path(root, name)  # no link on the way: _submodule_keys checked every part
+            if os.path.lexists(populated / ".git") and any(
+                    item.split(" ", 1)[0] == "160000"
+                    for item in filter(None, git(populated, "ls-files", "--stage", "-z").split("\0"))):
+                raise ValueError("release checkout has a nested submodule (a submodule inside a submodule); "
+                                 "nested submodules are refused, not inspected")
+    if any(FILTER_SETTING.fullmatch(key) for key in keys):
+        raise ValueError("release checkout defines Git filter programs; inspect its .git/config")
 
 
 def verify(root):
     """Verify the committed local file checksums; upstream authenticity is hub.py's job."""
-    manifest = read_json(safe_path(root, ".engineering/capabilities.json"))
+    manifest = decode_json(read_audit_file(root, ".engineering/capabilities.json").decode("utf-8"))
     if manifest.get("schema_version") != 1 or not SHA.fullmatch(str(manifest.get("hub_revision", ""))):
         raise ValueError("invalid capability manifest or pin")
     if manifest.get("production_runtime_dependency") is not False or type(manifest.get("budget_additional_sar")) is not int or manifest["budget_additional_sar"] != 0:
@@ -65,7 +268,7 @@ def verify(root):
             if name in seen and seen[name] != expected:
                 raise ValueError("conflicting capability files")
             seen[name] = expected
-            data = safe_path(root, name).read_bytes()
+            data = read_audit_file(root, name)
             if hashlib.sha256(data).hexdigest() != expected:
                 raise ValueError(f"capability checksum mismatch: {name}")
             count += 1
@@ -85,12 +288,13 @@ def target(root, repository, team, project, commit):
         raise ValueError("repository mismatch")
     if contract.get("vercel") != {"team_id": team, "project_id": project, "root_directory": "."}:
         raise ValueError("team, project or root mismatch")
-    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
-                          capture_output=True, text=True, check=True).stdout.strip()
+    checkout_guard(root)
+    head = git(root, "rev-parse", "HEAD").strip()
     if head != commit:
         raise ValueError("tested commit is not checkout HEAD")
-    if subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=normal"],
-                      capture_output=True, check=True).stdout:
+    # Submodules are never entered (checkout_guard checked their commits); no pager, no untracked cache.
+    if git(root, "--no-pager", "-c", "core.untrackedCache=false", "status", "--porcelain=v1",
+           "--untracked-files=normal", "--ignore-submodules=all"):
         raise ValueError("release checkout has uncommitted files")
     return contract
 

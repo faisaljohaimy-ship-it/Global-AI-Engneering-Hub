@@ -1,0 +1,223 @@
+{
+ "about": "Twenty lanes for twenty development agents, one each, working at once in separate worktrees. A lane owns the paths listed for it and may change no other. Development agents build parts of the system; they are not the agents of the measured experiment and are counted apart from them.",
+ "base_branch": "claude/swarm-phase-3",
+ "agent_type": "swarm-dev",
+ "model": "sonnet",
+ "effort": "medium",
+ "groups": {
+  "architecture": "architecture and coordination",
+  "context": "context and consumption",
+  "engine": "execution engines and scheduling",
+  "scale": "scale and performance testing",
+  "security": "security and isolation of permissions",
+  "quality": "quality assurance and independent tests",
+  "integration": "integration with Codex and GitHub",
+  "economics": "economics and documentation"
+ },
+ "lanes": [
+  {
+   "id": "A1",
+   "group": "architecture",
+   "title": "Evidence schema and validator",
+   "owns": [
+    "swarm/phase3/schema.py",
+    "tests/test_p3_schema.py"
+   ],
+   "brief": "Write `swarm/phase3/schema.py` with `validate(document) -> list[str]`: the problems found in an evidence document as `swarm/phase2/stage.py` writes it (read its `save()` and `finish()` for the fields, and `swarm/phase2/evidence/preflight.json` for a real stage). Check: the top-level keys; for each stage its kind (a skipped stage has only `label` and `skipped`; a probe; a task stage) and the keys and types that kind must have; the arithmetic (`agent_tokens.input_total` equals `input_uncached + cache_write + cache_read`, `total` equals `input_total + output`, `verified_tasks <= tasks`, `peak_concurrent_agents <= actual_agents`, `verified_success_rate` equals the rounded share); and that no string anywhere holds an absolute path (`/home/`, `/root/`, `/tmp/`, `/Users/`), a session id (`session_0`) or a model identifier longer than a family name. Command line: `python3 swarm/phase3/schema.py FILE` prints the problems and exits 1 if there are any. Tests: a document built by hand passes; each rule broken once is reported once; the stage in `preflight.json`, wrapped as a document, passes."
+  },
+  {
+   "id": "A2",
+   "group": "architecture",
+   "title": "A registry of 1,000 agent places",
+   "owns": [
+    "swarm/phase3/registry.py",
+    "swarm/phase3/registry.json",
+    "tests/test_p3_registry.py"
+   ],
+   "brief": "The first phase registered 100 roles in `swarm/agents.json` (read its shape; ids look like `T01-A01`). Write `swarm/phase3/registry.py` that expands them into 1,000 places, ten per role, with ids like `T01-A01-03`. Each place has: its role id, its team, the task sizes it may take (derive one rule from the team and state it in the docstring; every size must be takeable by at least 100 places), and `status: \"registered\"`. `slots()` returns the 1,000 dicts. `assign(tasks, slots)` takes tasks that each have `id` and `size` and returns `{task_id: place_id}`: deterministic, spreading evenly, never giving a place a size outside its list, and raising `ValueError` when a size has no place. Running the script writes `registry.json`; `--check` exits 1 when the file is not what would be written. Commit the generated file. Tests: 1,000 distinct ids, ten per role, the size rule holds for an assignment of 1,000 mixed tasks, the same input gives the same output, `--check` passes on the committed file. A registered place is a row in a file, not an agent that ran: say so in the file's `about` field."
+  },
+  {
+   "id": "A3",
+   "group": "architecture",
+   "title": "Resume from the repository's evidence",
+   "owns": [
+    "swarm/phase3/resume.py",
+    "tests/test_p3_resume.py"
+   ],
+   "brief": "A stage driver keeps its working results in a private folder that does not travel with the repository, so a new session cannot go on from where another stopped. Write `swarm/phase3/resume.py`. `position(evidence, plan)` takes an evidence document and a plan (both as dicts shaped like `swarm/phase2/evidence/*.json` documents written by `stage.save()` and like `swarm/phase2/PLAN.json`) and returns `{\"done\": [...], \"skipped\": [...], \"next\": id or None}` following the plan's order. `rebuild(evidence_file, results_file)` writes `{\"stages\": [...]}` to `results_file` from the evidence when the results file is missing, returns True if it wrote, and never overwrites an existing results file. Both refuse, with `ValueError`, an evidence document whose `plan_sha256` is not the SHA-256 of the plan file's bytes: results measured under another plan must not be continued under this one. Command line: `python3 swarm/phase3/resume.py EVIDENCE PLAN [RESULTS]`. Tests with temporary files for each behaviour, including the refusal."
+  },
+  {
+   "id": "C1",
+   "group": "context",
+   "title": "Report on prompt-cache sharing between workers",
+   "owns": [
+    "swarm/phase3/cache_report.py",
+    "tests/test_p3_cache_report.py"
+   ],
+   "brief": "Write `swarm/phase3/cache_report.py` with `report(paths, weights) -> dict` over agent records (format in the contract). For each record take the usage of its first reply and of all replies. Report: agents; for the first request the totals of uncached, cache-written and cache-read tokens; the share of agents whose first request read at least half of its input from cache; all cache written and all cache read over whole records; and `warm_prefix_estimate`: the first-request cache writes of all agents minus the largest single one, in tokens and in cost units with `weights` (keys `cache_write_5m`, `cache_read`): what one warm copy of the common prefix would have turned from writes into reads. Call it an estimate in the output, and explain in the docstring what it assumes (that all the agents share one prefix). Count a reply once even if its `message.id` appears on several lines. Command line prints JSON. Tests on records you synthesise in a temporary folder: cold agents, warm agents, a duplicated id, an empty record."
+  },
+  {
+   "id": "C2",
+   "group": "context",
+   "title": "Static size of what a worker starts with",
+   "owns": [
+    "swarm/phase3/context_budget.py",
+    "tests/test_p3_context_budget.py"
+   ],
+   "brief": "Write `swarm/phase3/context_budget.py`. `budget(root)` returns, for every `.claude/agents/*.md` under `root`: its name, the characters of its frontmatter and of its instructions, its `tools`, `model`, `maxTurns`, whether its shell has the gate (`swk-guard` or `swk-lane-guard` in a hook), and an estimated token count (characters divided by four; say in the output that it is an estimate, not a tokenizer's count). It also returns the characters of the instruction files a session in `root` loads: `CLAUDE.md` and `AGENTS.md` at the root, following one level of `@FILE` lines. `check(root, limits)` returns the problems against `limits` (`definition_chars`, `instructions_chars`; sensible defaults 1800 and 8000) and reports any worker definition (name starting `swarm-`) that has a tool besides the ones in `limits[\"tools\"]` (default `Bash`, and for `swarm-dev` also Read, Write, Edit, Grep, Glob). Command line prints a table and exits 1 on problems. Tests on a temporary folder for each rule, and one test that the real repository passes."
+  },
+  {
+   "id": "C3",
+   "group": "context",
+   "title": "Scripted trace of the worker command on large tasks",
+   "owns": [
+    "swarm/phase3/trace.py",
+    "tests/test_p3_trace.py"
+   ],
+   "brief": "Write `swarm/phase3/trace.py` with `run(out, count) -> dict`. With no agent and no model, it measures how much text the worker's command prints for the same five needs in a raw stage and in a lean stage. Build `count` large tasks twice with `tasks.make(folder, \"large\", first, count, mode)` under `out/home/p2/work/raw` and `.../lean` (same numbers, so the same projects), set `out/home/p2/current` to the stage in use, and call `swarm/phase2/kit.py` as a subprocess with `SWARM_HOME=out/home` (see `swarm/phase2/kit.py` for the verbs, and the withheld truth in `.hidden/ID.json`). The five needs and the command for each mode: failing tests (`test` in both); the callers of the wrong function (raw: `grep` for `NAME\\(` in `inv`; lean: `callers`); its code (raw: `read` of its module; lean: `def`); the failed events (raw: `grep` for `failed` in `data/events.json`; lean: `select ... status=failed id`); the build error (`grep` for `^ERROR` in `logs/build.log` in both). Record characters per need and mode, whether the true answer is in the output, totals and the percent saved, with `\"kind\": \"scripted trace: no agent, no model\"`. Command line writes the JSON to a file. Tests with `count=2`: every answer present in both modes, lean total below raw total."
+  },
+  {
+   "id": "C4",
+   "group": "context",
+   "title": "Compact task text for a worker's second and later tasks",
+   "owns": [
+    "swarm/phase3/compact.py",
+    "tests/test_p3_compact.py"
+   ],
+   "brief": "A worker that takes several tasks from the queue is shown the same rules paragraph (`tasks.RULES`) with each one. Write `swarm/phase3/compact.py`. `render(text, first)` takes a task text as `swarm/phase2/tasks.py` writes it (a `## Task ID` heading, a blank line, the rules paragraph, a blank line, the body). With `first=True` it returns the text with runs of blank lines collapsed to one and nothing else changed. With `first=False` it replaces the rules paragraph by the single line `Rules as before.` and changes nothing else: the heading and every character of the body stay. A text without the rules paragraph is returned as with `first=True`. `saving(texts)` returns the characters before and after for a batch rendered in order (the first with `first=True`) and the percent saved. Tests over forty generated tasks (`tasks.small` and `tasks.medium` for numbers 1 to 20): the body is identical, the heading is kept, the rules line appears exactly once per text, the saving for a batch of five is above zero, and for a batch of one it is zero or the blank-line effect only."
+  },
+  {
+   "id": "E1",
+   "group": "engine",
+   "title": "Queue leases, reclaim, and proof under load",
+   "owns": [
+    "swarm/phase3/taskqueue.py",
+    "tests/test_p3_taskqueue.py"
+   ],
+   "brief": "`swarm/phase3/taskqueue.py` exists and its five signatures are fixed (see the contract). Extend it without breaking them. Add a lease: a claim records the time it was made (the caller may pass `now=`; default the clock); `reclaim(stage_dir, now, lease_seconds=900)` moves claims older than the lease back to `waiting`, takes them off the worker's count, and returns their ids; `status` also reports the age in seconds of the oldest claim. A task handed in after it was reclaimed and claimed by another must not be recorded for the first worker. Then prove the core property under load, in the tests: at least 100 processes started at once against 1,000 tasks, with batches of several sizes, and every task is claimed exactly once, no worker exceeds its batch, and nothing is left half-moved. Print the claims per second the test measured (do not assert a speed beyond a low floor). Also test: release twice, unknown outcome, a bad worker name, an empty queue, reclaim and re-claim."
+  },
+  {
+   "id": "E2",
+   "group": "engine",
+   "title": "Choose the next wave from what the last one measured",
+   "owns": [
+    "swarm/phase3/adaptive.py",
+    "tests/test_p3_adaptive.py"
+   ],
+   "brief": "Write `swarm/phase3/adaptive.py`, pure and deterministic. `next_wave(history, limits)` returns `{\"agents\": n, \"batch\": k, \"reason\": text}`. `history` is the waves so far, oldest first, each with `agents`, `batch`, `peak_concurrent_agents`, `tasks_per_minute`, `verified_success_rate`, `agents_with_limit_error` and `input_tokens_per_agent`. `limits` has `start`, `max_agents`, `max_batch`, `tokens_left` and `tasks_left`. Rules, in this order: no history gives `start` agents and batch 1; any limit error gives 0 agents (stop); a verified rate under 90 halves the agents (at least 1) and keeps the batch; a peak under 80% of the agents started means the host ran fewer at once than asked, so ask for exactly that peak next; throughput at least 10% above the wave before (or no wave before) doubles the agents up to `max_agents`; otherwise keep the agents and move the batch one step along 1, 2, 4, 8 up to `max_batch`, and when the batch is already at its limit return 0 agents with the reason that more agents and bigger batches both stopped paying. Then cap the answer so that `agents * batch` does not exceed `tasks_left` and `agents * input_tokens_per_agent` of the last wave does not exceed `tokens_left`; if not even one agent fits, return 0 with that reason. Every reason is one plain sentence with the numbers in it. Tests: one per rule, the caps, and a run of six waves played through from a table."
+  },
+  {
+   "id": "E3",
+   "group": "engine",
+   "title": "Simulate 1,000 workers on a queue",
+   "owns": [
+    "swarm/phase3/simulate.py",
+    "tests/test_p3_simulate.py"
+   ],
+   "brief": "Write `swarm/phase3/simulate.py`: a discrete-event simulation, clearly not a measurement. `run(agents, tasks, batch, host_concurrency, service, seed, overhead=0.0, failure=0.0)`: `agents` workers are asked for at time 0; at most `host_concurrency` run at once and the rest wait their turn; each running worker takes tasks from a common queue one at a time, up to `batch`, each task taking a time drawn from a normal distribution with `service[\"mean\"]` and `service[\"sd\"]` seconds (never below `service[\"least\"]`), using `random.Random(seed)`; each worker pays `overhead` seconds once when it starts; a task fails with probability `failure` and is not retried. Return wall seconds, tasks done and failed, tasks per minute, the peak number running at once, the share of worker-time spent on tasks, how long the last worker waited to start, and `\"kind\": \"simulation: no agent ran\"` with the inputs echoed. A `sweep` command prints a table for 100, 200, 300, 500, 750 and 1,000 agents. Tests: tasks done plus failed equals the tasks taken; the peak never passes the host limit; the same seed gives the same result; with no overhead, raising the host limit never makes the run slower; with a batch of 10, 100 agents finish 1,000 tasks."
+  },
+  {
+   "id": "E4",
+   "group": "engine",
+   "title": "The queue worker's command and its definition",
+   "owns": [
+    "swarm/phase3/kit3.py",
+    ".claude/agents/swarm-queue.md",
+    "tests/test_p3_kit3.py"
+   ],
+   "brief": "Write `swarm/phase3/kit3.py`: the worker command of the third phase. It is installed under the same name, `swk`, so the existing gate lets it through. Import the second phase's `kit` and set `kit.HOME` to `SWARM_HOME/p3` before using it, so its `stage()`, `locate()`, `load()` and `emit()` work on the third phase's folders; pass every verb you do not handle to `kit.main`. Handle two verbs. `next [WORKER]`: with no worker name make one (`w` and six hex characters); `taskqueue.claim(stage, worker)`; if there is a task, print one line `worker NAME`, then the task text, passed through `compact.render(text, first)` when the module `compact` can be imported (it is another lane's and may be missing: fall back to the full text), where `first` is whether this is the worker's first task; if there is none, print `No more tasks for you. Reply DONE.` `submit ID`: do what `kit.submit` does, and when the examples passed or no attempts are left, `taskqueue.release` the task for its holder with `handed-in` or `failed` and end the reply with `Then run: swk next NAME`. Write `.claude/agents/swarm-queue.md` on the model of `.claude/agents/swarm-light.md` (shell only, the same gate hook, light model, `maxTurns: 40`): its prompt is ignored except as a start signal; it runs `swk next`, hands each task in, runs `swk next NAME` again, and answers DONE when told there are no more tasks. Tests, with a temporary `SWARM_HOME`, tasks from `tasks.make` (medium tasks carry a `reference` solution) and a queue from `taskqueue.create`: two scripted workers drain a queue of six tasks with batch three without sharing a task; a failing hand-in keeps the task with its worker until the attempts run out; every command the definition tells a worker to run passes `guard.allowed`."
+  },
+  {
+   "id": "P1",
+   "group": "scale",
+   "title": "Load test of the worker command with scripted workers",
+   "owns": [
+    "swarm/phase3/loadtest.py",
+    "tests/test_p3_loadtest.py"
+   ],
+   "brief": "Write `swarm/phase3/loadtest.py` with `run(tasks, workers, home) -> dict`. It measures the deterministic part of the system under many workers at once, with scripted workers: no agent and no model. Build `tasks` medium tasks under `home/p2/work/load` with `tasks.make` (each returned task has a `reference` solution), set `home/p2/current`, then start `workers` processes at the same moment; each takes its share of the tasks and for each one runs the second phase's worker command as a subprocess, `kit.py show ID` then `kit.py submit ID` with the reference on standard input, with `SWARM_HOME=home`. Measure wall seconds, hand-ins per second, the median, 95th percentile and largest time of `show` and of `submit`, how many commands failed, and the highest one-minute load average seen; then `tasks.check` must verify every task. Return these with `\"kind\": \"load test with scripted workers: no agent, no model\"` and the machine's core count. Command line: `--tasks 1000 --workers 200 --out FILE`. Keep the unit test small (40 tasks, 20 workers) so it ends well inside a minute. In your final answer give the figures of one run with 1,000 tasks and 200 workers if it completes within five minutes on this machine; if you do not run it, say so."
+  },
+  {
+   "id": "P2",
+   "group": "scale",
+   "title": "How many workers really ran at once, second by second",
+   "owns": [
+    "swarm/phase3/timeline.py",
+    "tests/test_p3_timeline.py"
+   ],
+   "brief": "Write `swarm/phase3/timeline.py` with `build(paths, start=None) -> dict` over agent records (format in the contract). For each record find its first and last timestamp and the timestamp of its first reply. Return: the agents; the number active in each second from the earliest start to the latest end, as run-length pairs `[seconds, active]`; the peak and how many seconds it lasted; the delay from `start` (default: the earliest timestamp of any record) to each agent's first reply, as median, 95th percentile and largest; the same three figures for each agent's duration; and `plateaus`: spans of at least three seconds during which the active count stayed at its peak while at least one agent had not yet started, which is what a host that runs fewer agents at once than were asked for looks like. Say in the output that a plateau suggests a limit and does not prove one. Command line prints JSON for the record files given. Tests on records you synthesise: ten agents started together; ten started one per second; thirty agents of which only ten run at a time."
+  },
+  {
+   "id": "P3",
+   "group": "scale",
+   "title": "Speed-up, efficiency and the balance point from the evidence",
+   "owns": [
+    "swarm/phase3/stats.py",
+    "tests/test_p3_stats.py"
+   ],
+   "brief": "Write `swarm/phase3/stats.py` over an evidence document (shape: `swarm/phase2/stage.py` `save()` and `finish()`). `summary(document)` groups the task stages by size, worker type and model, sorts each group by agents, and gives for each stage: agents, the peak at once, verified and total tasks, wall seconds, tasks per minute, input tokens per verified task, cost units per verified task, the speed-up against the group's single-agent stage (its seconds per task divided by this stage's seconds per task), the parallel efficiency (speed-up divided by agents), and the gain in tasks per minute over the stage before, in percent. `balance_point(rows)` takes one group's rows and returns the largest stage whose gain over the stage before was at least 10%, the stage with the lowest cost units per verified task, and one plain sentence; when a group has fewer than two stages it says so instead of choosing. Skipped stages are listed apart with their reasons. Never compute a figure whose input is missing: return None for it. Command line prints the summary as a Markdown table per group. Tests on a document you write by hand: a group of four stages with a clear balance point, a group with one stage, a skipped stage, a stage with no verified task."
+  },
+  {
+   "id": "S1",
+   "group": "security",
+   "title": "Attack the gate and the worker command, and close what opens",
+   "owns": [
+    "swarm/phase2/guard.py",
+    "swarm/phase2/kit.py",
+    "tests/test_p3_gate_fuzz.py"
+   ],
+   "brief": "You may change two second-phase files, and only to close a hole you have shown with a failing test: `swarm/phase2/guard.py` (the gate: read its docstring) and `swarm/phase2/kit.py` (the worker's command). Attack the gate first. In `tests/test_p3_gate_fuzz.py` write your own, independent definition of the allowed language as a small parser (not a copy of the gate's regular expressions), then generate at least 5,000 commands with `random.Random(seed)` from fragments that matter to a shell: `;`, `&&`, `|`, `>`, `<`, backquotes, `$(`, `${`, `$'`, `<<<`, `<<-`, unquoted `<<TAG`, `\\` at a line end, carriage returns, tabs, NUL, `~`, `*`, `?`, `{a,b}`, `#`, `!`, leading and trailing spaces, an assignment before the command, several lines, a here-document that closes early, Unicode look-alikes of the letters in `swk`. Assert that the gate lets through exactly what your parser accepts. Then attack the command itself with temporary stages built by `tasks.make`: ids and paths that try to leave the task folder, a symlink planted inside a project folder that points outside it and is then given to `read`, `grep` or `setline`, very large standard input, a regular expression built to run for minutes in `grep`. For each real hole: a named regression test that fails before your change and passes after, and the smallest change that closes it. The second phase's own tests (`python3 -m unittest tests.test_swarm_phase2`) must still pass. In the test file's docstring list what you tried, what held and what you closed. If nothing opens, say so plainly."
+  },
+  {
+   "id": "S2",
+   "group": "security",
+   "title": "A cage for running a thousand workers' code",
+   "owns": [
+    "swarm/phase3/cage.py",
+    "tests/test_p3_cage.py"
+   ],
+   "brief": "`workload.isolated` runs worker-written code with no network and an empty environment, and only a wall-clock limit. At a thousand hand-ins that is not enough. Write `swarm/phase3/cage.py` with `run(command, cwd=None, timeout=20, memory_mb=512, cpu_seconds=10) -> subprocess.CompletedProcess`, a drop-in replacement that adds: a limit on CPU seconds, on address space, on the size of a file it may write and on open files (`resource.setrlimit` in the child); its own process group, killed whole on timeout; no network where `unshare -n` works, as now; standard input closed; and, when the caller is root, a drop to an unprivileged user and group in the child so that a limit on the number of processes applies and the code cannot write where the orchestrator can. If dropping privileges means the code can no longer read the file it must run, say what the caller has to do (for example run from a folder that user can read) and offer a helper that prepares such a folder. Return what `subprocess.run` returns, with a clear way to tell that a limit was hit. Tests that show each wall holding: a busy loop is stopped by the CPU limit before the wall-clock timeout; a 2 GB allocation fails; a file larger than the limit cannot be written; a fork loop is contained and leaves no process behind; a socket to an IP address cannot be opened; an honest script still runs and returns its output. Where a wall cannot be built on this machine, skip that test with the reason, and say so in your final answer."
+  },
+  {
+   "id": "Q1",
+   "group": "quality",
+   "title": "Do the second phase's tests notice a broken gate or command?",
+   "owns": [
+    "swarm/phase3/mutate.py",
+    "tests/test_p3_mutation_guards.py"
+   ],
+   "brief": "Write `swarm/phase3/mutate.py`. `mutants(source, limit, seed)` returns up to `limit` variants of a Python source, each with one small change made through the `ast` module and chosen with `random.Random(seed)`: a comparison flipped (`<` to `<=`, `==` to `!=`), `and` swapped with `or`, a `not` removed, an integer constant moved by one, a `return` of a boolean inverted. A command `python3 swarm/phase3/mutate.py run FILE TEST_MODULE --limit N` copies the repository's `swarm` and `tests` folders to a temporary folder, and for each mutant of FILE writes it over the copy and runs TEST_MODULE there with a time limit, then reports how many mutants the tests noticed (killed) and prints the surviving changes as short diffs. Run it on `swarm/phase2/guard.py` and on `swarm/phase2/kit.py` against `tests.test_swarm_phase2` with a limit of about twenty each. Then write `tests/test_p3_mutation_guards.py`: new tests of the second phase's gate and command that would notice the survivors that matter (a survivor that changes nothing a user could observe may be left, and named). In that file's docstring give the figures: mutants tried, noticed before your tests, noticed with them. Your own unit tests for `mutants` must show it is deterministic and that every mutant still parses."
+  },
+  {
+   "id": "Q2",
+   "group": "quality",
+   "title": "Properties the medium reference solutions must keep",
+   "owns": [
+    "swarm/phase3/properties.py",
+    "tests/test_p3_reference_properties.py"
+   ],
+   "brief": "The medium tasks of `swarm/phase2/tasks.py` are judged against reference solutions (`LEDGER`, `EXPR`, `ROOMS`, `GRAPH`, filled in by `family_ledger` and the others; `tasks.medium(number, seed)` returns the filled-in `reference` and the task `text`). If a reference is wrong, every worker is judged wrongly. Test the references against properties that do not come from the references themselves, over at least thirty variants of each family and random scripts of calls made with `random.Random(seed)`. Ledger: the sum of all balances equals deposits minus withdrawals minus fees paid; a call that raises `ValueError` leaves every balance and history as it was; `richest` is sorted as the task text says. Rooms: no two current bookings overlap, all lie inside the opening hours stated in the task text, nobody holds more than the stated number, and `free(1)` together with `agenda()` covers the opening hours exactly once. Graph: when `order()` returns, every package comes after all it needs, and it holds every known package once; `requires` and `dependents` are each other's inverse. Expression: for generated well-formed expressions `evaluate` equals Python's own `eval` of the same text with `/` read as `//`, and `tokenize` joined back gives the text without its spaces. Put shared helpers in `swarm/phase3/properties.py`. Read each variant's constants from its task text or reference. Do not change `tasks.py`: if a property fails, keep the failing test, mark it as an expected failure with the reason, and report the finding in your final answer."
+  },
+  {
+   "id": "G1",
+   "group": "integration",
+   "title": "Receipts and a handover page for the other engine",
+   "owns": [
+    "swarm/phase3/handover.py",
+    "swarm/phase3/HANDOVER.md",
+    "tests/test_p3_handover.py"
+   ],
+   "brief": "The hub's rule is that one engine hands work to the other with receipts of the sources and tests. Write `swarm/phase3/handover.py`. `receipts(root)` returns, sorted by path, `{path, sha256, lines}` for `swarm/**/*.py`, `swarm/**/PLAN*.json`, `tests/test_swarm*.py`, `tests/test_p3_*.py` and `.claude/agents/swarm-*.md`, leaving out `swarm/phase3/HANDOVER.md` itself. `write(root)` returns the text of `HANDOVER.md`: one paragraph on what each of the three phases is (take the first sentence of the module docstrings of `swarm/ladder.py`, `swarm/phase2/stage.py` and `swarm/phase3/CONTRACT.md`'s second section, do not invent); how to run the tests; where each phase keeps its evidence; how the task store is used, quoting only commands that `python3 -m engineering_os.orchestration --help` really lists; what has not been done from the other engine (nothing in these phases was run from Codex: say exactly that); and the receipts as a table. Running the script writes the file; `--check` exits 1 when the file is not current. The file will go stale as other lanes are joined: that is expected, it is regenerated then. Tests: the receipts are stable and sorted, a changed file changes its receipt and fails `--check`, and the text holds no absolute path."
+  },
+  {
+   "id": "D1",
+   "group": "economics",
+   "title": "What a task, a feature and a system change cost",
+   "owns": [
+    "swarm/phase3/economics.py",
+    "tests/test_p3_economics.py"
+   ],
+   "brief": "Write `swarm/phase3/economics.py` over an evidence document (shape: `swarm/phase2/stage.py` `save()` and `finish()`; cost weights in `swarm/phase2/PLAN.json` under `cost_weights`, with their caveat). `per_task(document)` returns one row per task stage: size, worker type, model, agents, verified tasks, input tokens and cost units per verified task, worker seconds per verified task, and the share of input that was read from cache. `project(row, tasks)` gives, for `tasks` more tasks like that row's, the input tokens, cost units and the wall time at that row's tasks per minute, each marked as a projection from one stage. `render(document)` returns Markdown: the table; a short section that names what the three sizes stand in for (a small task for a function, a medium for a module-sized feature, a large for a fix in an existing system: stand-ins, generated, not real customer work); the cheapest stage per size; and the assumptions, word for word from the plan's `cost_weights.about`. Use None, never zero, where a stage verified nothing or a field is missing, and never divide by zero. Command line: `python3 swarm/phase3/economics.py EVIDENCE [--tasks N]` prints the Markdown. Tests on a document you write by hand, including a stage with no verified task and a skipped stage."
+  }
+ ]
+}

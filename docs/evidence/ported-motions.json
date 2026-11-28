@@ -1,0 +1,261 @@
+{
+ "schema_version": 1,
+ "what": "Original motions brought over from earlier branches with git checkout, not redrawn. Each group is one module as it was committed on its source branch, minus the motions listed in left_out, plus the meaning field the purposeful-motion policy requires. The drawing code of every ported motion is the source branch's code, unchanged.",
+ "policy": "governance/policies/motion-purpose.json",
+ "receipt": "docs/evidence/ported-motions-chromium.json",
+ "tests": [
+  "tests/test_ported_motions.py",
+  "tests/test_ported_motions.mjs",
+  "tests/test_ported_motions_browser.mjs"
+ ],
+ "meanings": "The source branches state no meaning for any of these motions. Every meaning here was written by the port from what the motion draws (its source and its proof frames) and is listed in the receipt; the owner may correct or withdraw any of them.",
+ "groups": [
+  {
+   "source": "motion-library/expansion/nextgen-motion-systems.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "985d8ac62da0b5404aab18fb990769f5e88f5885",
+   "from_blob": "83e14defb12fb3a7cbf5675b24fa1f95c0eb3f9a",
+   "ids": [
+    "neural-synapse-activation",
+    "neural-signal-propagation",
+    "neural-thought-flow",
+    "neural-multi-agent-communication",
+    "neural-network-growth",
+    "neural-decision-tree",
+    "neural-attention-matrix",
+    "networks-node-network-3d",
+    "networks-reconfiguration",
+    "networks-geographic-connection",
+    "networks-relationship-mapping",
+    "networks-agent-constellation",
+    "networks-dependency-animation",
+    "networks-hierarchical-expansion",
+    "networks-signal-routing"
+   ],
+   "left_out": {
+    "neural-task-orchestration": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/neural/task-orchestration.mjs)",
+    "neural-inference-pipeline": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/neural/inference-pipeline.mjs)",
+    "neural-embedding-space": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/neural/embedding-space.mjs)",
+    "networks-data-transmission": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/networks/data-transmission.mjs)",
+    "networks-distributed-system": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/networks/distributed-system.mjs)"
+   }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-ui.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "330e66279baed4dceb0cb6a050485b9f84bed94d",
+   "from_blob": "7c990fb9d2605a746e3060534add69f9f29e6328",
+   "ids": [
+    "hologram-card-assembly",
+    "hologram-depth-mapping",
+    "hologram-interface-deconstruction",
+    "hologram-data-projection",
+    "hologram-command-interface",
+    "dashboard-risk-matrix",
+    "dashboard-predictive-reveal",
+    "dashboard-geographic-heatmap",
+    "dashboard-network-graph",
+    "dashboard-alert-cascade"
+   ],
+   "left_out": {
+    "hologram-scanline-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/hologram/scanline-reveal.mjs)",
+    "dashboard-kpi-flow": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/kpi-flow.mjs)",
+    "dashboard-sankey-flow": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/sankey-flow.mjs)",
+    "dashboard-time-series-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/time-series-reveal.mjs)",
+    "dashboard-signal-pulse": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/signal-pulse.mjs)",
+    "hologram-materialization": "no stated purpose: a wireframe vessel forms slice by slice above an emitter; no digital service is shown",
+    "hologram-volumetric-projection": "no stated purpose: depth planes and voxels appear inside a projector frustum; a projection effect with no digital service shown",
+    "hologram-floating-grid": "no stated purpose: a displacement wave lifts a wire grid; a surface effect with no digital service shown",
+    "hologram-interactive-rotation": "no stated purpose: a wireframe cube turns with the pointer and the timeline; no digital service is shown",
+    "dashboard-data-orbit": "no stated purpose: metric dots circle on tilted ellipses with trails; the orbits carry no readable data or process"
+   }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-scenes.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "dae3a5fb05a6f5262f5ed8c734d7aa36c4bc9c1a",
+   "from_blob": "ad6a970478d03089139f6b932c7444dff19aea4a",
+   "ids": [
+    "transitions-spatial-navigation",
+    "transitions-panel-assembly",
+    "transitions-shared-element",
+    "transitions-depth-replacement",
+    "transitions-view-transition",
+    "story-architecture-timeline",
+    "story-capability-reveal",
+    "story-workflow-transformation",
+    "story-kpi-storytelling",
+    "story-milestone-journey",
+    "story-achievement-sequence",
+    "story-roadmap-animation",
+    "story-evidence-presentation"
+   ],
+   "left_out": {
+    "transitions-mask-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/transitions/mask-reveal.mjs)",
+    "transitions-curtain-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/transitions/curtain-reveal.mjs)",
+    "transitions-fragment-transition": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/transitions/fragment-transition.mjs)",
+    "story-system-evolution": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/story/system-evolution.mjs)",
+    "story-transformation-journey": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/story/transformation-journey.mjs)",
+    "transitions-liquid-screen": "no stated purpose: a wave edge wipes a page into an empty frame; a wipe effect with no service step shown",
+    "transitions-perspective-portal": "no stated purpose: nested frames recede into a vanishing point; a tunnel effect with no service step shown"
+   }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-physics.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "9f77420162efe5ae4434f5510da63dcaf6f968a7",
+   "from_blob": "822d2726e44c3f657b96cecae4b720ccf2ccfdae",
+   "ids": [
+    "twin-construction",
+    "twin-asset-synchronization",
+    "twin-exploded-assembly",
+    "twin-layer-isolation",
+    "twin-blueprint-transformation",
+    "twin-system-flythrough",
+    "twin-terrain-reconstruction",
+    "twin-asset-condition"
+   ],
+   "left_out": {
+    "twin-sensor-propagation": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/twin/sensor-propagation.mjs)",
+    "twin-risk-heatmap": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/twin/risk-heatmap.mjs)",
+    "physics-gravitational-orbit": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/physics/gravitational-orbit.mjs)",
+    "physics-spring-motion": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/physics/spring-motion.mjs)",
+    "physics-metaball-fusion": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/physics/metaball-fusion.mjs)",
+    "physics-cloth-simulation": "no stated purpose: a pinned cloth lattice in wind; the owner dropped the cloth motion as decorative (NATIVE_MOTIONS.md)",
+    "physics-rigid-collision": "no stated purpose: two disks collide; the owner dropped the rigid-collision motion as decorative (NATIVE_MOTIONS.md)",
+    "physics-soft-body": "no stated purpose: an elastic ball compresses and rebounds; no digital service is shown",
+    "physics-fluid-surface": "no stated purpose: two wave packets cross a water surface; no digital service is shown",
+    "physics-geometry-growth": "no stated purpose: a recursive branch figure grows; no digital service is shown",
+    "physics-voronoi-structure": "no stated purpose: Voronoi cells follow moving sites; a geometric construction with no digital service shown",
+    "physics-terrain-evolution": "no stated purpose: a height grid diffuses to flat; no digital service is shown"
+   }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-compositions.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "05eee2e207bb95dcc8d50b908d59980a5333e6ef",
+   "from_blob": "00cbcd333926a4f5775fd259d32cc6121a564a45",
+   "ids": [
+    "compositions-spatial-operating-system",
+    "compositions-audio-reactive-neural",
+    "compositions-holographic-city",
+    "compositions-ai-command-center",
+    "compositions-infinite-storytelling"
+   ],
+   "left_out": {
+    "compositions-adaptive-universe": "no stated purpose: a starfield thins or fills with the viewport and detail setting; no digital service is shown",
+    "compositions-scene-assembly": "no stated purpose: unlabelled planes slide together into a stack; no digital service is shown"
+   }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-originals.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "e3fda12927588247430b28a9713cc0a0cac35291",
+   "from_blob": "578e5856d6bfe57abdd00283739e12c839cb37d6",
+   "ids": [
+    "micro-button-compression",
+    "micro-hover-elevation",
+    "micro-input-focus",
+    "micro-elastic-selection",
+    "micro-navigation-morph"
+   ],
+   "left_out": {
+    "camera-dolly-in": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/dolly-in.mjs)",
+    "camera-dolly-out": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/dolly-out.mjs)",
+    "camera-focus-pull": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/focus-pull.mjs)",
+    "camera-parallax-tracking": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/parallax-tracking.mjs)",
+    "camera-spatial-roll": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/camera/spatial-roll.mjs)",
+    "micro-toggle-transformation": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/micro/toggle-transformation.mjs)",
+    "micro-success-feedback": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/micro/success-feedback.mjs)",
+    "camera-orbital-sweep": "no stated purpose: a camera circles wireframe boxes on a grid; no digital service is shown",
+    "camera-crane-reveal": "no stated purpose: a camera rises over a wall to a crystal marker; no digital service is shown",
+    "micro-liquid-button": "no stated purpose: a wave wobbles an arrow button's outline; a decorative effect",
+    "micro-cursor-distortion": "no stated purpose: a dot lattice bends around the pointer; a decorative effect"
+   }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-symbols.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "da3af05ef5cb6f43cb21242c73f49a9162f4bb05",
+   "from_blob": "7e8e911320f104b57a833b312495d2426d160705",
+   "ids": [
+    "icons-multi-state"
+   ],
+   "left_out": {
+    "typography-kinetic-assembly": "no stated purpose: the letters GAIE fly into place; a title effect with no digital service shown",
+    "typography-letter-materialization": "no stated purpose: the word FLOW is traced letter by letter; a title effect",
+    "typography-depth-extrusion": "no stated purpose: the letters GAIE gain depth slices; a title effect",
+    "typography-word-morph": "no stated purpose: the word FLOW morphs into GAIE; a title effect",
+    "typography-variable-font": "no stated purpose: the word FLOW changes stroke weight and width; a type effect",
+    "typography-particle-dissolve": "no stated purpose: the letters GAIE scatter into dots; a title effect",
+    "typography-calligraphy-path": "no stated purpose: the Arabic word نور is traced as a stroke; a lettering effect",
+    "typography-perspective-projection": "no stated purpose: the word FLOW turns on a plane with a reflection; a title effect",
+    "typography-fluid-reformation": "no stated purpose: the letters GAIE ripple and settle; a title effect",
+    "icons-extrusion": "no stated purpose: a shield outline gains depth; a decorative icon effect",
+    "icons-reactive-rotation": "no stated purpose: a lightning badge tilts with the pointer; a decorative icon effect",
+    "icons-particle-reconstruction": "no stated purpose: dots gather into an icon outline; a decorative icon effect",
+    "icons-metallic": "no stated purpose: a highlight sweeps a diamond; a decorative icon effect",
+    "icons-spatial-expansion": "no stated purpose: small diamonds spread out from an octagon; a decorative icon effect",
+    "icons-object-transformation": "no stated purpose: a flat panel unfolds into a box; a decorative icon effect",
+    "icons-physics-bounce": "no stated purpose: a lightning icon bounces; a decorative icon effect",
+    "icons-volumetric-illumination": "no stated purpose: light beams fall on a shield; a decorative lighting effect",
+    "icons-morphing": "no stated purpose: a circle morphs into a star; a decorative icon effect"
+   }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-light.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "eb2366fa74b7038638ab9ade615fd96d73190351",
+   "from_blob": "b6427069c3bdf3911f16cd72221c8340f929c87c",
+   "ids": [
+    "product-feature-spotlight",
+    "product-system-demonstration",
+    "product-timeline-transformation"
+   ],
+   "left_out": {
+    "lighting-bloom-reveal": "no stated purpose: halos and spokes spread from a glowing crystal; a lighting effect",
+    "lighting-atmospheric-scattering": "no stated purpose: a sun moves through haze over a landscape; a lighting effect",
+    "lighting-shadow-sweep": "no stated purpose: a point light moves and three blocks' shadows turn; a lighting effect",
+    "lighting-reflection-transition": "no stated purpose: mountains settle into their reflection on water; a lighting effect",
+    "lighting-light-painting": "no stated purpose: a light point traces a long ribbon; a lighting effect",
+    "lighting-emissive-activation": "no stated purpose: a signal lights material cells along a conductor; presented as a material lighting effect, with no digital service shown",
+    "lighting-exposure-transition": "no stated purpose: an exposure ramp brightens swatches and bars; a photographic effect",
+    "product-materialization": "no stated purpose: tiles converge into a device outline; a product presentation effect",
+    "product-executive-rotation": "no stated purpose: a box turns on a grid; a product presentation effect",
+    "product-component-reveal": "no stated purpose: a scan line lights rows of cells in a device outline; a presentation effect with no service shown",
+    "product-interface-flythrough": "no stated purpose: unlabelled interface planes pass the camera; a presentation effect",
+    "product-multi-screen-assembly": "no stated purpose: tilted screens slide into a row; a presentation effect",
+    "product-feature-explosion": "no stated purpose: linked panels fan out from a hub; a presentation effect with no service shown",
+    "product-brand-reveal": "no stated purpose: a mark is traced above the word STUDIO; a brand reveal",
+    "lighting-volumetric-beams": "withdrawn: the owner withdrew this id as decorative (policy withdrawn_ids)",
+    "lighting-studio-spotlight": "withdrawn: the owner withdrew this id as decorative (policy withdrawn_ids)",
+    "lighting-lens-flare": "withdrawn: the owner withdrew this id as decorative (policy withdrawn_ids)"
+   }
+  }
+ ],
+ "not_ported": {
+  "lighting-volumetric-beams": "withdrawn id (policy withdrawn_ids): origin/claude/native-motion-engines-wip f0c18d9 packages/motion-engines/motions/lighting/volumetric-beams.mjs, never browser-proven there",
+  "physics-cloth-simulation": "no stated purpose: the owner dropped the cloth draft as decorative (NATIVE_MOTIONS.md); origin/claude/native-motion-engines-wip f0c18d9 packages/motion-engines/motions/physics/cloth-simulation.mjs with its helpers physics/lib/scene.mjs and physics/lib/timeline.mjs, never browser-proven there",
+  "particles-logo-reconstruction": "no stated purpose: dots converge into a four-bladed logo mark, a brand effect (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-attraction-field": "no stated purpose: dots spiral into a pointer-controlled attractor, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-repulsion-field": "no stated purpose: a repulsive ring pushes dots to the walls, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-magnetic-orbit": "no stated purpose: charged dots circle on cyclotron paths, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-fluid-simulation": "no stated purpose: tracers drift through a flow field, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-surface-formation": "no stated purpose: scattered dots settle on a rotating sphere, a geometry study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "shaders-noise-displacement": "no stated purpose: a noise-displaced blob, a GPU effect; the module also reads performance.now(), which the pure source set forbids (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-ripple": "no stated purpose: a ripple over a grid, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-fractal": "no stated purpose: an evolving Julia set, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-wave-interference": "no stated purpose: two-source interference rings, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-fresnel": "no stated purpose: a lit sphere with a Fresnel rim, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "compositions-gpu-interface-transformation": "no stated purpose: three unlabelled interface planes tilt in depth, a presentation effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "compositions-multi-engine-cinematic": "no stated purpose: a CINEMATIC title card over a glow with a timeline bar, a presentation effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-raymarched-geometry": "withdrawn id (policy withdrawn_ids) (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-sdf-morph": "withdrawn id (policy withdrawn_ids) (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "particles-vortex": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/vortex.mjs); branch copy at origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs",
+  "particles-disintegration": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/disintegration.mjs); branch copy at origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs",
+  "particles-path-convergence": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/path-convergence.mjs); branch copy at origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs",
+  "particles-gpu-swarm": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/gpu-swarm.mjs); branch copy at origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs",
+  "shaders-chromatic-aberration": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/shaders/chromatic-aberration.mjs); branch copy at origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs",
+  "shaders-material-dissolve": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/shaders/material-dissolve.mjs); branch copy at origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs"
+ }
+}

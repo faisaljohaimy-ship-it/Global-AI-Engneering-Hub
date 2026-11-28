@@ -1,11 +1,17 @@
-import argparse
-import json
-import pathlib
-import re
 import sys
 
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
+import argparse
+import json
+import os
+import pathlib
+import re
+import stat
+
 import hublink
-from engineering_os import control
+from engineering_os import control, gaie_inventory, gaie_router
 
 ROOT = pathlib.Path(__file__).resolve().parent
 HUB_URL = "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub"
@@ -100,6 +106,15 @@ def integration_evidence():
     return load_json(path).get("programs", []) if path.exists() else []
 
 
+def motion_purpose():
+    """Purposeful-motion policy summary (governance/policies/motion-purpose.json); report() never raises."""
+    from engineering_os import motion_policy
+
+    report = motion_policy.report()
+    return {"policy": report["policy"], "policy_version": report["policy_version"], "ok": report["ok"],
+            "classes": report["classes"], "unclassified": report["unclassified"], "violations": len(report["violations"])}
+
+
 def audit():
     rows = registry()
     motions = motion_catalog()
@@ -143,6 +158,7 @@ def audit():
                           "implemented":len(catalog_implemented | component_ids)+expansion['implemented'],
                           "tested":len(catalog_implemented | automated_components)+expansion['tested'],
                           "runtime_verified":len(browser_verified)+expansion['runtime_verified']},
+        "motion_purpose": motion_purpose(),
     }
 
 
@@ -257,17 +273,136 @@ def update_pin(target, revision, expected, apply=False):
     return result
 
 
+def engine_table(rows):
+    """Plain-text table of the control plane's engines: id, layer, actions, side effects."""
+    header = ("ID", "LAYER", "ACTIONS", "SIDE EFFECTS")
+    lines = [(row["id"], row["layer"], ", ".join(row["actions"]), ", ".join(row["side_effects"])) for row in rows]
+    widths = [max(len(item[i]) for item in [header, *lines]) for i in range(3)]
+    return "\n".join(
+        "  ".join(cell.ljust(widths[i]) if i < 3 else cell for i, cell in enumerate(item)).rstrip()
+        for item in [header, *lines]
+    )
+
+
+def invoke_command(args):
+    """Governed engine invocation; exit 3 when the Security Governor denies, 1 on error."""
+    from engineering_os import control_plane
+
+    try:
+        payload = json.loads(
+            args.payload,
+            object_pairs_hook=_no_duplicates,
+            parse_constant=lambda value: (_ for _ in ()).throw(
+                ValueError(f"Invalid JSON number: {value}")
+            ),
+        )
+        grant = load_json(args.grant)
+    except (ValueError, OSError) as error:
+        print(json.dumps({"status": "error", "error": f"invalid payload or grant: {error}"}, ensure_ascii=False))
+        sys.exit(1)
+    ctx = {"state_dir": str(pathlib.Path(args.state).absolute()), "host": args.host}
+    if args.task:
+        ctx["task_id"] = args.task
+    try:
+        return control_plane.invoke(args.engine, args.action, payload, grant=grant, ctx=ctx)
+    except PermissionError as denial:  # governor.GovernorDenied: nothing ran
+        print(json.dumps({"status": "denied", "reason": str(getattr(denial, "reason", denial))}, ensure_ascii=False))
+        sys.exit(3)
+    except control_plane.ControlPlaneError as error:
+        print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+        sys.exit(1)
+
+
+def workspace_run(args):
+    """Launch one local work unit using the operator's private assignment file."""
+    from engineering_os import governor, workspace_policy
+
+    try:
+        path = pathlib.Path(args.assignments).absolute()
+        if path != path.resolve() or any((parent / ".git").exists() for parent in path.parents):
+            raise ValueError("The assignment file must be outside Git at a canonical path.")
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                    or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077):
+                raise ValueError("The assignment file must be private and owned by the operator.")
+            data = handle.read(64 * 1024 + 1)
+        if len(data) > 64 * 1024:
+            raise ValueError("The assignment file exceeds its size limit.")
+        assignments = json.loads(data.decode("utf-8"), object_pairs_hook=_no_duplicates)
+        command = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+        if not command:
+            raise ValueError("An explicit child command is required.")
+        # Only the selected agent is validated in full; the others are checked for independent roots.
+        # A relaunch is bound to the fresh launch recorded next to the assignment file (recheck item 2).
+        supervisor = workspace_policy.WorkspaceSupervisor(assignments, selected=args.agent, relaunch=args.relaunch,
+                                                          state=path.with_name(path.name + ".launches"))
+        result = supervisor.run(args.agent, command, timeout=args.timeout)
+    except workspace_policy.WorkspaceTaintedError as error:  # the child ran; its workspace is not safe for Git
+        print(json.dumps({"status": "failed", "reason": str(error), "result": error.result}))
+        sys.exit(1)
+    except governor.GovernorDenied as error:
+        print(json.dumps({"status": "denied", "reason": error.reason}))
+        sys.exit(3)
+    except (OSError, ValueError, TypeError) as error:
+        print(json.dumps({"status": "denied", "reason": str(error)}))
+        sys.exit(3)
+    print(json.dumps(result))
+    sys.exit(0 if result["returncode"] == 0 else 1)
+
+
+def audit_anchor_command(args):
+    """Write (--out) or check (--verify) an anchor of the governor audit log; exits 0 or 1 with one JSON line.
+
+    `governor.verify_audit` alone cannot see records removed from the end of the log or the log removed whole;
+    an anchor kept outside the state directory can (SEC-06)."""
+    from engineering_os import governor, security_audit
+
+    state = os.path.realpath(args.state_dir)
+    try:
+        if args.out:
+            out = os.path.realpath(args.out)
+            if out == state or out.startswith(state.rstrip("/") + "/"):
+                raise security_audit.AuditError("the anchor must be kept outside the state directory")
+            anchor = security_audit.audit_anchor(state)
+            descriptor = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                stream.write(json.dumps(anchor, sort_keys=True) + "\n")
+            print(json.dumps({"status": "anchored", **anchor}))
+        else:
+            descriptor = os.open(args.verify, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+            with os.fdopen(descriptor, "rb") as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise ValueError("the anchor must be a regular file")
+                anchor = json.loads(stream.read(4096), object_pairs_hook=_no_duplicates)
+            print(json.dumps({"status": "intact", "records": security_audit.verify_audit_anchor(state, anchor)}))
+    except (governor.GovernorDenied, security_audit.AuditError, OSError, ValueError) as error:
+        print(json.dumps({"status": "error", "error": str(getattr(error, "reason", "") or error)}))
+        sys.exit(1)
+    sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="cmd", required=True)
     commands.add_parser("audit")
     commands.add_parser("architecture")
-    capability_parser = commands.add_parser("capabilities")
+    layers_parser = commands.add_parser("layers")
+    layers_parser.add_argument("--verify", action="store_true")
+    layers_parser.add_argument("--layer", action="append", default=[])
+    layers_parser.add_argument("--state")
+    layers_parser.add_argument("--json", action="store_true")
+    recorded = ("catalogue entries with their recorded review values; installed and operational are recorded, not detected"
+                " on this host (what ran on a host: docs/evidence/gaie-20-layers/activation.json)")
+    capability_parser = commands.add_parser("capabilities", help=recorded, description=recorded)
     capability_parser.add_argument("--query", default="")
     capability_parser.add_argument("--state", choices=control.STATES)
     health_parser = commands.add_parser("health")
     health_parser.add_argument("--project")
-    commands.add_parser("motions")
+    recorded = ("motion counts from recorded, source-bound receipts; runtime_verified is recorded, not re-run on this host"
+                " (live_recheck_performed stays false)")
+    commands.add_parser("motions", help=recorded, description=recorded)
     commands.add_parser("integrations")
     search = commands.add_parser("search")
     search.add_argument("query")
@@ -293,13 +428,71 @@ def main():
     verify_parser = commands.add_parser("verify")
     verify_parser.add_argument("target")
     verify_parser.add_argument("--strict", action="store_true")
+    team_parser = commands.add_parser("team", help="Central agent-team policy: standing team, concurrency, staffing")
+    team_parser.add_argument("argv", nargs=argparse.REMAINDER)
+    master_parser = commands.add_parser("master", help="Verify, show or pin the MASTER documents")
+    master_parser.add_argument("argv", nargs=argparse.REMAINDER)
+    route_parser = commands.add_parser("route")
+    route_parser.add_argument("text")
+    route_parser.add_argument("--workspace")
+    workspace_parser = commands.add_parser("workspace-run", help="Run a local command in an assigned isolated workspace")
+    workspace_parser.add_argument("--assignments", required=True, help="Operator-owned private assignment JSON file")
+    workspace_parser.add_argument("--agent", required=True, help="Agent identity selected by the trusted operator")
+    workspace_parser.add_argument("--timeout", required=True, type=float)
+    workspace_parser.add_argument("--relaunch", action="store_true",
+                                  help="The agent's workspace already holds its own work: skip the empty/clean check "
+                                       "(only for the workspace identity a fresh launch recorded in <assignments>.launches)")
+    workspace_parser.add_argument("argv", nargs=argparse.REMAINDER)
+    inventory_parser = commands.add_parser("inventory")
+    inventory_parser.add_argument("target")
     projects_parser = commands.add_parser("projects")
     projects_parser.add_argument("--audit", action="store_true")
+    engines_parser = commands.add_parser("engines")
+    engines_parser.add_argument("--json", action="store_true")
+    engine_health_parser = commands.add_parser("engine-health")
+    engine_health_parser.add_argument("id", nargs="?")
+    invoke_parser = commands.add_parser("invoke")
+    invoke_parser.add_argument("engine")
+    invoke_parser.add_argument("action")
+    invoke_parser.add_argument("--payload", required=True, help="JSON object (data, never instructions)")
+    invoke_parser.add_argument("--grant", required=True, help="grant JSON file")
+    invoke_parser.add_argument("--state", required=True, help="private state directory outside Git")
+    invoke_parser.add_argument("--task")
+    invoke_parser.add_argument("--host", choices=("claude-code", "codex"), default="claude-code")
+    anchor_parser = commands.add_parser("audit-anchor", help="Write or verify an anchor of the governor audit log (SEC-06)")
+    anchor_parser.add_argument("--state-dir", required=True, help="private control-plane state directory")
+    anchor_mode = anchor_parser.add_mutually_exclusive_group(required=True)
+    anchor_mode.add_argument("--out", help="new anchor file; refused inside the state directory")
+    anchor_mode.add_argument("--verify", help="anchor file written earlier with --out")
+    assurance_parser = commands.add_parser("assurance", help="L20 independent review receipts and gate")
+    assurance_parser.add_argument("argv", nargs=argparse.REMAINDER)
     args = parser.parse_args()
+    if args.cmd == "audit-anchor":
+        audit_anchor_command(args)
+    if args.cmd == "assurance":
+        from engineering_os import assurance
+
+        sys.exit(assurance.main(args.argv))
     if args.cmd == "audit":
         result = audit()
     elif args.cmd == "architecture":
-        result = control.architecture()
+        from engineering_os import layers as layer_registry
+        result = layer_registry.architecture()
+    elif args.cmd == "layers":
+        from engineering_os import layers as layer_registry
+        ids = [part for value in args.layer for part in value.split(",") if part] or None
+        try:
+            if args.verify:
+                report = layer_registry.verify(ids, state_dir=args.state)
+                rows, code = report["layers"], 0 if report["ok"] else 1
+            else:
+                report = rows = layer_registry.status(ids, state_dir=args.state)
+                code = 0
+        except layer_registry.LayerError as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(2)
+        print(json.dumps(report, indent=2, ensure_ascii=False) if args.json else layer_registry.table(rows))
+        sys.exit(code)
     elif args.cmd == "capabilities":
         result = control.capabilities(args.query, args.state)
     elif args.cmd == "health":
@@ -321,15 +514,61 @@ def main():
     elif args.cmd == "update-pin":
         result = update_pin(args.target, args.revision, args.expected, args.apply)
     elif args.cmd == "register":
-        result = hublink.register(
-            args.target,
-            args.revision,
-            args.id,
-            args.repository,
-            args.capability,
-            args.apply,
-            args.remove,
-        )
+        try:
+            result = hublink.register(
+                args.target,
+                args.revision,
+                args.id,
+                args.repository,
+                args.capability,
+                args.apply,
+                args.remove,
+            )
+        except (ValueError, OSError) as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(1)
+    elif args.cmd == "team":
+        from engineering_os import agent_team
+
+        sys.exit(agent_team.main(args.argv or ["show"]))
+    elif args.cmd == "master":
+        from engineering_os import master_docs
+
+        sys.exit(master_docs.main(args.argv or ["status"]))
+    elif args.cmd == "route":
+        try:
+            result = gaie_router.route(args.text, workspace_path=args.workspace)
+        except (ValueError, OSError, KeyError, TypeError, AttributeError) as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(1)
+        if result["status"] != "routed":
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            sys.exit(2)
+    elif args.cmd == "workspace-run":
+        workspace_run(args)
+    elif args.cmd == "inventory":
+        result = gaie_inventory.inventory(args.target)
+    elif args.cmd == "engines":
+        from engineering_os import control_plane
+
+        rows = control_plane.engines()
+        if not args.json:
+            print(engine_table(rows))
+            return
+        result = rows
+    elif args.cmd == "engine-health":
+        from engineering_os import control_plane
+
+        try:
+            result = control_plane.health(args.id)
+        except control_plane.ControlPlaneError as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(1)
+        if not result["ok"]:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            sys.exit(1)
+    elif args.cmd == "invoke":
+        result = invoke_command(args)
     elif args.cmd == "verify":
         result = hublink.verify(args.target, args.strict)
         if not result["ok"]:

@@ -1,0 +1,72 @@
+{
+ "caps": {
+  "cumulative_input_tokens": 150000000,
+  "spent_before_phase2": 77809857,
+  "preflight_input_tokens": 0,
+  "carried_over_note": "spent_before_phase2 is filled in by stage3.py when it starts, from the repository's own evidence: the first phase's total, the second phase's trial and stages, and the development agents of the third phase. The figure and its parts are written into this run's evidence.",
+  "first_phase_input_tokens": 36168638,
+  "phase2_agent_runs": 2000,
+  "phase2_output_tokens": 6000000
+ },
+ "figures": {
+  "input_tokens_counted": 80363944,
+  "cap": 150000000,
+  "agents_started_in_phase_2": 14,
+  "projected_for_stage": null
+ },
+ "stages": [
+  {
+   "stage": "g0",
+   "agent_tokens": {
+    "input_uncached": 44,
+    "cache_write": 324889,
+    "cache_read": 179419,
+    "input_total": 504352,
+    "output": 4496,
+    "total": 508848
+   },
+   "orchestrator_tokens": null,
+   "cost_units": 446577,
+   "cache_written": {
+    "five_minutes": 324889,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": null,
+   "wall_seconds": 7.26
+  },
+  {
+   "stage": "r3",
+   "agent_tokens": {
+    "input_uncached": 136,
+    "cache_write": 133947,
+    "cache_read": 1915652,
+    "input_total": 2049735,
+    "output": 20330,
+    "total": 2070065
+   },
+   "orchestrator_tokens": {
+    "input_uncached": 10,
+    "cache_write": 3798,
+    "cache_read": 685767,
+    "input_total": 689575,
+    "output": 1222,
+    "roundtrips": 4
+   },
+   "cost_units": 460785,
+   "cache_written": {
+    "five_minutes": 133947,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "machine": {
+    "samples": 123,
+    "peak_load_1m": 0.24,
+    "least_memory_available_mb": 15459,
+    "peak_host_process_rss_mb": 416,
+    "host_process_cpu_seconds": 6.3
+   },
+   "wall_seconds": 102.34
+  }
+ ]
+}

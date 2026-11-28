@@ -1,0 +1,24 @@
+{
+ "stages": [
+  {
+   "stage": "g0",
+   "registered": 11,
+   "started": 11,
+   "ran_at_once": null,
+   "replied_done": null,
+   "met_a_limit": 0,
+   "refused_calls": 7,
+   "foreign_calls": 0
+  },
+  {
+   "stage": "r3",
+   "registered": 3,
+   "started": 3,
+   "ran_at_once": 3,
+   "replied_done": 1,
+   "met_a_limit": 0,
+   "refused_calls": 7,
+   "foreign_calls": 0
+  }
+ ]
+}

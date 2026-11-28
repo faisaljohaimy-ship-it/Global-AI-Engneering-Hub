@@ -1,0 +1,8 @@
+{
+  "name": "gaie",
+  "description": "GAIE software factory: bilingual master router plus build, upgrade, audit, cinematic and release engines, with the hub's reviewed engineering skills.",
+  "version": "1.1.0",
+  "author": {"name": "faisaljohaimy-ship-it"},
+  "repository": "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub",
+  "license": "MIT"
+}

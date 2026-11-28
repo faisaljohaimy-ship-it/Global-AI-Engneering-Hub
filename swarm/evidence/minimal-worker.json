@@ -1,0 +1,32 @@
+{
+ "kind": "one real agent of the worker type that has file tools only, on one fresh task of the same kind as the ladder's; one sample",
+ "agent_type_tools": [
+  "Read",
+  "Write",
+  "Bash"
+ ],
+ "model": "haiku",
+ "verified": true,
+ "hidden_tests": "14/14",
+ "first_request_context_tokens": 127620,
+ "input_total": 268504,
+ "output": 1317,
+ "cache_write": 140882,
+ "cache_read": 127618,
+ "model_replies": 2,
+ "tool_calls": 3,
+ "tools": {
+  "Read": 1,
+  "Write": 1,
+  "SubagentHandback": 1
+ },
+ "seconds": 7.98,
+ "general_worker_for_comparison": {
+  "first_request_context_tokens_median": 222067,
+  "input_per_task_at_ten_agents": 812863,
+  "seconds_per_task_at_ten_agents": 14.41,
+  "replies_per_task_at_ten_agents": 3.5
+ },
+ "context_smaller_by_percent": 42.5,
+ "input_tokens_fewer_by_percent": 67.0
+}

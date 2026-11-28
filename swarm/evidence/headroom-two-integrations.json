@@ -1,0 +1,49 @@
+{
+ "recorded": "2026-11-28",
+ "hub_tool": "tools/headroom_context.py with headroom-ai 0.45.0 on Python 3.12, installed from integrations/headroom/requirements.lock",
+ "hr": "skills/ultra-context-optimization/scripts/hr.py with headroom-ai 0.44.0",
+ "samples": [
+  {
+   "sample": "github-response-synthetic.json",
+   "bytes": 63863,
+   "hub_tool": {
+    "status": "optimized",
+    "reason": "lossless-sdk-and-ccr-verified",
+    "output_bytes": 14371,
+    "network_boundary": "linux-seccomp-no-ip"
+   },
+   "hr": {
+    "view_chars": 20678,
+    "via": "headroom smart_crusher"
+   }
+  },
+  {
+   "sample": "test-log-fail.log",
+   "bytes": 15635,
+   "hub_tool": {
+    "status": "fallback",
+    "reason": "zero-or-nonreducing-counters",
+    "output_bytes": 15635,
+    "network_boundary": "linux-seccomp-no-ip"
+   },
+   "hr": {
+    "view_chars": 2640,
+    "via": "headroom log_compressor"
+   }
+  },
+  {
+   "sample": "search-results.txt",
+   "bytes": 15829,
+   "hub_tool": {
+    "status": "fallback",
+    "reason": "zero-or-nonreducing-counters",
+    "output_bytes": 15829,
+    "network_boundary": "linux-seccomp-no-ip"
+   },
+   "hr": {
+    "view_chars": 5779,
+    "via": "headroom search_compressor"
+   }
+  }
+ ]
+}

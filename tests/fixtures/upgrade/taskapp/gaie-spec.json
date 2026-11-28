@@ -1,0 +1,178 @@
+{
+  "schema": "gaie.spec/1",
+  "mode": "deterministic",
+  "source": {
+    "command": "ابن نظام إدارة المهام: المهام مع العنوان والحالة والأولوية",
+    "language": "ar",
+    "sha256": "c3d931b6b2ba5e3fa036b313528861a057b7121abc288c5a5c3410b139f0c340"
+  },
+  "intent": "new-system",
+  "title": {
+    "ar": "نظام إدارة المهام",
+    "en": "Task Management System"
+  },
+  "slug": "task-manager",
+  "product_type": "web-app",
+  "domain": "project-management",
+  "locales": [
+    "ar",
+    "en"
+  ],
+  "roles": [
+    {
+      "id": "user",
+      "label": {
+        "ar": "مستخدم",
+        "en": "User"
+      },
+      "permissions": [
+        "read",
+        "write"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "Task",
+      "label": {
+        "ar": "مهمة",
+        "en": "Task"
+      },
+      "plural": "tasks",
+      "fields": [
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "max": 200,
+          "label": {
+            "ar": "العنوان",
+            "en": "Title"
+          }
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "todo",
+            "in_progress",
+            "done"
+          ],
+          "default": "todo",
+          "required": true,
+          "label": {
+            "ar": "الحالة",
+            "en": "Status"
+          }
+        },
+        {
+          "name": "priority",
+          "type": "enum",
+          "values": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "medium",
+          "required": true,
+          "label": {
+            "ar": "الأولوية",
+            "en": "Priority"
+          }
+        }
+      ]
+    }
+  ],
+  "relations": [],
+  "features": [
+    {
+      "id": "manage-tasks",
+      "title": {
+        "ar": "إدارة سجلات مهمة",
+        "en": "Create, list, update and delete Task records"
+      },
+      "acceptance": [
+        "POST /api/tasks with a valid body returns 201 and the record",
+        "POST /api/tasks without title returns 400",
+        "POST /api/tasks with status=not_a_value returns 400",
+        "POST /api/tasks with priority=not_a_value returns 400",
+        "POST /api/tasks with title longer than 200 characters returns 400",
+        "GET /api/tasks returns 200 and lists the created records"
+      ],
+      "acceptance_ar": [
+        "إنشاء مهمة ببيانات صحيحة يعيد 201 والسجل",
+        "إنشاء مهمة بدون «العنوان» يعيد 400",
+        "إنشاء مهمة بقيمة غير مسموحة في «الحالة» يعيد 400",
+        "إنشاء مهمة بقيمة غير مسموحة في «الأولوية» يعيد 400",
+        "إنشاء مهمة بقيمة «العنوان» أطول من 200 حرفًا يعيد 400",
+        "عرض سجلات مهمة يعيد 200 ويشمل السجلات المنشأة"
+      ],
+      "entities": [
+        "Task"
+      ]
+    },
+    {
+      "id": "filter-tasks-by-status",
+      "title": {
+        "ar": "تصفية المهام حسب الحالة",
+        "en": "Filter tasks by status"
+      },
+      "acceptance": [
+        "GET /api/tasks?status=done returns 200 and only tasks with status done"
+      ],
+      "acceptance_ar": [
+        "تصفية المهام بالحالة منجزة تعيد 200 والمهام المنجزة فقط"
+      ],
+      "entities": [
+        "Task"
+      ]
+    },
+    {
+      "id": "accessible-form",
+      "title": {
+        "ar": "نموذج مهام متاح",
+        "en": "Accessible task form"
+      },
+      "acceptance": [
+        "GET / returns 200 and html where every form input has a label"
+      ],
+      "acceptance_ar": [
+        "كل حقل إدخال في الواجهة له تسمية"
+      ],
+      "entities": []
+    }
+  ],
+  "nfr": {
+    "security": [
+      "input validation on every write endpoint",
+      "parameterized SQL only",
+      "no secrets in the repository"
+    ],
+    "performance": [
+      "filtered list queries use an index",
+      "p95 API latency < 200 ms locally with 10,000 records"
+    ],
+    "accessibility": [
+      "keyboard navigable",
+      "labels on form fields",
+      "visible focus indicator"
+    ],
+    "i18n": [
+      "ar rtl",
+      "en ltr",
+      "dates stored as ISO-8601 and displayed per locale"
+    ]
+  },
+  "ai": {
+    "needed": false,
+    "use_cases": [],
+    "provider": null
+  },
+  "integrations": [],
+  "constraints": {
+    "runtime": "python3-stdlib",
+    "database": "sqlite",
+    "no_paid_services": true
+  },
+  "open_questions": []
+}

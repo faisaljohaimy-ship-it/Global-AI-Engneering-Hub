@@ -1,0 +1,564 @@
+{
+ "claims_not_made": [
+  "No 20-agent concurrent run happened in this effort: the measured peak is the 11 agents of wave 1+2a.",
+  "The 1,000-agent research run belongs to the swarm session; no result of it is in this tree, so it is pending here.",
+  "Token figures are host-reported subagent token counts; no money or subscription quota is derived from them.",
+  "The simulated 20-agent schedule is a plan produced by plan() and schedule(); no agent ran for it."
+ ],
+ "git_source": {
+  "branch": "claude/gaie-20-layer-integration",
+  "command": "git log --first-parent --reverse --format='%h %cI %s' 002a612..41af803",
+  "commits": [
+   {
+    "at": "2026-11-28T06:17:34+00:00",
+    "commit": "33eacec",
+    "subject": "Merge gaie/w1-control-plane into claude/gaie-20-layer-integration (agent w1-control-plane, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:18:01+00:00",
+    "commit": "b9c3c4f",
+    "subject": "Merge gaie/w1-reasoning into claude/gaie-20-layer-integration (agent w1-reasoning, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:18:43+00:00",
+    "commit": "41b0c41",
+    "subject": "Merge gaie/w1-router into claude/gaie-20-layer-integration (agent w1-router, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:19:46+00:00",
+    "commit": "9b7ad98",
+    "subject": "fix(contracts): refuse NaN/Infinity in canonical JSON"
+   },
+   {
+    "at": "2026-11-28T06:21:03+00:00",
+    "commit": "a3fc4eb",
+    "subject": "fix(tests): synthetic fixtures the repository's secret scan accepts"
+   },
+   {
+    "at": "2026-11-28T06:21:32+00:00",
+    "commit": "0c9a0d7",
+    "subject": "Merge branch 'gaie/w1-governor' into tmp-gov-check"
+   },
+   {
+    "at": "2026-11-28T06:22:20+00:00",
+    "commit": "5818807",
+    "subject": "fix(control-plane): audit rows in the governor's schema"
+   },
+   {
+    "at": "2026-11-28T06:23:35+00:00",
+    "commit": "cc47edf",
+    "subject": "Merge gaie/w1-economics into claude/gaie-20-layer-integration (agent w1-economics, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:27:38+00:00",
+    "commit": "7f52613",
+    "subject": "Merge remote-tracking branch 'origin/main' into claude/gaie-20-layer-integration"
+   },
+   {
+    "at": "2026-11-28T06:28:24+00:00",
+    "commit": "fa34f7e",
+    "subject": "test(motion-lab): expect every catalog entry, not a frozen 142"
+   },
+   {
+    "at": "2026-11-28T06:29:09+00:00",
+    "commit": "42b3b4e",
+    "subject": "test: catalog counts follow main's 156 indexed motions"
+   },
+   {
+    "at": "2026-11-28T06:30:10+00:00",
+    "commit": "3ffdf12",
+    "subject": "Merge gaie/w2-requirements into claude/gaie-20-layer-integration (agent w2-requirements, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:32:25+00:00",
+    "commit": "2ac7e36",
+    "subject": "Merge gaie/w1-layers into claude/gaie-20-layer-integration (agent w1-layers, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:33:38+00:00",
+    "commit": "ff37c9f",
+    "subject": "Merge gaie/w2-cinematic into claude/gaie-20-layer-integration (agent w2-cinematic, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:34:54+00:00",
+    "commit": "c68cb58",
+    "subject": "Merge gaie/w1-healing into claude/gaie-20-layer-integration (agent w1-healing, reviewed, full suite)"
+   },
+   {
+    "at": "2026-11-28T06:36:23+00:00",
+    "commit": "41af803",
+    "subject": "Merge gaie/w1-memory into claude/gaie-20-layer-integration (agent w1-memory, reviewed, full suite)"
+   }
+  ],
+  "range": "002a612..41af803"
+ },
+ "host_cap_policy": {
+  "agents_per_cpu": 2,
+  "basis": "policy: agents per CPU from host-pressure observations; the session limit was measured",
+  "cap": 8,
+  "cpus": 4,
+  "rationale": "Agents run model calls remotely but tests, builds and gates locally; the observations below show load-sensitive subprocess tests failing at 11 concurrent agents on 4 shared CPUs.",
+  "session_limit": 20
+ },
+ "host_pressure": [
+  {
+   "note": "6 failures were all in swarm phase3 process-limit tests (test_p3_cage, test_p3_handin, test_p3_kit3, test_p3_loadtest; BlockingIOError on fork at load average ~29 on 4 shared CPUs); those 4 modules re-run: 34 OK in this worktree and 34 OK on an unmodified 002a612 export. Own tests: tests.test_economics 44 OK, tests.test_economics_measured 15 OK.",
+   "source": "/home/user/gaie-state/checkpoints/w1-economics.json",
+   "task_id": "w1-economics"
+  },
+  {
+   "note": "6 failures all in test_p3_cage/test_p3_handin/test_swarm_phase2 (process/time-limit tests, fork EAGAIN under load avg ~11 on 4 shared CPUs); same 3 modules re-run in isolation on this branch: 52/52 OK; pristine 002a612 export under the same load: 1 failure in them",
+   "source": "/home/user/gaie-state/checkpoints/w1-healing.json",
+   "task_id": "w1-healing"
+  },
+  {
+   "note": "all 10 in sandbox/subprocess suites (test_p3_cage, test_p3_handin, test_p3_kit3, test_swarm, test_swarm_phase2) under load avg ~8.5 on 4 shared CPUs: fork EAGAIN, timeouts, shared /tmp handin-* glob; the failing set changed on isolated rerun; none of these modules imports engineering_os.reasoning",
+   "source": "/home/user/gaie-state/checkpoints/w1-reasoning.json",
+   "task_id": "w1-reasoning"
+  },
+  {
+   "note": "all 8 are swarm timing tests (test_p3_cage, test_p3_handin, test_p3_gate, test_p3_loadtest, test_swarm bench) under load avg ~10; they fail on an untouched export of 002a612 too and do not import the router or registry",
+   "source": "/home/user/gaie-state/checkpoints/w1-router.json",
+   "task_id": "w1-router"
+  },
+  {
+   "note": "6 failures are time-limit-sensitive swarm tests (test_p3_handin x4, test_p3_kit3, test_swarm_phase2) under load avg 12-19 on 4 shared CPUs; a pristine git-archive export of 002a612 fails the same modules under the same load (7 vs 8 failures back-to-back). None import L15 code.",
+   "source": "/home/user/gaie-state/checkpoints/w2-requirements.json",
+   "task_id": "w2-requirements"
+  }
+ ],
+ "kind": "measured",
+ "method": "Figures are computed by engineering_os.orchestrator.scenario_h from the wave-metrics snapshot below (host task notifications and integrator gate logs of real agents) and, for merge times, from the first-parent history of the integration branch. Each result carries its definition. The next-wave size is economics.recommend_concurrency on the measured cohort with the host cap of a 4-CPU host. Deterministic code; no model was called.",
+ "provider_calls": 0,
+ "reproduce": "python3 -m engineering_os.orchestrator scenario-h --metrics <wave-metrics.json> --git-range 002a612..41af803 --checkpoints <checkpoints dir> --evidence",
+ "results": {
+  "agents_measured": 8,
+  "agents_started_together": 11,
+  "agents_still_running": 3,
+  "concurrency": {
+   "definition": "every agent started at started_utc; an agent counts until its own duration; still-running agents count for the whole wall clock",
+   "mean_over_wall_clock": 9.0102,
+   "peak": 11,
+   "peak_until_seconds": 1280.6,
+   "timeline": [
+    [
+     0.0,
+     11
+    ],
+    [
+     1280.6,
+     10
+    ],
+    [
+     1500.5,
+     9
+    ],
+    [
+     1755.5,
+     8
+    ],
+    [
+     1889.6,
+     7
+    ],
+    [
+     1988.2,
+     6
+    ],
+    [
+     2076.8,
+     5
+    ],
+    [
+     2338.8,
+     4
+    ]
+   ]
+  },
+  "conflicts": {
+   "agents_with_conflicts": 6,
+   "by_kind": {
+    "cross-module-contract": 4,
+    "security-scan-fixture": 3
+   },
+   "definition": "conflict entries as listed per agent (an incident two agents report counts twice); kind by keyword: secret-scan/security scan -> security-scan-fixture",
+   "entries": 7,
+   "entries_per_measured_task": 0.875,
+   "rate_agents_with_conflicts": 0.75
+  },
+  "git": {
+   "agent_merges": 10,
+   "definition": "first-parent commits of the integration branch: agent merges by subject; non-merge commits are the integrator's own; those after a merge of origin/main and before the next agent merge are attributed to main moving, the rest to agent output",
+   "first_merge_minutes": 36.57,
+   "integrator_commits": 5,
+   "integrator_commits_detail": [
+    {
+     "cause": "agent-output",
+     "commit": "9b7ad98",
+     "subject": "fix(contracts): refuse NaN/Infinity in canonical JSON"
+    },
+    {
+     "cause": "agent-output",
+     "commit": "a3fc4eb",
+     "subject": "fix(tests): synthetic fixtures the repository's secret scan accepts"
+    },
+    {
+     "cause": "agent-output",
+     "commit": "5818807",
+     "subject": "fix(control-plane): audit rows in the governor's schema"
+    },
+    {
+     "cause": "main-moved",
+     "commit": "fa34f7e",
+     "subject": "test(motion-lab): expect every catalog entry, not a frozen 142"
+    },
+    {
+     "cause": "main-moved",
+     "commit": "42b3b4e",
+     "subject": "test: catalog counts follow main's 156 indexed motions"
+    }
+   ],
+   "integrator_rework_commits": 3,
+   "integrator_rework_per_merge": 0.3,
+   "last_merge_minutes": 55.38,
+   "merges": [
+    {
+     "agent": "w1-control-plane",
+     "commit": "33eacec",
+     "minutes_after_start": 36.57
+    },
+    {
+     "agent": "w1-reasoning",
+     "commit": "b9c3c4f",
+     "minutes_after_start": 37.02
+    },
+    {
+     "agent": "w1-router",
+     "commit": "41b0c41",
+     "minutes_after_start": 37.72
+    },
+    {
+     "agent": "w1-governor",
+     "commit": "0c9a0d7",
+     "minutes_after_start": 40.53
+    },
+    {
+     "agent": "w1-economics",
+     "commit": "cc47edf",
+     "minutes_after_start": 42.58
+    },
+    {
+     "agent": "w2-requirements",
+     "commit": "3ffdf12",
+     "minutes_after_start": 49.17
+    },
+    {
+     "agent": "w1-layers",
+     "commit": "2ac7e36",
+     "minutes_after_start": 51.42
+    },
+    {
+     "agent": "w2-cinematic",
+     "commit": "ff37c9f",
+     "minutes_after_start": 52.63
+    },
+    {
+     "agent": "w1-healing",
+     "commit": "c68cb58",
+     "minutes_after_start": 53.9
+    },
+    {
+     "agent": "w1-memory",
+     "commit": "41af803",
+     "minutes_after_start": 55.38
+    }
+   ],
+   "merges_per_hour": 10.8342
+  },
+  "merged": 7,
+  "next_wave": {
+   "agents": 4,
+   "decision": {
+    "agents": 4,
+    "basis": "measured waves; deterministic rules; nothing executed",
+    "batch": 1,
+    "last_wave": {
+     "agents": 8,
+     "batch": 1,
+     "conflicts": 7,
+     "label": "wave 1+2a measured cohort",
+     "limit_errors": "unknown",
+     "tasks_per_minute": "0.163998",
+     "tokens": {
+      "unit": "tokens",
+      "value": 2912758
+     },
+     "verified_success_rate_percent": "87.5",
+     "verified_tasks_per_million_tokens": "2.403221"
+    },
+    "next_wave_base": {
+     "agents": 4,
+     "batch": 1,
+     "reason": "Verified success was 87.5 percent, under 90, so halve 8 agents to 4 and keep the batch at 1."
+    },
+    "previous_wave": null,
+    "reason": "7 conflicts in the last wave of 8 agents, so shrink to 4 agents and keep the batch at 1.",
+    "rule": "conflict-shrink",
+    "stop": false,
+    "unknown_inputs": [
+     "limit_errors",
+     "peak_concurrent_agents"
+    ]
+   },
+   "host": {
+    "agents_per_cpu": 2,
+    "basis": "policy: agents per CPU from host-pressure observations; the session limit was measured",
+    "cap": 8,
+    "cpus": 4,
+    "session_limit": 20
+   },
+   "limits": {
+    "max_agents": 8,
+    "max_batch": 1,
+    "start": 4
+   },
+   "rule": "conflict-shrink",
+   "wave_record": {
+    "agents": 8,
+    "batch": 1,
+    "conflicts": 7,
+    "duration_seconds": 2561,
+    "failures": 1,
+    "label": "wave 1+2a measured cohort",
+    "source": "/home/user/gaie-state/wave-metrics.json",
+    "tasks_verified": 7,
+    "tokens": 2912758
+   }
+  },
+  "not_merged": 1,
+  "rework": {
+   "agents_with_gate_reruns": 5,
+   "agents_with_integrator_fixes": 3,
+   "definition": "integrator_rework_rate = merged agents with at least one conflict 'fixed by integrator' / merged agents; sent back = returned to the agent; gate re-runs as recorded",
+   "gate_rerun_rate": 0.625,
+   "gate_reruns": 5,
+   "integrator_fixes": 4,
+   "integrator_rework_rate": 0.4286,
+   "sent_back": 1,
+   "sent_back_rate": 0.125
+  },
+  "still_running": [
+   "w1-healing",
+   "w2-build",
+   "w2-cinematic"
+  ],
+  "throughput": {
+   "definition": "merged agents in the file / wall-clock hours from the common start to the last measured agent's finish; integration time after an agent finished is not in the file",
+   "merged_tasks_per_agent_hour": 1.6008,
+   "merged_tasks_per_hour": 9.8407
+  },
+  "tokens": {
+   "definition": "all tokens of measured agents (merged or not) / merged agents; the resumed agent's follow-up figure is taken as cumulative, as the metrics note says",
+   "per_measured_task": 364094.75,
+   "per_merged_task": 416108.29,
+   "per_merged_task_if_followup_additive": 468070.71,
+   "total": 2912758,
+   "verified_tasks_per_million_tokens": 2.4032
+  },
+  "tool_uses": {
+   "per_merged_task": 93.71,
+   "total": 656
+  },
+  "wall_clock_seconds": 2560.8
+ },
+ "scenario": "H",
+ "schema": "gaie.scenario-h/1",
+ "simulated": false,
+ "simulated_20_agent_schedule": {
+  "about": "plan() of the twenty-role goal and schedule() with no history; no agent was started",
+  "agents": 20,
+  "checks": {
+   "dependencies_first": true,
+   "every_task_once": true,
+   "grants_within_role_defaults": true,
+   "no_path_overlap": true,
+   "no_wave_above_limit": true,
+   "one_task_per_agent_per_wave": true,
+   "reviewer_never_implementer": true
+  },
+  "critical_path": [
+   "chief-engineering-architect",
+   "adaptive-agent-orchestration-engineer",
+   "independent-assurance-engineer",
+   "claude-code-integration-engineer"
+  ],
+  "first_wave": {
+   "agents": 3,
+   "reason": "No wave has run yet, so start with 4 agents and a batch of 1.",
+   "recommended_agents": 4,
+   "rule": "start",
+   "wave": [
+    "chief-engineering-architect",
+    "control-plane-integration-engineer",
+    "twenty-layer-architecture-engineer"
+   ]
+  },
+  "kind": "simulated",
+  "plan_sha256": "6fcf13aa699fbeb59feeec2c5058156bc3afe28632219d5f4fbba931cca2563a",
+  "simulated": true,
+  "tasks": 20,
+  "wave_sizes": [
+   3,
+   13,
+   2,
+   2
+  ]
+ },
+ "source": {
+  "note": "the metrics file is a snapshot taken while three agents were still running",
+  "path": "/home/user/gaie-state/wave-metrics.json",
+  "sha256": "e38969cf890419058d5c8de66cc39c15e635052a364106cc455d376991123640",
+  "snapshot": {
+   "host": {
+    "cpus": 4,
+    "memory_gb": 15,
+    "note": "shared by all agents and test runs"
+   },
+   "integration": {
+    "ci_incidents": [
+     "security scan fixtures (2)",
+     "main moved: catalog 142->156 broke 3 tests on main itself"
+    ],
+    "gate": "run_gate.py (all tests except swarm-owned load-sensitive suites) + security scan + hub audit",
+    "gate_tests_after_wave1": 682,
+    "gate_tests_before": 390
+   },
+   "source": "lead session task notifications (subagent_tokens, duration_ms) and integrator gate logs; real runs, not simulated",
+   "waves": [
+    {
+     "agents": [
+      {
+       "conflicts": [
+        "governor audit schema mismatch (fixed by integrator)",
+        "secret-scan fixture literal (fixed by integrator)"
+       ],
+       "duration_s": 1280.6,
+       "gate_reruns": 1,
+       "id": "w1-control-plane",
+       "merged": true,
+       "role": "control-plane-integration-engineer",
+       "tokens": 330074,
+       "tool_uses": 74
+      },
+      {
+       "conflicts": [],
+       "duration_s": 1500.5,
+       "gate_reruns": 0,
+       "id": "w1-reasoning",
+       "merged": true,
+       "role": "engineering-reasoning-engineer",
+       "tokens": 315438,
+       "tool_uses": 77
+      },
+      {
+       "conflicts": [
+        "secret-scan credential-URL fixture (fixed by integrator)"
+       ],
+       "duration_s": 1755.5,
+       "gate_reruns": 0,
+       "id": "w1-router",
+       "merged": true,
+       "role": "nl-router-project-registry-engineer",
+       "tokens": 325833,
+       "tool_uses": 88
+      },
+      {
+       "conflicts": [
+        "audit schema vs control plane"
+       ],
+       "duration_s": 1889.6,
+       "gate_reruns": 1,
+       "id": "w1-governor",
+       "merged": true,
+       "role": "agent-isolation-security-engineer",
+       "tokens": 319927,
+       "tool_uses": 60
+      },
+      {
+       "conflicts": [
+        "pickle in test blocked by security scan (fixed by integrator)"
+       ],
+       "duration_s": 1988.2,
+       "gate_reruns": 1,
+       "id": "w1-economics",
+       "merged": true,
+       "role": "context-token-economics-engineer",
+       "tokens": 373621,
+       "tool_uses": 82
+      },
+      {
+       "conflicts": [
+        "role grants referenced unregistered engines"
+       ],
+       "duration_s": 2076.8,
+       "followup": {
+        "duration_s": 351.3,
+        "note": "subagent_tokens reported cumulatively for the resumed agent",
+        "tokens": 421088,
+        "tool_uses": 30
+       },
+       "gate_reruns": 1,
+       "id": "w1-layers",
+       "merged": true,
+       "role": "twenty-layer-architecture-engineer",
+       "tokens": 363737,
+       "tool_uses": 104
+      },
+      {
+       "conflicts": [],
+       "duration_s": 2338.8,
+       "gate_reruns": 0,
+       "id": "w2-requirements",
+       "merged": true,
+       "role": "knowledge-intelligence-integration-engineer",
+       "tokens": 385894,
+       "tool_uses": 71
+      },
+      {
+       "conflicts": [
+        "control-plane memory adapter vs new MemoryStore (sent back)"
+       ],
+       "duration_s": 2560.8,
+       "gate_reruns": 1,
+       "id": "w1-memory",
+       "merged": false,
+       "role": "persistent-memory-engineer",
+       "tokens": 440883,
+       "tool_uses": 70
+      }
+     ],
+     "started_utc": "2026-11-28T05:41Z",
+     "still_running": [
+      "w1-healing",
+      "w2-build",
+      "w2-cinematic"
+     ],
+     "wave": "1+2a (started together, up to 11 concurrent)"
+    }
+   ]
+  },
+  "snapshot_sha256": "4677180db70344306b118e99f7364b339ed8ea3d480c43a3df0c43abd4bfea79"
+ },
+ "swarm_1000_agent_run": {
+  "evidence_files_in_tree": [
+   "swarm/phase3/evidence/coordinator-scale.json",
+   "swarm/phase3/evidence/gate.json",
+   "swarm/phase3/evidence/team.json",
+   "swarm/phase3/evidence/team2.json"
+  ],
+  "note": "the files present describe the third phase's development agents and coordinator, not the 1,000-agent run, whose results are not in this tree",
+  "owner": "swarm session",
+  "status": "pending"
+ },
+ "title": "Adaptive agent orchestration measured on the GAIE 20-layer integration effort"
+}
