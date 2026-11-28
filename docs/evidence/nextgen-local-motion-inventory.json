@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "catalogs": [
+    {
+      "source": "motion-library/expansion/nextgen-camera.mjs",
+      "ids": [
+        "camera-drone-approach",
+        "camera-infinite-flythrough",
+        "camera-macro-to-micro"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-originals.mjs",
+      "ids": [
+        "camera-crane-reveal",
+        "camera-dolly-in",
+        "camera-dolly-out",
+        "camera-focus-pull",
+        "camera-orbital-sweep",
+        "camera-parallax-tracking",
+        "camera-spatial-roll",
+        "micro-button-compression",
+        "micro-cursor-distortion",
+        "micro-elastic-selection",
+        "micro-hover-elevation",
+        "micro-input-focus",
+        "micro-liquid-button",
+        "micro-navigation-morph",
+        "micro-success-feedback",
+        "micro-toggle-transformation"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-systems.mjs",
+      "ids": [
+        "networks-agent-constellation",
+        "networks-data-transmission",
+        "networks-dependency-animation",
+        "networks-distributed-system",
+        "networks-geographic-connection",
+        "networks-hierarchical-expansion",
+        "networks-node-network-3d",
+        "networks-reconfiguration",
+        "networks-relationship-mapping",
+        "networks-signal-routing",
+        "neural-attention-matrix",
+        "neural-decision-tree",
+        "neural-embedding-space",
+        "neural-inference-pipeline",
+        "neural-multi-agent-communication",
+        "neural-network-growth",
+        "neural-signal-propagation",
+        "neural-synapse-activation",
+        "neural-task-orchestration",
+        "neural-thought-flow"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-scenes.mjs",
+      "ids": [
+        "story-achievement-sequence",
+        "story-architecture-timeline",
+        "story-capability-reveal",
+        "story-evidence-presentation",
+        "story-kpi-storytelling",
+        "story-milestone-journey",
+        "story-roadmap-animation",
+        "story-system-evolution",
+        "story-transformation-journey",
+        "story-workflow-transformation",
+        "transitions-curtain-reveal",
+        "transitions-depth-replacement",
+        "transitions-fragment-transition",
+        "transitions-liquid-screen",
+        "transitions-mask-reveal",
+        "transitions-panel-assembly",
+        "transitions-perspective-portal",
+        "transitions-shared-element",
+        "transitions-spatial-navigation",
+        "transitions-view-transition"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-ui.mjs",
+      "ids": [
+        "dashboard-alert-cascade",
+        "dashboard-data-orbit",
+        "dashboard-geographic-heatmap",
+        "dashboard-kpi-flow",
+        "dashboard-network-graph",
+        "dashboard-predictive-reveal",
+        "dashboard-risk-matrix",
+        "dashboard-sankey-flow",
+        "dashboard-signal-pulse",
+        "dashboard-time-series-reveal",
+        "hologram-card-assembly",
+        "hologram-command-interface",
+        "hologram-data-projection",
+        "hologram-depth-mapping",
+        "hologram-floating-grid",
+        "hologram-interactive-rotation",
+        "hologram-interface-deconstruction",
+        "hologram-materialization",
+        "hologram-scanline-reveal",
+        "hologram-volumetric-projection"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-light.mjs",
+      "ids": [
+        "lighting-atmospheric-scattering",
+        "lighting-bloom-reveal",
+        "lighting-emissive-activation",
+        "lighting-exposure-transition",
+        "lighting-lens-flare",
+        "lighting-light-painting",
+        "lighting-reflection-transition",
+        "lighting-shadow-sweep",
+        "lighting-studio-spotlight",
+        "lighting-volumetric-beams",
+        "product-brand-reveal",
+        "product-component-reveal",
+        "product-executive-rotation",
+        "product-feature-explosion",
+        "product-feature-spotlight",
+        "product-interface-flythrough",
+        "product-materialization",
+        "product-multi-screen-assembly",
+        "product-system-demonstration",
+        "product-timeline-transformation"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-physics.mjs",
+      "ids": [
+        "physics-cloth-simulation",
+        "physics-fluid-surface",
+        "physics-geometry-growth",
+        "physics-gravitational-orbit",
+        "physics-metaball-fusion",
+        "physics-rigid-collision",
+        "physics-soft-body",
+        "physics-spring-motion",
+        "physics-terrain-evolution",
+        "physics-voronoi-structure",
+        "twin-asset-condition",
+        "twin-asset-synchronization",
+        "twin-blueprint-transformation",
+        "twin-construction",
+        "twin-exploded-assembly",
+        "twin-layer-isolation",
+        "twin-risk-heatmap",
+        "twin-sensor-propagation",
+        "twin-system-flythrough",
+        "twin-terrain-reconstruction"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-symbols.mjs",
+      "ids": [
+        "icons-extrusion",
+        "icons-metallic",
+        "icons-morphing",
+        "icons-multi-state",
+        "icons-object-transformation",
+        "icons-particle-reconstruction",
+        "icons-physics-bounce",
+        "icons-reactive-rotation",
+        "icons-spatial-expansion",
+        "icons-volumetric-illumination",
+        "typography-calligraphy-path",
+        "typography-depth-extrusion",
+        "typography-fluid-reformation",
+        "typography-kinetic-assembly",
+        "typography-letter-materialization",
+        "typography-particle-dissolve",
+        "typography-perspective-projection",
+        "typography-variable-font",
+        "typography-word-morph"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-particles.mjs",
+      "ids": [
+        "particles-attraction-field",
+        "particles-disintegration",
+        "particles-fluid-simulation",
+        "particles-logo-reconstruction",
+        "particles-magnetic-orbit",
+        "particles-path-convergence",
+        "particles-repulsion-field",
+        "particles-surface-formation",
+        "particles-vortex"
+      ]
+    },
+    {
+      "source": "motion-library/expansion/nextgen-motion-compositions.mjs",
+      "ids": [
+        "compositions-adaptive-universe",
+        "compositions-ai-command-center",
+        "compositions-audio-reactive-neural",
+        "compositions-holographic-city",
+        "compositions-infinite-storytelling",
+        "compositions-scene-assembly",
+        "compositions-spatial-operating-system"
+      ]
+    }
+  ]
+}

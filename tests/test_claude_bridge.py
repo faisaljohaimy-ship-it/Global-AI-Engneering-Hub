@@ -1,5 +1,6 @@
 """Exercise project MCP calls over the real stdio subprocess transport."""
 
+import hashlib
 import json
 import pathlib
 import subprocess
@@ -106,6 +107,32 @@ class ClaudeBridgeTests(unittest.TestCase):
         self.assertFalse(self.value(responses[4])["accounting_complete"])
         self.assertEqual(self.value(responses[5])["brief_count"], 200)
         self.assertTrue(responses[6]["result"]["isError"])
+
+    def test_operational_tools_verify_real_runtime_over_mcp(self):
+        settings = '{"foreign_keys":false,"atomic_batches":true,"deduplicate":false}'
+        repair = {"schema_version": 1, "project": "gaie", "settings_json": settings,
+                  "settings_sha256": hashlib.sha256(settings.encode()).hexdigest()}
+        measure = {"schema_version": 1, "operation": "factory-plan",
+                   "request": factory_request(), "repeats": 2}
+        generation = {"schema_version": 1, "project": "gaie", "source_revision": "a" * 40,
+                      "resources": [{"name": "tasks", "fields": [
+                          {"name": "title", "type": "text", "required": True}]}]}
+        output = self.root / "factory-output"
+        responses = self.process([
+            *handshake("2025-11-25"), call(1, "gaie_architecture", {}),
+            call(2, "gaie_healing_repair", repair), call(3, "gaie_economics_measure", measure),
+            call(4, "gaie_factory_generate", generation),
+        ], "--destination", str(output))
+        self.assertEqual(len(self.value(responses[1])["layers"]), 20)
+        report = self.value(responses[2])
+        self.assertTrue(report["rollback_verified"])
+        self.assertEqual(report["status"], "repair-verified")
+        self.assertEqual(self.value(responses[3])["provider_calls"], 0)
+        self.assertEqual(self.value(responses[4])["verification"]["status"], "passed")
+        self.assertTrue((output / "manifest.json").is_file())
+        _, replay = self.process([*handshake(), call(1, "gaie_healing_replay",
+                                                   {"request": repair, "report": report})])
+        self.assertEqual(self.value(replay), report)
 
     def test_memory_is_private_project_scoped_and_exposes_no_path_arguments(self):
         memory = self.root / "memory"

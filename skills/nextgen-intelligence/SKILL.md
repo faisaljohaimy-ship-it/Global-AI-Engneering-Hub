@@ -24,8 +24,12 @@ skill is an invocation contract, not proof of native host activation.
    python3 -m engineering_os.intelligence memory-search --state-dir /private/memory --input /private/query.json
    python3 -m engineering_os.intelligence factory-plan --input /private/requirements.json
    python3 -m engineering_os.intelligence factory-evaluate --artifact-root /private/project --input /private/stage-evidence.json
+   python3 -m engineering_os.intelligence factory-generate --artifact-root /private/new-app --input /private/resources.json
    python3 -m engineering_os.intelligence healing-analyze --input /private/diagnostics.json
+   python3 -m engineering_os.intelligence healing-repair --input /private/sqlite-settings.json
    python3 -m engineering_os.intelligence economics --input /private/ledger.json
+   python3 -m engineering_os.intelligence economics-measure --input /private/local-timing.json
+   python3 -m engineering_os.layer_checks
    ```
 
    Paths above are illustrative. Create private directories outside Git with
@@ -41,10 +45,11 @@ skill is an invocation contract, not proof of native host activation.
    identities and deterministic checks bound to the plan/source. Obtain real
    reviews independently; never fabricate their records to clear a gate.
 6. Factory artifacts must pass source-bound checks before stage advancement.
-   A workflow plan does not generate or validate an entire application.
-   Healing artifact verification does not run candidate code; obtain semantic
-   regression/security tests in a separately authorized execution sandbox before
-   adopting a repair. Repairs and rollback remain proposals for human review.
+   `factory-generate` builds a typed SQLite CRUD application, tests it through
+   HTTP over a private Unix socket and publishes to a new private directory.
+   `healing-repair` exercises actual SQLite behavior before, after and after
+   rollback for the supported settings. Existing declarative repair checks and
+   the runtime repair both require project review before adopting a candidate.
 7. Check response status fields. CLI exit 0 means a valid request was processed;
    it does not mean a plan was accepted, a stage passed, a motion ran, or a
    release was authorized. Failed gates/unknown costs remain explicit in JSON.
@@ -55,6 +60,13 @@ skill is an invocation contract, not proof of native host activation.
 9. Cinematic results must bind actual renderer/core sources to real proof.
    Browser viewport emulation is not physical mobile/device performance proof.
    Keep PR16's original 200 separate from the existing 400 reference recipes.
+10. In Claude Code, approve the checked-in `gaie` project MCP server through the
+    host's usual workflow. Use `claude mcp list` to check the connection. The
+    server advertises bounded `gaie_*` operations. Optional private memory and
+    generation output must be scoped at server startup. CLI-only operations
+    accept operator-chosen private paths. The native smoke test connected and
+    listed tools without a model call. Project credentials and approvals remain
+    specific to the caller's Claude Code environment.
 
 Run module and integration tests, the tracked secret/AST scan, dependency scan
 and hub audit. Existing mandatory CI and independent approval remain required.

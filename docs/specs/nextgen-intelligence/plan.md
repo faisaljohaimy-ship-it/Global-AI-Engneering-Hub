@@ -1,5 +1,8 @@
 # Plan and shared context
 
+This records the foundation plan. The operational follow-up implements L13–L20
+and uses the acceptance contracts in [operational.md](operational.md).
+
 All lanes start from latest fetched main 6d65015 in separate codex/nextgen-*
 branches and worktrees. Exact scopes/leases are held outside Git in the existing
 engineering_os.orchestration.TaskStore. Seven simultaneous agents including the

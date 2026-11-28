@@ -13,14 +13,22 @@ LAYERS = [
  ('L02','AI intelligence',['engineering_os/model_router.py','catalog/models/registry.json']),
  ('L03','Agent orchestration',['engineering_os/orchestration.py']),
  ('L04','Engineering control plane',['hub.py','hublink.py','sdk/engineering_sdk.py']),
- ('L05','Universal integrations',['sdk/engineering_sdk.py','integrations/PROGRAMS.json']),
- ('L06','Software engineering',['skills/system-builder/SKILL.md','skills/saas-platform/SKILL.md']),
- ('L07','Data & intelligence',['skills/ai-integration/SKILL.md']),
+ ('L05','Universal integrations',['sdk/engineering_sdk.py','engineering_os/claude_bridge.py','.mcp.json','integrations/PROGRAMS.json']),
+ ('L06','Software engineering',['engineering_os/factory_generate.py','skills/system-builder/SKILL.md','skills/saas-platform/SKILL.md']),
+ ('L07','Data & intelligence',['engineering_os/memory.py','skills/ai-integration/SKILL.md']),
  ('L08','Cinematic & motion',['motion-library/runtime/hub-motion.mjs','packages/motion-sdk/index.mjs']),
  ('L09','Security & quality',['tests/test_security.py','.github/workflows/verify.yml']),
  ('L10','Independent products',['hublink.py','templates/capabilities.json']),
  ('L11','Cloud & delivery',['skills/release-engineering/SKILL.md','templates/RELEASE_MANIFEST.json']),
  ('L12','Continuous intelligence',['scripts/discover_technology.py','.github/dependabot.yml']),
+ ('L13','Engineering reasoning',['engineering_os/reasoning.py']),
+ ('L14','Engineering memory',['engineering_os/memory.py']),
+ ('L15','Requirements engineering',['engineering_os/factory.py']),
+ ('L16','Software factory',['engineering_os/factory_generate.py']),
+ ('L17','Self-healing',['engineering_os/healing.py','engineering_os/healing_runtime.py']),
+ ('L18','Cinematic intelligence',['engineering_os/cinematic.py','docs/evidence/nextgen-local-motion-inventory.json','motion-library/expansion/nextgen-catalog.mjs','motion-library/expansion/nextgen-motion-webgl.mjs']),
+ ('L19','Engineering economics',['engineering_os/economics.py']),
+ ('L20','Engineering assurance',['engineering_os/layer_checks.py','engineering_os/intelligence.py','engineering_os/claude_bridge.py']),
 ]
 
 
@@ -64,13 +72,16 @@ def source_matches(inputs):
 
 
 def architecture():
+    from .layer_checks import CHECKS
+
     return {'schema_version':1,'name':'Global AI Engineering Operating System',
             'standard':'10/10 target; not a measured certification',
             'runtime_dependency_on_hub':False,
             'layers':[{'id':key,'name':name,'target':True,
                        'available_source':[p for p in paths if (ROOT/p).is_file()],
                        'missing_source':[p for p in paths if not (ROOT/p).is_file()],
-                       'operational_proof':'See module-specific receipts; file existence alone is not proof.'}
+                       'acceptance_suites':list(CHECKS[key]),
+                       'operational_proof':f'Run python3 -m engineering_os.layer_checks --layer {key} to replay scoped local evidence.'}
                       for key,name,paths in LAYERS]}
 
 

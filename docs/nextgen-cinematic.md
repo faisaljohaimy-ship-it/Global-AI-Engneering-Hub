@@ -1,5 +1,9 @@
 # Cinematic intelligence — first verified increment
 
+This page records the first increment at `9789272`. The current original
+catalogue and its three-browser proof are described in
+[`operational.md`](specs/nextgen-intelligence/operational.md#original-motion-runtime).
+
 This lane adds three original perspective-camera scenes through the existing
 Universal Motion SDK. It does not copy or merge PR #16. The API remains
 `createMotionSystem().registerCatalog(catalog)`, then `create/play/pause/resume/

@@ -15,3 +15,15 @@ Runtime model review, autonomous application generation, semantic embeddings,
 production repair execution, all 200 original motions, real-device/cross-browser
 performance and native Claude host invocation require their own evidence. They
 remain open if this increment has not demonstrated them.
+
+## Operational follow-up
+
+- [x] Replay 20 architecture acceptance suites with no skipped checks.
+- [x] Author all 163 outstanding original motion identities.
+- [x] Verify the 166 local originals in 996 cases across three browsers.
+- [x] Retest the old Studio and compare pixel output with the same budgets.
+- [x] Verify generator, SQLite repair, atomic memory, reasoning and economics.
+- [x] Connect local Claude Code to MCP and exercise operations on stdio.
+- [ ] Review GitHub Actions results at the current PR head before approval.
+
+See [operational acceptance](operational.md) and [recorded validation](operational-validation.json).

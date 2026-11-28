@@ -21,8 +21,21 @@ require measured need, actual capacity and budget authorization.
 |L10 Independent products|Eight current spokes and future products|Private registry outside public Git; local preparation differs from remote completion|
 |L11 Cloud & delivery|Independent environments,CI/CD,preview,rollback|Existing provider projects preserved; incomplete permissions block relinking|
 |L12 Continuous intelligence|Technology/dependency/security/cost/health discovery|Read-only discovery and reviewed update proposals; no automatic execution|
+|L13 Engineering reasoning|Constraint planning, scheduling, dependency and evidence review|Deterministic acceptance tests exercise ranked alternatives, dependencies and review gates|
+|L14 Engineering memory|Project knowledge, symbols, provenance and recovery|Private persisted records, scoped retrieval, atomic symbol indexing and checkpoint replay|
+|L15 Requirements engineering|Acceptance criteria and traceable stage contracts|Receipt validation exercises dependency gates and changed artifact rejection|
+|L16 Software factory|Generate and verify bounded application systems|Generated SQLite CRUD applications exercise actual HTTP and persistence checks before publication|
+|L17 Self-healing|Reproduce, repair and verify bounded failures|Live SQLite checks compare initial, repaired and restored settings in disposable state|
+|L18 Cinematic intelligence|Original motion catalogue and runtime evidence|The SDK exercises authored mechanisms. Exact browser receipts define verified IDs and environments|
+|L19 Engineering economics|Team usage, costs and local runtime measurement|Ledger reconciliation and timed local operations with explicit evidence sources|
+|L20 Engineering assurance|Cross-layer verification and agent invocation|Fixed executable suites and MCP protocol tests cover local behavior and reject unsafe requests|
 
-`python3 hub.py architecture` reports this target and its evidence mapping.
+`python3 hub.py architecture` reports the twenty layers and their acceptance suites.
+`python3 -m engineering_os.layer_checks` runs every declared suite, requires a
+nonempty passing result with zero skips for each, and emits source digests and
+outcomes. Use `--layer L16` to replay just one suite. A layer pass covers the
+listed acceptance contract. Browser, native agent host, deployed products and
+provider access have separate evidence and permission requirements.
 `capabilities`, `integrations`, `motions` and `health` report their own tested
 surfaces rather than treating catalog names as installed tools. Operational counts
 require receipts tied to current source checksums and actual test results.

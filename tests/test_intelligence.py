@@ -1,5 +1,6 @@
 """Shared local entry-point acceptance scenarios; all data is synthetic."""
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -153,6 +154,28 @@ class IntelligenceTests(unittest.TestCase):
         link.symlink_to(target)
         with self.assertRaises(OSError):
             read_request(link)
+
+    def test_operational_routes_verify_generated_app_repair_and_runtime_measurement(self):
+        request = {'schema_version': 1, 'project': 'synthetic', 'source_revision': 'a' * 40,
+                   'resources': [{'name': 'tasks', 'fields': [
+                       {'name': 'title', 'type': 'text', 'required': True}]}]}
+        output = self.root / 'generated'
+        result = dispatch('factory-generate', request, artifact_root=output)
+        self.assertEqual(result['verification']['status'], 'passed')
+        self.assertTrue((output / 'openapi.json').is_file())
+
+        settings = '{"foreign_keys":false,"atomic_batches":true,"deduplicate":false}'
+        repair = {'schema_version': 1, 'project': 'synthetic', 'settings_json': settings,
+                  'settings_sha256': hashlib.sha256(settings.encode()).hexdigest()}
+        report = dispatch('healing-repair', repair)
+        self.assertEqual(report['status'], 'repair-verified')
+        self.assertTrue(report['rollback_verified'])
+        self.assertEqual(dispatch('healing-replay', {'request': repair, 'report': report}), report)
+
+        measurement = dispatch('economics-measure', {'schema_version': 1, 'operation': 'reasoning-plan',
+                                                     'request': self.request(), 'repeats': 2})
+        self.assertEqual(measurement['provider_calls'], 0)
+        self.assertEqual(len(dispatch('architecture', {})['layers']), 20)
 
 
 if __name__ == '__main__':

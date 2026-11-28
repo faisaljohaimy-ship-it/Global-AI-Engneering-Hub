@@ -1,0 +1,1827 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "recorded_at_utc": "2026-11-28T05:39:47.830Z",
+  "browser": "webkit",
+  "browser_version": "27.2",
+  "playwright_version": "1.65.1",
+  "runtime": "webgl2",
+  "platform": "linux",
+  "inputs": {
+    "motion-library/expansion/nextgen-motion-webgl.mjs": "c68d65c48a82669b6bd7a3c2ac1a204ebbda3e07281252ce7fa327f753db5cd0",
+    "tests/test_nextgen_webgl_browser.mjs": "bb44c65f03eba68a7922b990548ae1b2a31641f26e1f8357a57d8c6fed1779d8",
+    "motion-library/chromium-stack/harness.html": "1ab65f6d93ac1c13d5459df0fa1fd036a52ea28fd310b2c2fa03d57f264cfd9c",
+    "motion-library/chromium-stack/package.json": "1c5d01b838ff9f5a18cc73ebc5befa6f25063721e429be3feebaba0593311557",
+    "motion-library/chromium-stack/package-lock.json": "d9707412b1d264ae7aa625d6192170228e61a1f2a7ec777c2f001cae3ab24d3c",
+    "motion-library/verify/serve.mjs": "a13b9eff1a7e34ad8240eb5f5cb73aab74c91e815f9163ad75099915566eba0d"
+  },
+  "cases": [
+    {
+      "id": "shaders-noise-displacement",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "fcbb2e428d9d4a814874516e0bf35b198d4c7150b36c09eed6b8ab0b7ee2e342",
+          "drawn_pixels": 15752,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "16437cbffa9d4d81289de4c38d9844cf7e39c92113bf422115615adfcabb4f58",
+          "drawn_pixels": 14960,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "679536682c9e271431209b083865df63d357a9ea888a30dd146f68e08933d0dc",
+          "drawn_pixels": 14214,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 2,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-raymarched-geometry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "f674552f0049824bb16371c29ca5520cddf9638f5547e8b38b26187a9712d63f",
+          "drawn_pixels": 44708,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "8b44d32893937fc5537ded382daa06187db509110ed17d6928d954465139593c",
+          "drawn_pixels": 44708,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "9113f7108e48bf3b79a9b8a8684eed11e93d8155e9a8bb4be7e960a8ef5d7b6a",
+          "drawn_pixels": 44708,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 2,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-sdf-morph",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "84a404de756330b6a762246563d1b14025462060d5cf62cbdcf60a0d67ff298a",
+          "drawn_pixels": 13573,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "d03c7c69954ef91f7ead42affac86864a27b0eb36257e37741eddf3ec612d65a",
+          "drawn_pixels": 15341,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "8c6573819782bb157853b856b6fcf0c0972a5a189e2a96abd01514a5fc61d5a6",
+          "drawn_pixels": 12485,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 3,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-ripple",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "82d858bb95f063b779f63c575b79eda678a25d2a790a3b67fc03ec27e75e8eef",
+          "drawn_pixels": 25350,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "0f5a13257959f85dbb9d747f18137a0d474adeeac3cac6a1a2d02478a8c8a531",
+          "drawn_pixels": 33872,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "eb00e23c4830d013546b78564e47967b6f8a64e1ca7af4a4b8fb75025ee60a5b",
+          "drawn_pixels": 40812,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 2,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-chromatic-aberration",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "e355314b8b9b0493c32a276a9cc5a677c890f61424978e264cdafebbcab98a38",
+          "drawn_pixels": 9638,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "10f2b3b02fc19c2f107aed4821dea4850c9840c4502e7135d5bd646d8ec67568",
+          "drawn_pixels": 13632,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "72ab836fa16f6d450231c0871d4f15ada69e3ee01c091020d37b29745dcff84b",
+          "drawn_pixels": 15661,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 1,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-fractal",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "c97cfd9b347970c2d06b67cad373b1542123835e08473dc634943b649cc54e35",
+          "drawn_pixels": 46055,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "2ec02e9243d166aba9a37fc56138179a76f471b7950fc2bb44b536a996dcca25",
+          "drawn_pixels": 49940,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "2046d5043c4bc285830e6e253c6c550e273e7a845ebb67f76a55b0cd167d97d4",
+          "drawn_pixels": 60051,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 1,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-wave-interference",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "4a3682e29bc700c5c5c8e796f9c8fa08db506a294306a082c1ed28d2a482e9ff",
+          "drawn_pixels": 72326,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "54c0cc6f0394a7a7e9c7c3efdf99a963869d173709ef7ba146af4882a4e05b82",
+          "drawn_pixels": 71802,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "d6417f5d7a7780ae43467d8467f037bbf499023297dd52418352c96cb3b7fe4e",
+          "drawn_pixels": 72111,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 2,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-fresnel",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "c4f3254661e1b88fa2ce6d90eeff09a944d6bf8da669da8cb0ae53e208e8b689",
+          "drawn_pixels": 21765,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "4bf2a1af23aa5366e3ccb8001d2bd74cf49630bd9717f85d97a1be3cd346d062",
+          "drawn_pixels": 21766,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "65a71bfeadb34741e4d66e392d9b54dd1a2fa8813f018c3bb7202fff304c68b6",
+          "drawn_pixels": 21773,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 0,
+        "max_ms": 1,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-material-dissolve",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "bc551eacfc88d718c21d72afb65a2f2dbe92ced43bede501e13ed6a1d3407412",
+          "drawn_pixels": 9075,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "a64ccb1a6307ee2aaec8a3ecbd7318425f7836541b16dd83e9bcd79bd7cd8d2a",
+          "drawn_pixels": 8212,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "8b93c078f1eb13af94eb748cdceea7adbdceb85daf8f83039aa6cf8da0966975",
+          "drawn_pixels": 3955,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 1,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "particles-gpu-swarm",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": 2048,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "01f7b1862be25fdcb032f38f6d4f6e6537adbfe0a59340205f364f480c325839",
+          "drawn_pixels": 7212,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "039764c06fe5e73522c5943bf3099435b04fc4900b986fb6d602bf84b3bddac1",
+          "drawn_pixels": 6883,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "813c33448f0df36da9ca8c81038497143b2d575fc6222d52095eeb58ec6fdbb2",
+          "drawn_pixels": 6769,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 1,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "compositions-gpu-interface-transformation",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "499ab63af5039077dec016665026156b858c2e269bcf1d4662072eb3072431be",
+          "drawn_pixels": 42260,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "1abe9cacef838fc4f0e5a8f8bd0038516723483ee562f63c1196f0e25f45c3d4",
+          "drawn_pixels": 42260,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "46f65a7b43afe9756f83c2381463dedc6225e6391a6ae205a1cb54333f0d3ae4",
+          "drawn_pixels": 42260,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 2,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "compositions-multi-engine-cinematic",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2",
+          "canvas2d"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 192,
+          "height": 416
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "d0416e41909b00c08eace45aa8319c4de87476b1165f8c4842298ae0675462bd",
+          "drawn_pixels": 35201,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "99d5a3a62b066c50f7c904d616d8cad3f133102e8b563b2b83365dc85191dc06",
+          "drawn_pixels": 35794,
+          "opaque_pixels": 79872
+        },
+        {
+          "sha256": "33350207efdc8a4e70ded3dbf671e797e54bd29fb1ce0cffc6bb011108d0eec1",
+          "drawn_pixels": 29658,
+          "opaque_pixels": 79872
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 10,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-noise-displacement",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "bd07017ebbc2793ddcac6faad62c392c7338cc206f68796260e032eb3522c070",
+          "drawn_pixels": 23390,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "71ca1d93c3bcb994c86824b446e5378dbaaa380da94652d72603afa4d449c71e",
+          "drawn_pixels": 22225,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "0e82ada6d4dbd405f982a633ccb1e7af1e9dc59428ae77dd87a422f30e3af99d",
+          "drawn_pixels": 21098,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 2,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-raymarched-geometry",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "c91a5cec7656004a0b581c7a8255a6d96927d03996b80606d076f78979e0b5e6",
+          "drawn_pixels": 66684,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "5a3bc8a42e72a41eefaafc294e5e1b4342f2229c36c69516d75022bbac77362a",
+          "drawn_pixels": 66684,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "005e5cb33bef02c03e240da1ef5b7e555e1e0bfa386ab33af20397d36d24800d",
+          "drawn_pixels": 66684,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 3,
+        "median_ms": 1,
+        "max_ms": 4,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-sdf-morph",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "68daed9beb8009df00b574cb94524c35a5c03f3c299d650a7707e963b914e84e",
+          "drawn_pixels": 20163,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "66e6ea2664b42dd443c34f33c00ad9f63f86536bfb56a4caf83a4cc24cf9fb24",
+          "drawn_pixels": 22788,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "33384484a3a6b16ddbb0773ad63bca9566a6ae899ef309135ab13392dfd0c875",
+          "drawn_pixels": 18544,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 0,
+        "max_ms": 3,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-ripple",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "353906032805853b910a9f12d65b18b9af2be52d7b203297de84e330f2d213fb",
+          "drawn_pixels": 34881,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "d6140781bdc51df1196064d557f5007f496a28a4db49e4bacefa04286b7fee6f",
+          "drawn_pixels": 46357,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "028df5ed8b4bbdb2f1bc52149483b2779687b256634995f965c63a66025c1494",
+          "drawn_pixels": 56211,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 4,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-chromatic-aberration",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "f6f51ba4114cf2d531645e9e93df7cf869b503930acd55b53ec63317b1b7e6f4",
+          "drawn_pixels": 14310,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "121590612df6c8120eb7a8d6c93a32e07f286ee8769ba5fee73c53d18f5d683b",
+          "drawn_pixels": 20244,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "924b764c34d87e1035a3945261bb5e46616583793e78fcb13a8be3795188c4f6",
+          "drawn_pixels": 23251,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 3,
+        "median_ms": 1,
+        "max_ms": 4,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-fractal",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "2e89ba87d2ea5bd88eb112a6f42e5d801f548fc4cf8071ba3ef1800f158791bb",
+          "drawn_pixels": 77496,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "6f6711944eb103b969d0bf6729bbfa70045d4e13c9b350ee8738411e76c38190",
+          "drawn_pixels": 85275,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "d1c782b84c325eb98cd9d1cf83d1717cb7f3d0a47098d226607aca30ebf804bf",
+          "drawn_pixels": 96406,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 1,
+        "median_ms": 1,
+        "max_ms": 4,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-wave-interference",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "cdf4e289442f7eaf420ca6d66b37d5b84b01513b6b1bc537a7f7e709bf9edb41",
+          "drawn_pixels": 90972,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "ac44ce482dab66e664038e92045059cf791b8cacda53702348717e938506f152",
+          "drawn_pixels": 90664,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "6b6a8a50d305534f4e915096bcee8e3386a5393354633c260e5611983fe17cab",
+          "drawn_pixels": 90824,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 3,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-fresnel",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "0b12ee68cc266fdafae8ef1eb231bd16c45fb0f35eb3b3368f1ffde30d428873",
+          "drawn_pixels": 32359,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "a157ccdafad092e033685e23256ad4640a0476e37990e7823e748643f861d7f7",
+          "drawn_pixels": 32343,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "17e41da84fc77d6283e9a398e898eb16f4df01f97cb115be14ca2b7046982c81",
+          "drawn_pixels": 32349,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 0,
+        "max_ms": 3,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "shaders-material-dissolve",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "f68a09568d831e5814754604c97f042f5f327c568fd6a53c5fea63e327a5f9c2",
+          "drawn_pixels": 13478,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "e14773db3ee9720053fa731d844a7f3e138b97da59c4810b78a0c31591103c06",
+          "drawn_pixels": 12250,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "91904932aa81c8eb738b7698f063d618f10c74a07f81cb28bfae9a7111dc5251",
+          "drawn_pixels": 5890,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 4,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "particles-gpu-swarm",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": 2048,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "ec2b280b5758a64360ff35f2165602e51dbf27d5ecd9cd81e165ab99f14451f9",
+          "drawn_pixels": 8750,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "cc520149843a13abbf806b08cb31c200fd176331fa3b0fd5f2e08b57c55b5425",
+          "drawn_pixels": 8397,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "a0f35c47b2a91953dde59e5137930d7c277a036bdf0a9f63c7b4c399b8d9a387",
+          "drawn_pixels": 8410,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 3,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "compositions-gpu-interface-transformation",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "26df9e53d1a2a6f794b69b914ddec2d9b730efc4ecc45fdab4c7bcc5428aa537",
+          "drawn_pixels": 63092,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "62713247c78622f547d585d4db4e0f0608a1ed1fb8dde39bf1e5c0a1d1df3cae",
+          "drawn_pixels": 63092,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "7894bfd9f81a300dfc10e58f546e757a6b7bcf0ded8baf692f122f5e5c7ed0ca",
+          "drawn_pixels": 63092,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 3,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    },
+    {
+      "id": "compositions-multi-engine-cinematic",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "runtime": {
+        "engine": "webgl2",
+        "renderers": [
+          "webgl2",
+          "canvas2d"
+        ],
+        "renderer": "Apple GPU",
+        "software_renderer": false,
+        "source_framebuffer": {
+          "width": 416,
+          "height": 234
+        },
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "particles": null,
+        "production_fps_verified": false,
+        "hardware_verified": false
+      },
+      "checks": {
+        "actual_webgl2": true,
+        "drawn": true,
+        "opaque": true,
+        "changes": true,
+        "deterministic": true,
+        "reduced_motion": true,
+        "rtl": true,
+        "png": true,
+        "duplicate_canvas_rejected": true,
+        "cleanup": true,
+        "bounded_framebuffer": true,
+        "budget": true
+      },
+      "frames": [
+        {
+          "sha256": "048e0e36f287b76ba579f2fa2975fc9aa70fca100f85ad64e1797cd31e5b89c6",
+          "drawn_pixels": 53015,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "ebbd89384af232d0df97ee0cd5fd13fb637f7cc6bf24fe153f680e21dacffc3a",
+          "drawn_pixels": 53062,
+          "opaque_pixels": 97344
+        },
+        {
+          "sha256": "25d109ca0dda2a6285ae790f5ca6b4a345a8ab243ef6117ba5df8ae4d2b1c676",
+          "drawn_pixels": 44261,
+          "opaque_pixels": 97344
+        }
+      ],
+      "benchmark": {
+        "kind": "webgl2-draw-and-finish",
+        "frames": 24,
+        "budget_ms": 25,
+        "p95_ms": 2,
+        "median_ms": 1,
+        "max_ms": 10,
+        "within_cpu_budget": true,
+        "production_fps_verified": false
+      },
+      "cleanup_evidence": {
+        "surface": {
+          "width": 120,
+          "height": 90,
+          "style": "display: block"
+        },
+        "destroyed_read_rejected": true
+      }
+    }
+  ],
+  "page_errors": 0,
+  "external_requests": 0,
+  "hardware_verified": false,
+  "production_fps_verified": false,
+  "real_devices_verified": false
+}

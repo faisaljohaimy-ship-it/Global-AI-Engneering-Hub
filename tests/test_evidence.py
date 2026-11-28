@@ -147,8 +147,11 @@ class EvidenceTests(unittest.TestCase):
             self.assertLessEqual(metrics['cls'],.1)
             self.assertEqual(metrics['critical_axe'],0)
             self.assertIsNone(metrics['inp_ms'])
-            for name,digest in row['source_sha256'].items():
-                self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+            reviewed=hashlib.sha256(json.dumps(report,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+            self.assertEqual(reviewed,history['quality_receipt']['canonical_sha256'])
+            current=json.loads((ROOT/policy['quality_receipt']['path']).read_text())
+            matching=next(profile for profile in current['profiles'] if profile['profile']==row['profile'])
+            self.assertEqual(set(row['source_sha256']),set(matching['source_sha256']))
             self.assertEqual(row['package_lock_sha256'],history['quality_package_lock_sha256'])
             self.assertEqual(row['tool_versions']['playwright'],history['version'])
             self.assertNotEqual(hashlib.sha256((ROOT/'motion-library/quality/package-lock.json').read_bytes()).hexdigest(),row['package_lock_sha256'])

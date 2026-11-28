@@ -19,8 +19,9 @@ OPERATIONS = (
     "reasoning-plan", "reasoning-review", "root-causes",
     "memory-put", "memory-search", "memory-graph", "memory-index",
     "memory-checkpoint", "memory-restore", "memory-verify",
-    "factory-plan", "factory-evaluate", "healing-analyze", "healing-verify",
-    "economics", "cinematic",
+    "factory-plan", "factory-evaluate", "factory-generate",
+    "healing-analyze", "healing-verify", "healing-repair", "healing-replay",
+    "economics", "economics-measure", "cinematic", "architecture",
 )
 
 
@@ -118,18 +119,37 @@ def dispatch(operation, request, *, state_dir=None, artifact_root=None):
         if artifact_root is None:
             raise ValueError("Artifact root required")
         return evaluate_factory(request["plan"], request["receipts"], artifact_root=artifact_root)
+    if operation == "factory-generate":
+        from .factory_generate import generate_system
+        if artifact_root is None:
+            raise ValueError("New private destination required")
+        return generate_system(request, destination=artifact_root)
     if operation == "healing-analyze":
         from .healing import analyze
         return analyze(request)
     if operation == "healing-verify":
         from .healing import verify_repair
         return verify_repair(request)
+    if operation == "healing-repair":
+        from .healing_runtime import repair_sqlite
+        return repair_sqlite(request)
+    if operation == "healing-replay":
+        from .healing_runtime import verify_sqlite_repair
+        _fields(request, ("request", "report"))
+        return verify_sqlite_repair(request["request"], request["report"])
     if operation == "economics":
         from .economics import summarize
         return summarize(request)
+    if operation == "economics-measure":
+        from .economics import measure_runtime
+        return measure_runtime(request)
     if operation == "cinematic":
         from .cinematic import audit_inventory
         return audit_inventory(request)
+    if operation == "architecture":
+        from .control import architecture
+        _fields(request, ())
+        return architecture()
     raise ValueError("Unknown operation")
 
 
@@ -140,7 +160,7 @@ def main(argv=None):
     parser.add_argument("--state-dir", type=pathlib.Path,
                         help="Private memory directory outside every Git checkout")
     parser.add_argument("--artifact-root", type=pathlib.Path,
-                        help="Project root for source/artifact verification")
+                        help="Project root for verification, or new private destination for factory-generate")
     args = parser.parse_args(argv)
     try:
         result = dispatch(args.operation, read_request(args.input),

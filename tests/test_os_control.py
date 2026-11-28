@@ -18,11 +18,11 @@ def reviewed_native_receipt():
 
 
 class ControlTests(unittest.TestCase):
-    def test_twelve_layers_are_targets_not_fabricated_installations(self):
+    def test_twenty_layers_have_probes_without_claiming_execution(self):
         report=control.architecture()
-        self.assertEqual([r['id'] for r in report['layers']],[f'L{i:02}' for i in range(1,13)])
+        self.assertEqual([r['id'] for r in report['layers']],[f'L{i:02}' for i in range(1,21)])
         self.assertFalse(report['runtime_dependency_on_hub'])
-        self.assertTrue(all(r['target'] for r in report['layers']))
+        self.assertTrue(all(r['target'] and r['acceptance_suites'] for r in report['layers']))
 
     def test_unreviewed_catalog_never_becomes_operational(self):
         tools=[r for r in control.capabilities() if r['kind']=='external-tool']
@@ -165,7 +165,8 @@ class ControlTests(unittest.TestCase):
         expansion=control.motions()['expansion']
         self.assertEqual((expansion['implemented'],expansion['tested']), (400,400))
         self.assertEqual(expansion['runtime_verified'],400)
-        self.assertEqual(expansion['historical_tested_toolchain']['playwright'],'1.63.0')
+        historical = real_read(control.ROOT/policy['historical_reviews'][0]['motion_receipt']['path'])
+        historical_matches = control.source_matches(historical['source_sha256'])
         self.assertEqual(expansion['current_runtime']['state'],'recorded-source-bound')
         broken=[]
         item=copy.deepcopy(receipt);item['source_sha256'].pop('packages/motion-sdk/index.mjs');broken.append(item)
@@ -189,7 +190,7 @@ class ControlTests(unittest.TestCase):
                     return real_read(target)
                 with self.subTest(history_available=history_available),mock.patch.object(control,'read',side_effect=amended):
                     result=control.motions()['expansion']
-                    count=400 if history_available else 0
+                    count=400 if history_available and historical_matches else 0
                     self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (count,count,0))
 
     def test_reviewed_history_is_required_and_cannot_relabel_the_old_driver(self):
@@ -250,7 +251,8 @@ class ControlTests(unittest.TestCase):
                 self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (400,400,400))
                 self.assertEqual(result['receipt'],policy['motion_runtime_receipt'])
                 self.assertEqual(result['recorded_at_utc'],receipt['recorded_at_utc'])
-                self.assertEqual(result['historical_tested_toolchain']['playwright'],'1.63.0')
+                historical_current = control.source_matches(control.read(root/historical)['source_sha256'])
+                self.assertEqual('historical_tested_toolchain' in result, historical_current)
                 lock=root/'motion-library/verify/package-lock.json';original=lock.read_bytes()
                 changed=json.loads(original);changed['packages']['node_modules/playwright-core']['integrity']='unreviewed'
                 lock.write_text(json.dumps(changed))
@@ -259,7 +261,7 @@ class ControlTests(unittest.TestCase):
                 # Approved bytes are mandatory; a modified file cannot inherit green status.
                 current.write_text(json.dumps({**receipt,'playwright_version':'9.9.9'}))
                 self.assertEqual(control.motions()['expansion']['runtime_verified'],0)
-                self.assertEqual(control.motions()['expansion']['implemented'],400)
+                self.assertEqual(control.motions()['expansion']['implemented'],400 if historical_current else 0)
         self.assertEqual(control.motions()['expansion']['runtime_verified'],400)
 
     def test_unknown_project_health_cannot_approve_release(self):

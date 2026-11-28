@@ -1,0 +1,23 @@
+{
+  "claude_code_version": "2.1.332",
+  "disposable_local_mcp_registration": "connected",
+  "distribution": "official npm linux-x64",
+  "native_tool_calls_tested": false,
+  "negotiated_protocol": "2025-11-25",
+  "observed_native_wire_methods": [
+    "initialize",
+    "notifications/initialized",
+    "tools/list"
+  ],
+  "project_config_discovery": "pending usual user approval in the repository",
+  "provider_model_calls": 0,
+  "recorded_at_utc": "2026-11-28T05:37:32.734459+00:00",
+  "schema_version": 1,
+  "source_sha256": {
+    ".mcp.json": "2fab30849d38af6fb3d65e2d25fd24f4a6dc453847f1886eeed96380dbf9be09",
+    "engineering_os/claude_bridge.py": "802b198bfa94897b440dc7a244e9ec82fde79c344450f527a59cbbff208c04a7",
+    "engineering_os/intelligence.py": "d247efbce98e6ad44bdb4fb5e15f52e6d4c711861b1e73a12bd3fdd67c951191"
+  },
+  "tarball_sha512": "7f8256873c18bad2481d2702eff75838f5fab36f2db7b6400e1b0e8bccf0387ab97c53c4b94782861d8d31f8a74a0d06ad472463169e79b0b88740ea88accb73",
+  "wire_tool_calls_tested_with_local_client": true
+}
