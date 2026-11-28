@@ -37,6 +37,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.parse
 
@@ -797,11 +798,76 @@ SQL_FUNCTIONS_REFUSED = frozenset({"load_extension", "fts3_tokenizer"})
 # virtual table of one of these modules, so the script itself never issues them.
 SQL_MODULE_PRAGMAS = frozenset({"page_size", "data_version"})
 SQL_MODULES = frozenset({"fts3", "fts4", "fts5", "rtree", "rtree_i32", "geopoly"})
-SQL_WORK_LIMIT = 2000  # progress-handler calls of 10000 virtual-machine instructions per schema script
-SQL_TIME_LIMIT_S = 5.0  # wall-clock bound per schema script, checked by the same progress handler
+SQL_PROGRESS_STEP = 100  # virtual-machine instructions between two progress-handler calls
+SQL_WORK_LIMIT = 20_000_000  # virtual-machine instructions per schema script (and per caller statement)
+SQL_TIME_LIMIT_S = 5.0  # wall-clock bound per schema script (and per caller statement), checked by the same handler
 SQL_VALUE_LIMIT = 1_000_000  # SQLITE_LIMIT_LENGTH: bytes in one string or blob (and one row)
 SQL_STATEMENT_LIMIT = 1_000_000  # SQLITE_LIMIT_SQL_LENGTH: bytes in one statement
 SQL_PAGE_LIMIT = 4096  # max_page_count of the main and the temp database (16 MiB each with 4 KiB pages)
+SQL_MEMORY_LIMIT = 64 << 20  # measured resident-memory growth of this process while one schema script runs
+SQL_ADDRESS_HEADROOM = 128 << 20  # RLIMIT_AS soft limit = the process's current size + this, while one statement runs
+_SQL_ADDRESS_LOCK = threading.Lock()  # one statement at a time lowers the process-wide address-space limit
+
+
+def _process_memory():
+    """``(resident, address_space)`` bytes of this process, measured now (Linux ``/proc/self/statm``).
+
+    Elsewhere ``resident`` is the peak resident size from ``getrusage`` and ``address_space`` is None.
+    """
+    try:
+        fd = os.open("/proc/self/statm", os.O_RDONLY | os.O_CLOEXEC)
+        try:
+            size, resident = (int(field) * os.sysconf("SC_PAGE_SIZE") for field in os.read(fd, 128).split()[:2])
+        finally:
+            os.close(fd)
+        return resident, size
+    except (OSError, ValueError):
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return peak * (1 if sys.platform == "darwin" else 1024), None
+
+
+class SqlMemoryLimit(sqlite3.OperationalError):
+    """A statement on a ``schema_memory`` connection allocated past its address-space bound (it was stopped)."""
+
+
+class _BoundedSqlite(sqlite3.Connection):
+    """The connection ``schema_memory`` returns: every ``execute`` on it runs under the loader's bounds.
+
+    While one statement runs, the process-wide ``RLIMIT_AS`` soft limit is lowered to the
+    process's current size plus ``SQL_ADDRESS_HEADROOM`` (serialised by a lock, restored after):
+    SQLite checks its progress handler only on jumps, so straight-line code (a function with
+    1000 one-megabyte arguments, a 2000-column row, a nested view expanded while a statement
+    is prepared) could otherwise allocate gigabytes between two checks. An allocation past it
+    fails, and the statement raises ``SqlMemoryLimit`` (an ``sqlite3.OperationalError``, so a
+    caller that handles SQLite errors handles it). A statement of the caller (after the load)
+    gets a fresh work, time and memory budget of its own.
+    """
+
+    budget = None  # set by schema_memory: {"script": bool, "start": callable}
+
+    def execute(self, sql, parameters=(), /):
+        budget = self.budget
+        if budget is None:
+            return super().execute(sql, parameters)
+        if not budget["script"]:
+            budget["start"]()
+        try:
+            with _SQL_ADDRESS_LOCK:
+                soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+                size = _process_memory()[1]
+                bound = None if size is None else size + SQL_ADDRESS_HEADROOM
+                for limit in (soft, hard):
+                    if bound is not None and limit != resource.RLIM_INFINITY:
+                        bound = min(bound, limit)
+                if bound is not None:
+                    resource.setrlimit(resource.RLIMIT_AS, (bound, hard))
+                try:
+                    return super().execute(sql, parameters)
+                finally:
+                    if bound is not None:
+                        resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
+        except MemoryError:  # SQLite's SQLITE_NOMEM, or Python's own allocation, past the bound
+            raise SqlMemoryLimit("memory limit: an allocation passed the address-space bound") from None
 
 
 def schema_memory(root, schemas):
@@ -811,12 +877,19 @@ def schema_memory(root, schemas):
     ``SQL_PRAGMAS_ALLOWED``; the attached-database limit is 0 and extension loading stays off.
     Memory and time are bounded too: one value or row at most ``SQL_VALUE_LIMIT`` bytes, one
     statement ``SQL_STATEMENT_LIMIT``, the main and temp databases ``SQL_PAGE_LIMIT`` pages
-    each (temp kept in memory), and each script ``SQL_WORK_LIMIT`` progress steps and
-    ``SQL_TIME_LIMIT_S`` seconds. Returns ``(connection, problems)``: one problem per
-    schema that did not load, ``kind`` ``unsafe-schema-sql`` (a statement was refused; the
-    script stops there) or ``schema-error``. The caller closes the connection.
+    each (temp kept in memory), and each script ``SQL_WORK_LIMIT`` instructions,
+    ``SQL_TIME_LIMIT_S`` seconds and ``SQL_MEMORY_LIMIT`` bytes of measured resident growth
+    (the progress handler runs every ``SQL_PROGRESS_STEP`` instructions); every statement runs
+    under an address-space limit (``_BoundedSqlite``), so the sorter and the DISTINCT, UNION and
+    recursive tables SQLite keeps in memory stay bounded too. A statement runs to its first
+    result row and its rows are never read: a schema needs only the statements' effects (a DML
+    statement with RETURNING makes all its changes in that first step), and reading rows is what
+    let a SELECT in a schema file hold gigabytes. Returns ``(connection, problems)``: one
+    problem per schema that did not load, ``kind`` ``unsafe-schema-sql`` (a statement was
+    refused or a bound was reached; the script stops there) or ``schema-error``. The caller
+    closes the connection; its own statements on it get the same bounds, per statement.
     """
-    memory = sqlite3.connect(":memory:", isolation_level=None)  # autocommit, as executescript runs a script
+    memory = sqlite3.connect(":memory:", isolation_level=None, factory=_BoundedSqlite)  # autocommit, as executescript
     memory.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
     memory.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, SQL_VALUE_LIMIT)
     memory.setlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH, SQL_STATEMENT_LIMIT)
@@ -825,6 +898,7 @@ def schema_memory(root, schemas):
     if hasattr(memory, "enable_load_extension"):
         memory.enable_load_extension(False)
     refused, work, deadline, running, uses_module, module_tables = [], [0], [0.0], [False], [False], set()
+    resident, grown = [0], [0]
     table_actions = {sqlite3.SQLITE_READ, sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE,
                      sqlite3.SQLITE_DROP_VTABLE}
 
@@ -846,35 +920,52 @@ def schema_memory(root, schemas):
             return sqlite3.SQLITE_OK
         return sqlite3.SQLITE_DENY
 
+    def start():  # a fresh budget: one target script, or one statement of the caller
+        work[0], deadline[0], resident[0], grown[0] = 0, time.monotonic() + SQL_TIME_LIMIT_S, _process_memory()[0], 0
+
     def progress():
-        work[0] += 1
-        if work[0] > SQL_WORK_LIMIT or time.monotonic() > deadline[0]:
-            refused.append("work limit" if work[0] > SQL_WORK_LIMIT else "time limit")
+        try:
+            work[0] += SQL_PROGRESS_STEP
+            grown[0] = max(grown[0], _process_memory()[0] - resident[0])
+            reason = ("work limit" if work[0] > SQL_WORK_LIMIT else "time limit" if time.monotonic() > deadline[0]
+                      else "memory limit" if grown[0] > SQL_MEMORY_LIMIT else None)
+        except MemoryError:
+            reason = "memory limit"
+        if reason:
+            refused.append(reason)
             return 1
         return 0
 
     def started(_statement):  # SQLite traces a statement when it starts running, after it was prepared and authorized
         running[0] = True
 
+    memory.budget = {"script": True, "start": start}
     memory.set_authorizer(authorize)
-    memory.set_progress_handler(progress, 10000)
+    memory.set_progress_handler(progress, SQL_PROGRESS_STEP)
     memory.set_trace_callback(started)
     problems = []
     for rel in schemas:
+        text = read_text(root, rel) or ""
         refused.clear()
-        work[0], deadline[0] = 0, time.monotonic() + SQL_TIME_LIMIT_S
+        start()
         try:
-            for statement in _sql_statements(read_text(root, rel) or ""):
+            for statement in _sql_statements(text):
                 running[0] = uses_module[0] = False
-                memory.execute(statement).fetchall()
-        except sqlite3.Error as error:
-            if getattr(error, "sqlite_errorname", "") in ("SQLITE_TOOBIG", "SQLITE_FULL") or isinstance(error, sqlite3.DataError):
+                memory.execute(statement).close()  # to its first row; rows are never read (see the docstring)
+        except (sqlite3.Error, MemoryError) as error:
+            if isinstance(error, (SqlMemoryLimit, MemoryError)) or getattr(error, "sqlite_errorname", "") == "SQLITE_NOMEM":
+                refused.append("memory limit")  # an allocation past the address-space limit
+            elif getattr(error, "sqlite_errorname", "") in ("SQLITE_TOOBIG", "SQLITE_FULL") or isinstance(error, sqlite3.DataError):
                 refused.append("size limit")  # a value, statement or database past the bounds above
+            detail = str(error) or type(error).__name__
+            if "memory limit" in refused:
+                detail += f" (measured growth {grown[0] >> 20} MiB; bounds {SQL_MEMORY_LIMIT >> 20} MiB resident," \
+                          f" {SQL_ADDRESS_HEADROOM >> 20} MiB address space)"
             problems.append({"path": rel, "kind": "unsafe-schema-sql" if refused else "schema-error",
-                             "refused": sorted(set(refused)), "error": _redact(str(error), 200)})
+                             "refused": sorted(set(refused)), "error": _redact(detail, 200)})
     running[0] = uses_module[0] = False
     memory.set_trace_callback(None)  # the caller's own statements are authorized as script statements
-    work[0], deadline[0] = 0, time.monotonic() + SQL_TIME_LIMIT_S  # the caller's own queries get the same bounds
+    memory.budget["script"] = False  # each caller statement gets the same bounds, from its own start
     return memory, problems
 
 

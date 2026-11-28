@@ -28,7 +28,7 @@ verified rollback. It reuses the hub's engines instead of duplicating them.
 | `route_command(command, *, environ=None, workspace=None)` | none | Router decision plus the engine's refusals; `mode`, `scope`, `focus`, `areas`. |
 | `requested_changes(command, spec, names=())` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions, or not settled (`UNSETTLED`): `unparsed`, `open-questions`, `unsettled`. Every word is accounted for (`_account`): the router's own vocabulary, function words, the target's name (spec title and slug, project, manifest name, directory), a requirements-lexicon phrase the diff is computed from, or an engine request (`ENGINE_REQUESTS`: unused assets, dead code, slow queries). Wording nothing accounts for, a remove verb used as a command or a negation the diff does not reflect, and a later change verb on a spec item with an empty diff are `unsettled`; `unmet` names the words. `requests` lists the engine requests. |
 | `data_manifest(path, columns=None, staging=None)` / `data_preserved(before, after_path, staging=None)` | none on the file (read-only, `immutable=1`); with `staging`, a private snapshot there | Per-table row count and SHA-256 over the original columns; problems list. A database with a `-wal`/`-journal` companion is read through `snapshot_database` in `staging`; without it (audit) only the main file is read, `complete` is false and `data_preserved` reports the data as unproven. |
-| `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory it creates | Consistent single-file copy. SQLite never opens the source directory and never sees a journal the engine did not create: the `-journal` is read as bytes first and the copy is refused (`UpgradeError`, before any open) when the journal is hot (an interrupted write transaction) or ends in a super-journal record, because rolling it back would make SQLite delete the file that record names; an empty or zeroed journal (`TRUNCATE`/`PERSIST` residue) holds nothing and is never copied. The main file and a `-wal` whose header and header checksum verify are byte-copied into `staging`; with a `-wal` the copy is opened there and the committed frames are applied, otherwise it is opened `immutable=1`; then the sqlite3 backup API. `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
+| `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory it creates | Consistent single-file copy. SQLite never opens the source directory and never sees a journal the engine did not create: the `-journal` is read as bytes first and the copy is refused (`UpgradeError`, before any open) when the journal is hot (an interrupted write transaction) or ends in a super-journal record, because rolling it back would make SQLite delete the file that record names; an empty or zeroed journal (`TRUNCATE`/`PERSIST` residue) holds nothing and is never copied. The main file and a `-wal` whose header and header checksum verify are byte-copied into `staging`; with a `-wal` the copy is opened there and the committed frames are applied, otherwise it is opened `immutable=1`; the copy is refused before anything is written when the database declares more pages than its file and `-wal` hold (`page_count × page_size` above their size plus one page: one valid commit frame can declare billions of pages, which the backup would write as zeros); then the sqlite3 backup API. `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
 | `classify_migration(sql)` / `split_sql(sql)` | none | Statement verdicts; raises `UpgradeError` on any statement that can lose or rewrite data. |
 | `migrate_database(path, up, down, scratch)` | scratch copies only | Applies `up` to a `snapshot_database` copy, proves data preservation and that `down` restores the schema; returns the migrated bytes as one complete file (the upgrade removes the copy's stale `-wal`/`-shm`/`-journal` when it writes them; the rollback restores them). |
 | `asset_references(root, rel, files)` | none | Static proof of use or non-use of one asset. |
@@ -98,10 +98,27 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
    the read-only `pragma_page_size('main')` function inside a statement that also uses such a
    table, which touches no file). Memory and time are bounded: one string, blob or row at most 1 MB
    (`SQLITE_LIMIT_LENGTH`), one statement at most 1 MB (`SQLITE_LIMIT_SQL_LENGTH`), the main
-   and temp databases 4096 pages each (temp kept in memory), and each script 2000 progress
-   steps of 10000 instructions and 5 seconds. A refused statement or a script past a bound
-   stops that script and is reported as `unsafe-schema-sql` (severity high), by the detectors
-   and by the query audit.
+   and temp databases 4096 pages each (temp kept in memory), and each script 20 million
+   instructions, 5 seconds and 64 MiB of resident growth of the engine process, measured
+   (`/proc/self/statm`) by the progress handler every 100 instructions. That measured bound is
+   what stops `DISTINCT`, a recursive `UNION`, `ORDER BY` or `GROUP BY` over large strings:
+   SQLite keeps those tables and its sorter in memory, outside the page limit. SQLite checks
+   its progress handler only on jumps, so every statement also runs under an address-space
+   limit (`RLIMIT_AS` lowered to the process's size plus 128 MiB, process-wide, one statement
+   at a time under a lock, restored after): straight-line code such as a function with 999
+   one-megabyte arguments, a 2000-column row or a nested view expanded while it is prepared
+   fails with `memory limit` instead of allocating gigabytes. A statement runs to its first
+   result row and its rows are never read: a schema needs only the statements' effects (an
+   `INSERT ... RETURNING` makes all its changes in that first step), and reading the rows of a
+   `SELECT` in a schema file is what held 2.4 GB. A refused statement or a script past a bound
+   stops that script and is reported as `unsafe-schema-sql` (severity high, `refused` names
+   the bound: `size limit`, `work limit`, `time limit` or `memory limit`), by the detectors
+   and by the query audit. The caller's own statements on that connection (`EXPLAIN` of the
+   target's SQL literals, the probe index of the query audit) get the same bounds, each from
+   its own start, and a `memory limit` there is an `sqlite3.OperationalError`
+   (`detectors.SqlMemoryLimit`). Where `/proc/self/statm` is missing the address-space limit
+   is not applied and the resident bound uses the peak resident size (a limitation, recorded
+   here).
 4. **PLAN** — one step per area from a bounded generator catalogue (§3), filtered by the
    command's scope (by primary area), ordered with `reasoning.decompose` (areas in the order
    `code, architecture, database, performance, security, ui, assets, tests, docs`, the notes
@@ -219,7 +236,15 @@ and malformed steps are refused before anything is created.
   dead code". Their area joins the run's scope. Each is met only when the upgraded copy is
   verified: no unreferenced asset left, no filtered full-table scan left, no dead-code finding
   left. The upgrade keeps every function, so existing dead code is reported as unmet, never
-  deleted. Arabic wording with «غير» (for example «غير المستخدمة») is refused by the router as
+  deleted. A removal runs on over coordinated conjuncts and comma-separated items with an
+  elided verb, up to the next verb, clause break or signal, and inside it a data-bearing item
+  (field, column, attribute, table, entity, record, row, locale, language, role, data, database
+  and their Arabic forms), the target itself (app, system, project, platform, service, tool)
+  or a pronoun is never a function word: "remove unused code and fields", «واحذف الكود الميت
+  والحقول», "remove dead code, fields and columns" or "remove dead code and the whole app" is
+  a removal the diff must reflect, so it stops the run. After a link word the same nouns say
+  where to remove from ("remove dead code from the system", «من النظام»); a conjunct after
+  such a phrase is an object again. Arabic wording with «غير» (for example «غير المستخدمة») is refused by the router as
   a negation before this check; «المهملة» is accepted.
 - Asset non-use is a static proof over internal references; external links to a served file
   cannot be ruled out (hence the backup); directory listings in code make it unprovable.
@@ -229,9 +254,19 @@ and malformed steps are refused before anything is created.
   rollback journal (a crashed write) or a journal carrying a super-journal record, or with a
   `-wal` whose header does not verify, is refused before SQLite opens it: the engine never
   rolls back a journal it did not create. The owner recovers it with the application first.
+  A `-journal`, `-wal` or `-shm` that is not a regular file (a directory, a named pipe, a
+  socket, a device) is refused from its `lstat` before anything opens it; the main file and
+  the `-wal` are copied into staging only as regular files opened `O_NONBLOCK` and
+  `fstat`-ed first, and the target itself is snapshotted and copied with the same check.
   A database listed in `gaie-upgrade.json` that is a symlink, or lies under a symlinked
   directory, is refused before anything is copied (it would otherwise leave the data proof);
-  a listed database that does not exist is named in `baseline.databases_missing`.
+  a listed database that does not exist is named in `baseline.databases_missing`. A listed
+  database that exists but that the engine never copies or reads (under a `SKIP_DIRS`
+  directory such as `venv/` or `node_modules/`, behind a symlink that appeared after that
+  check, with a compiled-cache name, or not a regular file) is `baseline.databases_skipped`
+  (`skipped-by-policy`, with the reason): the data proof lists it as not preserved, so
+  `data-preserved` is false and the upgrade ends `rejected`; the audit and upgrade summaries
+  name it.
 - Template fixes never invent content: images without `alt` are reported for the owner. Label
   text comes from the spec, otherwise from the control's name.
 - Tests prove only what they check; a validated upgrade is not a release approval. Only
