@@ -91,15 +91,15 @@
       "title": "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository"
     },
     {
-      "control": "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope refuses configs with includes, URL rewrites, filters or core.hooksPath",
+      "control": "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope refuses configs with includes, URL rewrites, filters or core.hooksPath. Open while a promisor remote's upload-pack or core.sshCommand still runs during a lazy fetch (pr30-isolation F1; fix: protocol.allow=never and refuse extensions.*, remote.*.promisor/uploadpack, core.sshCommand)",
       "evidence": "tests/test_security_enterprise.py::WorkspaceGitTests",
       "id": "SEC-09",
       "kind": "registered",
       "location": "engineering_os/workspace_policy.py:_git",
       "rule": "git-untrusted-checkout",
       "severity": "low",
-      "status": "fixed",
-      "title": "Router workspace probe ran git in a workspace without the hardening flags"
+      "status": "open",
+      "title": "The workspace check behind `route --workspace` runs Git in a worktree an agent may have prepared: it must never run a program the checkout's config names (fsmonitor, index hook, a partial clone's promisor upload-pack or ssh command) or follow inherited GIT_* variables"
     },
     {
       "control": "standard library only: O_NOFOLLOW|O_NONBLOCK open, then fstat of the descriptor: regular file, caller-owned, one link, no group/other bits; GAIE_HOME caller-owned and not writable by others, memory directories caller-owned 0700; reads and appends alike; an existing journal that fails is refused with the fix command, never repaired",
@@ -264,10 +264,10 @@
     },
     "by_status": {
       "accepted": 6,
-      "fixed": 8,
+      "fixed": 7,
       "held": 4,
       "mitigated": 1,
-      "open": 3
+      "open": 4
     },
     "open_critical_or_high": []
   },

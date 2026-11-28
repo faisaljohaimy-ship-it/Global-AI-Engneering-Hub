@@ -422,6 +422,16 @@ class WorkspaceGitTests(unittest.TestCase):
     def validate(self):
         return workspace_policy.validate_workspace(self.worktree, intent="upgrade", expected_repository="example/probe")
 
+    @staticmethod
+    def protocols_refused():
+        """workspace_policy._git with every Git transport refused: the pr30-isolation F1 fix, applied as a stand-in so
+        that the probe's closed branch is tested on a checkout where that fix has not landed yet."""
+        real = workspace_policy._git
+
+        def no_protocols(path, *args, absent=False):
+            return real(path, "-c", "protocol.allow=never", *args, absent=absent)
+        return mock.patch.object(workspace_policy, "_git", no_protocols)
+
     def test_a_clean_linked_worktree_is_still_verified(self):
         scope = self.validate()
         self.assertEqual((scope.root, scope.checkout, scope.branch), (self.worktree, self.worktree, "claude/probe"))
@@ -429,6 +439,48 @@ class WorkspaceGitTests(unittest.TestCase):
     def test_the_router_launches_no_git_itself(self):
         from engineering_os import gaie_router
         self.assertFalse(hasattr(gaie_router, "subprocess") or hasattr(gaie_router, "workspace"))
+        run_git(self.canonical, "config", "core.fsmonitor", f"touch {self.marker}; false")
+        os.utime(self.worktree / "app.txt", (1_000_000, 1_000_000))
+        scope, reason = gaie_router._verified_write_scope("upgrade", self.worktree, [{"slug": "example/probe", "path": None}])
+        self.assertEqual((scope.root, reason), (self.worktree, None))
+        self.assertFalse(self.marker.exists(), "route --workspace ran the worktree's fsmonitor program")
+
+    def test_the_probe_measures_a_partial_clone_promisor_program(self):
+        """pr30-isolation F1: a lazy fetch from a promisor remote must not run its upload-pack or ssh command. The
+        probe reports either vector open while Git may use it, and closed once transports are refused."""
+        def unhardened(path, *args, absent=False):  # only the checkout's own config: no global config, no -c hardening
+            done = subprocess.run(["git", "-C", str(path), *args], capture_output=True, text=True, timeout=60, check=False,
+                                  env={"PATH": os.defpath, "LC_ALL": "C", "GIT_CONFIG_NOSYSTEM": "1",
+                                       "GIT_CONFIG_GLOBAL": os.devnull})
+            if absent and done.returncode == 1 and not done.stdout:
+                return ""
+            if done.returncode:
+                raise workspace_policy.WorkspacePolicyError("Git could not verify the proposed workspace.")
+            return done.stdout
+        for vector in ("uploadpack", "sshcommand"):
+            with self.subTest(vector=vector):
+                with mock.patch.object(workspace_policy, "_git", unhardened):
+                    self.assertTrue(security_audit.promisor_program_runs(private_tmp(self).resolve() / "x", vector))
+                with self.protocols_refused():
+                    self.assertFalse(security_audit.promisor_program_runs(private_tmp(self).resolve() / "x", vector))
+                with mock.patch.object(security_audit, "promisor_program_runs", lambda base, name: name == vector):
+                    self.assertTrue(security_audit.probe_router_workspace(private_tmp(self)))
+        with self.protocols_refused():
+            self.assertFalse(security_audit.probe_router_workspace(private_tmp(self)))
+
+    def test_the_probe_reports_a_router_running_git_under_another_name_as_open(self):
+        """pr30-merge-quality F1: a router that starts Git itself (here through an alias) must be measured open."""
+        from engineering_os import gaie_router
+        import subprocess as _sp
+        real = gaie_router._verified_write_scope
+
+        def regressed(intent, path, targets):
+            _sp.run(["git", "-C", str(path), "status", "--porcelain"], capture_output=True, timeout=60, check=False)
+            return real(intent, path, targets)
+        with mock.patch.object(gaie_router, "_verified_write_scope", regressed), self.protocols_refused():
+            self.assertTrue(security_audit.probe_router_workspace(private_tmp(self)))
+        with self.protocols_refused():
+            self.assertFalse(security_audit.probe_router_workspace(private_tmp(self)))
 
     def test_the_worktrees_fsmonitor_program_never_runs(self):
         run_git(self.canonical, "config", "core.fsmonitor", f"touch {self.marker}; false")
@@ -487,7 +539,8 @@ class WorkspaceGitTests(unittest.TestCase):
         before = os.environ.get("GIT_TRACE")
         with mock.patch.object(workspace_policy, "_git", unhardened):
             self.assertTrue(security_audit.probe_router_workspace(private_tmp(self)))
-        self.assertFalse(security_audit.probe_router_workspace(private_tmp(self)))
+        with self.protocols_refused():  # the closed branch, with the pr30-isolation F1 fix applied as a stand-in
+            self.assertFalse(security_audit.probe_router_workspace(private_tmp(self)))
         self.assertEqual(os.environ.get("GIT_TRACE"), before, "the probe restores the caller's environment")
 
 

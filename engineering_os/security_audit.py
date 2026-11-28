@@ -573,13 +573,43 @@ def linked_worktree(base, *, repository="https://github.com/example/probe.git", 
     return {"canonical": canonical_root, "worktree": worktree}
 
 
+def promisor_program_runs(base, vector):
+    """True when `route --workspace` runs a program a partial clone's config names (pr30-isolation F1).
+
+    The checkout declares a promisor remote whose upload-pack (vector "uploadpack") or whose ssh command (vector
+    "sshcommand") is a program, and origin/main names an object that is absent, as in a partial clone; resolving it
+    makes Git fetch lazily from the promisor. Whether the workspace is accepted does not matter: the program must
+    never run."""
+    from . import gaie_router
+    base.mkdir(mode=0o700)
+    checkout = linked_worktree(base)
+    canonical, marker = checkout["canonical"], base / "ran"
+    settings = [("core.repositoryFormatVersion", "1")]
+    if vector == "uploadpack":
+        other = base / "promisor.git"
+        _run_git(base, "init", "--bare", "-q", str(other))
+        settings += [("extensions.partialClone", "lazy"), ("remote.lazy.url", str(other)), ("remote.lazy.promisor", "true"),
+                     ("remote.lazy.uploadpack", f"touch {marker}; git-upload-pack")]
+    else:
+        settings += [("remote.origin.url", "ssh://git@github.com/example/probe.git"), ("extensions.partialClone", "origin"),
+                     ("remote.origin.promisor", "true"), ("core.sshCommand", f"touch {marker}; false")]
+    for key, value in settings:
+        _run_git(canonical, "config", key, value)
+    (canonical / ".git/refs/remotes/origin/main").write_text("1" * 40 + "\n")  # an object the clone never fetched
+    gaie_router._verified_write_scope("upgrade", checkout["worktree"], [{"slug": "example/probe", "path": None}])
+    return marker.exists()
+
+
 def probe_router_workspace(base):
-    """True when the workspace check behind `route --workspace` runs a program the checkout configures
-    (fsmonitor, index hook), follows an inherited GIT_* variable, or the router launches Git itself."""
-    from . import gaie_router, workspace_policy
+    """True when `route --workspace` runs a program the checkout configures (fsmonitor, index hook), follows an
+    inherited GIT_* variable, or verifies nothing. Driven through the router's own path (_verified_write_scope),
+    so Git the router starts itself under any name is measured too (pr30-merge-quality F1)."""
+    from . import gaie_router
     if hasattr(gaie_router, "subprocess") or hasattr(gaie_router, "workspace"):
-        return True  # the router must leave every Git call to the reviewed validator
+        return True  # also refused by name: the router must leave every Git call to the reviewed validator
     base = pathlib.Path(base).resolve()
+    if any(promisor_program_runs(base / name, vector) for name, vector in (("lazy", "uploadpack"), ("ssh", "sshcommand"))):
+        return True
     checkout = linked_worktree(base)
     marker, trace = base / "ran", base / "trace"
     _run_git(checkout["canonical"], "config", "core.fsmonitor", f"touch {marker}; false")
@@ -591,15 +621,14 @@ def probe_router_workspace(base):
     inherited = os.environ.get("GIT_TRACE")
     os.environ["GIT_TRACE"] = str(trace)  # a Git child that inherits GIT_* writes its trace here
     try:
-        workspace_policy.validate_workspace(checkout["worktree"], intent="upgrade", expected_repository="example/probe")
-    except workspace_policy.WorkspacePolicyError:
-        return True  # the check stopped before `git status`, so it proved nothing
+        scope, _ = gaie_router._verified_write_scope("upgrade", checkout["worktree"],
+                                                     [{"slug": "example/probe", "path": None}])
     finally:
         if inherited is None:
             os.environ.pop("GIT_TRACE", None)
         else:
             os.environ["GIT_TRACE"] = inherited
-    return marker.exists() or trace.exists()
+    return scope is None or marker.exists() or trace.exists()  # no scope: the check stopped early and proved nothing
 
 
 def probe_injection(base):
@@ -659,12 +688,16 @@ FINDINGS = (
      "engineering_os/video_pipeline.py:_outside_repository", "private-state-permissions", ("open", "held"),
      probe_video_output_dir, "probe_video_output_dir",
      "fix: resolve and check before mkdir, create with mode 0o700 (owner: cinematic)"),
-    ("SEC-09", "low", "Router workspace probe ran git in a workspace without the hardening flags",
+    ("SEC-09", "low", "The workspace check behind `route --workspace` runs Git in a worktree an agent may have prepared: "
+     "it must never run a program the checkout's config names (fsmonitor, index hook, a partial clone's promisor "
+     "upload-pack or ssh command) or follow inherited GIT_* variables",
      "engineering_os/workspace_policy.py:_git", "git-untrusted-checkout", ("open", "fixed"), probe_router_workspace,
      "tests/test_security_enterprise.py::WorkspaceGitTests",
      "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or "
      "global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope "
-     "refuses configs with includes, URL rewrites, filters or core.hooksPath"),
+     "refuses configs with includes, URL rewrites, filters or core.hooksPath. Open while a promisor remote's "
+     "upload-pack or core.sshCommand still runs during a lazy fetch (pr30-isolation F1; fix: protocol.allow=never "
+     "and refuse extensions.*, remote.*.promisor/uploadpack, core.sshCommand)"),
     ("SEC-10", "low", "Frozen gaie_memory journal was appended without an owner, mode or hard-link check",
      "engineering_os/gaie_memory.py:_journal_add", "private-state-permissions", ("open", "fixed"), probe_legacy_journal,
      "tests/test_gaie_memory_journal.py",
