@@ -106,6 +106,8 @@
         "projects/aliases.json": ".engineering/gaie/aliases.json",
         "prompts/MASTER_BUILD.md": ".engineering/gaie/MASTER_BUILD.md",
         "prompts/MASTER_UPGRADE.md": ".engineering/gaie/MASTER_UPGRADE.md",
+        "engineering_os/master_docs.py": ".engineering/gaie/master_docs.py",
+        "governance/policies/master-prompts.json": ".engineering/gaie/master-prompts.json",
         "agents/gaie-verifier.md": ".claude/agents/gaie-verifier.md",
         "agents/gaie-specialist.md": ".claude/agents/gaie-specialist.md",
         "engineering_os/agent_team.py": ".engineering/gaie/agent_team.py",
