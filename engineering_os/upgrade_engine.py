@@ -317,24 +317,66 @@ def _load_spec(root, manifest):
     return rel, spec
 
 
+UNSETTLED = ("unparsed", "open-questions", "unsettled")
+
+
+def _exclusions(command, spec):
+    """Remove or exclude requests the command states, by the requirements parser's own clause rules.
+
+    A remove verb counts as a command at the start of a clause, after a coordinator or with و/ف
+    attached ("members can delete their own tasks" removes nothing); a negation ("without",
+    «بدون») counts wherever it appears. Returns the clause text from each such word.
+    """
+    try:
+        index, control = requirements._entries(requirements.load_knowledge(), spec)
+        sentences = requirements._analyse(command, index, control)
+    except (requirements.SpecError, OSError, KeyError, ValueError, TypeError):
+        return ["the command (its wording could not be analysed)"]  # fail closed: unknown wording is not "nothing requested"
+    out = []
+    for sentence in sentences:
+        words, hits = sentence["raw"], sentence["hits"]
+        coordinators = {h["pos"] for h in hits if h["cat"] == "signal:coordinators"}
+        starts = sorted({h["clause"][1] for h in hits})
+        for hit in hits:
+            start = hit["pos"]
+            commanding = hit["cat"] == "signal:remove" and (start == hit["clause"][1] or start - 1 in coordinators or words[start][:1] in "وف")
+            if commanding or hit["cat"] == "signal:negations":
+                end = min([s for s in starts if s > start] + [len(words), start + 12])
+                out.append(" ".join(words[start:end]))
+    return sorted(set(out))
+
+
 def requested_changes(command, spec):
     """What the command asks to change in the existing specification (requirements.parse with base= and diff_specs).
 
     ``status`` is ``refused-breaking`` when the change would remove an entity, field, relation,
     feature, role or locale or tighten a field (data or function loss); ``unmet`` lists the
     non-breaking structural additions, which the deterministic generators do not implement.
+    A request that is not settled is one of ``UNSETTLED``: ``unparsed`` (the change cannot be
+    applied to the specification), ``open-questions``, or ``unsettled`` (the command asks to
+    remove or exclude something the specification diff does not reflect, e.g. a locale). Its
+    ``unmet`` names what was asked; ``upgrade`` stops before copying anything.
     """
+    exclusions = _exclusions(command, spec)
+    unsettled = {"status": "unsettled", "exclusions": exclusions, "unmet": [f"remove or exclude: {text}" for text in exclusions],
+                 "detail": "the command asks to remove or exclude something the specification diff does not reflect; "
+                           "nothing is removed without an owner-settled specification change"}
     if spec is None:
-        return {"status": "no-specification", "unmet": [],
-                "detail": "no gaie-spec.json: requested changes cannot be derived; only audit findings drive the plan"}
+        return unsettled if exclusions else {"status": "no-specification", "unmet": [],
+                                             "detail": "no gaie-spec.json: requested changes cannot be derived; only audit findings drive the plan"}
     try:
         target = requirements.parse(command, base=spec)
     except requirements.SpecError as error:
-        return {"status": "unparsed", "errors": error.errors, "unmet": []}
+        return {"status": "unparsed", "errors": error.errors, "exclusions": exclusions,
+                "unmet": [f"the request as worded ({'; '.join(error.errors[:3])})"[:300]],
+                "detail": "the requested change cannot be applied to the specification; it is not settled"}
     if target["open_questions"]:
-        return {"status": "open-questions", "open_questions": [q["id"] for q in target["open_questions"]], "unmet": [],
+        return {"status": "open-questions", "open_questions": [q["id"] for q in target["open_questions"]], "exclusions": exclusions,
+                "unmet": [f"open question {q['id']}" for q in target["open_questions"]],
                 "detail": "the requested change is not settled; nothing structural is generated"}
     diff = requirements.diff_specs(spec, target)
+    if exclusions and not diff["breaking"] and not diff["summary"]["removed"]:
+        return unsettled
     unmet = [f"entity {name}" for name in diff["entities"]["added"]]
     unmet += [f"field {change['name']}.{field}" for change in diff["entities"]["changed"] for field in change["fields"]["added"]]
     unmet += [f"feature {fid}" for fid in diff["features"]["added"]] + [f"role {rid}" for rid in diff["roles"]["added"]]
@@ -2056,7 +2098,7 @@ class _Run:
             "patch-and-reverse-apply": patch_ok,
             "rollback-restores-original": rollback_ok,
             "not-blocked": self.blocked is None,
-            "requested-changes-met": not self.requested.get("unmet"),
+            "requested-changes-met": self.requested.get("status") in ("ok", "no-specification") and not self.requested.get("unmet"),
         }
         regressions = sorted(t for t in self.passing if not _passed(outcomes.get(t)))
         fixed = sorted(t for t, o in self.baseline_tests.items() if not _passed(o) and o != "skipped" and _passed(outcomes.get(t)))
@@ -2190,6 +2232,9 @@ def upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extr
           "Requested change refused: it would remove data or functions (" + ", ".join(
               f"{row['kind']} {row.get('entity', '')}{'.' + row['field'] if row.get('field') else ''}".strip()
               for row in requested.get("breaking", [])) + "); a breaking change needs an owner-designed migration and approval")
+    _need(route["mode"] == "audit" or requested["status"] not in UNSETTLED,
+          f"Requested change not settled ({requested['status']}: {'; '.join(requested['unmet'])[:400]}): {requested['detail']}. "
+          "Nothing was copied or changed; rephrase the command or settle the change with the owner first")
     run = _Run(root, resolved_workdir, route, manifest, spec_tests, spec_rel, spec, policy, now)
     run.route_command, run.target_spec, run.requested = command, spec, requested
     if run.audit_only:

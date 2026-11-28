@@ -26,7 +26,7 @@ verified rollback. It reuses the hub's engines instead of duplicating them.
 |---|---|---|
 | `upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extra_steps=None, environ=None)` | `workspace-write` (a new `workdir/upgrade-*` run directory); none in audit mode | The pipeline below; returns the report. |
 | `route_command(command, *, environ=None, workspace=None)` | none | Router decision plus the engine's refusals; `mode`, `scope`, `focus`, `areas`. |
-| `requested_changes(command, spec)` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions. |
+| `requested_changes(command, spec)` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions, or not settled (`UNSETTLED`): `unparsed`, `open-questions`, `unsettled` (a remove verb used as a command, or a negation, that the diff does not reflect, e.g. a locale). |
 | `data_manifest(path, columns=None, staging=None)` / `data_preserved(before, after_path, staging=None)` | none on the file (read-only, `immutable=1`); with `staging`, a private snapshot there | Per-table row count and SHA-256 over the original columns; problems list. A database with a `-wal`/`-journal` companion is read through `snapshot_database` in `staging`; without it (audit) only the main file is read, `complete` is false and `data_preserved` reports the data as unproven. |
 | `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory only | Consistent single-file copy: the file and its `-wal`/`-journal` are byte-copied into `staging` (SQLite never opens the source directory), opened there and copied with the sqlite3 backup API; `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
 | `classify_migration(sql)` / `split_sql(sql)` | none | Statement verdicts; raises `UpgradeError` on any statement that can lose or rewrite data. |
@@ -73,7 +73,9 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
    caller's `workdir`. Policy refusals:
    `network`, `deploy`, any `environment` other than `isolated-copy`, unknown fields.
    `workdir` must be outside the target and outside every Git repository. A requested change
-   that `diff_specs` marks breaking is refused here.
+   that `diff_specs` marks breaking is refused here, and so is one that is not settled
+   (`unparsed`, `open-questions`, `unsettled`, in Arabic and English): the run stops before
+   anything is copied and names what was asked.
 2. **BASELINE** — snapshot the target (SHA-256 per file), copy it to
    `workdir/upgrade-*/upgraded`, run the suite twice in disposable copies (disagreeing tests
    are `flaky` and excluded), record every passing test id, the logical manifest of every
@@ -194,7 +196,11 @@ and malformed steps are refused before anything is created.
 - The generators are a bounded catalogue. Input validation needs the declared dispatch
   convention and a spec; other frameworks get the audit and the plan, not code. Structural
   additions requested by the command (a new field, entity or feature) are reported as unmet,
-  never half-implemented; breaking changes are refused.
+  never half-implemented; breaking changes are refused, and so are requests the parser cannot
+  settle or a remove/exclude request it does not reflect (for example removing a locale). The
+  `requested-changes-met` check is true only for an `ok` request (or no specification) with
+  nothing unmet. A remove verb that is not a command ("members can delete their own tasks")
+  is not an exclusion.
 - Asset non-use is a static proof over internal references; external links to a served file
   cannot be ruled out (hence the backup); directory listings in code make it unprovable.
 - Data proofs cover SQLite files only; other stores are copied and hashed but not compared
