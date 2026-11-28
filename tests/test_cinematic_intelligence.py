@@ -95,3 +95,51 @@ class CinematicTests(unittest.TestCase):
     def test_symlink_receipt_or_source_refused(self):
         p = self.root / cinematic.CAMERA_SOURCE; p.unlink(); p.symlink_to(self.original / cinematic.CAMERA_SOURCE)
         with self.assertRaises(cinematic.CinematicError): self.report()
+
+    def copy_inventory_sources(self):
+        names = [cinematic.ENGINE_REGISTRY, cinematic.REFERENCE_DEFINITIONS, cinematic.COMPONENTS,
+                 *(str(p.relative_to(self.original)) for p in (self.original / cinematic.NATIVE_MOTIONS).glob('*/*.mjs'))]
+        for name in names:
+            destination = self.root / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes((self.original / name).read_bytes())
+
+    def test_motion_inventory_keeps_native_and_reference_counts_apart(self):
+        self.copy_inventory_sources()
+        value = cinematic.motion_inventory()
+        native = value['native_engine_motions']
+        self.assertEqual((native['count'], native['source_files'], native['source_bound_to_registry']), (34, 34, 34))
+        self.assertEqual(native['by_engine'], {'canvas2d': 5, 'composition': 1, 'dom': 1, 'svg': 1,
+                                               'webgl2-glsl': 23, 'webgl2-points': 2, 'webgpu-wgsl': 1})
+        self.assertEqual((native['gpu_api_motions'], native['cpu_motions']), (26, 8))
+        self.assertEqual(value['nextgen_camera_motions']['count'], 3)
+        self.assertEqual(value['native_total'], 37)
+        self.assertEqual(value['reference_canvas2d_motions']['count'], 400)
+        self.assertEqual(value['reference_canvas2d_motions']['by_tier'], {'advanced': 200, 'basic': 200})
+        self.assertEqual(value['native_3d_scene_engines'], [])
+        self.assertFalse(value['gpu_hardware_claimed'])
+        self.assertNotIn(437, [v for v in value.values() if isinstance(v, int)])
+
+    def test_motion_inventory_unbinds_changed_native_source(self):
+        self.copy_inventory_sources()
+        source = self.root / cinematic.NATIVE_MOTIONS / 'quantum/light-tunnel.mjs'
+        source.write_bytes(source.read_bytes() + b'\n')
+        self.assertEqual(cinematic.motion_inventory()['native_engine_motions']['source_bound_to_registry'], 33)
+
+    def test_motion_inventory_rejects_duplicates_overlap_and_symlinks(self):
+        self.copy_inventory_sources()
+        path = self.root / cinematic.ENGINE_REGISTRY
+        original = json.loads(path.read_text())
+        mutations = [lambda r: r['motions'].append(r['motions'][0]),
+                     lambda r: r['motions'][0].update(id='os-quantum-b01'),
+                     lambda r: r['motions'][0].update(engine='../gpu'),
+                     lambda r: r.update(motions=[])]
+        for mutate in mutations:
+            value = copy.deepcopy(original); mutate(value); path.write_text(json.dumps(value))
+            with self.assertRaises(cinematic.CinematicError):
+                cinematic.motion_inventory()
+        path.write_text(json.dumps(original))
+        definitions = self.root / cinematic.REFERENCE_DEFINITIONS
+        definitions.unlink(); definitions.symlink_to(self.original / cinematic.REFERENCE_DEFINITIONS)
+        with self.assertRaises(cinematic.CinematicError):
+            cinematic.motion_inventory()
