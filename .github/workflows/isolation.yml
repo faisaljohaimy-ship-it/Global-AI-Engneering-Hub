@@ -1,0 +1,60 @@
+name: Governor isolation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-tier:
+    name: Full sandbox tier with no skipped isolation test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+      - name: Allow unprivileged user namespaces on this ephemeral runner
+        run: |
+          set -euo pipefail
+          # Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor. The governor's full
+          # tier needs user, mount, pid and network namespaces for the unprivileged runner user.
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
+            sudo sysctl -w kernel.unprivileged_userns_clone=1
+          fi
+          unshare --user --map-root-user --mount --pid --fork --net -- true
+      - name: Require the full tier from the governor's own probe
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+
+          from engineering_os import governor
+
+          probe = governor.isolation_probe()
+          print(json.dumps(probe, sort_keys=True))
+          assert probe["tier"] == "full", "the full sandbox tier is required on this runner"
+          PY
+      - name: Run the isolation tests with every skip treated as a failure
+        env:
+          GAIE_REQUIRE_FULL_SANDBOX: "1"
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v tests.test_governor tests.test_workspace_policy tests.test_master_audit_permissions 2>&1 | tee "$RUNNER_TEMP/isolation-tests.log"
+          if grep -n ' \.\.\. skipped' "$RUNNER_TEMP/isolation-tests.log"; then
+            echo "::error::an isolation test was skipped; on this job a skip is a failure"
+            exit 1
+          fi
