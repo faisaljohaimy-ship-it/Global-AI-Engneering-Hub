@@ -281,7 +281,19 @@ def _audit_path(state_dir, create):
         raise GovernorDenied("audit-in-repository", "the audit log lives in a private state directory outside Git")
     if create:
         os.makedirs(directory, mode=0o700, exist_ok=True)
+        info = os.stat(directory)
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o022:
+            raise GovernorDenied("audit-failed", "the state directory is not the caller's or is writable by others")
     return os.path.join(directory, AUDIT_FILE)
+
+
+def _private_log(fd):
+    """The audit log must be a private regular file of the caller with one name (no hard link)."""
+    info = os.fstat(fd)
+    if not stat.S_ISREG(info.st_mode):
+        raise GovernorDenied("audit-failed", "the audit log is not a regular file")
+    if info.st_uid != os.getuid() or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077:
+        raise GovernorDenied("audit-failed", "the audit log is not a private file of the caller (owner, mode 0600, one link)")
 
 
 def _field(event, name, limit=200):
@@ -337,8 +349,7 @@ def audit(state_dir, event, *, now=None):
         raise GovernorDenied("audit-failed", os.strerror(exc.errno or 0)) from None
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
-        if not stat.S_ISREG(os.fstat(fd).st_mode):
-            raise GovernorDenied("audit-failed", "the audit log is not a regular file")
+        _private_log(fd)
         last = _last_record(fd)
         if last is not None:
             record["seq"], record["prev_sha256"] = last[0] + 1, last[1]
@@ -363,7 +374,13 @@ def verify_audit(state_dir):
     if os.path.islink(path):
         raise GovernorDenied("audit-tampered", "the audit log is a symlink")
     prev, count = None, 0
-    with open(path, "rb") as handle:
+    try:  # O_NOFOLLOW: a symlink swapped in after the check above is refused, not followed
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    except OSError as exc:
+        raise GovernorDenied("audit-tampered", os.strerror(exc.errno or 0)) from None
+    with os.fdopen(fd, "rb") as handle:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise GovernorDenied("audit-tampered", "the audit log is not a regular file")
         for number, raw in enumerate(handle, 1):
             try:
                 record = json.loads(raw)

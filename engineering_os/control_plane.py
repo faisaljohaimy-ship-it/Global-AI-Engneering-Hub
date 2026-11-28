@@ -16,7 +16,9 @@ or deployment call is made here. Standard library only. SPDX-License-Identifier:
 import copy
 import datetime
 import importlib.util
+import os
 import pathlib
+import stat
 import time
 
 from . import adapters, contracts
@@ -137,6 +139,10 @@ def _context(ctx):
         marker = ancestor / ".git"
         if marker.is_file() or (marker.is_dir() and (marker / "HEAD").exists()):
             raise ControlPlaneError("state directory must be outside every Git repository")
+    if state.exists():  # checked before any engine runs, not first by the ledger after it ran
+        info = state.stat()
+        if not state.is_dir() or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            raise ControlPlaneError("ctx['state_dir'] must be a private directory (owner only, mode 0700)")
     result = {**ctx, "state_dir": state}
     task = ctx.get("task_id")
     if task is not None and (not isinstance(task, str) or not SLUG.fullmatch(task)):
@@ -202,6 +208,18 @@ def _reject(gov, ctx, engine, action, grant, reason, request_sha256=None):
     raise ControlPlaneError(reason)
 
 
+def _refuse_secrets(gov, payload):
+    """`secrets:none` is enforced, not assumed: a credential-shaped payload never reaches an engine.
+    The governor's scanner raises GovernorDenied("secret-in-payload"); its message names rules only."""
+    check = getattr(gov, "check_payload", None)
+    if callable(check):
+        check(payload)
+        return
+    from scripts.security_scan import secret_findings
+    if secret_findings("payload.json", canonical(payload).decode("utf-8")):
+        raise ControlPlaneError("secret-in-payload: a credential-shaped value is refused")
+
+
 def _usage(ctx, engine, action, grant_id, side_effect, started, request_sha256, result_sha256, source_sha256, status):
     return {"schema_version": 1, "kind": "control-plane-invocation", "at": _now(), "engine": engine, "action": action,
             "status": status, "task_id": ctx.get("task_id"), "project": ctx["project"], "grant_id": grant_id,
@@ -250,6 +268,14 @@ def invoke(engine, action, payload, *, grant, ctx):
 
     # Authorization strictly before any engine work. Only GovernorDenied or an explicit allow.
     refusal = {"side_effect": spec["side_effect"], "request_sha256": request_sha256}
+    if "secrets:none" in spec["permissions"]:
+        try:
+            _refuse_secrets(gov, payload)
+        except gov.GovernorDenied as denial:
+            _audit_quietly(gov, ctx, "deny", engine, action, grant, reason=getattr(denial, "reason", denial), **refusal)
+            raise
+        except ControlPlaneError as error:
+            _reject(gov, ctx, engine, action, grant, str(error), request_sha256)
     try:
         decision = gov.check(copy.deepcopy(grant), engine, action, copy.deepcopy(spec), paths=paths,
                              approval_token=ctx.get("approval_token"), now=ctx.get("now"))
