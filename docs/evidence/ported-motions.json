@@ -69,6 +69,36 @@
     "hologram-interactive-rotation": "no stated purpose: a wireframe cube turns with the pointer and the timeline; no digital service is shown",
     "dashboard-data-orbit": "no stated purpose: metric dots circle on tilted ellipses with trails; the orbits carry no readable data or process"
    }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-scenes.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "dae3a5fb05a6f5262f5ed8c734d7aa36c4bc9c1a",
+   "from_blob": "ad6a970478d03089139f6b932c7444dff19aea4a",
+   "ids": [
+    "transitions-spatial-navigation",
+    "transitions-panel-assembly",
+    "transitions-shared-element",
+    "transitions-depth-replacement",
+    "transitions-view-transition",
+    "story-architecture-timeline",
+    "story-capability-reveal",
+    "story-workflow-transformation",
+    "story-kpi-storytelling",
+    "story-milestone-journey",
+    "story-achievement-sequence",
+    "story-roadmap-animation",
+    "story-evidence-presentation"
+   ],
+   "left_out": {
+    "transitions-mask-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/transitions/mask-reveal.mjs)",
+    "transitions-curtain-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/transitions/curtain-reveal.mjs)",
+    "transitions-fragment-transition": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/transitions/fragment-transition.mjs)",
+    "story-system-evolution": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/story/system-evolution.mjs)",
+    "story-transformation-journey": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/story/transformation-journey.mjs)",
+    "transitions-liquid-screen": "no stated purpose: a wave edge wipes a page into an empty frame; a wipe effect with no service step shown",
+    "transitions-perspective-portal": "no stated purpose: nested frames recede into a vanishing point; a tunnel effect with no service step shown"
+   }
   }
  ],
  "not_ported": {
