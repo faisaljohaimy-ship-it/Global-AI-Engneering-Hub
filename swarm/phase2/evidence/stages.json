@@ -10,9 +10,9 @@
   "phase2_output_tokens": 3000000
  },
  "figures": {
-  "input_tokens_counted": 63424929,
+  "input_tokens_counted": 64001673,
   "cap": 150000000,
-  "agents_started_in_phase_2": 405,
+  "agents_started_in_phase_2": 410,
   "projected_for_stage": null
  },
  "stages": [
@@ -1991,6 +1991,126 @@
    "per_verified_task_cost_units": 68614,
    "guard_enforced": false,
    "index_cross_check": null
+  },
+  {
+   "label": "l5l",
+   "actual_agents": 5,
+   "peak_concurrent_agents": 5,
+   "tasks": 5,
+   "verified_tasks": 5,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 25,
+   "hidden_tests_total": 25,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 2.0,
+   "agents_replying_done": 5,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 17.32,
+   "sum_of_agent_seconds": 79.87,
+   "effective_concurrency": 4.61,
+   "tasks_per_minute": 17.32,
+   "models": [
+    "sonnet"
+   ],
+   "agent_tokens": {
+    "input_uncached": 64,
+    "cache_write": 89837,
+    "cache_read": 486843,
+    "input_total": 576744,
+    "output": 4182,
+    "total": 580926
+   },
+   "cache_read_share": 0.8441,
+   "model_roundtrips": 32,
+   "tool_calls": 49,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 19443,
+   "per_verified_task": {
+    "input_total": 115349,
+    "output": 836,
+    "roundtrips": 6.4,
+    "agent_seconds": 15.97
+   },
+   "helper_calls": {},
+   "speedup_against_one_agent": 4.49,
+   "parallel_efficiency": 0.899,
+   "orchestrator_tokens": {
+    "input_uncached": 6,
+    "cache_write": 5084,
+    "cache_read": 1032134,
+    "input_total": 1037224,
+    "output": 1249,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.641,
+   "machine": {
+    "samples": 29,
+    "peak_load_1m": 0.43,
+    "least_memory_available_mb": 15221,
+    "peak_host_process_rss_mb": 510,
+    "host_process_cpu_seconds": 3.0
+   },
+   "kind": "task",
+   "size": "large",
+   "agent_type": "swarm-large",
+   "model": "sonnet",
+   "effort": "medium",
+   "mode": "lean",
+   "delivery": "id",
+   "registered_agents": 5,
+   "started": "2026-11-28T04:12:31.087864Z",
+   "finished": "2026-11-28T04:12:59.953603Z",
+   "first_request_context": {
+    "median": 5395,
+    "least": 5395,
+    "most": 5395
+   },
+   "first_request_read_from_cache": 0.5642,
+   "cache_written": {
+    "five_minutes": 89837,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 181955,
+   "swk_calls": 41,
+   "refused_calls": 0,
+   "foreign_calls": 3,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-large"
+   ],
+   "replies_per_agent": {
+    "median": 6,
+    "most": 7
+   },
+   "ownership": {
+    "submitted": 5,
+    "approved": 5,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 406,
+     "blocked": 2
+    },
+    "revision": 1632
+   },
+   "not_verified": [],
+   "worker_command": {
+    "hand_ins": 0,
+    "calls": 48,
+    "characters_printed": 19139,
+    "headroom_views": 5
+   },
+   "per_verified_task_cost_units": 36391,
+   "guard_enforced": false,
+   "index_cross_check": {
+    "tool": "serena",
+    "answered": true,
+    "callers_in_the_index": 2,
+    "of_them_named_by_the_language_server": 2,
+    "seconds": 5.0
+   }
   }
  ]
 }
