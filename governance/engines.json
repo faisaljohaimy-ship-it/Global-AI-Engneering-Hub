@@ -323,7 +323,7 @@
         "permissions": [
           "secrets:none"
         ],
-        "summary": "Plan the factory stage graph and artifact/check contracts for an upgrade; no code is generated in this revision."
+        "summary": "Plan the factory stage graph and artifact/check contracts for an upgrade; this action generates no code (upgrade does)."
       },
       "evaluate": {
         "side_effect": "none",
@@ -332,6 +332,25 @@
           "secrets:none"
         ],
         "summary": "Revalidate supplied stage receipts against artifact bytes under artifact_root; artifacts are never executed."
+      },
+      "audit": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Read-only audit of an existing system (route, inventory, detectors, upgrade plan) for an audit command; writes nothing, not even workdir."
+      },
+      "upgrade": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Upgrade an existing system in an isolated copy under workdir with per-step receipts, regression proof, patch and rollback; the target is never written and nothing is deployed."
       }
     },
     "supersedes": []
@@ -739,7 +758,7 @@
         "permissions": [
           "secrets:none"
         ],
-        "summary": "Plan the factory stage graph and artifact/check contracts for a new system; no code is generated in this revision."
+        "summary": "Plan the factory stage graph and artifact/check contracts for a new system; this action generates no code (build does)."
       },
       "evaluate": {
         "side_effect": "none",
@@ -748,6 +767,41 @@
           "secrets:none"
         ],
         "summary": "Revalidate supplied stage receipts against artifact bytes under artifact_root; artifacts are never executed."
+      },
+      "plan-app": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Validate a gaie.spec/1 and describe the application, tests and factory stages without writing."
+      },
+      "build": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "read:registry",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Generate, locally commit, test and evidence an independent application in out_dir, a new direct child of the explicit workspace (outside the hub and every Git tree); never pushes."
+      },
+      "evaluate-app": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Re-validate a built application's factory receipts against its bytes; nothing is executed."
+      },
+      "request-repository": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "write:workspace",
+          "secrets:none"
+        ],
+        "summary": "Write .gaie/repository-request.json in a built application for the owner; never contacts GitHub."
       }
     },
     "supersedes": [
@@ -779,6 +833,24 @@
           "secrets:none"
         ],
         "summary": "Check baseline, candidate and rollback copies in a disposable temporary workspace with fixed declarative checks; supplied code is never executed."
+      },
+      "detect": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Static defect detectors over a target directory; target code is never executed (runtime detectors are reported skipped)."
+      },
+      "heal": {
+        "side_effect": "workspace-write",
+        "permissions": [
+          "read:repo",
+          "write:workspace",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Run the bounded self-healing loop on an isolated copy under workdir (target tests in child processes, Python-level guard, not an OS sandbox); the target is never written."
       }
     },
     "supersedes": [

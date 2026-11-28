@@ -104,6 +104,13 @@ CANONICAL_PATH_FIELDS = {
     ("orchestrator", "worktree-plan"): ("repo", "base_dir"),
     ("cinematic-production", "render"): ("out_dir", "voiceover_dir", "music_file"),
     ("cinematic-production", "qa"): ("path",),
+    ("master-build", "build"): ("out_dir", "workspace"),
+    ("master-build", "evaluate-app"): ("app_dir",),
+    ("master-build", "request-repository"): ("app_dir",),
+    ("master-upgrade", "audit"): ("target", "workdir"),
+    ("master-upgrade", "upgrade"): ("target", "workdir"),
+    ("self-healing", "detect"): ("target",),
+    ("self-healing", "heal"): ("target", "workdir"),
 }
 PATH_FIELDS.update(CANONICAL_PATH_FIELDS)
 # Actions that always read the trusted Hub checkout: the grant must cover it.
@@ -261,7 +268,8 @@ def _route_spec(intent):
     return {"intent": intent, "engine": engine["engine"], "skill": engine["skill"], "prompt": engine.get("prompt"),
             "scope": engine.get("scope"), "write": bool(engine["write"]), "workstreams": rules["workstreams"][intent],
             "hub_commands": rules["hub_commands"][intent], "gates": gates, "source_sha256": files,
-            "execution": "instructions for an agent host; this engine plans and verifies, it does not generate code here",
+            "execution": ("instructions for an agent host; this spec action plans and generates nothing (code is generated only "
+                          "by the separate build or upgrade action under its own workspace-write grant)"),
             "evidence_boundary": "A route specification is a plan, not execution evidence."}
 
 
@@ -305,10 +313,45 @@ def _factory(engine, action, payload):
     return _unknown(engine, action)
 
 
+BUILD_ACTIONS = ("plan-app", "build", "evaluate-app", "request-repository")  # build_engine.publish is never registered
+
+
+def _app_directory(value):
+    """An application directory built by master-build: canonical, with its .gaie metadata not linked elsewhere."""
+    from . import build_engine
+    app = pathlib.Path(_directory(value, "app_dir"))
+    for relative in (".gaie", build_engine.REQUEST_FILE, ".gaie/spec.json", build_engine.FACTORY_DIR):
+        if (app / relative).is_symlink():
+            raise AdapterError(f"app_dir: {relative} must not be a symbolic link")
+    return app
+
+
+def _build_engine(action, payload, ctx):
+    """The real generator (engineering_os.build_engine); the workspace is always explicit and path-checked."""
+    from . import build_engine
+    if action == "plan-app":
+        _fields(payload, ("spec",), ("allow_open_questions",))
+        return build_engine.plan(payload["spec"], allow_open_questions=_flag(payload, "allow_open_questions", False))
+    if action == "build":
+        _fields(payload, ("spec", "out_dir", "workspace", "hub_revision"), ("now", "verify", "e2e"))
+        return build_engine.build(payload["spec"], out_dir=_location(payload["out_dir"], "out_dir"),
+                                  hub_revision=payload["hub_revision"], now=payload.get("now"),
+                                  workspace=pathlib.Path(_directory(payload["workspace"], "workspace")),
+                                  environ=ctx.get("environ"), verify=_flag(payload, "verify", True),
+                                  e2e=_flag(payload, "e2e", True))
+    if action == "evaluate-app":
+        _fields(payload, ("app_dir",))
+        return build_engine.evaluate(_app_directory(payload["app_dir"]))
+    _fields(payload, ("app_dir",))  # request-repository: writes the owner's request file only; never contacts GitHub
+    return build_engine.request_repository(_app_directory(payload["app_dir"]))
+
+
 def master_build(action, payload, ctx):
     if action == "spec":
         _fields(payload)
         return _route_spec("build")
+    if action in BUILD_ACTIONS:
+        return _build_engine(action, payload, ctx)
     return _factory("master-build", action, payload)
 
 
@@ -322,10 +365,17 @@ def master_upgrade(action, payload, ctx):
         if scope not in UPGRADE_SCOPES:
             raise AdapterError(f"scope must be one of {sorted(UPGRADE_SCOPES)}")
         return _route_spec(UPGRADE_SCOPES[scope])
+    if action in ("audit", "upgrade"):
+        # The real engine (engineering_os.upgrade_engine): audit reads only and accepts only an audit command;
+        # upgrade works in an isolated copy under workdir and never writes the target.
+        from . import upgrade_engine
+        _fields(payload, ("target", "command", "workdir"), ("tests", "policy"))
+        located = {"target": _directory(payload["target"], "target"), "workdir": _location(payload["workdir"], "workdir")}
+        return upgrade_engine.engine(action, {**payload, **located}, {"environ": ctx.get("environ")})
     return _factory("master-upgrade", action, payload)
 
 
-def _factory_health(intent, prompt):
+def _factory_health(intent, prompt, generator):
     def check():
         from . import factory
         spec = _route_spec(intent)
@@ -334,17 +384,22 @@ def _factory_health(intent, prompt):
         plan = factory.plan_factory({"schema_version": 1, "project": "health-probe", "source_revision": "0" * 40,
                                      "requirements": [{"id": "probe", "summary": "Health probe.", "acceptance": ["unit"]}],
                                      "targets": ["api"]})
+        probe = generator()  # side-effect free self check of the generator module
+        if not probe["ok"]:
+            raise AdapterError(f"generator unhealthy: {probe['detail']}")
         return (f"{spec['engine']} route and {spec['skill']} skill present; factory plan of {len(plan['stages'])} stages; "
-                "code generators are not part of this revision")
+                f"generator: {probe['detail']}")
     return _healthy(check)
 
 
 def master_build_health():
-    return _factory_health("build", "prompts/MASTER_BUILD.md")
+    from . import build_engine
+    return _factory_health("build", "prompts/MASTER_BUILD.md", build_engine.health)
 
 
 def master_upgrade_health():
-    return _factory_health("upgrade", "prompts/MASTER_UPGRADE.md")
+    from . import upgrade_engine
+    return _factory_health("upgrade", "prompts/MASTER_UPGRADE.md", upgrade_engine.health)
 
 
 # ---------------------------------------------------------------- L12 master-audit
@@ -536,21 +591,41 @@ def memory_health():
 
 # ---------------------------------------------------------------- L17 self-healing
 
+_NO_SANDBOX = object()  # detectors.run_all with runtime=False never uses (or creates) a sandbox
+
+
 def self_healing(action, payload, ctx):
     from . import healing
     if action == "analyze":
         return healing.analyze(payload)
     if action == "verify-repair":
         return healing.verify_repair(payload)
+    if action == "detect":
+        from . import detectors
+        _fields(payload, ("target",), ("tests_dir", "only"))
+        tests_dir = payload.get("tests_dir")
+        if tests_dir is not None:
+            _string(tests_dir, "tests_dir", 200)
+        only = payload.get("only")
+        if only is not None and (not isinstance(only, list) or not all(isinstance(name, str) for name in only)):
+            raise AdapterError("only: list of detector names")
+        # Static detectors only: target code is never executed and no external decoder is started.
+        return detectors.run_all(_directory(payload["target"], "target"), tests_dir=tests_dir, runtime=False,
+                                 sandbox=_NO_SANDBOX, ffprobe=None, only=only)
+    if action == "heal":
+        _fields(payload, ("target", "workdir", "tests"), ("policy",))
+        return healing.heal(_directory(payload["target"], "target"), workdir=_location(payload["workdir"], "workdir"),
+                            tests=payload["tests"], policy=payload.get("policy"), ffprobe=None)
     return _unknown("self-healing", action)
 
 
 def self_healing_health():
     def check():
-        from . import healing
-        if healing.VERSION != 1 or not callable(healing.verify_repair):
+        from . import detectors, healing
+        if healing.VERSION != 1 or not all(callable(f) for f in (healing.verify_repair, healing.heal, detectors.run_all)):
             raise AdapterError("healing API changed")
-        return "repair analysis and disposable-copy verification importable; no candidate code is executed"
+        return ("repair analysis, disposable-copy verification, static detectors and the isolated-copy heal loop importable; "
+                "heal runs target tests in child processes (Python-level guard, not an OS sandbox)")
     return _healthy(check)
 
 

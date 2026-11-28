@@ -27,7 +27,8 @@ NOW = "2026-11-28T06:36:23Z"
 GOVERNOR = cp.governor is not None
 NEW_ENGINES = {"orchestrator": "L03", "security-audit": "L09", "requirements": "L15", "cinematic-production": "L18"}
 # Actions added to engines that existed before wave 2, by the same integration.
-NEW_ACTIONS = {}
+NEW_ACTIONS = {"master-build": ("plan-app", "build", "evaluate-app", "request-repository"),
+               "master-upgrade": ("audit", "upgrade"), "self-healing": ("detect", "heal")}
 HAVE_MEDIA_TOOLS = bool(shutil.which("ffmpeg") and shutil.which("ffprobe") and shutil.which("node"))
 STORYBOARD = {"schema": "gaie.storyboard/1", "id": "registry-clip", "title": {"en": "Registry clip"}, "languages": ["en"],
               "format": {"width": 320, "height": 180, "fps": 24},
@@ -35,6 +36,12 @@ STORYBOARD = {"schema": "gaie.storyboard/1", "id": "registry-clip", "title": {"e
               "scenes": [{"id": "one", "duration_ms": 2000, "motion": {"source": "reference", "id": "os-networks-b01"},
                           "text": {"en": "It works."}}]}
 SCENARIO_H = ROOT / "docs/evidence/gaie-20-layers/scenario-h.json"
+CALC = {  # an existing system with one defect (add subtracts) and its own unittest suite
+    "calc.py": '"""Tiny calculator (synthetic)."""\n\n\ndef add(a, b):\n    return a - b\n\n\ndef double(x):\n    return x * 2\n',
+    "tests/test_calc.py": ("import unittest\n\nimport calc\n\n\nclass CalcTests(unittest.TestCase):\n"
+                           "    def test_add(self):\n        self.assertEqual(calc.add(2, 3), 5)\n\n"
+                           "    def test_double(self):\n        self.assertEqual(calc.double(4), 8)\n"),
+}
 
 
 def registered():
@@ -68,7 +75,17 @@ class _Governed(unittest.TestCase):
         self.state = self.base / "state"
         self.work = self.base / "work"
         self.work.mkdir(mode=0o700)
-        self.ctx = {"state_dir": str(self.state)}
+        self.ctx = {"state_dir": str(self.state), "environ": {"GAIE_HOME": str(self.base / "home")}}
+
+    def calc(self):
+        target = self.work / "calc"
+        for relative, text in CALC.items():
+            (target / relative).parent.mkdir(parents=True, exist_ok=True)
+            (target / relative).write_text(text, encoding="utf-8")
+        return target
+
+    def tree(self, root):
+        return {p.relative_to(root).as_posix(): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
 
     def ledger(self):
         path = self.state / "economics" / "ledger.jsonl"
@@ -331,6 +348,73 @@ class CinematicProductionTests(_Governed):
             raise
         self.assertIn("webgl2_executed", probe["browser"])
         self.assertIs(probe["voiceover"]["paid_or_network_tts_used"], False)
+
+
+class BuildEngineTests(_Governed):
+    def test_plan_build_evaluate_and_repository_request_in_a_granted_workspace(self):
+        from tests.test_build_engine import scenario_a_spec, main_revision
+        planned = self.invoke("master-build", "plan-app", {"spec": scenario_a_spec()})
+        self.assertEqual((planned["project"], planned["ready"]), ("project-management", True))
+        workspace = self.work / "workspace"
+        workspace.mkdir()
+        out_dir = workspace / "project-management"
+        built = self.invoke("master-build", "build", {"spec": scenario_a_spec(), "out_dir": str(out_dir),
+                                                      "workspace": str(workspace), "hub_revision": main_revision(),
+                                                      "now": NOW, "verify": False}, paths=[self.work])
+        self.assertEqual(built["out_dir"], str(out_dir))
+        self.assertRegex(built["source_commit"], "^[0-9a-f]{40}$")
+        self.assertEqual((built["untracked_after_build"], built["deployment_authorized"]), ([], False))
+        self.assertTrue(all(status == "passed" for status in built["static_checks"].values()), built["static_checks"])
+        self.assertEqual(built["tests"]["python"]["status"], "not-run")   # verify=False: generated suites not executed
+        evaluated = self.invoke("master-build", "evaluate-app", {"app_dir": str(out_dir)}, paths=[self.work])
+        self.assertEqual(evaluated["verified_count"], built["factory"]["verified_count"])
+        request = self.invoke("master-build", "request-repository", {"app_dir": str(out_dir)}, paths=[self.work])
+        self.assertEqual((request["status"], request["visibility"], request["network_calls_made"]),
+                         ("awaiting-approval", "private", 0))
+        self.assertEqual(sorted(p.name for p in workspace.iterdir()), ["project-management"])
+
+    def test_request_repository_refuses_a_linked_metadata_directory(self):
+        app = self.work / "app"
+        app.mkdir()
+        elsewhere = self.base / "elsewhere"
+        elsewhere.mkdir()
+        (app / ".gaie").symlink_to(elsewhere, target_is_directory=True)
+        with self.assertRaisesRegex(cp.EngineFailure, "symbolic link"):
+            cp.invoke("master-build", "request-repository", {"app_dir": str(app)}, ctx=self.ctx,
+                      grant=grant({"master-build": ["request-repository"]}, max_side_effect="workspace-write", paths=[self.work]))
+        self.assertEqual(list(elsewhere.iterdir()), [])
+
+
+class UpgradeAndHealingTests(_Governed):
+    def test_audit_reads_only_and_upgrade_works_in_an_isolated_copy(self):
+        target = self.calc()
+        before = self.tree(target)
+        audited = self.invoke("master-upgrade", "audit", {"target": str(target), "command": "Audit the calculator system",
+                                                          "workdir": str(self.work / "audit-run")}, paths=[self.work])
+        self.assertEqual((audited["mode"], audited["status"], audited["changes_made"]), ("audit", "audited", False))
+        self.assertFalse((self.work / "audit-run").exists())
+        with self.assertRaises(cp.EngineFailure):  # the audit action accepts only a read-only command
+            cp.invoke("master-upgrade", "audit", {"target": str(target), "command": "Repair the calculator system",
+                                                  "workdir": str(self.work / "audit-run")}, ctx=self.ctx,
+                      grant=grant({"master-upgrade": ["audit"]}, paths=[self.work]))
+        upgraded = self.invoke("master-upgrade", "upgrade", {"target": str(target), "command": "Repair the calculator system",
+                                                             "workdir": str(self.work / "upgrade-run")}, paths=[self.work])
+        self.assertEqual((upgraded["status"], upgraded["applied"]), ("upgraded", ["code-repair-defects", "docs-upgrade-notes"]))
+        self.assertIn(self.work / "upgrade-run", pathlib.Path(upgraded["upgraded_copy"]).parents)
+        self.assertEqual(self.tree(target), before)
+
+    def test_detect_is_static_and_heal_repairs_an_isolated_copy(self):
+        target = self.calc()
+        before = self.tree(target)
+        found = self.invoke("self-healing", "detect", {"target": str(target)}, paths=[self.work])
+        self.assertIs(found["runtime_executed"], False)
+        skipped = {row["detector"] for row in found["detectors"] if row["status"] == "skipped"}
+        self.assertTrue({"broken-apis", "memory", "performance"} <= skipped)
+        healed = self.invoke("self-healing", "heal", {"target": str(target), "workdir": str(self.work / "heal-run"),
+                                                      "tests": {"start": "tests", "pattern": "test*.py"}}, paths=[self.work])
+        self.assertEqual(healed["status"], "repaired")
+        self.assertIn(self.work / "heal-run", pathlib.Path(healed["isolated_copy"]).parents)
+        self.assertEqual(self.tree(target), before)
 
 
 class CoverageTests(unittest.TestCase):
