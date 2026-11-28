@@ -177,9 +177,14 @@ def _grant_id(grant):
 
 
 def _audit(gov, ctx, event, engine, action, grant, *, reason, side_effect=None, request_sha256=None):
-    row = {"at": _now(), "event": event, "engine": _safe_id(engine), "action": _safe_id(action),
+    # The governor's audit log records security decisions (allow | deny). A rejected request is a deny;
+    # a run that errored after an allow keeps decision "allow" and says so in its reason.
+    decision = "allow" if event in ("allow", "error") else "deny"
+    text = f"run-error: {reason}" if event == "error" else str(reason)
+    row = {"at": _now(), "event": event, "decision": decision, "engine": _safe_id(engine), "action": _safe_id(action),
            "grant_id": _grant_id(grant), "side_effect": side_effect, "request_sha256": request_sha256,
-           "task_id": ctx.get("task_id"), "reason": str(reason)[:300], "source": "control-plane"}
+           "payload_sha256": request_sha256, "task_id": ctx.get("task_id"), "reason": text[:120],
+           "source": "control-plane"}
     gov.audit(str(ctx["state_dir"]), row)
 
 
