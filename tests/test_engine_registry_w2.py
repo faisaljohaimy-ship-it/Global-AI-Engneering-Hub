@@ -499,6 +499,83 @@ class ReasoningMemoryEconomicsTests(_Governed):
         self.assertTrue(self.invoke("economics", "measured-baseline", {}))
 
 
+# Default grants that gained wave-2 actions (all none-class; no role's ceiling changed).
+ROLE_ADDITIONS = {
+    "adaptive-agent-orchestration-engineer": {"orchestrator": ["plan", "schedule", "review-assignment", "worktree-plan",
+                                                               "scenario-h"], "economics": ["recommend-concurrency"]},
+    "master-build-engine-engineer": {"master-build": ["plan-app", "evaluate-app"],
+                                     "requirements": ["parse", "refine", "validate", "acceptance"]},
+    "master-upgrade-engine-engineer": {"master-upgrade": ["audit"], "requirements": ["validate", "diff"]},
+    "nl-router-project-registry-engineer": {"requirements": ["parse", "refine", "validate", "diff", "acceptance", "packs"]},
+    "engineering-reasoning-engineer": {"reasoning": list(NEW_ACTIONS["reasoning"])},
+    "persistent-memory-engineer": {"memory": ["retrieve", "neighbours", "path", "adr-get", "why", "solutions",
+                                              "failure-recall", "next-steps", "brief", "where", "evidence-status"]},
+    "knowledge-intelligence-integration-engineer": {"memory": ["retrieve", "why", "brief", "where"]},
+    "context-token-economics-engineer": {"economics": [a for a in NEW_ACTIONS["economics"]]},
+    "cinematic-production-engineer": {"cinematic-production": ["inventory", "validate", "direct", "subtitles"]},
+    "gpu-3d-digital-twin-engineer": {"cinematic-production": ["inventory"]},
+    "testing-self-healing-engineer": {"self-healing": ["detect"]},
+    "enterprise-security-privacy-engineer": {"security-audit": ["scan", "anchor", "verify-anchor"]},
+    "agent-isolation-security-engineer": {"security-audit": ["anchor", "verify-anchor"]},
+    "independent-assurance-engineer": {"reasoning": ["validate-decision"], "orchestrator": ["review-assignment"]},
+}
+
+
+@unittest.skipUnless(GOVERNOR, "engineering_os/governor.py is not installed")
+class RoleGrantTests(unittest.TestCase):
+    def setUp(self):
+        from engineering_os import layers
+        self.layers = layers
+        self.roles = {role["id"]: role for role in layers.load_roles()["roles"]}
+
+    def test_role_defaults_validate_with_least_privilege_and_own_the_orchestrator_files(self):
+        records = registered()
+        for rid, engines in ROLE_ADDITIONS.items():
+            template = self.roles[rid]["default_grant"]
+            for engine, actions in engines.items():
+                with self.subTest(role=rid, engine=engine):
+                    self.assertLessEqual(set(actions), set(template["engines"][engine]))
+                    self.assertTrue(all(records[engine]["actions"][a]["side_effect"] == "none" for a in actions))
+        owns = self.roles["adaptive-agent-orchestration-engineer"]["owns"]
+        for path in ("engineering_os/orchestrator.py", "tests/test_orchestrator.py",
+                     "docs/specs/gaie-20-layers/ORCHESTRATION.md", "docs/evidence/gaie-20-layers/scenario-h.json"):
+            self.assertIn(path, owns)
+            self.assertTrue((ROOT / path).is_file(), path)
+
+    def test_instantiated_role_grants_allow_their_new_actions_and_deny_the_rest(self):
+        records = registered()
+        governor = cp.governor
+        for rid, engines in ROLE_ADDITIONS.items():
+            grant_ = self.layers.instantiate_grant(self.roles[rid], "g-test-w2-role", "2099-01-01T00:00:00Z")
+            for engine, actions in engines.items():
+                for action in actions:
+                    with self.subTest(role=rid, engine=engine, action=action):
+                        decision = governor.check(grant_, engine, action, records[engine]["actions"][action])
+                        self.assertTrue(decision["allowed"])
+            refused = [(e, a) for e in NEW_ENGINES for a in records[e]["actions"]
+                       if a not in grant_["engines"].get(e, [])]
+            engine, action = refused[0]
+            with self.subTest(role=rid, refused=(engine, action)), self.assertRaises(governor.GovernorDenied):
+                governor.check(grant_, engine, action, records[engine]["actions"][action])
+
+    def test_hub_invoke_with_a_role_grant_runs_the_granted_action_and_exits_3_otherwise(self):
+        with tempfile.TemporaryDirectory(prefix="gaie-w2-", dir="/tmp") as base:
+            os.chmod(base, 0o700)
+            path = pathlib.Path(base) / "grant.json"
+            role = self.roles["adaptive-agent-orchestration-engineer"]
+            path.write_text(json.dumps(self.layers.instantiate_grant(role, "g-test-w2-role", "2099-01-01T00:00:00Z")))
+            state = str(pathlib.Path(base) / "state")
+            code, text = RequirementsTests.run_hub(None, "invoke", "orchestrator", "plan", "--payload",
+                                                   json.dumps({"goal": "w2-role-goal", "now": NOW, "max_agents": 4}),
+                                                   "--grant", str(path), "--state", state)
+            self.assertEqual(code, 0, text[:300])
+            contracts.validate_receipt(json.loads(text)["receipt"])
+            code, text = RequirementsTests.run_hub(None, "invoke", "requirements", "parse", "--payload",
+                                                   json.dumps({"command": "Build a system"}), "--grant", str(path),
+                                                   "--state", state)
+            self.assertEqual((code, json.loads(text)["status"]), (3, "denied"))
+
+
 class CoverageTests(unittest.TestCase):
     """Order-independent: every registered wave-2 action is named in an invoke call of this module."""
 

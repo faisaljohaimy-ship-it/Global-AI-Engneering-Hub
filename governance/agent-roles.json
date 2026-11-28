@@ -170,7 +170,19 @@
           "reasoning": [
             "plan",
             "review",
-            "root-causes"
+            "root-causes",
+            "strategy",
+            "decompose",
+            "plan-goal",
+            "constraints",
+            "dependencies",
+            "rca",
+            "counterfactual",
+            "uncertainty",
+            "perspectives",
+            "validate-decision",
+            "trade-off",
+            "route-model"
           ],
           "master-router": [
             "route"
@@ -204,7 +216,18 @@
             "graph",
             "put",
             "checkpoint",
-            "restore"
+            "restore",
+            "retrieve",
+            "neighbours",
+            "path",
+            "adr-get",
+            "why",
+            "solutions",
+            "failure-recall",
+            "next-steps",
+            "brief",
+            "where",
+            "evidence-status"
           ]
         },
         "paths": [],
@@ -233,7 +256,11 @@
         "engines": {
           "memory": [
             "search",
-            "graph"
+            "graph",
+            "retrieve",
+            "why",
+            "brief",
+            "where"
           ],
           "context-intelligence": [
             "view",
@@ -272,10 +299,18 @@
           "master-build": [
             "spec",
             "plan",
-            "evaluate"
+            "evaluate",
+            "plan-app",
+            "evaluate-app"
           ],
           "master-router": [
             "route"
+          ],
+          "requirements": [
+            "parse",
+            "refine",
+            "validate",
+            "acceptance"
           ]
         },
         "paths": [],
@@ -306,10 +341,15 @@
           "master-upgrade": [
             "spec",
             "plan",
-            "evaluate"
+            "evaluate",
+            "audit"
           ],
           "master-audit": [
             "inventory"
+          ],
+          "requirements": [
+            "validate",
+            "diff"
           ]
         },
         "paths": [],
@@ -342,6 +382,14 @@
           "master-router": [
             "route",
             "projects"
+          ],
+          "requirements": [
+            "parse",
+            "refine",
+            "validate",
+            "diff",
+            "acceptance",
+            "packs"
           ]
         },
         "paths": [],
@@ -363,7 +411,11 @@
         "engineering_os/orchestration.py",
         "governance/policies/orchestration.json",
         "tests/test_os_orchestration.py",
-        "swarm/scheduler.py"
+        "swarm/scheduler.py",
+        "engineering_os/orchestrator.py",
+        "tests/test_orchestrator.py",
+        "docs/specs/gaie-20-layers/ORCHESTRATION.md",
+        "docs/evidence/gaie-20-layers/scenario-h.json"
       ],
       "reviewer": false,
       "default_grant": {
@@ -374,6 +426,16 @@
           ],
           "adaptive-scheduler": [
             "next-wave"
+          ],
+          "orchestrator": [
+            "plan",
+            "schedule",
+            "review-assignment",
+            "worktree-plan",
+            "scenario-h"
+          ],
+          "economics": [
+            "recommend-concurrency"
           ]
         },
         "paths": [],
@@ -405,7 +467,15 @@
           "economics": [
             "summarize",
             "recommend-model",
-            "ledger"
+            "ledger",
+            "assess",
+            "recommend-concurrency",
+            "estimate-scope",
+            "estimate-infrastructure",
+            "estimate-maintenance",
+            "estimate-rework",
+            "context-footprint",
+            "measured-baseline"
           ],
           "context-intelligence": [
             "status",
@@ -443,6 +513,12 @@
           ],
           "motion-sdk": [
             "catalog"
+          ],
+          "cinematic-production": [
+            "inventory",
+            "validate",
+            "direct",
+            "subtitles"
           ]
         },
         "paths": [],
@@ -504,6 +580,9 @@
           ],
           "master-cinematic": [
             "audit"
+          ],
+          "cinematic-production": [
+            "inventory"
           ]
         },
         "paths": [],
@@ -535,6 +614,10 @@
           "security-governor": [
             "check",
             "validate-grant"
+          ],
+          "security-audit": [
+            "anchor",
+            "verify-anchor"
           ]
         },
         "paths": [],
@@ -567,6 +650,11 @@
           ],
           "quality-assurance": [
             "contracts"
+          ],
+          "security-audit": [
+            "scan",
+            "anchor",
+            "verify-anchor"
           ]
         },
         "paths": [],
@@ -594,7 +682,8 @@
         "engines": {
           "self-healing": [
             "analyze",
-            "verify-repair"
+            "verify-repair",
+            "detect"
           ],
           "quality-assurance": [
             "run-tests"
@@ -635,7 +724,11 @@
             "contracts"
           ],
           "reasoning": [
-            "review"
+            "review",
+            "validate-decision"
+          ],
+          "orchestrator": [
+            "review-assignment"
           ]
         },
         "paths": [],
