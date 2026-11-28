@@ -78,6 +78,8 @@ def problems(root=ROOT):
                 out.append(f"{identifier}: left out and ported")
             if reason.startswith("superseded") and identifier not in native:
                 out.append(f"{identifier}: said to be superseded by a native motion that does not exist")
+            if reason.startswith("withdrawn") and identifier not in withdrawn:
+                out.append(f"{identifier}: said to be withdrawn but is not in withdrawn_ids")
         proof = receipt["groups"].get(source)
         if proof is None:
             out.append(f"{source}: no browser proof")
@@ -102,9 +104,13 @@ def problems(root=ROOT):
                 row = cases.get((identifier, viewport["width"]))
                 if row is None or row["viewport"] != viewport or set(row["checks"]) != CHECKS or not all(v is True for v in row["checks"].values()):
                     out.append(f"{identifier}: no passing proof at {viewport['width']}x{viewport['height']}")
-    for identifier in manifest["not_ported"]:
+    for identifier, reason in manifest["not_ported"].items():
         if identifier in seen:
             out.append(f"{identifier}: listed as not ported and ported")
+        if reason.startswith("superseded") and identifier not in native:
+            out.append(f"{identifier}: said to be superseded by a native motion that does not exist")
+        if reason.startswith("withdrawn") and identifier not in withdrawn:
+            out.append(f"{identifier}: said to be withdrawn but is not in withdrawn_ids")
     for source in set(receipt["groups"]) - {group["source"] for group in manifest["groups"]}:
         out.append(f"{source}: proof for a module the manifest does not list")
     return out
@@ -182,6 +188,16 @@ class PortedMotionsTest(unittest.TestCase):
         found = problems(tree.root)
         self.assertEqual(sum("no passing proof" in p for p in found), 2, found)
         self.assertIn(f"{source}: unsupported device, frame-rate or GPU claim", found)
+
+    def test_a_false_superseded_or_withdrawn_claim_is_refused(self):
+        tree = Copy(self)
+        def change(manifest):
+            manifest["not_ported"]["neural-synapse-activation-x"] = "superseded: by nothing"
+            manifest["groups"][0]["left_out"]["networks-signal-routing-x"] = "withdrawn: not really"
+        tree.edit(MANIFEST, change)
+        found = problems(tree.root)
+        self.assertIn("neural-synapse-activation-x: said to be superseded by a native motion that does not exist", found)
+        self.assertIn("networks-signal-routing-x: said to be withdrawn but is not in withdrawn_ids", found)
 
     def test_a_duplicate_json_key_is_refused(self):
         tree = Copy(self)

@@ -235,6 +235,27 @@
  ],
  "not_ported": {
   "lighting-volumetric-beams": "withdrawn id (policy withdrawn_ids): origin/claude/native-motion-engines-wip f0c18d9 packages/motion-engines/motions/lighting/volumetric-beams.mjs, never browser-proven there",
-  "physics-cloth-simulation": "no stated purpose: the owner dropped the cloth draft as decorative (NATIVE_MOTIONS.md); origin/claude/native-motion-engines-wip f0c18d9 packages/motion-engines/motions/physics/cloth-simulation.mjs with its helpers physics/lib/scene.mjs and physics/lib/timeline.mjs, never browser-proven there"
+  "physics-cloth-simulation": "no stated purpose: the owner dropped the cloth draft as decorative (NATIVE_MOTIONS.md); origin/claude/native-motion-engines-wip f0c18d9 packages/motion-engines/motions/physics/cloth-simulation.mjs with its helpers physics/lib/scene.mjs and physics/lib/timeline.mjs, never browser-proven there",
+  "particles-logo-reconstruction": "no stated purpose: dots converge into a four-bladed logo mark, a brand effect (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-attraction-field": "no stated purpose: dots spiral into a pointer-controlled attractor, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-repulsion-field": "no stated purpose: a repulsive ring pushes dots to the walls, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-magnetic-orbit": "no stated purpose: charged dots circle on cyclotron paths, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-fluid-simulation": "no stated purpose: tracers drift through a flow field, a physics study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "particles-surface-formation": "no stated purpose: scattered dots settle on a rotating sphere, a geometry study (origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs)",
+  "shaders-noise-displacement": "no stated purpose: a noise-displaced blob, a GPU effect; the module also reads performance.now(), which the pure source set forbids (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-ripple": "no stated purpose: a ripple over a grid, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-fractal": "no stated purpose: an evolving Julia set, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-wave-interference": "no stated purpose: two-source interference rings, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-fresnel": "no stated purpose: a lit sphere with a Fresnel rim, a GPU effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "compositions-gpu-interface-transformation": "no stated purpose: three unlabelled interface planes tilt in depth, a presentation effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "compositions-multi-engine-cinematic": "no stated purpose: a CINEMATIC title card over a glow with a timeline bar, a presentation effect (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-raymarched-geometry": "withdrawn id (policy withdrawn_ids) (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "shaders-sdf-morph": "withdrawn id (policy withdrawn_ids) (origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs)",
+  "particles-vortex": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/vortex.mjs); branch copy at origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs",
+  "particles-disintegration": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/disintegration.mjs); branch copy at origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs",
+  "particles-path-convergence": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/path-convergence.mjs); branch copy at origin/codex/nextgen-intelligence 40e9d4d motion-library/expansion/nextgen-motion-particles.mjs",
+  "particles-gpu-swarm": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/particles/gpu-swarm.mjs); branch copy at origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs",
+  "shaders-chromatic-aberration": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/shaders/chromatic-aberration.mjs); branch copy at origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs",
+  "shaders-material-dissolve": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/shaders/material-dissolve.mjs); branch copy at origin/codex/nextgen-intelligence 217ee58 motion-library/expansion/nextgen-motion-webgl.mjs"
  }
 }
