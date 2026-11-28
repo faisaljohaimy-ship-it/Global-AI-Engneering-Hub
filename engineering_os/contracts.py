@@ -19,10 +19,19 @@ PERMISSIONS = frozenset({
     "prod:deploy", "secrets:none",
 })
 SCENARIOS = frozenset("ABCDEFGHI")
+SCENARIO_TITLES = {
+    "A": "master build", "B": "master upgrade", "C": "video pipeline", "D": "memory resume",
+    "E": "security governor", "F": "self-healing", "G": "release engine", "H": "adaptive orchestration",
+    "I": "permanent Claude Code install",
+}
+SCENARIO_BINDING_FIELDS = frozenset({"id", "test", "case"})
+# Order used to combine the receipts of several binding layers: the weakest one decides.
+_SCENARIO_ORDER = ("FAILED", "UNVERIFIED", "INCOMPLETE", "VERIFIED")
 _ENGINE_ID = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _ROLE_ID = _ENGINE_ID
 _REF = re.compile(r"^[A-Za-z_][\w.]*:[A-Za-z_]\w*$")
 _TEST = re.compile(r"^tests/[\w.-]+\.(?:py|mjs)$")
+_CASE = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?$")
 
 
 class ContractError(ValueError):
@@ -107,11 +116,77 @@ def validate_layer(record, *, check_imports=False):
     _texts(record["tests"], f"{record['id']}.tests", minimum=1)
     for test in record["tests"]:
         _need(_TEST.match(test), f"{record['id']}: test path {test!r}")
-    _texts(record["scenarios"], f"{record['id']}.scenarios")
-    for scenario in record["scenarios"]:
-        _need(scenario in SCENARIOS, f"{record['id']}: unknown scenario {scenario!r}")
+    _scenarios(record)
     _need(record["evidence"] == {"rule": "tests-pass"}, f"{record['id']}: evidence rule must be tests-pass")
     return record
+
+
+def _scenarios(record):
+    """A `scenarios` entry is either a letter or a binding {"id", "test", "case"}.
+
+    A letter says only that the layer takes part in the scenario: nothing proves it, so
+    scenario_report calls it UNBOUND. A binding says the scenario is proven by the test class
+    (`Class`) or method (`Class.test_name`) `case` in `test`, which must be one of the layer's
+    own Python tests, so `layers.verify` runs it whenever it verifies the layer."""
+    lid, value = record["id"], record["scenarios"]
+    _need(isinstance(value, list) and len(value) <= 64, f"{lid}.scenarios: list of 0-64")
+    letters, bound, seen = set(), set(), set()
+    for entry in value:
+        if isinstance(entry, str):
+            _need(entry in SCENARIOS, f"{lid}: unknown scenario {entry!r}")
+            key = entry
+            letters.add(entry)
+        else:
+            _need(isinstance(entry, dict) and set(entry) == SCENARIO_BINDING_FIELDS,
+                  f"{lid}: a scenario binding needs exactly {sorted(SCENARIO_BINDING_FIELDS)}")
+            _need(isinstance(entry["id"], str) and entry["id"] in SCENARIOS, f"{lid}: unknown scenario {entry['id']!r}")
+            test, case = entry["test"], entry["case"]
+            _need(isinstance(test, str) and test.endswith(".py") and test in record["tests"],
+                  f"{lid}: scenario {entry['id']} test {test!r} is not one of the layer's Python tests")
+            _need(isinstance(case, str) and _CASE.match(case),
+                  f"{lid}: scenario {entry['id']} case {case!r} must be Class or Class.test_method")
+            key = (entry["id"], test, case)
+            bound.add(entry["id"])
+        _need(key not in seen, f"{lid}.scenarios: duplicates")
+        seen.add(key)
+    both = sorted(letters & bound)
+    _need(not both, f"{lid}.scenarios: {', '.join(both)} listed both as a bare letter and as a binding")
+    return value
+
+
+def scenario_report(records, layer_status=None):
+    """Acceptance scenarios A-I as the layer records support them.
+
+    Without layer_status a scenario is BOUND when some layer binds a test case to it, else
+    UNBOUND (bare letters count as participation, never as proof). With layer_status
+    ({layer id: VERIFIED|FAILED|INCOMPLETE|UNVERIFIED}, e.g. from layers.status) a bound
+    scenario takes the weakest status of the layers that bind it; a layer missing from
+    layer_status counts as UNVERIFIED. An UNBOUND scenario stays UNBOUND whatever the layer
+    statuses are: it is never reported as VERIFIED."""
+    for record in records:
+        validate_layer(record)
+    if layer_status is not None:
+        _need(isinstance(layer_status, dict) and all(v in _SCENARIO_ORDER for v in layer_status.values()),
+              f"layer_status: values must be one of {list(_SCENARIO_ORDER)}")
+    rows = {}
+    for letter in sorted(SCENARIOS):
+        rows[letter] = {"id": letter, "title": SCENARIO_TITLES[letter], "status": "UNBOUND",
+                        "bindings": [], "participating": []}
+    for record in records:
+        for entry in record["scenarios"]:
+            if isinstance(entry, str):
+                rows[entry]["participating"].append(record["id"])
+            else:
+                rows[entry["id"]]["bindings"].append({"layer": record["id"], "test": entry["test"], "case": entry["case"]})
+    for row in rows.values():
+        if not row["bindings"]:
+            continue
+        if layer_status is None:
+            row["status"] = "BOUND"
+        else:
+            found = [layer_status.get(b["layer"], "UNVERIFIED") for b in row["bindings"]]
+            row["status"] = min(found, key=_SCENARIO_ORDER.index)
+    return rows
 
 
 def validate_layers(records, *, check_imports=False):
