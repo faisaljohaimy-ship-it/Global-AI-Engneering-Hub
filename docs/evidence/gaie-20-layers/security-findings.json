@@ -87,7 +87,7 @@
       "location": "engineering_os/video_pipeline.py:_outside_repository",
       "rule": "private-state-permissions",
       "severity": "low",
-      "status": "open",
+      "status": "held",
       "title": "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository"
     },
     {
@@ -255,9 +255,9 @@
     "by_status": {
       "accepted": 7,
       "fixed": 6,
-      "held": 3,
+      "held": 4,
       "mitigated": 1,
-      "open": 4
+      "open": 3
     },
     "open_critical_or_high": []
   },

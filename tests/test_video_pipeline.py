@@ -612,5 +612,110 @@ class EvidenceManifestTests(unittest.TestCase):
             self.assertTrue(vp.qa_media(path, expect)["passed"])
 
 
+class OutputDirectoryTests(unittest.TestCase):
+    """SEC-08: the output path is validated before anything is created, and created private."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.base = pathlib.Path(self.temp.name).resolve()
+        self.repo = self.base / "repo"
+        self.repo.mkdir()
+        self.addCleanup(self.temp.cleanup)
+
+    def test_a_path_inside_the_repository_is_refused_before_anything_is_created(self):
+        for inside in (self.repo, self.repo / "media", self.repo / "a" / "b" / "c"):
+            with self.subTest(inside.name), self.assertRaisesRegex(vp.RenderError, "outside the repository"):
+                vp._outside_repository(str(inside), root=self.repo)
+        self.assertEqual(list(self.repo.iterdir()), [], "the refusal must not leave a directory behind")
+        with self.assertRaisesRegex(vp.RenderError, "absolute"):
+            vp._outside_repository("media", root=self.repo)
+
+    def test_a_symbolic_link_in_the_path_is_refused_and_nothing_is_created_through_it(self):
+        elsewhere = self.base / "elsewhere"
+        elsewhere.mkdir()
+        (self.base / "into-repo").symlink_to(self.repo, target_is_directory=True)
+        (self.base / "link").symlink_to(elsewhere, target_is_directory=True)
+        with self.assertRaisesRegex(vp.RenderError, "outside the repository"):
+            vp._outside_repository(str(self.base / "into-repo" / "media"), root=self.repo)
+        with self.assertRaisesRegex(vp.RenderError, "symbolic link"):
+            vp._outside_repository(str(self.base / "link" / "media"), root=self.repo)
+        with self.assertRaisesRegex(vp.RenderError, "symbolic link"):
+            vp._outside_repository(str(self.base / "link"), root=self.repo)
+        self.assertEqual((list(self.repo.iterdir()), list(elsewhere.iterdir())), ([], []))
+        (self.base / "file").write_text("x")
+        with self.assertRaisesRegex(vp.RenderError, "not a directory"):
+            vp._outside_repository(str(self.base / "file" / "media"), root=self.repo)
+
+    def test_new_directories_are_created_private_and_existing_ones_are_left_alone(self):
+        old = os.umask(0)
+        self.addCleanup(os.umask, old)
+        existing = self.base / "state"
+        existing.mkdir(mode=0o755)
+        made = vp._outside_repository(str(existing / "media" / "show"), root=self.repo)
+        self.assertEqual(made, existing / "media" / "show")
+        for created in (existing / "media", existing / "media" / "show"):
+            self.assertEqual(created.stat().st_mode & 0o777, 0o700, created)
+        self.assertEqual(existing.stat().st_mode & 0o777, 0o755)
+        self.assertEqual(vp._outside_repository(str(made), root=self.repo), made)  # idempotent
+
+    def test_the_security_probe_reports_the_control_as_held(self):
+        from engineering_os import security_audit
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertFalse(security_audit.probe_video_output_dir(pathlib.Path(temp)))
+
+
+class EditionTests(unittest.TestCase):
+    """Edition 2 (digital shows) is edition 1 plus reviewed patches; edition 1 stays byte-identical."""
+
+    def test_the_cinematic_compositor_is_unchanged_and_the_show_compositor_is_derived_from_it(self):
+        manifest = json.loads(EVIDENCE.read_text("utf-8"))
+        first, second = vp.renderer_digests(), vp.renderer_digests(2)
+        for key in ("compositor_html_sha256", "compositor_js_sha256", "renderer_js_sha256"):
+            self.assertEqual(first[key], manifest["renderer"][key], key)
+            self.assertEqual(second[key], first[key], key)
+        self.assertNotIn("edition", first)
+        self.assertEqual(second["edition"], 2)
+        self.assertNotEqual(second["show_compositor_js_sha256"], first["compositor_js_sha256"])
+        self.assertNotIn("digital-shows", vp._COMPOSITOR_JS + vp._RENDERER_JS)
+        self.assertIn("/packages/digital-shows/kit.mjs", vp._SHOW_COMPOSITOR_JS)
+        self.assertIn("@font-face", vp._SHOW_COMPOSITOR_JS)
+        self.assertIn("document.fonts.ready", vp._SHOW_COMPOSITOR_JS)
+        self.assertIn("'.ttf': 'font/ttf'", vp._SHOW_RENDERER_JS)
+
+    def test_a_patch_whose_anchor_moved_is_refused_instead_of_silently_skipped(self):
+        with self.assertRaises(AssertionError):
+            vp._derive("abc", (("x", "y", 1),))
+        with self.assertRaises(AssertionError):
+            vp._derive("aa", (("a", "b", 1),))
+        self.assertEqual(vp._derive("aa", (("a", "b", 2),)), "bb")
+
+    def test_a_storyboard_without_a_theme_keeps_the_first_edition(self):
+        sb = vp.validate_storyboard(vp.SAMPLE_STORYBOARD)
+        plan = vp.build_plan(sb)
+        self.assertNotIn("edition", plan)
+        self.assertNotIn("theme", sb)
+        self.assertEqual({line["lang"] for block in plan["text_blocks"] for line in block["lines"]}, {"ar", "en"})
+        self.assertTrue(all("family" not in line for block in plan["text_blocks"] for line in block["lines"]))
+        with tempfile.TemporaryDirectory() as temp:
+            _, job = vp._job(pathlib.Path(temp), "render", plan=plan)
+            self.assertEqual(job["allowed_prefixes"], list(vp.ALLOWED_PREFIXES))
+            self.assertNotIn("font_faces", job)
+            self.assertEqual((pathlib.Path(temp) / "compositor.mjs").read_text("utf-8"), vp._COMPOSITOR_JS)
+
+    def test_the_flite_voiceover_form_still_validates_next_to_the_external_one(self):
+        sb = copy.deepcopy(vp.SAMPLE_STORYBOARD)
+        self.assertEqual(vp.validate_storyboard(sb)["audio"]["voiceover"], {"language": "en", "voice": "slt"})
+        sb["audio"]["voiceover"] = {"language": "en", "provider": "external", "voice_ref": "clip-set-0001", "license": "Test licence text."}
+        voice = vp.validate_storyboard(sb)["audio"]["voiceover"]
+        self.assertEqual((voice["lead_ms"], voice["tail_ms"]), (350, 450))
+        with self.assertRaisesRegex(vp.VoiceoverError, "voiceover_dir"):
+            vp.render(sb, "/nonexistent-gaie-output", name="x")
+        self.assertFalse(pathlib.Path("/nonexistent-gaie-output").exists())
+        with self.assertRaisesRegex(vp.VoiceoverError, "no external voiceover"):
+            vp.render(vp.SAMPLE_STORYBOARD, "/nonexistent-gaie-output", name="x", voiceover_dir="/tmp")
+        with self.assertRaisesRegex(vp.VoiceoverError, "music_license"):
+            vp.render(vp.SAMPLE_STORYBOARD, "/nonexistent-gaie-output", name="x", music_file="/tmp/x.mp3")
+
+
 if __name__ == "__main__":
     unittest.main()

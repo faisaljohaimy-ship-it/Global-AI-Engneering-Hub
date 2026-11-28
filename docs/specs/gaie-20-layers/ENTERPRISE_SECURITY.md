@@ -54,7 +54,7 @@ Each cell names the control and says whether it is enforced in code (**code**) o
 | self-healing, detectors (L17) | E/I: target repository code runs (tests, servers, timing probes) | code: a disposable copy, fixed driver (no shell), environment reduced to PATH, HOME and TMPDIR, loopback-only socket guard, timeouts, process-group kill, an unchanged-target check afterwards. **Open (SEC-07, medium):** no OS sandbox, so the target code can read any file the user can read |
 | layers (L04/L20) | E: a repository test runs with the owner's environment | **Open (SEC-12, medium):** `layers.verify` declares `exec:sandbox` and `secrets:none`, but its `_run` passes the caller's whole environment and has no sandbox. `quality-assurance.run-tests` already uses `governor.sandbox_run` |
 | factory, master-build/upgrade (L16/L06) | T: an artifact root reached through a symlink | code: every component opened with `O_NOFOLLOW`, no code generation in this revision |
-| cinematic, video pipeline (L18) | T/I: media written into the repository, or into a directory others can read | code: refused inside the repository. **Open (SEC-08, low):** the directory is created (umask mode) before that check |
+| cinematic, video pipeline (L18) | T/I: media written into the repository, or into a directory others can read | code: the output path is validated first (real path outside the repository, no symbolic link in the path), then created with mode 0700 and re-checked (SEC-08 held); voice and music inputs inside the repository are refused |
 | context-intelligence (L02) | T: a retrieval id that climbs out of the store | code: ids are SHA-256 hex only; the store lives under private state |
 | hub.py, gaie_bootstrap (L01/L16) | T: writes through symlinks into target projects | code: exclusive creates (`open("x")`, `O_EXCL|O_NOFOLLOW`), symlink components refused, an install manifest limited to known paths |
 | quality-assurance (L09) | E: tests escape | code: `governor.sandbox_run(network=False)` with a minimal environment |
@@ -94,7 +94,7 @@ static hits with path:line and rule, never a value).
 | SEC-05 | medium | fixed | a state directory open to others was refused only after the engine had written state | `engineering_os/control_plane.py` `_context` | `StateDirectoryTests` |
 | SEC-06 | low | mitigated | the hash chain cannot see records removed from its end, or the whole log removed | `governor.verify_audit` | `AnchorTests` (anchor helper in `security_audit`) |
 | SEC-07 | medium | **open** | self-healing runs target code without an OS sandbox | `engineering_os/detectors.py` `Sandbox` | probe; SELF_HEALING.md limits |
-| SEC-08 | low | **open** | video output directory is created (umask mode) before the "outside the repository" check | `engineering_os/video_pipeline.py` `_outside_repository` | probe |
+| SEC-08 | low | held | video output directory was created (umask mode) before the "outside the repository" check; now validated first and created 0700 | `engineering_os/video_pipeline.py` `_outside_repository` | probe, `tests/test_video_pipeline.py` `OutputDirectoryTests` |
 | SEC-09 | low | accepted | router workspace probe runs `git remote get-url` without the hardening flags | `engineering_os/gaie_router.py` `workspace` | probe (no index refresh, `GIT_*` stripped) |
 | SEC-10 | low | **open** | frozen gaie_memory journal is appended without an owner, mode or link check | `engineering_os/gaie_memory.py` `_journal_add` | probe |
 | SEC-11 | low | fixed | SDK `verify` accepted a FIFO or device named in the manifest and would block on it | `sdk/engineering_sdk.py` `safe_path` | `test_fifo_capability_file_is_refused_without_blocking` |
@@ -111,7 +111,7 @@ Static hits that were reviewed and accepted (rule, enclosing function, reason in
 
 Read-only cross-check with `swarm/phase3/SECURITY.md` and its reviews:
 - Links written through: kit faults 1/2. Same class here is SEC-03 (audit log).
-- Default modes: kit fault 3. Same class here is SEC-04 and SEC-05; SEC-08 and SEC-10 are open.
+- Default modes: kit fault 3. Same class here is SEC-04, SEC-05 and SEC-08 (held); SEC-10 is open.
 - Tracebacks that leak host paths: kit F4. Here error audit rows already keep only the class name.
 - "git aliases and option forms": lane net F8. Same class here is SEC-01.
 - Here-document hiding: F7. No shell strings are built in `engineering_os`; the static rules find 0 `shell=True`.
