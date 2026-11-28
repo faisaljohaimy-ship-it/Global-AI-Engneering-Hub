@@ -29,7 +29,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 POLICY = "governance/policies/motion-purpose.json"
 IMPLEMENTATION = "engineering_os/motion_policy.py"
 CLASSES = ("purposeful", "legacy-unclassified", "reference-illustrative", "specification-index", "withdrawn")
-REGISTRIES = ("native-engine", "nextgen-camera", "digital-shows", "reference-recipes", "catalog")
+REGISTRIES = ("native-engine", "nextgen-camera", "digital-shows", "reference-recipes", "catalog", "ported-sdk")
 MAX_BYTES = 8 * 1024 * 1024
 MAX_SOURCE_FILES = 2000
 SOURCE_SUFFIX = ".mjs"
@@ -95,8 +95,9 @@ _REGISTRY_KEYS = {
     "digital-shows": frozenset({"what", "record", "source"}),
     "reference-recipes": frozenset({"what", "record", "list", "class", "pinned_count"}),
     "catalog": frozenset({"what", "record", "list", "components", "class", "pinned_count"}),
+    "ported-sdk": frozenset({"what", "record", "receipt"}),
 }
-_PATH_KEYS = ("record", "sources", "source", "components")
+_PATH_KEYS = ("record", "sources", "source", "components", "receipt")
 
 
 class MotionPolicyError(ValueError):
@@ -474,6 +475,31 @@ def _pinned(root, policy, name, items, out):
             _violation(out, "unindexed-component", name, identifier, f"a component of {spec['components']} has no catalogue row")
 
 
+def _ported(root, policy, name, items, out):
+    """Universal Motion SDK motions ported from earlier branches: the manifest names each module and its ids,
+    the browser receipt (bound to each module's SHA-256) carries the meanings. No legacy allowance."""
+    spec = policy["registries"][name]
+    manifest = load_json(_read(root, spec["record"]))
+    receipt = load_json(_read(root, spec["receipt"]))
+    _need(isinstance(manifest, dict) and isinstance(manifest.get("groups"), list), f"{spec['record']}: groups must be a list")
+    _need(isinstance(receipt, dict) and isinstance(receipt.get("groups"), dict), f"{spec['receipt']}: groups must be an object")
+    rows = []
+    for group in manifest["groups"]:
+        _need(isinstance(group, dict) and isinstance(group.get("source"), str) and isinstance(group.get("ids"), list),
+              f"{spec['record']}: a group needs a source and ids")
+        proof = receipt["groups"].get(group["source"])
+        if not isinstance(proof, dict) or proof.get("source_sha256") != hashlib.sha256(_read(root, group["source"])).hexdigest():
+            _violation(out, "registry-stale", name, group["source"],
+                       "the module changed since its browser proof: its meanings are not trusted until it is proven again")
+            continue
+        motions = proof.get("motions")
+        _need(isinstance(motions, list) and all(isinstance(row, dict) for row in motions), f"{spec['receipt']}: motions must be a list")
+        if [row.get("id") for row in motions] != group["ids"]:
+            _violation(out, "registry-stale", name, group["source"], "the proof covers other motions than the manifest")
+        rows.extend(row for row in motions if isinstance(row.get("id"), str) and row["id"])
+    _classify_rows(name, rows, policy, items, out)
+
+
 def _decisions(policy, items, out):
     by_key = {(item["registry"], item["id"]): item for item in items}
     for name, baseline in BASELINE_LEGACY.items():
@@ -550,7 +576,7 @@ def _survey(root, policy):
     items, out = [], []
     compiled = _hard_rules(policy, out)
     steps = {"native-engine": _native, "nextgen-camera": _camera, "digital-shows": _shows,
-             "reference-recipes": _pinned, "catalog": _pinned}
+             "reference-recipes": _pinned, "catalog": _pinned, "ported-sdk": _ported}
     for name in REGISTRIES:
         try:
             steps[name](root, policy, name, items, out)

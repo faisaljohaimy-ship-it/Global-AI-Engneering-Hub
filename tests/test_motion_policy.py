@@ -24,13 +24,15 @@ NODE = shutil.which("node")
 COPIED = ("governance/policies/motion-purpose.json", "packages/motion-engines", "packages/digital-shows/kit.mjs",
           "packages/digital-shows/registry.json", "packages/motion-sdk", "motion-library/expansion", "motion-library/runtime",
           "motion-library/MOTION_CATALOG.json", "motion-library/components.json", "engineering_os/motion_policy.py",
-          "tests/test_motion_policy.py", "tests/test_native_motions_digital.mjs")
+          "tests/test_motion_policy.py", "tests/test_native_motions_digital.mjs", "docs/evidence/ported-motions.json",
+          "docs/evidence/ported-motions-chromium.json", "tests/test_ported_motions.py")
 REGISTRY = "packages/motion-engines/registry.json"
 SHOWS = "packages/digital-shows/registry.json"
 KIT = "packages/digital-shows/kit.mjs"
 RECIPES = "motion-library/expansion/definitions.json"
 CATALOG = "motion-library/MOTION_CATALOG.json"
 CAMERA = "motion-library/expansion/nextgen-camera.mjs"
+PORTED, PORTED_PROOF = "docs/evidence/ported-motions.json", "docs/evidence/ported-motions-chromium.json"
 PURPOSEFUL = "micro-success-feedback"
 LEGACY = "glass-card-elevation"
 MEANING = {"en": "A completed request issues a receipt with a reference code.", "ar": "الطلب المكتمل يُصدر إيصالًا برقم مرجعي."}
@@ -119,7 +121,7 @@ class RealTree(unittest.TestCase):
         report = mp.report()
         self.assertTrue(report["ok"])
         self.assertEqual(report["violations"], [])
-        self.assertEqual(report["classes"], {"purposeful": 47, "legacy-unclassified": 37, "reference-illustrative": 400,
+        self.assertEqual(report["classes"], {"purposeful": 107, "legacy-unclassified": 37, "reference-illustrative": 400,
                                              "specification-index": 156, "withdrawn": 5})
         self.assertEqual(report["unclassified"], 0)
         self.assertEqual(report["registries"], {
@@ -127,7 +129,8 @@ class RealTree(unittest.TestCase):
             "nextgen-camera": {"total": 3, "legacy-unclassified": 3},
             "digital-shows": {"total": 14, "purposeful": 14},
             "reference-recipes": {"total": 400, "reference-illustrative": 400},
-            "catalog": {"total": 156, "specification-index": 156}})
+            "catalog": {"total": 156, "specification-index": 156},
+            "ported-sdk": {"total": 60, "purposeful": 60}})
         self.assertEqual(report["legacy_unclassified_ids"], {name: sorted(ids) for name, ids in mp.BASELINE_LEGACY.items()})
         self.assertEqual((report["policy"], report["policy_version"], report["effective_from"]), (mp.POLICY, "1.0.0", "2026-11-28"))
         self.assertEqual(report["policy_sha256"], hashlib.sha256((ROOT / mp.POLICY).read_bytes()).hexdigest())
@@ -365,7 +368,7 @@ class Violations(unittest.TestCase):
         self.assertEqual(codes(tree.validate()), [("missing-meaning", "native-engine", "micro-input-focus")])
         report = mp.report(tree.root)
         self.assertFalse(report["ok"])
-        self.assertEqual((report["classes"]["purposeful"], report["classes"]["legacy-unclassified"], report["unclassified"]), (47, 37, 1))
+        self.assertEqual((report["classes"]["purposeful"], report["classes"]["legacy-unclassified"], report["unclassified"]), (107, 37, 1))
         self.assertEqual(report["registries"]["native-engine"], {"total": 68, "purposeful": 33, "legacy-unclassified": 34, "unclassified": 1, "withdrawn": 5})
         self.assertNotIn("micro-input-focus", report["legacy_unclassified_ids"]["native-engine"])
         # The same motion with a meaning is purposeful and the tree is clean again.
@@ -492,6 +495,30 @@ class Violations(unittest.TestCase):
         tree.edit(SHOWS, lambda value: value["scenes"][-1].update(meaning=MEANING))
         self.assertEqual(tree.validate(), [])
         self.assertEqual(mp.report(tree.root)["registries"]["digital-shows"], {"total": 15, "purposeful": 15})
+
+    def test_a_ported_motion_needs_a_valid_meaning_and_a_current_proof(self):
+        tree = Tree(self)
+        group = tree.json(PORTED)["groups"][0]
+        source, first = group["source"], group["ids"][0]
+
+        def proof_row(change):
+            tree.edit(PORTED_PROOF, lambda value: change(value["groups"][source]["motions"][0]))
+        proof_row(lambda row: row.update(meaning=None))
+        self.assertEqual(codes(tree.validate()), [("missing-meaning", "ported-sdk", first)])
+        self.assertEqual(mp.report(tree.root)["registries"]["ported-sdk"], {"total": 60, "purposeful": 59, "unclassified": 1})
+        proof_row(lambda row: row.update(meaning={"en": MEANING["en"], "ar": "English only, long enough."}))
+        self.assertEqual(codes(tree.validate()), [("invalid-meaning", "ported-sdk", first)])
+        proof_row(lambda row: row.update(meaning=MEANING))
+        self.assertEqual(tree.validate(), [])
+        tree.write(source, tree.text(source) + "\n")  # the module changed after its browser proof
+        self.assertEqual(codes(tree.validate()), [("registry-stale", "ported-sdk", source)])
+        self.assertEqual(mp.report(tree.root)["registries"]["ported-sdk"]["total"], 60 - len(group["ids"]))
+        tree = Tree(self)
+        tree.edit(PORTED, lambda value: value["groups"][0]["ids"].pop())  # the proof covers another set of motions
+        self.assertEqual(codes(tree.validate()), [("registry-stale", "ported-sdk", source)])
+        tree = Tree(self)
+        (tree.root / PORTED_PROOF).unlink()
+        self.assertEqual(codes(tree.validate()), [("unreadable-record", "ported-sdk", None)])
 
     def test_randomness_in_a_motion_source_is_a_violation(self):
         tree = Tree(self)

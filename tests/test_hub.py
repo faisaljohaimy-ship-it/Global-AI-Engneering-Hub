@@ -71,7 +71,7 @@ class HubTests(unittest.TestCase):
   purpose=result['motion_purpose']
   self.assertTrue(purpose['ok'])
   self.assertEqual(purpose['policy'],'governance/policies/motion-purpose.json')
-  self.assertEqual(purpose['classes']['purposeful'],47)
+  self.assertEqual(purpose['classes']['purposeful'],107)
   self.assertEqual(purpose['classes']['legacy-unclassified'],37)
   self.assertEqual((purpose['unclassified'],purpose['violations']),(0,0))
  def test_audit_reports_a_broken_motion_policy_without_failing(self):

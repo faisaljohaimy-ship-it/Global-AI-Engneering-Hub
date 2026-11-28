@@ -77,7 +77,7 @@ on a violation. Counts under policy 1.0.0, from that report:
 
 | class | count | what it is |
 |---|---|---|
-| `purposeful` | 47 | 33 native motions and the 14 scene types of `packages/digital-shows`: each states a valid meaning |
+| `purposeful` | 107 | 33 native motions, the 14 scene types of `packages/digital-shows` and the 60 Universal Motion SDK motions ported from earlier branches (registry `ported-sdk`: `docs/evidence/ported-motions.json`, meanings read from the browser receipt bound to each module's SHA-256): each states a valid meaning |
 | `legacy-unclassified` | 37 | the 34 native motions of PR #16 and the 3 nextgen camera scenes: no meaning stated |
 | `reference-illustrative` | 400 | the Canvas2D reference recipes of `motion-library/expansion`: they illustrate a mechanism and claim no meaning |
 | `specification-index` | 156 | the rows of `motion-library/MOTION_CATALOG.json` (127 specification, 29 implemented; each of the 30 components of `components.json` has a row) |
