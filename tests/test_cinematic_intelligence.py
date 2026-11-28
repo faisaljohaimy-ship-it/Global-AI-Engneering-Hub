@@ -108,12 +108,12 @@ class CinematicTests(unittest.TestCase):
         self.copy_inventory_sources()
         value = cinematic.motion_inventory()
         native = value['native_engine_motions']
-        self.assertEqual((native['count'], native['source_files'], native['source_bound_to_registry']), (34, 34, 34))
-        self.assertEqual(native['by_engine'], {'canvas2d': 5, 'composition': 1, 'dom': 1, 'svg': 1,
-                                               'webgl2-glsl': 23, 'webgl2-points': 2, 'webgpu-wgsl': 1})
-        self.assertEqual((native['gpu_api_motions'], native['cpu_motions']), (26, 8))
+        self.assertEqual((native['count'], native['source_files'], native['source_bound_to_registry']), (67, 67, 67))
+        self.assertEqual(native['by_engine'], {'canvas2d': 22, 'composition': 1, 'dom': 2, 'svg': 3,
+                                               'webgl2-glsl': 31, 'webgl2-points': 7, 'webgpu-wgsl': 1})
+        self.assertEqual((native['gpu_api_motions'], native['cpu_motions']), (39, 28))
         self.assertEqual(value['nextgen_camera_motions']['count'], 3)
-        self.assertEqual(value['native_total'], 37)
+        self.assertEqual(value['native_total'], 70)
         self.assertEqual(value['reference_canvas2d_motions']['count'], 400)
         self.assertEqual(value['reference_canvas2d_motions']['by_tier'], {'advanced': 200, 'basic': 200})
         self.assertEqual(value['native_3d_scene_engines'], [])
@@ -124,7 +124,7 @@ class CinematicTests(unittest.TestCase):
         self.copy_inventory_sources()
         source = self.root / cinematic.NATIVE_MOTIONS / 'quantum/light-tunnel.mjs'
         source.write_bytes(source.read_bytes() + b'\n')
-        self.assertEqual(cinematic.motion_inventory()['native_engine_motions']['source_bound_to_registry'], 33)
+        self.assertEqual(cinematic.motion_inventory()['native_engine_motions']['source_bound_to_registry'], 66)
 
     def test_motion_inventory_rejects_duplicates_overlap_and_symlinks(self):
         self.copy_inventory_sources()

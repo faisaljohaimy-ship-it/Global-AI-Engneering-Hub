@@ -242,53 +242,53 @@
   ]
  },
  "inventory": {
-  "gpu_hardware_claimed": false,
-  "motion_library_components": {
-   "catalog_indexed": 142,
-   "implemented": 30,
-   "source": "motion-library/components.json"
-  },
-  "native_3d_scene_engines": [],
+  "schema_version": 1,
   "native_engine_motions": {
+   "count": 67,
+   "source_files": 67,
+   "source_bound_to_registry": 67,
    "by_engine": {
-    "canvas2d": 5,
+    "canvas2d": 22,
     "composition": 1,
-    "dom": 1,
-    "svg": 1,
-    "webgl2-glsl": 23,
-    "webgl2-points": 2,
+    "dom": 2,
+    "svg": 3,
+    "webgl2-glsl": 31,
+    "webgl2-points": 7,
     "webgpu-wgsl": 1
    },
-   "count": 34,
-   "cpu_motions": 8,
-   "gpu_api_motions": 26,
-   "source": "packages/motion-engines (PR #16)",
-   "source_bound_to_registry": 34,
-   "source_files": 34
+   "gpu_api_motions": 39,
+   "cpu_motions": 28,
+   "source": "packages/motion-engines (PR #16)"
   },
-  "native_total": 37,
   "nextgen_camera_motions": {
    "count": 3,
-   "engine": "canvas2d",
    "ids": [
     "camera-drone-approach",
     "camera-infinite-flythrough",
     "camera-macro-to-micro"
    ],
+   "engine": "canvas2d",
    "projection": "CPU perspective projection; no WebGL or 3D engine",
    "source": "motion-library/expansion/nextgen-camera.mjs"
   },
-  "notes": "Native engine motions and Canvas2D reference recipes are separate namespaces and are never added together. Nextgen camera scenes project 3D geometry on the CPU. No Three.js/Babylon-class 3D engine is installed. GPU-API motions use WebGL2/WebGPU; hardware execution is a probed fact, not implied by a count.",
+  "native_total": 70,
   "reference_canvas2d_motions": {
+   "count": 400,
    "by_tier": {
     "advanced": 200,
     "basic": 200
    },
-   "count": 400,
    "engine": "canvas2d",
    "source": "motion-library/expansion (portable 2D reference recipes, not native engines)"
   },
-  "schema_version": 1
+  "motion_library_components": {
+   "implemented": 30,
+   "catalog_indexed": 142,
+   "source": "motion-library/components.json"
+  },
+  "native_3d_scene_engines": [],
+  "gpu_hardware_claimed": false,
+  "notes": "Native engine motions and Canvas2D reference recipes are separate namespaces and are never added together. Nextgen camera scenes project 3D geometry on the CPU. No Three.js/Babylon-class 3D engine is installed. GPU-API motions use WebGL2/WebGPU; hardware execution is a probed fact, not implied by a count."
  },
  "motions": [
   {
