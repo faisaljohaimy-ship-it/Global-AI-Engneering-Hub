@@ -5,6 +5,10 @@ and refutation did not exceed support, so one refuting row of weight 0 (or relia
 turned "insufficient_evidence" into a confident "leading" root cause. Non-positive
 weights and reliabilities are now refused, and the status follows the evidence weight:
 no weight either way is unsupported, equal weight both ways is conflicting.
+
+L6: trade_off with identical options picked the first option id as winner and called it
+both ``tie`` and ``robust``. A tie is now reported with the tied options and is never
+robust; a clear winner keeps its robustness verdict.
 """
 
 import copy
@@ -82,6 +86,38 @@ class RootCauseEvidenceWeightTests(unittest.TestCase):
         before = copy.deepcopy(request)
         r.analyze_root_causes(request)
         self.assertEqual(request, before)
+
+
+
+def trade_request(values, criteria=None, margin=0.2):
+    return {"schema_version": 1, "decision": "d", "options": sorted(values), "robustness_margin": margin,
+            "criteria": criteria or [{"id": "cost", "weight": 0.5, "direction": "lower"}, {"id": "speed", "weight": 0.5, "direction": "higher"}],
+            "values": values}
+
+
+class TradeOffTieTests(unittest.TestCase):
+    def test_identical_options_are_a_tie_and_not_robust(self):
+        out = r.trade_off(trade_request({"a": {"cost": 1, "speed": 1}, "b": {"cost": 1, "speed": 1}}))
+        self.assertTrue(out["tie"])
+        self.assertEqual(out["tied"], ["a", "b"])
+        self.assertFalse(out["robust"])  # was True: an id-ordered pick reported as robust
+        self.assertEqual(out["margin"], 0.0)
+        self.assertIsNone(out["most_sensitive"])
+
+    def test_one_criterion_identical_and_three_way_ties(self):
+        one = r.trade_off(trade_request({"a": {"cost": 1}, "b": {"cost": 1}}, [{"id": "cost", "weight": 1.0, "direction": "lower"}]))
+        self.assertEqual((one["tie"], one["tied"], one["robust"]), (True, ["a", "b"], False))
+        three = r.trade_off(trade_request({o: {"cost": 2, "speed": 5} for o in ("x", "y", "z")}, margin=0))
+        self.assertEqual((three["tie"], three["tied"], three["robust"]), (True, ["x", "y", "z"], False))
+
+    def test_a_partial_tie_lists_only_the_tied_leaders(self):
+        out = r.trade_off(trade_request({"a": {"cost": 1, "speed": 2}, "b": {"cost": 2, "speed": 3}, "c": {"cost": 2, "speed": 2}}))
+        self.assertEqual((out["tie"], out["tied"], out["robust"]), (True, ["a", "b"], False))
+        self.assertNotIn("c", out["tied"])
+
+    def test_a_clear_winner_keeps_its_robustness_verdict(self):
+        out = r.trade_off(trade_request({"a": {"cost": 1, "speed": 9}, "b": {"cost": 9, "speed": 1}}))
+        self.assertEqual((out["winner"], out["tie"], out["tied"], out["robust"]), ("a", False, [], True))
 
 
 if __name__ == "__main__":

@@ -1375,7 +1375,9 @@ def trade_off(request):
 
     For every criterion the result states the weight at which the winner changes
     (other weights rescaled proportionally), the new winner, and whether that
-    flip lies within ``robustness_margin`` of the current weight.
+    flip lies within ``robustness_margin`` of the current weight. When the top
+    totals tie, ``tied`` lists the tied options, ``winner`` is only the smallest id
+    among them and ``robust`` is false.
     """
     _schema(request, {'schema_version', 'decision', 'options', 'criteria', 'values', 'robustness_margin'})
     decision = _id(request['decision'])
@@ -1452,8 +1454,9 @@ def trade_off(request):
         sensitivity.append(row)
     flippable = [row for row in sensitivity if row['min_change'] is not None]
     most = min(flippable, key=lambda row: (row['min_change'], row['criterion'])) if flippable else None
-    tie = len(ranking) > 1 and round(totals[ranking[0]], 12) == round(totals[ranking[1]], 12)
-    body = {'decision': decision, 'winner': winner, 'runner_up': ranking[1], 'tie': tie,
+    tied = [option for option in ranking if round(totals[option], 12) == round(totals[winner], 12)]
+    tie = len(tied) > 1
+    body = {'decision': decision, 'winner': winner, 'runner_up': ranking[1], 'tie': tie, 'tied': tied if tie else [],
             'ranking': ranking, 'totals': {option: _r(totals[option]) for option in options},
             'margin': _r(totals[winner] - totals[ranking[1]]),
             'weights': weights, 'normalized': normalized,
@@ -1463,7 +1466,8 @@ def trade_off(request):
                 'criterion': most['criterion'], 'min_change': most['min_change'],
                 'new_winner': next(most[d]['new_winner'] for d in ('increase', 'decrease')
                                    if most[d] and abs(most[d]['change']) == most['min_change'])},
-            'robust': not any(row['within_margin'] for row in sensitivity), 'robustness_margin': margin,
+            # A tie has no single winner: ``winner`` is then only the id tie-break, never robust.
+            'robust': not tie and not any(row['within_margin'] for row in sensitivity), 'robustness_margin': margin,
             'method': 'min-max normalised weighted sum; one weight varied, others rescaled proportionally'}
     return _seal('trade-off', request, body)
 
