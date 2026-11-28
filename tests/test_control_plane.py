@@ -569,6 +569,12 @@ class RealGovernorTests(_StateCase):
 
     def test_real_sandbox_runs_the_test_runner(self):
         g = grant({"quality-assurance": ["run-tests"]}, max_side_effect="workspace-write", paths=[str(ROOT)])
+        if not cp.governor.isolation_probe()["userns_netns"]:
+            # Hosts that cannot create a network namespace (e.g. GitHub's Ubuntu runners, where unprivileged user
+            # namespaces are restricted): the sandbox must fail closed, and the control plane must report it.
+            with self.assertRaisesRegex(cp.EngineFailure, "network-isolation-unavailable"):
+                cp.invoke("quality-assurance", "run-tests", {"modules": ["tests.test_contracts"]}, grant=g, ctx=self.ctx)
+            return
         out = cp.invoke("quality-assurance", "run-tests", {"modules": ["tests.test_contracts"]}, grant=g, ctx=self.ctx)
         self.assertIn("passed", out["result"])
         contracts.validate_receipt(out["receipt"])
