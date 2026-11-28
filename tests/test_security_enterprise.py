@@ -22,7 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engineering_os import control_plane, governor, project_registry  # noqa: E402
+from engineering_os import control_plane, governor, project_registry, security_audit  # noqa: E402
 from engineering_os.memory import IntegrityError, MemoryStore  # noqa: E402
 from sdk import engineering_sdk as sdk  # noqa: E402
 
@@ -432,6 +432,207 @@ class BackupTests(unittest.TestCase):
             with self.subTest(expected=bool(expected)):
                 with self.assertRaises(IntegrityError):
                     MemoryStore(base / f"restored-{bool(expected)}").restore(str(target), expected_sha256=expected)
+
+
+# ---------------------------------------------------------------- SEC-06: audit-log anchor
+
+class AnchorTests(unittest.TestCase):
+    def setUp(self):
+        self.state = private_tmp(self) / "state"
+        self.state.mkdir(mode=0o700)
+        for number in range(3):
+            governor.audit(str(self.state), {"decision": "allow", "reason": f"record {number}"})
+        self.anchor = security_audit.audit_anchor(str(self.state))
+        self.log = self.state / governor.AUDIT_FILE
+
+    def test_an_intact_log_and_later_records_verify(self):
+        self.assertEqual(self.anchor["records"], 3)
+        governor.audit(str(self.state), {"decision": "deny", "reason": "later"})
+        self.assertEqual(security_audit.verify_audit_anchor(str(self.state), self.anchor), 4)
+
+    def test_records_removed_from_the_end_are_detected(self):
+        lines = self.log.read_bytes().splitlines(keepends=True)
+        self.log.write_bytes(b"".join(lines[:-1]))
+        self.assertEqual(governor.verify_audit(str(self.state)), 2, "premise: the chain alone accepts the shorter log")
+        with self.assertRaises(governor.GovernorDenied) as caught:
+            security_audit.verify_audit_anchor(str(self.state), self.anchor)
+        self.assertEqual(caught.exception.reason, "audit-tampered")
+
+    def test_a_log_removed_whole_is_detected(self):
+        self.log.unlink()
+        with self.assertRaises(governor.GovernorDenied):
+            security_audit.verify_audit_anchor(str(self.state), self.anchor)
+
+    def test_a_rewritten_chain_of_the_same_length_is_detected(self):
+        self.log.unlink()
+        for number in range(3):
+            governor.audit(str(self.state), {"decision": "deny", "reason": f"forged {number}"})
+        with self.assertRaises(governor.GovernorDenied):
+            security_audit.verify_audit_anchor(str(self.state), self.anchor)
+
+    def test_a_malformed_anchor_is_refused(self):
+        for anchor in (None, {}, {"records": "3", "record_sha256": "x"}, {"records": -1, "record_sha256": None},
+                       {"records": 2, "record_sha256": None}, {**self.anchor, "extra": 1}):
+            with self.subTest(anchor=anchor), self.assertRaises(security_audit.AuditError):
+                security_audit.verify_audit_anchor(str(self.state), anchor)
+
+    def test_an_empty_log_anchors_as_zero(self):
+        empty = private_tmp(self) / "empty"
+        empty.mkdir(mode=0o700)
+        anchor = security_audit.audit_anchor(str(empty))
+        self.assertEqual(anchor, {"records": 0, "record_sha256": None})
+        self.assertEqual(security_audit.verify_audit_anchor(str(empty), anchor), 0)
+
+
+# ---------------------------------------------------------------- the audit itself
+
+HAZARDS = {
+    "engineering_os/adapters.py": "def run(action, payload, ctx):\n    return payload['approval_token']\n",
+    "scripts/release_check.py": ("import subprocess\n\ndef dirty(root):\n"
+                                 "    return subprocess.run(['git', '-C', root, 'status', '--porcelain']).stdout\n\n"
+                                 "def shell(cmd):\n    return subprocess.run(cmd, shell=True)\n"),
+    "engineering_os/store.py": "import os\n\ndef save(path):\n    return os.open(path, os.O_CREAT | os.O_WRONLY, 0o644)\n",
+}
+
+
+def personal_data():
+    """Synthetic personal values, assembled so that this source file does not contain them."""
+    return {"email": "owner.name" + "@" + "gmail.com", "phone": "+966" + "50" + "1234567",
+            "iban": "SA" + "44" + "2000" + "0001234567891234"}
+
+
+class AuditToolTests(unittest.TestCase):
+    def fixture(self, files):
+        root = private_tmp(self) / "repo"
+        for name, text in files.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+        run_git(root, "init", "-q")
+        run_git(root, "add", ".")
+        return root
+
+    def rules(self, root):
+        return {(hit["rule"], hit["location"].rsplit(":", 1)[0]) for hit in security_audit.run(root, probes=False)["findings"]}
+
+    def test_every_seeded_hazard_is_found_by_location_and_never_by_value(self):
+        values = personal_data()
+        files = dict(HAZARDS)
+        files["docs/contact.md"] = f"Mail {values['email']} or call {values['phone']}; account {values['iban']}.\n"
+        files["config.py"] = f"token = '{token()}'\n"
+        root = self.fixture(files)
+        report = security_audit.run(root, probes=False)
+        found = {(hit["rule"], hit["location"].rsplit(":", 1)[0]) for hit in report["findings"]}
+        for expected in (("authority-from-payload", "engineering_os/adapters.py"),
+                         ("git-untrusted-checkout", "scripts/release_check.py"),
+                         ("python-subprocess-shell", "scripts/release_check.py"),
+                         ("private-mode", "engineering_os/store.py"),
+                         ("pii-email", "docs/contact.md"), ("pii-phone", "docs/contact.md"),
+                         ("pii-iban", "docs/contact.md"), ("secret-github-token", "config.py")):
+            self.assertIn(expected, found)
+        text = json.dumps(report)
+        for value in (*values.values(), token()):
+            self.assertNotIn(value, text)
+        self.assertTrue(report["summary"]["open_critical_or_high"])
+        self.assertTrue(all(hit["status"] == "open" for hit in report["findings"]))
+
+    def test_a_clean_tree_has_no_findings(self):
+        root = self.fixture({
+            "engineering_os/adapters.py": "def run(action, payload, ctx):\n    return payload['text']\n",
+            "scripts/release_check.py": ("import subprocess\nGIT_HARDENING = ('-c', 'core.fsmonitor=false')\n\n"
+                                         "def dirty(root):\n    return subprocess.run(['git', *GIT_HARDENING, '-C', root, "
+                                         "'status']).stdout\n"),
+            "engineering_os/store.py": "import os\n\ndef save(path):\n    return os.open(path, os.O_CREAT, 0o600)\n",
+            "docs/contact.md": "Write to someone" + "@" + "example.com; commit as noreply" + "@" + "anthropic.com.\n",
+            "docs/numbers.md": "Run 46067307012, sha 0a05123456789f, offset +0300.\n"})
+        self.assertEqual(security_audit.run(root, probes=False)["findings"], [])
+
+    def test_engine_rules_skip_tests_and_swarm_but_scanner_and_privacy_rules_do_not(self):
+        git_only = ("import subprocess\n\ndef dirty(root):\n"
+                    "    return subprocess.run(['git', '-C', root, 'status']).stdout\n")
+        root = self.fixture({"tests/test_x.py": git_only, "swarm/x.py": git_only,
+                             "tests/test_y.py": HAZARDS["scripts/release_check.py"],
+                             "tests/notes.txt": personal_data()["email"] + "\n"})
+        self.assertEqual(self.rules(root), {("pii-email", "tests/notes.txt"), ("python-subprocess-shell", "tests/test_y.py")})
+
+    def test_a_tracked_symbolic_link_is_not_followed(self):
+        root = self.fixture({"readme.md": "clean\n"})
+        outside = root.parent / "outside.txt"
+        outside.write_text(personal_data()["email"] + "\n")
+        (root / "link.md").symlink_to(outside)
+        run_git(root, "add", "link.md")
+        self.assertEqual(self.rules(root), set())
+
+    def test_reviewed_hits_are_accepted_only_in_their_own_function(self):
+        accepted = "def security_governor(action, payload, ctx):\n    return payload['grant']\n"
+        other = "def memory(action, payload, ctx):\n    return payload['grant']\n"
+        root = self.fixture({"engineering_os/adapters.py": accepted + "\n\n" + other})
+        statuses = {hit["function"]: hit["status"] for hit in security_audit.run(root, probes=False)["findings"]}
+        self.assertEqual(statuses, {"security_governor": "accepted", "memory": "open"})
+
+    def test_a_directory_that_is_not_a_checkout_is_an_error(self):
+        with self.assertRaises(security_audit.AuditError):
+            security_audit.run(private_tmp(self), probes=False)
+        done = subprocess.run([sys.executable, "-m", "engineering_os.security_audit", "--skip-probes", "--root",
+                               str(private_tmp(self))], cwd=ROOT, capture_output=True, text=True, timeout=120)
+        self.assertEqual(done.returncode, 2)
+        self.assertEqual(json.loads(done.stdout)["status"], "error")
+
+    def test_a_probe_that_breaks_reports_its_finding_open(self):
+        def broken(base):
+            raise RuntimeError("probe failed")
+        row = ("SEC-99", "high", "t", "x:y", "r", ("open", "fixed"), broken, "e", "c")
+        with mock.patch.object(security_audit, "FINDINGS", (row,)):
+            finding, = security_audit.registered_findings()
+        self.assertEqual((finding["status"], finding["probe_error"]), ("open", "RuntimeError"))
+
+
+class LiveAuditTests(unittest.TestCase):
+    """The audit of this checkout: measured statuses, determinism and the committed evidence."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.report = security_audit.run(ROOT)
+
+    def by_id(self, report=None):
+        return {row["id"]: row for row in (report or self.report)["findings"]}
+
+    def test_fixed_findings_stay_fixed_and_nothing_critical_or_high_is_open(self):
+        rows = self.by_id()
+        for identifier in ("SEC-01", "SEC-02", "SEC-03", "SEC-04", "SEC-05", "SEC-11"):
+            self.assertEqual(rows[identifier]["status"], "fixed", identifier)
+        for identifier in ("SEC-13", "SEC-14", "SEC-15"):
+            self.assertEqual(rows[identifier]["status"], "held", identifier)
+        self.assertEqual(rows["SEC-06"]["status"], "mitigated")
+        self.assertEqual(self.report["summary"]["open_critical_or_high"], [])
+        self.assertFalse(any("probe_error" in row for row in self.report["findings"]))
+
+    def test_the_report_is_deterministic(self):
+        self.assertEqual(security_audit.canonical(security_audit.run(ROOT)), security_audit.canonical(self.report))
+
+    def test_the_committed_evidence_matches_a_live_run(self):
+        evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
+        live = self.by_id()
+        recorded = {row["id"]: row for row in evidence["findings"] if row["kind"] == "registered"}
+        self.assertEqual(set(recorded), {key for key, row in live.items() if row["kind"] == "registered"})
+        for identifier, row in recorded.items():
+            self.assertEqual((row["status"], row["severity"]), (live[identifier]["status"], live[identifier]["severity"]),
+                             identifier)
+        self.assertEqual(evidence["summary"]["open_critical_or_high"], [])
+        self.assertEqual((evidence["network"], evidence["model_calls"], evidence["simulated"]), (False, 0, False))
+
+    def test_the_evidence_is_public_safe(self):
+        text = EVIDENCE.read_text(encoding="utf-8")
+        for needle in ("/home/", "/tmp/", "/root/", str(ROOT), token()):
+            self.assertNotIn(needle, text)
+        self.assertEqual([], security_audit.privacy_rules("evidence.json", text))
+
+    def test_the_command_line_writes_the_report_and_signals_open_high_findings(self):
+        out = private_tmp(self) / "report.json"
+        done = subprocess.run([sys.executable, "-m", "engineering_os.security_audit", "--skip-probes", "--out", str(out)],
+                              cwd=ROOT, capture_output=True, text=True, timeout=300)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(json.loads(out.read_text())["probes_run"], False)
 
 
 if __name__ == "__main__":
