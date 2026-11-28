@@ -30,7 +30,8 @@ class ContractError(ValueError):
 
 
 def canonical(value):
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    # NaN/Infinity are not JSON: a receipt over them would not round-trip, so refuse them
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
 def sha256(value):
