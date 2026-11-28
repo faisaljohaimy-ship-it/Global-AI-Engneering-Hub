@@ -34,6 +34,8 @@ EXPECTED = {
     "adaptive-scheduler": "L03", "capability-registry": "L04", "layers": "L04", "master-upgrade": "L06",
     "motion-sdk": "L08", "quality-assurance": "L09", "master-release": "L11", "master-audit": "L12", "reasoning": "L13",
     "memory": "L14", "master-build": "L16", "self-healing": "L17", "master-cinematic": "L18", "economics": "L19",
+    # wave 2 (registered by the control-plane integration lane; see tests/test_engine_registry_w2.py)
+    "orchestrator": "L03", "security-audit": "L09", "requirements": "L15", "cinematic-production": "L18",
 }
 GOVERNOR_DEPENDENT = {"security-governor", "quality-assurance"}
 TOKEN = "example-token-value"  # a scanner-recognised placeholder: approval tokens in tests are synthetic
