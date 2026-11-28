@@ -19,6 +19,7 @@ SPDX-License-Identifier: MIT.
 import argparse
 import contextlib
 import datetime
+import errno
 import hashlib
 import importlib
 import importlib.util
@@ -26,6 +27,7 @@ import json
 import os
 import pathlib
 import re
+import stat
 import sys
 import unicodedata
 
@@ -285,23 +287,64 @@ class Memory:
 # -- frozen PR #26 journal (portable backend and import source) -----------------
 
 def _journal_guard(memory):
-    current = memory.root
-    for _ in range(3):
-        if current.is_symlink():
+    """SEC-10: GAIE_HOME, its memory directory and the project directory, where they exist, are real directories the
+    caller owns; GAIE_HOME is not writable by group or others and the two memory directories are mode 0700."""
+    for directory, mask, shown in ((memory.home, 0o022, "$GAIE_HOME"), (memory.root.parent, 0o077, "$GAIE_HOME/memory"),
+                                   (memory.root, 0o077, f"$GAIE_HOME/memory/{memory.project}")):
+        try:
+            info = os.lstat(directory)
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(info.st_mode):
             raise MemoryError_("symlink in memory path refused")
-        current = current.parent
-    if memory.journal.is_symlink():
-        raise MemoryError_("symlink in memory path refused")
+        if not stat.S_ISDIR(info.st_mode):
+            raise MemoryError_(f"{shown} is not a directory; refused")
+        if info.st_uid != os.getuid():
+            raise MemoryError_(f"{shown} is owned by another user; refused")
+        if stat.S_IMODE(info.st_mode) & mask:
+            fix = "go-w" if mask == 0o022 else "700"
+            raise MemoryError_(f"{shown} is open to other users; refused. Fix: chmod {fix} \"{shown}\"")
+
+
+def _journal_open(memory, flags):
+    """SEC-10: the journal as a regular file the caller owns, with one link and no group/other bits. O_NOFOLLOW
+    refuses a symbolic link, O_NONBLOCK keeps a FIFO from blocking the open, and fstat checks the opened file itself.
+    An existing journal that fails a check is refused, never repaired: the message names the fix."""
+    shown = f'"$GAIE_HOME/memory/{memory.project}/{JOURNAL}"'
+    try:
+        descriptor = os.open(memory.journal, flags | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, 0o600)
+    except OSError as error:
+        if error.errno == errno.ELOOP:
+            raise MemoryError_("symlink in memory path refused") from None
+        if error.errno == errno.ENXIO:
+            raise MemoryError_("memory journal is not a regular file; refused") from None
+        raise MemoryError_(f"memory journal cannot be opened ({errno.errorcode.get(error.errno, 'error')})") from None
+    info = os.fstat(descriptor)
+    if not stat.S_ISREG(info.st_mode):
+        problem = "memory journal is not a regular file; refused"
+    elif info.st_uid != os.getuid():
+        problem = "memory journal is owned by another user; refused"
+    elif info.st_nlink != 1:
+        problem = (f"memory journal has {info.st_nlink} links, so an append could write into another file; refused. "
+                   f"Fix: cp {shown} {shown[:-1]}.new\" && mv {shown[:-1]}.new\" {shown}")
+    elif stat.S_IMODE(info.st_mode) & 0o077:
+        problem = f"memory journal is open to other users; refused. Fix: chmod 600 {shown}"
+    else:
+        return descriptor
+    os.close(descriptor)
+    raise MemoryError_(problem)
 
 
 def _journal_rows(memory):
     _journal_guard(memory)
-    if not memory.journal.is_file():
+    if not os.path.lexists(memory.journal):
         return []
-    if memory.journal.stat().st_size > MAX_BYTES:
+    with os.fdopen(_journal_open(memory, os.O_RDONLY), "rb") as stream:
+        data = stream.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
         raise MemoryError_("memory store exceeds its size bound")
     rows, previous = [], None
-    for line in memory.journal.read_text(encoding="utf-8").splitlines():
+    for line in data.decode("utf-8").splitlines():
         try:
             row = json.loads(line)
             body = {key: row[key] for key in FIELDS}
@@ -335,8 +378,7 @@ def _journal_add(memory, kind, title, body, tags, receipts, edges, now):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     memory.root.mkdir(parents=True, exist_ok=True, mode=0o700)
     _journal_guard(memory)
-    descriptor = os.open(memory.journal, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
-    with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
+    with os.fdopen(_journal_open(memory, os.O_WRONLY | os.O_APPEND | os.O_CREAT), "a", encoding="utf-8") as stream:
         stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
         stream.flush()
         os.fsync(stream.fileno())

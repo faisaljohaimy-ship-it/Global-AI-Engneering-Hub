@@ -102,15 +102,15 @@
       "title": "Router workspace probe ran git in a workspace without the hardening flags"
     },
     {
-      "control": "O_NOFOLLOW, 0600 on create, 0700 directories; fix: reuse orchestration._open_private (owner: memory)",
-      "evidence": "probe_legacy_journal",
+      "control": "standard library only: O_NOFOLLOW|O_NONBLOCK open, then fstat of the descriptor: regular file, caller-owned, one link, no group/other bits; GAIE_HOME caller-owned and not writable by others, memory directories caller-owned 0700; reads and appends alike; an existing journal that fails is refused with the fix command, never repaired",
+      "evidence": "tests/test_gaie_memory_journal.py",
       "id": "SEC-10",
       "kind": "registered",
       "location": "engineering_os/gaie_memory.py:_journal_add",
       "rule": "private-state-permissions",
       "severity": "low",
-      "status": "open",
-      "title": "Frozen gaie_memory journal is appended without an owner, mode or hard-link check"
+      "status": "fixed",
+      "title": "Frozen gaie_memory journal was appended without an owner, mode or hard-link check"
     },
     {
       "control": "safe_path requires a regular file",
@@ -264,10 +264,10 @@
     },
     "by_status": {
       "accepted": 6,
-      "fixed": 7,
+      "fixed": 8,
       "held": 4,
       "mitigated": 1,
-      "open": 4
+      "open": 3
     },
     "open_critical_or_high": []
   },

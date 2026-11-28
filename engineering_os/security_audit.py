@@ -25,6 +25,7 @@ Standard library only. SPDX-License-Identifier: MIT.
 import argparse
 import ast
 import contextlib
+import datetime
 import json
 import os
 import pathlib
@@ -529,9 +530,26 @@ def probe_video_output_dir(base):
 
 
 def probe_legacy_journal(base):
-    """True while the frozen gaie_memory journal is appended without an owner/mode/link check."""
-    text = _source("engineering_os/gaie_memory.py")
-    return "os.open(memory.journal" in text and "st_nlink" not in text
+    """True when the portable gaie_memory journal is appended through a hard link to another file, or while it is
+    open to other users. Both journals are planted in caller-owned mode 0700 directories (SEC-10)."""
+    from . import gaie_memory
+    moment = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    written = []
+    for case in ("hard-link", "open-mode"):
+        memory = gaie_memory.Memory("probe", {"GAIE_HOME": str(base / case)})
+        for directory in (memory.home, memory.root.parent, memory.root):
+            directory.mkdir(mode=0o700)
+        planted = base / f"{case}.txt"
+        planted.write_bytes(b"")
+        os.chmod(planted, 0o600 if case == "hard-link" else 0o644)
+        if case == "hard-link":
+            os.link(planted, memory.journal)
+        else:
+            planted = planted.rename(memory.journal)
+        with contextlib.suppress(gaie_memory.MemoryError_):
+            gaie_memory._journal_add(memory, "lesson", "Probe", "Probe entry.", [], [], [], moment)
+        written.append(planted.stat().st_size > 0)
+    return any(written)
 
 
 def linked_worktree(base, *, repository="https://github.com/example/probe.git", branch="claude/probe"):
@@ -647,10 +665,12 @@ FINDINGS = (
      "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or "
      "global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope "
      "refuses configs with includes, URL rewrites, filters or core.hooksPath"),
-    ("SEC-10", "low", "Frozen gaie_memory journal is appended without an owner, mode or hard-link check",
-     "engineering_os/gaie_memory.py:_journal_add", "private-state-permissions", ("open", "held"), probe_legacy_journal,
-     "probe_legacy_journal",
-     "O_NOFOLLOW, 0600 on create, 0700 directories; fix: reuse orchestration._open_private (owner: memory)"),
+    ("SEC-10", "low", "Frozen gaie_memory journal was appended without an owner, mode or hard-link check",
+     "engineering_os/gaie_memory.py:_journal_add", "private-state-permissions", ("open", "fixed"), probe_legacy_journal,
+     "tests/test_gaie_memory_journal.py",
+     "standard library only: O_NOFOLLOW|O_NONBLOCK open, then fstat of the descriptor: regular file, caller-owned, one "
+     "link, no group/other bits; GAIE_HOME caller-owned and not writable by others, memory directories caller-owned "
+     "0700; reads and appends alike; an existing journal that fails is refused with the fix command, never repaired"),
     ("SEC-11", "low", "SDK verify accepted a manifest-named FIFO or device and would block on it",
      "sdk/engineering_sdk.py:safe_path", "unbounded-input", ("open", "fixed"), probe_sdk_fifo,
      "tests/test_security_enterprise.py::GitCheckoutTests.test_fifo_capability_file_is_refused_without_blocking",

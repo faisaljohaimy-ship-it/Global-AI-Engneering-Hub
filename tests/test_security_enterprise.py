@@ -674,6 +674,26 @@ class AuditToolTests(unittest.TestCase):
         self.assertEqual((finding["status"], finding["probe_error"]), ("open", "RuntimeError"))
 
 
+class BehaviouralProbeTests(unittest.TestCase):
+    """Probes run the exploit: a stand-in that only mentions the right words must still be reported open."""
+
+    def probe(self, function):
+        with security_audit._private_tmp() as base:
+            return function(base)
+
+    def test_sec10_probe_measures_the_journal_append(self):
+        from engineering_os import gaie_memory
+        self.assertFalse(self.probe(security_audit.probe_legacy_journal))
+
+        def keyword_only(memory, kind, title, body, tags, receipts, edges, now):
+            """Mentions st_nlink, O_NOFOLLOW and fstat, and checks none of them."""
+            with open(memory.journal, "a", encoding="utf-8") as stream:
+                stream.write("{}\n")
+            return {"status": "stored", "id": None}
+        with mock.patch.object(gaie_memory, "_journal_add", keyword_only):
+            self.assertTrue(self.probe(security_audit.probe_legacy_journal))
+
+
 class LiveAuditTests(unittest.TestCase):
     """The audit of this checkout: measured statuses, determinism and the committed evidence."""
 
@@ -686,7 +706,7 @@ class LiveAuditTests(unittest.TestCase):
 
     def test_fixed_findings_stay_fixed_and_nothing_critical_or_high_is_open(self):
         rows = self.by_id()
-        for identifier in ("SEC-01", "SEC-02", "SEC-03", "SEC-04", "SEC-05", "SEC-11"):
+        for identifier in ("SEC-01", "SEC-02", "SEC-03", "SEC-04", "SEC-05", "SEC-10", "SEC-11"):
             self.assertEqual(rows[identifier]["status"], "fixed", identifier)
         for identifier in ("SEC-13", "SEC-14", "SEC-15"):
             self.assertEqual(rows[identifier]["status"], "held", identifier)
