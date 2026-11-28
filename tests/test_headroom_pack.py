@@ -83,13 +83,16 @@ class HeadroomPackTests(unittest.TestCase):
         self.assertFalse(hublink.verify(self.project, strict=True)['ok'])
 
     def test_hash_locked_closure_has_no_unpinned_requirement_or_extra(self):
-        lines = (ROOT / 'integrations/headroom/requirements.lock').read_text().splitlines()
+        lock = (ROOT / 'integrations/headroom/requirements.lock').read_bytes()
+        self.assertEqual((ROOT / 'integrations/headroom/requirements.txt').read_bytes(), lock,
+                         'Regenerate the monitoring mirror from the reviewed canonical lock')
+        lines = lock.decode('utf-8').splitlines()
         requirements = [line for line in lines if line and not line.startswith('#')]
         self.assertEqual(len(requirements), 68)
         for line in requirements:
             self.assertRegex(line, r'^[a-zA-Z0-9_.-]+==[a-zA-Z0-9_.+-]+ --hash=sha256:[a-f0-9]{64}$')
         self.assertTrue(any(line.startswith('headroom-ai==0.45.0 ') for line in requirements))
-        self.assertEqual(hashlib.sha256((ROOT / 'integrations/headroom/requirements.lock').read_bytes()).hexdigest(),
+        self.assertEqual(hashlib.sha256(lock).hexdigest(),
                          '2bfb5f5ddfb54dc16d98b8d647c7dbf7821b0e14b345f1811e430418d2f29bbb')
 
     @unittest.skipUnless(os.environ.get('HEADROOM_CONTEXT_INTEGRATION') == '1',
