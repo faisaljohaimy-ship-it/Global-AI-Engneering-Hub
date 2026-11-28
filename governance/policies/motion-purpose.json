@@ -234,6 +234,10 @@
       "what": "scan() refuses a native motion without a meaning unless its id is in legacy_ids, and refuses a withdrawn id, so such a motion cannot be registered, proven or exported."
     },
     {
+      "path": "packages/motion-engines/orchestrator.mjs",
+      "what": "recommend() gives the meaning as the first reason, labels a motion without a valid one legacy-unclassified (policyClass), and leaves a row whose meaning is null out of an operational answer unless includeLegacy is set."
+    },
+    {
       "path": "tests/test_motion_policy.py",
       "what": "The real tree passes; each violation is produced on a temporary copy."
     },
@@ -243,7 +247,7 @@
     },
     {
       "path": "packages/motion-engines/test/purpose.test.mjs",
-      "what": "The registry builder refuses what the policy says, on temporary copies."
+      "what": "The registry builder and the orchestrator refuse or label what the policy says, on temporary copies."
     }
   ]
 }

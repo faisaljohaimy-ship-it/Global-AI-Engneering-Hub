@@ -1,6 +1,7 @@
-// The purposeful-motion policy (governance/policies/motion-purpose.json) at its enforcement point
-// in this package: the registry builder refuses a motion that states no digital meaning unless its
-// id is a pinned legacy id. The refusals are provoked on temporary copies; no repository file is edited.
+// The purposeful-motion policy (governance/policies/motion-purpose.json) at its two enforcement
+// points in this package: the registry builder refuses a motion that states no digital meaning
+// unless its id is a pinned legacy id, and the orchestrator offers a motion as purposeful only
+// when it states one. The refusals are provoked on temporary copies; no repository file is edited.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -8,7 +9,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { PURPOSE_POLICY, brief, purposePolicy, scan } from '../tools/build_registry.mjs';
+import { PURPOSE_POLICY, brief, purposePolicy, scan, validMeaning } from '../tools/build_registry.mjs';
+import { purposeOf, recommend } from '../orchestrator.mjs';
 
 const sdk = fileURLToPath(new URL('..', import.meta.url));
 const repo = join(sdk, '..', '..');
@@ -129,4 +131,89 @@ test('the legacy list cannot grow, and nothing is built without the policy', (t)
   result = tree.check();
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /motion-purpose\.json is missing/);
+});
+
+// The orchestrator.
+
+const entry = (overrides = {}) => ({
+  id: 'x-a', name: { en: 'A', ar: 'أ' }, category: { key: 'dashboard', en: 'Dashboards' }, engine: 'canvas2d', kind: 'oneshot', tags: ['kpi'], status: 'operational',
+  controls: { duration: { default: 1200 }, colors: ['#000000', '#111111', '#222222'], camera: {}, input: null },
+  requirements: { gpu: 'none', cost: 'low' }, compatibility: { rtl: 'neutral' }, meaning: null, ...overrides,
+});
+const meaning = { en: 'A service counter updates as requests are completed.', ar: 'عدّاد الخدمة يتحدّث كلما اكتمل طلب.' };
+
+test('a motion is purposeful only when it states a valid meaning in both languages', () => {
+  assert.equal(purposeOf(entry({ meaning })), 'purposeful');
+  const bad = [null, undefined, 'text', [], {}, { en: meaning.en }, { ar: meaning.ar }, { en: ' '.repeat(20), ar: meaning.ar }, { en: meaning.en, ar: '' },
+    { en: meaning.en, ar: 'English only, long enough here.' }, { en: 'too short', ar: meaning.ar }, { en: meaning.en, ar: 'ق'.repeat(241) }, { ...meaning, fr: 'Une phrase assez longue.' }];
+  for (const value of bad) assert.equal(purposeOf(entry({ meaning: value })), 'legacy-unclassified', JSON.stringify(value));
+  // The same shape the registry builder enforces, so the orchestrator cannot call purposeful what the builder would refuse.
+  for (const value of [meaning, ...bad]) assert.equal(purposeOf(entry({ meaning: value })) === 'purposeful', validMeaning(value), JSON.stringify(value));
+  for (const motion of motions) assert.equal(purposeOf(motion), legacy.has(motion.id) ? 'legacy-unclassified' : 'purposeful', motion.id);
+});
+
+test('an operational answer offers only purposeful motions and gives each meaning as a reason', () => {
+  for (const context of [{ goal: 'operational' }, { goal: 'operational', projectType: 'dashboard', audience: 'operator' }, { goal: 'operational', module: 'glass' }, { goal: 'operational', tags: ['glass', 'quantum'] }]) {
+    const picks = recommend(context, { motions, limit: 67 });
+    assert.ok(picks.every((pick) => pick.policyClass === 'purposeful' && !legacy.has(pick.id)), JSON.stringify(context));
+    for (const pick of picks) {
+      const row = motions.find((motion) => motion.id === pick.id);
+      assert.deepEqual(pick.meaning, row.meaning);
+      assert.equal(pick.reasons[0], `means: ${row.meaning.en}`);
+    }
+  }
+  assert.equal(recommend({ goal: 'operational' }, { motions, limit: 67 }).length, 33);
+  assert.deepEqual(recommend({ goal: 'operational', module: 'glass' }, { motions }), [], 'every glass motion is legacy-unclassified');
+  const arabic = recommend({ goal: 'operational', language: 'ar' }, { motions, limit: 3 });
+  assert.ok(arabic.length === 3 && arabic.every((pick) => /^means: .*[\u0600-\u06ff]/.test(pick.reasons[0])));
+});
+
+test('includeLegacy brings the legacy motions back, labelled and ranked below the purposeful ones', () => {
+  const picks = recommend({ goal: 'operational' }, { motions, limit: 67, includeLegacy: true });
+  assert.equal(picks.length, 67);
+  const flagged = picks.filter((pick) => pick.policyClass === 'legacy-unclassified');
+  assert.deepEqual(flagged.map((pick) => pick.id).sort(), [...legacy].sort());
+  for (const pick of flagged) {
+    assert.equal(pick.meaning, null);
+    assert.match(pick.reasons[0], /^no stated digital meaning \(legacy-unclassified\)/);
+    assert.ok(!pick.reasons.some((reason) => reason.startsWith('means:')));
+  }
+  const glass = recommend({ goal: 'operational', module: 'glass' }, { motions, includeLegacy: true });
+  assert.ok(glass.length > 0 && glass.every((pick) => pick.policyClass === 'legacy-unclassified'));
+  // The same motion, with and without a stated meaning: the purposeful one always comes first.
+  const pair = recommend({ goal: 'operational' }, { motions: [entry({ id: 'x-legacy' }), entry({ id: 'x-purposeful', meaning })], includeLegacy: true });
+  assert.deepEqual(pair.map((pick) => pick.id), ['x-purposeful', 'x-legacy']);
+  assert.ok(pair[0].score - pair[1].score >= 6);
+});
+
+test('outside an operational goal a legacy motion is still offered, never silently', () => {
+  for (const context of [{}, { goal: 'cinematic', projectType: 'film' }]) {
+    const picks = recommend(context, { motions, limit: 67 });
+    assert.equal(picks.length, 67);
+    for (const pick of picks) {
+      assert.equal(pick.policyClass, legacy.has(pick.id) ? 'legacy-unclassified' : 'purposeful');
+      assert.match(pick.reasons[0], legacy.has(pick.id) ? /^no stated digital meaning/ : /^means: /);
+    }
+  }
+  // includeLegacy changes nothing here: it only lifts the operational exclusion.
+  assert.deepEqual(recommend({ goal: 'cinematic' }, { motions, includeLegacy: true }), recommend({ goal: 'cinematic' }, { motions }));
+});
+
+test('a row with no meaning field predates the field: answered as before, labelled; a null meaning is excluded', () => {
+  const bare = (overrides) => {
+    const row = entry(overrides);
+    delete row.meaning;
+    return row;
+  };
+  const old = [bare({ id: 'x-one' }), bare({ id: 'x-two', requirements: { gpu: 'webgl2', cost: 'high' } })];
+  const picks = recommend({ goal: 'operational' }, { motions: old });
+  assert.deepEqual(picks.map((pick) => pick.id), ['x-one', 'x-two']);
+  assert.ok(picks.every((pick) => pick.policyClass === 'legacy-unclassified' && pick.meaning === null && /^no stated digital meaning/.test(pick.reasons[0])));
+  // A registry row written by the builder always has the key: null means pinned legacy, so it needs includeLegacy.
+  const rows = [entry({ id: 'x-null' }), entry({ id: 'x-three', meaning })];
+  assert.deepEqual(recommend({ goal: 'operational' }, { motions: rows }).map((pick) => pick.id), ['x-three']);
+  assert.deepEqual(recommend({ goal: 'operational' }, { motions: [entry({ id: 'x-null' })] }), [], 'no fallback when nothing purposeful is left');
+  assert.equal(recommend({ goal: 'operational' }, { motions: rows, includeLegacy: true }).length, 2);
+  // Filtering the real registry first does not bring a legacy motion back.
+  assert.deepEqual(recommend({ goal: 'operational' }, { motions: motions.filter((motion) => legacy.has(motion.id)) }), []);
 });
