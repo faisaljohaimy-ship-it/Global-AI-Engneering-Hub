@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>إدارة المهام</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header>
+    <img src="/static/logo.svg" alt="شعار إدارة المهام" width="48" height="48">
+    <h1>إدارة المهام</h1>
+  </header>
+  <main>
+    <form method="post" action="/api/tasks">
+      <input id="title" name="title" type="text">
+      <select id="priority" name="priority">
+        <option value="low">منخفضة</option>
+        <option value="medium" selected>متوسطة</option>
+        <option value="high">عالية</option>
+      </select>
+      <button type="submit">إضافة مهمة</button>
+    </form>
+    <p><a href="/api/tasks">كل المهام</a></p>
+  </main>
+</body>
+</html>
