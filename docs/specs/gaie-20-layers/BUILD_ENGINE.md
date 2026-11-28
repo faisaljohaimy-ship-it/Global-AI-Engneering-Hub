@@ -110,9 +110,14 @@ same-origin request. A many-to-many link belongs to its source record: adding on
 `:own` ownership rule and the same CSRF and same-origin checks as a PATCH/DELETE of the
 record itself. A sub-resource read (children, links, progress) is authorized like a GET
 of the parent record (404 when the role cannot read it, `read:own` included) and returns
-only children, link targets and counts the role can read directly. When the spec says users "see only <entity> they belong to", roles
-without `*` see only those records (via the many-to-many link to the principal entity —
-the entity with a required unique e-mail) and their children. CSP `default-src 'self'`,
+only children, link targets and counts the role can read directly. When the spec says
+users "see only <entity> they belong to", roles without `*` see only those records (via
+the many-to-many link to the principal entity — the entity with a required unique e-mail)
+and records whose references lead to them, directly or through other entities (a comment
+on a task of a visible project): at least one such reference must be set and every one
+that is set must point to a visible record. A model in which one entity reaches the
+scoped entity through more than 32 reference chains is refused (`UnsupportedSpec`).
+CSP `default-src 'self'`,
 `frame-ancestors 'none'`, nosniff, DENY, no-referrer, COOP/CORP; body limit 64 KiB;
 loopback bind unless `--allow-network`; no default account.
 

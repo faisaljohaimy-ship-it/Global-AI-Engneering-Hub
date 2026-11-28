@@ -125,28 +125,67 @@ def rollback(connection, directory=MIGRATIONS, steps=1):
 # -- visibility ----------------------------------------------------------------
 
 class Scope:
-    """Rows visible to one account: everything (admin) or only scoped records."""
+    """Rows visible to one account: everything (admin) or only scoped records.
+
+    Scoping follows the ownership chain: a record of the scoped entity is visible when
+    the account's principal is linked to it; any other entity whose references lead to
+    the scoped entity (directly or through other entities, e.g. Comment -> Task ->
+    Project) is visible only when at least one of those references is set and every one
+    that is set points to a visible record. Entities that do not lead to the scoped
+    entity are not restricted by scoping.
+    """
 
     def __init__(self, schema, account=None, principal_id=None, own=False):
         self.schema, self.account, self.principal_id, self.own = schema, account, principal_id, own
         config = schema.auth.get("scoping")
         self.limited = bool(config) and account is not None and "*" not in schema.permissions(account["role"])
         self.config = config
+        self.leads = set()
+        if self.limited:
+            self.leads.add(config["entity"])
+            grew = True
+            while grew:
+                grew = False
+                for entity in schema.entities:
+                    if entity.name not in self.leads and any(ref["entity"] in self.leads for ref in entity.references):
+                        self.leads.add(entity.name)
+                        grew = True
+
+    def _scoped(self, entity, path):
+        """(condition, params) when `entity` leads to the scoped entity, else None. `path`
+        holds the entities already on the chain, so reference cycles end there."""
+        if entity.name == self.config["entity"]:
+            members = ("SELECT " + ident("source_id") + " FROM " + ident(self.config["link_table"]) + " WHERE "
+                       + ident("target_id") + " = ?")
+            return ident("id") + " IN (" + members + ")", [self.principal_id or 0]
+        parts, params, columns, required = [], [], [], False
+        for ref in entity.references:
+            parent = self.schema.by_name[ref["entity"]]
+            if parent.name in path or parent.name not in self.leads:
+                continue
+            found = self._scoped(parent, path | {entity.name})
+            if found is None:
+                continue
+            column = ident(ref["field"])
+            inside = column + " IN (SELECT " + ident("id") + " FROM " + ident(parent.table) + " WHERE " + found[0] + ")"
+            parts.append(inside if ref.get("required") else "(" + column + " IS NULL OR " + inside + ")")
+            params += found[1]
+            columns.append(column)
+            required = required or bool(ref.get("required"))
+        if not parts:
+            return None
+        if not required:
+            parts.insert(0, "(" + " OR ".join(column + " IS NOT NULL" for column in columns) + ")")
+        return " AND ".join(parts), params
 
     def clause(self, entity):
         """SQL condition (and params) restricting `entity` rows, or ('', [])."""
         parts, params = [], []
         if self.limited:
-            members = ("SELECT " + ident("source_id") + " FROM " + ident(self.config["link_table"]) + " WHERE "
-                       + ident("target_id") + " = ?")
-            if entity.name == self.config["entity"]:
-                parts.append(ident("id") + " IN (" + members + ")")
-                params.append(self.principal_id or 0)
-            else:
-                for ref in entity.references:
-                    if ref["entity"] == self.config["entity"]:
-                        parts.append(ident(ref["field"]) + " IN (" + members + ")")
-                        params.append(self.principal_id or 0)
+            found = self._scoped(entity, frozenset())
+            if found is not None:
+                parts.append(found[0])
+                params += found[1]
         if self.own and self.account is not None:
             parts.append(ident("created_by") + " = ?")
             params.append(self.account["id"])

@@ -509,6 +509,30 @@ def _scoping(spec, model):
             continue
         link = next((l for l in entity["links"] if l["entity"] == principal["entity"]), None)
         if link is not None:
+            # The generated row filter follows every reference chain that leads to the scoped
+            # entity (app/db.py Scope); refuse a model whose filter would grow without bound.
+            by_name = {item["name"]: item for item in model["entities"]}
+            leads, grew = {entity["name"]}, True
+            while grew:
+                grew = False
+                for item in model["entities"]:
+                    if item["name"] not in leads and any(ref["entity"] in leads for ref in item["references"]):
+                        leads.add(item["name"])
+                        grew = True
+
+            def chains(name, path):
+                if name == entity["name"]:
+                    return 1
+                total = 0
+                for ref in by_name[name]["references"]:
+                    if ref["entity"] in leads and ref["entity"] not in path and total <= 32:
+                        total += chains(ref["entity"], path | {name})
+                return total
+
+            for item in model["entities"]:
+                _need(chains(item["name"], frozenset()) <= 32,
+                      f"scoping on {entity['name']}: {item['name']} reaches it through more than 32 reference chains; "
+                      "the generated row filter would be unbounded; simplify the relations", UnsupportedSpec)
             return {"entity": entity["name"], "link_table": link["link_table"], "statement": text}
     return None
 

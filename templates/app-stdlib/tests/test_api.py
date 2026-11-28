@@ -196,6 +196,24 @@ class ApiTests(unittest.TestCase):
         """Ids among `records` that GET /api/<collection>/{id} returns to this session."""
         return {row["id"] for row in records if self.call("GET", self.path(entity, row["id"]), session=session)[0] == 200}
 
+    def _leads_to(self, entity, root, seen=frozenset()):
+        """True when a chain of references leads from `entity` to the entity `root`."""
+        return entity is root or any(self._leads_to(SCHEMA.by_name[ref["entity"]], root, seen | {entity.name})
+                                     for ref in entity.references if ref["entity"] not in seen | {entity.name}
+                                     or ref["entity"] == root.name)
+
+    def _under(self, entity, root, root_id, n, seen=frozenset()):
+        """A record of `entity` whose every reference chain leading to `root` ends at record `root_id`
+        (for example a comment on a task of that project); other required parents are fresh."""
+        refs = {}
+        for ref in entity.references:
+            parent = SCHEMA.by_name[ref["entity"]]
+            if parent is root:
+                refs[ref["field"]] = root_id
+            elif parent.name not in seen | {entity.name} and self._leads_to(parent, root):
+                refs[ref["field"]] = self._under(parent, root, root_id, n, seen | {entity.name})["id"]
+        return self.server.create(entity, n, refs)
+
     def _non_admin_roles(self):
         return [(role, frozenset(perms)) for role, perms in sorted(SCHEMA.auth["roles"].items()) if "*" not in perms]
 
@@ -396,12 +414,10 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call("GET", self.path(scoped, theirs["id"]), session=session)[0], 404)
         self.assertEqual(self.call("GET", self.path(scoped, mine["id"]), session=session)[0], 200)
         for child in SCHEMA.entities:
-            ref = next((r for r in child.references if r["entity"] == scoped.name), None)
-            if ref is None:
+            if child is scoped or not self._leads_to(child, scoped):
                 continue
-            refs = self.parents(child)
-            visible = self.server.create(child, 1, {**refs, ref["field"]: mine["id"]})
-            hidden = self.server.create(child, 2, {**refs, ref["field"]: theirs["id"]})
+            visible = self._under(child, scoped, mine["id"], 1)
+            hidden = self._under(child, scoped, theirs["id"], 2)
             status, _, page = self.call("GET", self.path(child) + f"?limit={LIMITS['max_page_size']}", session=session)
             ids = {row["id"] for row in page["items"]}
             self.assertIn(visible["id"], ids)

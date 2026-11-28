@@ -205,5 +205,77 @@ class ReadOwnSubResourceTests(GeneratedApp):
         self.assertEqual(result["own_members"], [200, []], "the member record was created by the admin, not by bob")
 
 
+COMMENTS_COMMAND = "ابنِ نظامًا جديدًا لإدارة المشاريع مع تعليقات على المهام"
+
+
+class TransitiveScopingTests(GeneratedApp):
+    """W2-BU-03: scoping reaches entities two hops away (Comment -> Task -> Project)."""
+
+    @classmethod
+    def spec(cls):
+        spec = requirements.parse(COMMENTS_COMMAND)
+        spec["slug"] = "project-management"
+        return spec
+
+    def test_the_real_spec_has_a_two_hop_entity(self):
+        schema = json.loads((self.app / "app/schema.json").read_text(encoding="utf-8"))
+        comment = next(e for e in schema["entities"] if e["name"] == "Comment")
+        self.assertEqual(schema["auth"]["scoping"]["entity"], "Project")
+        self.assertIn("Task", {ref["entity"] for ref in comment["references"]})
+        self.assertNotIn("Project", {ref["entity"] for ref in comment["references"]})
+
+    def test_member_sees_only_comments_on_tasks_of_its_projects(self):
+        result = self.scenario("""
+            bob = server.login("member", email="bob@example.invalid")
+            me = new("Member", 1, email="bob@example.invalid")
+            author = new("Member", 2, email="exec@example.invalid")
+            mine, other = new("Project", 1), new("Project", 2)
+            assert status("POST", "/api/projects/%d/members" % mine["id"], {"member_id": me["id"]}) == 201
+            seen_task = new("Task", 1, project_id=mine["id"])
+            hidden_task = new("Task", 2, project_id=other["id"])
+            seen = new("Comment", 1, task_id=seen_task["id"], author_id=author["id"])
+            hidden = new("Comment", 2, task_id=hidden_task["id"], author_id=author["id"])
+            result["projects"] = ids("GET", "/api/projects", bob)
+            result["tasks"] = ids("GET", "/api/tasks", bob)
+            result["comments"] = ids("GET", "/api/comments", bob)
+            result["hidden_comment"] = status("GET", "/api/comments/%d" % hidden["id"], who=bob)
+            result["seen_comment"] = status("GET", "/api/comments/%d" % seen["id"], who=bob)
+            result["hidden_task_comments"] = status("GET", "/api/tasks/%d/comments" % hidden_task["id"], who=bob)
+            body = sample(SCHEMA.by_name["Comment"], 3, {"task_id": hidden_task["id"], "author_id": me["id"]})
+            result["comment_on_hidden_task"] = refusal("POST", "/api/comments", body, bob)
+            result["patch_hidden_comment"] = status("PATCH", "/api/comments/%d" % hidden["id"], {"body": "x"}, bob)
+            result["admin_comments"] = ids("GET", "/api/comments")
+            result["want"] = {"mine": mine["id"], "task": seen_task["id"], "seen": seen["id"], "hidden": hidden["id"]}
+        """)
+        want = result["want"]
+        self.assertEqual(result["projects"], [200, [want["mine"]]])
+        self.assertEqual(result["tasks"], [200, [want["task"]]])
+        self.assertEqual(result["comments"], [200, [want["seen"]]])
+        self.assertEqual((result["hidden_comment"], result["seen_comment"], result["hidden_task_comments"]), (404, 200, 404))
+        self.assertEqual(result["comment_on_hidden_task"], [400, "validation_failed"])
+        self.assertEqual(result["patch_hidden_comment"], 404)
+        self.assertEqual(result["admin_comments"], [200, sorted([want["seen"], want["hidden"]])])
+
+
+class ScopingBoundTests(unittest.TestCase):
+    """W2-BU-03: a model whose scoping filter could not be bounded is refused at build time."""
+
+    def test_too_many_reference_chains_are_refused(self):
+        spec = requirements.parse(_FIXTURE.COMMAND)
+        parent = "Project"
+        for n in range(6):  # Layer<n> reaches Project through 2 ** (n + 1) chains
+            name = f"Layer{n}"
+            spec["entities"].append({"name": name, "fields": [{"name": "title", "type": "text", "required": True,
+                                                               "max": 100}]})
+            for side in ("first", "second"):
+                spec["relations"].append({"from": name, "to": parent, "kind": "many-to-one", "required": False,
+                                          "field": f"{side}_{parent.lower()}"})
+            parent = name
+        with self.assertRaises(engine.UnsupportedSpec) as refused:
+            engine.derive_model(engine.validate_spec(spec))
+        self.assertIn("reference chains", str(refused.exception))
+        self.assertTrue(engine.derive_model(engine.validate_spec(requirements.parse(COMMENTS_COMMAND)))["auth"]["scoping"])
+
+
 if __name__ == "__main__":
     unittest.main()
