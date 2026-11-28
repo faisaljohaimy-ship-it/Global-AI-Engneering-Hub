@@ -959,22 +959,26 @@ class SandboxReached(Exception):
 
 # Actions that declare exec:sandbox but do not run their code through governor.sandbox_run yet, with the reason.
 EXEC_SANDBOX_EXCEPTIONS = {
-    ("layers", "verify"): "host-dependent (SEC-12 fixed on the full tier): layers._run reaches governor.sandbox_run "
-                          "only where the full tier exists; elsewhere, and for layers.PROCESS_ONLY_TESTS, it runs a "
-                          "scrubbed subprocess, so no payload shows it reaching the sandbox on every host",
+    ("layers", "verify"): "host-dependent (SEC-12 mitigated): layers._run reaches governor.sandbox_run only where the "
+                          "full tier exists; elsewhere it runs a scrubbed subprocess, and so does every file on "
+                          "layers.PROCESS_ONLY_TESTS while its bytes and executed fixtures match their reviewed SHA-256 "
+                          "(an edited one runs strict), so no payload shows it reaching the sandbox on every host",
     ("context-intelligence", "optimize"): "tools/headroom_context.py runs the local SDK in a plain subprocess with a "
                                          "private environment, not in the governor sandbox",
     ("master-build", "build"): "SEC-16 open: build_engine.run_suites runs the generated tests without the OS sandbox",
-    ("master-upgrade", "upgrade"): "host-dependent (SEC-07 class): upgrade_engine runs the target's tests through "
-                                   "detectors.Sandbox, which reaches governor.sandbox_run on the full tier and refuses "
-                                   "elsewhere unless process-only is chosen explicitly",
+    ("master-upgrade", "upgrade"): "host-dependent (SEC-07 fixed on the full tier): upgrade_engine runs the target's "
+                                   "tests through detectors.Sandbox, which reaches governor.sandbox_run on the full tier "
+                                   "and refuses elsewhere unless process-only is chosen explicitly (a scrubbed subprocess "
+                                   "under a child subreaper that ends every helper the run leaves)",
     ("self-healing", "heal"): "host-dependent (SEC-07 fixed on the full tier): heal runs the target through "
                               "detectors.Sandbox, which reaches governor.sandbox_run on the full tier and refuses "
-                              "elsewhere unless process-only is chosen explicitly",
+                              "elsewhere unless process-only is chosen explicitly (a scrubbed subprocess under a child "
+                              "subreaper that ends every helper the run leaves)",
     ("security-audit", "audit"): "runs each probe's planted program through the path it measures: detectors.Sandbox "
-                                 "and layers._run reach governor.sandbox_run on the full tier, build_engine.run_suites "
-                                 "and the video pipeline do not (SEC-16, SEC-17 open); a probe catches every exception, "
-                                 "so a payload cannot show the sandbox being reached",
+                                 "and layers._run reach governor.sandbox_run on the full tier (the SEC-12 probe also runs "
+                                 "one pinned exception as a scrubbed subprocess), build_engine.run_suites and the video "
+                                 "pipeline do not (SEC-16, SEC-17 open); a probe catches every exception, so a payload "
+                                 "cannot show the sandbox being reached",
     ("master-cinematic", "probe"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
     ("master-cinematic", "render"): "SEC-17 open: the video pipeline starts node and ffmpeg without the OS sandbox",
     ("master-cinematic", "qa"): "SEC-17 open: the video pipeline starts ffprobe and ffmpeg without the OS sandbox",
@@ -1094,6 +1098,21 @@ class LiveAuditTests(unittest.TestCase):
         self.assertEqual(rows["SEC-06"]["status"], "mitigated")
         self.assertEqual(self.report["summary"]["open_critical_or_high"], [])
         self.assertFalse(any("probe_error" in row for row in self.report["findings"]))
+
+    def test_exec_sandbox_exception_reasons_state_the_measured_status(self):
+        """recheck-security item 6: a reason that names a finding's status ("SEC-16 open", "SEC-12 mitigated")
+        states what this audit measures (host-dependent findings on a full-tier host only)."""
+        rows = self.by_id()
+        claims = 0
+        for key, reason in EXEC_SANDBOX_EXCEPTIONS.items():
+            for ids, status in re.findall(r"((?:SEC-\d+, )*SEC-\d+) (open|fixed|mitigated|held|accepted)\b", reason):
+                for identifier in re.findall(r"SEC-\d+", ids):
+                    if rows[identifier].get("host_dependent") and self.report["sandbox_tier"] != "full":
+                        continue
+                    claims += 1
+                    self.assertEqual(rows[identifier]["status"], status, (key, identifier, reason))
+        if self.report["sandbox_tier"] == "full":
+            self.assertGreaterEqual(claims, 10)
 
     def test_the_report_is_deterministic(self):
         self.assertEqual(security_audit.canonical(security_audit.run(ROOT)), security_audit.canonical(self.report))
