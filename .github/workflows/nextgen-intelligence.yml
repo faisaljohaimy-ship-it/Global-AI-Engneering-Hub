@@ -36,6 +36,22 @@ jobs:
           motion-library/chromium-stack/node_modules/.bin/playwright install --with-deps chromium --only-shell
       - name: Require fresh real renders in desktop and mobile viewports
         run: node tests/test_nextgen_camera_browser.mjs
+      - name: Re-render one native engine motion per engine family against its recorded signature
+        env:
+          MOTION_PLAYWRIGHT_PACKAGE: ${{ github.workspace }}/motion-library/chromium-stack
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap tests/test_native_motions_browser.mjs | tee "$RUNNER_TEMP/native-motions-browser.tap"
+          # node --test exits 0 when this test skips for want of Playwright; here a skip is a failure.
+          grep -qx '# skipped 0' "$RUNNER_TEMP/native-motions-browser.tap"
+      - name: Prove every digital show scene in Chromium
+        env:
+          MOTION_PLAYWRIGHT_PACKAGE: ${{ github.workspace }}/motion-library/chromium-stack
+        run: |
+          set -euo pipefail
+          node tests/test_digital_show_scenes.mjs | tee "$RUNNER_TEMP/digital-show-scenes.json"
+          # The script prints status "skipped" and exits 0 without Playwright; here only "passed" counts.
+          node --input-type=module -e "import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';assert.equal(JSON.parse(readFileSync(process.argv[1],'utf8').trim().split('\n').at(-1)).status,'passed')" "$RUNNER_TEMP/digital-show-scenes.json"
       - name: Preserve this run's source-bound proof without promoting registry claims
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
