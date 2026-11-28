@@ -20,6 +20,9 @@ speed up, audit, fix or release a project, or to upgrade its videos, run
 `python3 hub.py route "<the owner's words>"` and follow the skill it names under
 `skills/gaie-*` (see `docs/GAIE_FACTORY.md`). A `needs-clarification` result means
 ask; never guess a project or repository. A route is a plan, not execution evidence.
+Staff every build and upgrade from `governance/policies/agent-team.json`
+(`python3 -m engineering_os.agent_team show --intent build|upgrade`): the twenty roles, each
+staffed or omitted with a reason, waves no larger than `effective`; a reviewer never reviews its own work.
 
 Before a large task, and whenever a command prints a lot or code must be explored, read
 `skills/ultra-context-optimization/SKILL.md`: which tool to use for which kind of content,

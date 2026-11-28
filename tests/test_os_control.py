@@ -3,6 +3,7 @@ import copy
 import hashlib
 import pathlib
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -30,6 +31,24 @@ class ControlTests(unittest.TestCase):
         self.assertTrue(all(not r['operational'] and not r['installed'] for r in tools if r['state']=='DISCOVERED'))
         self.assertTrue(control.capabilities('spec-kit','DISCOVERED'))
         with self.assertRaises(ValueError):control.capabilities(state='RUNNING')
+
+    def test_listing_values_are_labelled_recorded_not_host_detected(self):
+        rows=control.capabilities()
+        self.assertTrue(all(r['host_detected'] is False and r['values']=='recorded-catalogue' for r in rows))
+        playwright=next(r for r in rows if r['id']=='microsoft/playwright')
+        if playwright['installed']:
+            self.assertIn('not detected on this host',playwright['installed_meaning'])
+        self.assertTrue(all('installed_meaning' not in r for r in rows if not r.get('installed')))
+        # The labels are added after the query, so they never make a query match every row.
+        for query in ('recorded-catalogue','host_detected'):
+            self.assertEqual(control.capabilities(query),[])
+        motions=control.motions()
+        self.assertEqual((motions['host_detected'],motions['values']),(False,'recorded-catalogue'))
+        root=pathlib.Path(__file__).resolve().parents[1]
+        for command,phrase in (('capabilities','not detected on this host'),('motions','not re-run on this host')):
+            done=subprocess.run([sys.executable,'hub.py',command,'--help'],capture_output=True,text=True,cwd=root,timeout=60)
+            self.assertEqual(done.returncode,0,done.stderr)
+            self.assertIn(phrase,' '.join(done.stdout.split()))
 
     def test_runtime_claim_withdraws_when_receipt_inputs_change(self):
         from unittest import mock

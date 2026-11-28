@@ -37,6 +37,22 @@ except ImportError:  # an older vendored router can plan, but cannot authorize w
     else:
         _workspace_policy = None
 
+try:
+    from . import master_docs as _master_docs
+except ImportError:  # a vendored router without the loader can plan, but its write routes stay blocked
+    if not __package__ and pathlib.Path(__file__).resolve().with_name("master_docs.py").is_file():
+        import master_docs as _master_docs
+    else:
+        _master_docs = None
+
+try:
+    from . import agent_team as _agent_team
+except ImportError:  # vendored: the loader ships beside this file; an older install routes without a team block
+    if not __package__ and pathlib.Path(__file__).resolve().with_name("agent_team.py").is_file():
+        import agent_team as _agent_team
+    else:
+        _agent_team = None
+
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 MAX_TEXT = 2000
@@ -592,6 +608,23 @@ def _registry_check(row):
         "reachability": "not checked by the registry; the executing agent verifies access in its environment"}
 
 
+def _prompt_pin(prompt):
+    """(version, sha256, blocker) of the pinned MASTER document a route names; blocker is None when current."""
+    if not prompt:
+        return None, None, None
+    if _master_docs is None:
+        return None, None, "The MASTER document loader is unavailable. Open a current engineering pack before editing."
+    try:
+        documents = _master_docs.load_manifest()["documents"]
+        names = [name for name, record in documents.items() if record["path"] == prompt]
+        if not names:
+            return None, None, f"{prompt} has no entry in the MASTER manifest, so its bytes cannot be verified."
+        _, record = _master_docs.load(names[0])
+    except (_master_docs.MasterDocsError, OSError) as error:
+        return None, None, f"MASTER document refused: {error}. Restore the pinned bytes or pin an approved version."
+    return record["version"], record["sha256"], None
+
+
 def _verified_write_scope(intent, path, targets):
     if path is None:
         return None, "No workspace was selected. Provide an isolated workspace with --workspace before editing."
@@ -608,9 +641,50 @@ def _verified_write_scope(intent, path, targets):
         return None, str(error)
 
 
+def _team_block(intent):
+    """The standing team of an intent from the central agent-team policy (governance/policies/agent-team.json).
+
+    No host-specific number goes into the plan: the live wave size is resolved on the host that runs it."""
+    if _agent_team is None:
+        return {"team_policy": {"status": "not-installed", "file": "agent-team.json"}}
+    try:
+        team = _agent_team.team_for(intent)
+    except _agent_team.PolicyNotInstalled:
+        return {"team_policy": {"status": "not-installed", "file": "agent-team.json"}}
+    except _agent_team.NoStandingTeam as error:
+        return {"team_policy": {"status": "no-roster", "reason": str(error)}}
+    except _agent_team.AgentTeamError as error:
+        raise RouteError(f"agent-team policy refused: {error}") from None
+    resolve = (f"python3 -m engineering_os.agent_team show --intent {intent}" if __package__
+               else f"python3 agent_team.py show --intent {intent} (beside gaie_router.py)")
+    return {"team": team["roles"], "omitted": team["omitted"], "mandatory": team["mandatory"],
+            "team_policy": {"status": "loaded", "version": team["policy_version"], "sha256": team["policy_sha256"]},
+            "concurrency": {"session_limit": team["concurrency"]["session_limit"], "rule": team["concurrency"]["rule"],
+                            "resolve": resolve}}
+
+
+def _registry_roles():
+    """Role ids of the registry the agent-team loader reads; empty (so every team is refused) when it cannot."""
+    if _agent_team is None:
+        return set()
+    try:
+        return {role["id"] for role in _agent_team.load_registry()["roles"]}
+    except _agent_team.AgentTeamError:
+        return set()
+
+
 def _enforce(plan):
     """Re-check the hard rules on the finished plan (defence in depth)."""
     _guard(plan["executable_by_route"] is False, "a route never executes")
+    agents = plan.get("agents") or {}
+    if "team" in agents:
+        team, maximum = agents["team"], agents.get("maximum")
+        _guard(isinstance(team, list) and all(isinstance(role, str) for role in team)
+               and isinstance(maximum, int) and 0 < len(team) <= maximum and len(set(team)) == len(team),
+               "a team never exceeds the session maximum and never repeats a role")
+        _guard(set(team) <= _registry_roles(), "a team has only registry roles")
+        _guard((agents.get("concurrency") or {}).get("session_limit") == maximum,
+               "the team policy and the route maximum agree")
     _guard(plan["write_allowed"] is False, "a route never authorizes writes")
     templates = [t["grant_template"] for t in plan["targets"] if t["grant_template"] is not None]
     if plan["grant_template"] is not None:
@@ -711,6 +785,9 @@ def route(text, *, environ=None, workspace_path=None):
             entry["workspace_matches"] = verified is not None
         plan_targets.append(entry)
     blockers = [workspace_problem] if workspace_problem else []
+    prompt_version, prompt_sha256, prompt_problem = _prompt_pin(engine["prompt"])
+    if prompt_problem:
+        blockers.append(prompt_problem)
     if intent == "release":
         blockers += [f"{row['id']}: no deployment target is registered in the private registry; it is never guessed."
                      for row in targets if not row.get("deployment_target_registered")]
@@ -724,6 +801,7 @@ def route(text, *, environ=None, workspace_path=None):
         "language": "ar" if _ARABIC.search(text) else "en",
         "intent": intent, "verb": verb, "engine": engine["engine"], "engine_id": spec["engine_id"],
         "skill": engine["skill"], "prompt": engine["prompt"],
+        "prompt_version": prompt_version, "prompt_sha256": prompt_sha256,
         "scope": engine.get("scope") or ("comprehensive" if full else "focused" if focus else "standard"),
         "focus": focus, "prohibited": prohibited, "target_scope": scope, "targets": plan_targets,
         "project": single["id"] if single else None,
@@ -747,7 +825,8 @@ def route(text, *, environ=None, workspace_path=None):
         "complexity": "large" if full or scope == "all-registered-projects" else "small" if intent == "release" else "medium",
         "agents": {"workstreams": streams, "implementers": implementers, "independent_verifiers": 1,
                    "recommended_total": implementers + 1, "maximum": rules["max_agents"], "per_target": scope == "all-registered-projects",
-                   "rule": "Use fewer when workstreams are not independent or a smaller team is faster; the verifier never reviews its own work."},
+                   "rule": "Use fewer when workstreams are not independent or a smaller team is faster; the verifier never reviews its own work.",
+                   **_team_block(intent)},
         "skills": _skills([engine["skill"], *rules["supporting_skills"][intent]]),
         "hub_commands": rules["hub_commands"][intent],
         "budget": {"additional_cost": 0, "paid_services": "separate owner approval required",

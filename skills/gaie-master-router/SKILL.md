@@ -24,8 +24,14 @@ Turn the owner's sentence into a verified plan before doing any work.
    separate host grant before writing.
    For "all projects", prepare an independent branch and plan per project; one
    project's failure or missing access never blocks or touches another.
-5. Use the plan's workstreams as an upper bound for agents; use fewer when work is
-   not independent. Skills marked `available: false` are not installed here: say so.
+5. For a build or upgrade, staff `agents.team`, the standing team of
+   `governance/policies/agent-team.json`: each role works its items through the
+   `gaie-specialist` agent or is recorded in `omitted` with a reason. Run waves no larger
+   than `effective` from `agent_team show --intent <intent>` and never more than
+   `agents.maximum` at once. When `agents.team_policy.status` is `not-installed`, say so.
+   Other intents and a missing policy use the workstreams as an upper bound; use fewer
+   when work is not independent. Skills marked `available: false` are not installed
+   here: say so.
 6. Keep this routing step free of memory writes and checkpoints. A separately
    authorized development phase may update state within its own grant.
 

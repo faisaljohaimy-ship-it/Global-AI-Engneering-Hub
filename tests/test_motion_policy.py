@@ -676,5 +676,17 @@ class Violations(unittest.TestCase):
         self.assertEqual(codes(tree.validate()), [("registry-stale", "native-engine", PURPOSEFUL)])
 
 
+class Wiring(unittest.TestCase):
+    """The texts agents read before choosing motion name the policy (drift guard)."""
+
+    def test_skills_and_build_prompt_name_the_policy(self):
+        for path in ("skills/digital-motion/SKILL.md", "skills/universal-motion/SKILL.md", "skills/gaie-cinematic/SKILL.md",
+                     "prompts/MASTER_BUILD.md", "docs/specs/gaie-20-layers/NATIVE_MOTIONS.md"):
+            with self.subTest(path=path):
+                self.assertIn("governance/policies/motion-purpose.json", (ROOT / path).read_text(encoding="utf-8"))
+        mirror = ROOT / ".claude/skills/gaie-cinematic/SKILL.md"
+        self.assertEqual(mirror.read_bytes(), (ROOT / "skills/gaie-cinematic/SKILL.md").read_bytes())
+
+
 if __name__ == "__main__":
     unittest.main()

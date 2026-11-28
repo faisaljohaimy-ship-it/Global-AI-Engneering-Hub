@@ -174,3 +174,16 @@ class SDKTests(unittest.TestCase):
         self.assertEqual(responses[0]["error"]["code"], -32700)
         self.assertEqual(responses[-1]["id"], 2)
         self.assertEqual(result.stderr, "")
+
+
+class VersionLabelTests(unittest.TestCase):
+    def test_every_sdk_version_label_agrees(self):
+        labels = {
+            "sdk/VERSION": (ROOT / "sdk/VERSION").read_text(encoding="utf-8").strip(),
+            "sdk/engineering_sdk.py": sdk.VERSION,
+            "sdk/capabilities.json": json.loads((ROOT / "sdk/capabilities.json").read_text(encoding="utf-8"))["sdk_version"],
+            "catalog/packs.json": json.loads((ROOT / "catalog/packs.json").read_text(encoding="utf-8"))["packs"]["engineering-sdk"]["version"],
+            "docs/SDK.md": (ROOT / "docs/SDK.md").read_text(encoding="utf-8").splitlines()[0].removeprefix("# Engineering SDK "),
+        }
+        self.assertRegex(labels["sdk/VERSION"], r"^\d+\.\d+\.\d+$")
+        self.assertEqual(set(labels.values()), {labels["sdk/VERSION"]}, labels)

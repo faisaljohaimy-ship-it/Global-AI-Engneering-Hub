@@ -106,6 +106,15 @@ def integration_evidence():
     return load_json(path).get("programs", []) if path.exists() else []
 
 
+def motion_purpose():
+    """Purposeful-motion policy summary (governance/policies/motion-purpose.json); report() never raises."""
+    from engineering_os import motion_policy
+
+    report = motion_policy.report()
+    return {"policy": report["policy"], "policy_version": report["policy_version"], "ok": report["ok"],
+            "classes": report["classes"], "unclassified": report["unclassified"], "violations": len(report["violations"])}
+
+
 def audit():
     rows = registry()
     motions = motion_catalog()
@@ -149,6 +158,7 @@ def audit():
                           "implemented":len(catalog_implemented | component_ids)+expansion['implemented'],
                           "tested":len(catalog_implemented | automated_components)+expansion['tested'],
                           "runtime_verified":len(browser_verified)+expansion['runtime_verified']},
+        "motion_purpose": motion_purpose(),
     }
 
 
@@ -350,12 +360,16 @@ def main():
     layers_parser.add_argument("--layer", action="append", default=[])
     layers_parser.add_argument("--state")
     layers_parser.add_argument("--json", action="store_true")
-    capability_parser = commands.add_parser("capabilities")
+    recorded = ("catalogue entries with their recorded review values; installed and operational are recorded, not detected"
+                " on this host (what ran on a host: docs/evidence/gaie-20-layers/activation.json)")
+    capability_parser = commands.add_parser("capabilities", help=recorded, description=recorded)
     capability_parser.add_argument("--query", default="")
     capability_parser.add_argument("--state", choices=control.STATES)
     health_parser = commands.add_parser("health")
     health_parser.add_argument("--project")
-    commands.add_parser("motions")
+    recorded = ("motion counts from recorded, source-bound receipts; runtime_verified is recorded, not re-run on this host"
+                " (live_recheck_performed stays false)")
+    commands.add_parser("motions", help=recorded, description=recorded)
     commands.add_parser("integrations")
     search = commands.add_parser("search")
     search.add_argument("query")
@@ -381,6 +395,10 @@ def main():
     verify_parser = commands.add_parser("verify")
     verify_parser.add_argument("target")
     verify_parser.add_argument("--strict", action="store_true")
+    team_parser = commands.add_parser("team", help="Central agent-team policy: standing team, concurrency, staffing")
+    team_parser.add_argument("argv", nargs=argparse.REMAINDER)
+    master_parser = commands.add_parser("master", help="Verify, show or pin the MASTER documents")
+    master_parser.add_argument("argv", nargs=argparse.REMAINDER)
     route_parser = commands.add_parser("route")
     route_parser.add_argument("text")
     route_parser.add_argument("--workspace")
@@ -458,6 +476,14 @@ def main():
             args.apply,
             args.remove,
         )
+    elif args.cmd == "team":
+        from engineering_os import agent_team
+
+        sys.exit(agent_team.main(args.argv or ["show"]))
+    elif args.cmd == "master":
+        from engineering_os import master_docs
+
+        sys.exit(master_docs.main(args.argv or ["status"]))
     elif args.cmd == "route":
         try:
             result = gaie_router.route(args.text, workspace_path=args.workspace)

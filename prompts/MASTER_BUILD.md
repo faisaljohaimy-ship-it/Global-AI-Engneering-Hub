@@ -80,7 +80,9 @@ Give the system its own modern visual identity: typography, colour, spacing, dep
 iconography, cards, tables, charts, dialogs, micro-interactions. Learn from leading
 engineering and design practice without copying any company's identity or implying
 affiliation. Select motion from the Universal Motion SDK and motion library first;
-use 3D, shaders or video where they help comprehension, within the frame budget.
+every motion must be purposeful under `governance/policies/motion-purpose.json` (a
+stated digital meaning in English and Arabic, no unseeded randomness); use 3D,
+shaders or video where they help comprehension, within the frame budget.
 Honour reduced motion, RTL and LTR, and accessibility. Films and voice follow
 `skills/gaie-cinematic`: a script is not a finished film.
 
@@ -96,7 +98,10 @@ requires a separate release grant under `skills/gaie-release`.
 
 Use one isolated workspace per writing workstream, with explicit path ownership
 via `engineering_os.orchestration` and a host grant confining writes to those
-paths. Give every agent only its task's tools and scope. Keep shared and
+paths. Staff the build with the standing team of `governance/policies/agent-team.json`:
+every role works its items or is recorded as omitted with a reason, never more than 20
+roles, and no wave larger than the host's `effective` concurrency. Give every agent only
+its task's tools and scope. Keep shared and
 production paths outside each grant. If isolation cannot be enforced, keep the
 workstream at planning. Independent read-only verification consumes the diff
 and test receipts from an authorized QA run. A checkpoint requires a scoped

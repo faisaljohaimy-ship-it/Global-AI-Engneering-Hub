@@ -10,3 +10,7 @@ with `hub.py register PROJECT --revision SHA --capability motion:ID`; add
 `pack:motion-runtime` for stagger, typewriter or counters. Follow
 motion-library/README.md to add specifications and regenerate evidence. Never edit
 catalog status or `runtime_verified` by hand.
+
+Every motion follows governance/policies/motion-purpose.json: it states its digital meaning in English
+and Arabic and uses no unseeded randomness; legacy-unclassified motions are not presented as purposeful
+(`python3 -m engineering_os.motion_policy`).

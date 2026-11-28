@@ -450,5 +450,28 @@ class CliTests(unittest.TestCase):
         self.assertEqual(self.run_main("show", "--intent", "release")[0], 2)
 
 
+class WiringTests(unittest.TestCase):
+    def test_owner_facing_texts_name_the_policy(self):
+        for path in ("AGENTS.md", "skills/gaie-master-router/SKILL.md", "skills/gaie-build/SKILL.md",
+                     "skills/gaie-upgrade/SKILL.md", "prompts/MASTER_BUILD.md", "prompts/MASTER_UPGRADE.md"):
+            with self.subTest(path=path):
+                self.assertIn("governance/policies/agent-team.json", (ROOT / path).read_text(encoding="utf-8"))
+
+    def test_hub_team_command_passes_through_to_the_loader(self):
+        run = lambda *args: subprocess.run([sys.executable, "hub.py", "team", *args], capture_output=True, text=True,
+                                           cwd=ROOT, timeout=60)
+        done = run("show", "--intent", "build", "--cpus", "4", "--json")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        shown = json.loads(done.stdout)
+        self.assertEqual((shown["size"], shown["concurrency"]["effective"], shown["roles"]),
+                         (20, 8, POLICY["rosters"]["build"]))
+        default = run()
+        self.assertEqual(default.returncode, 0, default.stderr)
+        self.assertIn("intent build: 20 roles", default.stdout)
+        refused = run("show", "--intent", "release")
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("no standing team", refused.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

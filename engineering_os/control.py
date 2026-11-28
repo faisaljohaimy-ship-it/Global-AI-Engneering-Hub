@@ -78,6 +78,11 @@ def architecture():
                       for key,name,paths in LAYERS]}
 
 
+# Listing values come from the catalogue and recorded, source-bound receipts; nothing here probes the host
+# (what ran on a host is in docs/evidence/gaie-20-layers/activation.json, written by scripts/activation_receipt.py).
+RECORDED={'values':'recorded-catalogue','host_detected':False}
+
+
 def capabilities(query='', state=None):
     if state is not None and state not in STATES: raise ValueError('unknown lifecycle state')
     rows=[]
@@ -93,14 +98,17 @@ def capabilities(query='', state=None):
             if reviewed and entry['status']=='approved' and entry.get('revision')==reviewed['revision']:
                 row.update(state='TESTED',installed=True,operational=True,scope=reviewed['scope'],
                            evidence_scope='source-bound recorded developer QA; not fresh provider/project activation',
-                           receipt=reviewed['runtime_receipt'])
+                           receipt=reviewed['runtime_receipt'],
+                           installed_meaning='recorded by the review in catalog/capabilities/; not detected on this host')
         rows.append(row)
     for path in sorted((ROOT/'skills').glob('*/SKILL.md')):
         rows.append({'id':'skill:'+path.parent.name,'kind':'local-skill','state':'REVIEWED',
                      'source':str(path.relative_to(ROOT)),
                      'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
                      'operational':False,'note':'Instructions are available; host invocation needs separate evidence.'})
-    return [r for r in rows if query.casefold() in json.dumps(r).casefold() and (state is None or r['state']==state)]
+    # The query matches the catalogue values only, so the two labels below never match every row.
+    found=[r for r in rows if query.casefold() in json.dumps(r).casefold() and (state is None or r['state']==state)]
+    return [dict(r,**RECORDED) for r in found]
 
 
 def runtime_review(record, now=None):
@@ -228,6 +236,7 @@ def motions():
                         result['expansion'].update(runtime_verified=400,recorded_at_utc=receipt['recorded_at_utc'],receipt=name)
                         result['expansion']['current_runtime'].update(runtime_verified=400,state='recorded-source-bound',recorded_at_utc=receipt['recorded_at_utc'])
             except (OSError,ValueError,KeyError,TypeError,AttributeError):pass
+    result.update(RECORDED)
     return result
 
 

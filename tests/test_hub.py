@@ -68,4 +68,16 @@ class HubTests(unittest.TestCase):
   self.assertEqual(result['integrations_probed'],22)
   self.assertEqual(result['integrations_available'],12)
   self.assertEqual(result['registered_public_projects'],3)
+  purpose=result['motion_purpose']
+  self.assertTrue(purpose['ok'])
+  self.assertEqual(purpose['policy'],'governance/policies/motion-purpose.json')
+  self.assertEqual(purpose['classes']['purposeful'],47)
+  self.assertEqual(purpose['classes']['legacy-unclassified'],37)
+  self.assertEqual((purpose['unclassified'],purpose['violations']),(0,0))
+ def test_audit_reports_a_broken_motion_policy_without_failing(self):
+  from engineering_os import motion_policy
+  broken=dict(motion_policy.report(),ok=False,violations=[{'code':'policy-invalid'}])
+  with mock.patch.object(motion_policy,'report',return_value=broken):
+   purpose=hub.audit()['motion_purpose']
+  self.assertEqual((purpose['ok'],purpose['violations']),(False,1))
 if __name__=='__main__':unittest.main()

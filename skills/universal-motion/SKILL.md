@@ -59,3 +59,7 @@ If pack:engineering-sdk is already installed, run its offline integrity verifier
 before invocation. Record actual product usage, browser tests and current source
 hashes separately from installation; upstream provenance is checked during review,
 and production execution remains independent of hub availability.
+
+Every motion follows governance/policies/motion-purpose.json: it states its digital meaning in English
+and Arabic and uses no unseeded randomness; legacy-unclassified motions are not presented as purposeful
+(`python3 -m engineering_os.motion_policy`).
