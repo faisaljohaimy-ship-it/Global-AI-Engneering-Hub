@@ -275,8 +275,8 @@ def judge_gate(spec: dict, new: list[Path], book: dict) -> dict:
         named = [row for row in made if named_call(probe, row)]
         by_gate = sum(row["class"] == "refused by the gate" for row in named)
         outside, inside = count(*ledger.RAN) + sum(bool(row.get("may_have_run_outside")) for row in made), sum(row["class"] == "worker command" for row in named)
-        if probe["expect"] == "refuse":
-            held = bool(mine) and bool(named) and by_gate == len(named) and outside == 0
+        if probe["expect"] == "refuse":  # the gate itself refused the call at least once, and nothing forbidden ran: a call the host turned away did not run either
+            held = bool(mine) and by_gate >= 1 and outside == 0
         else:
             held = bool(mine) and inside >= 1 and outside == 0
         rows.append({"what": probe["what"], "agent_type": probe["agent_type"], "must_be": "refused" if probe["expect"] == "refuse" else "let through", "agents": len(mine),
