@@ -26,7 +26,7 @@ engine-health` reported `ok: true` for all 18 at this base.
 |L06 Software Engineering|master-upgrade (`spec`, `plan`, `evaluate` through `engineering_os/factory.py`)|`engineering_os/upgrade_engine.py`; Scenario B `tests/test_upgrade_engine.py` class `ScenarioB` (49 OK) on fixture `tests/fixtures/upgrade/taskapp`|No owner product upgraded; registered-project rule depends on wording (pr30-authz F3, low, open)|
 |L07 Data & Knowledge Intelligence|none|`engineering_os/intelligence.py`; `tests/test_intelligence.py`|No shared production database; RLS, RAG and ML verification stays project-specific|
 |L08 Cinematic, Motion & GPU|motion-sdk|`python3 hub.py audit`: 156 indexed specifications, 30 implemented and tested, 29 runtime-verified, plus 400 Canvas2D reference motions; `python3 -m engineering_os.motion_policy`: 47 purposeful, 37 legacy-unclassified, 400 reference, 156 specification index, 5 withdrawn, 0 unclassified|No GPU, 3D or physics runtime verified; motions that exist only on earlier branches are being ported (in progress)|
-|L09 Security & Quality Intelligence|quality-assurance|`engineering_os/security_audit.py` → `docs/evidence/gaie-20-layers/security-findings.json`: 7 fixed, 1 mitigated, 4 held, 6 accepted, 4 open, no open critical or high; `scripts/security_scan.py`; `docs/evidence/gaie-20-layers/isolation.json` (tier `full` on the measuring host)|SEC-07, SEC-10, SEC-12 and `private-mode` at `engineering_os/build_engine.py:1425` open; in GitHub CI the sandbox tier is `plain`, so `SandboxTests` in `tests/test_governor.py` skip there (positive isolation job in progress)|
+|L09 Security & Quality Intelligence|quality-assurance|`engineering_os/security_audit.py` → `docs/evidence/gaie-20-layers/security-findings.json`: 7 fixed, 1 mitigated, 4 held, 6 accepted, 4 open, no open critical or high; `scripts/security_scan.py`; `docs/evidence/gaie-20-layers/isolation.json` (tier `full` on the measuring host)|SEC-07, SEC-10, SEC-12 and `private-mode` at `engineering_os/build_engine.py:1425` open; in GitHub CI the sandbox tier is `plain` (`RESUME.md`), so `SandboxTests` in `tests/test_governor.py` skip there (positive isolation job in progress)|
 |L10 Independent Product Ecosystem|none|`hublink.py`, `projects/registry.json` (3 registered public projects, `hub.py audit`); `tests/test_link.py`|BILTIX, portfolio, KPI and security-lab repositories are not registered (owner decision)|
 |L11 Cloud & Deployment Intelligence|master-release (`spec`, `provenance`, `eligibility`; never deploys)|`scripts/verify_release.py`, `tests/test_release_provenance.py`; at `8d29263`: six release-gating workflows and nine jobs, `docs/specs/gaie-20-layers/RELEASE_CHECKLIST.md`|Scenario G release engine in progress; no tag; nothing deployed|
 |L12 Continuous Technology Intelligence|master-audit|`scripts/discover_technology.py`; `tests/test_technology_discovery.py`|Discovery never installs or approves; billing and production health not monitored|
@@ -40,17 +40,18 @@ engine-health` reported `ok: true` for all 18 at this base.
 |L20 Independent Engineering Assurance|none|Source-bound layer receipts (`engineering_os/layers.py`), `scripts/verify_release.py`|`engineering_os/assurance.py` is not in the tree at this base (in progress)|
 
 The review findings named above (H1, M1–M5, L6, F1–F3) are in the independent review
-register of `RESUME.md`; each is being fixed by a lane that did not review it.
+register of `RESUME.md` (at `8d29263`); each is being fixed by a lane that did not
+review it.
 
 ## Evidence and counts
 
 `python3 hub.py layers` reports each layer from its latest receipt; receipts live in
 `$GAIE_HOME/layers`, outside Git, so a fresh machine shows all twenty `UNVERIFIED`.
-`python3 hub.py layers --verify` printed `VERIFIED=20` on `0986919` (`RESUME.md`,
-"Acceptance scenarios"). That run covers the 35 test files the registry lists, of
-104 test files in `tests/` at this base, and the registry binds no acceptance scenario
-yet (`"scenarios": []` on every layer of `governance/layers.json`). It is not a
-statement about scenarios A–I. Binding is in progress.
+`RESUME.md` ("Acceptance scenarios") records 20 of 20 layers `VERIFIED` from `python3
+hub.py layers --verify`. The registry lists 35 of the 104 test files in `tests/` at
+this base and binds no acceptance scenario yet (`"scenarios": []` on every layer of
+`governance/layers.json`), so that result is not a statement about scenarios A–I.
+Binding is in progress.
 
 Acceptance scenarios at this base: A, B, C, D, E, F and H pass when their files run
 alone (counts in the table). G (release engine) and I (permanent Claude Code
