@@ -10,6 +10,10 @@ the area plan() refused; the verifier can now name the frozen areas it requires.
 (g) review_assignment(roles=<dict>) used a caller's role document unchecked, so a malformed one
 raised a bare KeyError or TypeError; it now raises OrchestratorError.
 
+(h) A task store written before the M3 producer rule that holds a producer's approval cannot be
+opened; ORCHESTRATION.md documents this and the owner's migration choice. PreFixStoreTests pins the
+documented behaviour (the pre-fix store is built with the producer rule switched off by a mock).
+
 State lives in temporary directories only; nothing is executed.
 """
 
@@ -17,8 +21,9 @@ import copy
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
-from engineering_os import orchestrator as o
+from engineering_os import orchestration, orchestrator as o
 from engineering_os.orchestrator import (OrchestratorError, OwnershipConflict, ReviewIndependenceError, lifecycle, plan,
                                          review_assignment, sha256, verify_plan)
 
@@ -166,6 +171,68 @@ class MalformedRoleDocumentTests(unittest.TestCase):
             review_assignment(self.TASK, roles=subset)
         with self.assertRaises(OrchestratorError):
             o.engine("review-assignment", {"task": {"id": "t", "role": "nobody"}})
+
+
+class PreFixStoreTests(unittest.TestCase):
+    R = [{"kind": "test", "sha256": "a" * 64}]
+    ORCH = {"id": "orch", "engine": "codex", "role": "orchestrator"}
+
+    @staticmethod
+    def actor(ident, role="development"):
+        return {"id": ident, "engine": "codex", "role": role}
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory(prefix="gaie-hf2h-")
+        self.addCleanup(folder.cleanup)
+        self.state = pathlib.Path(folder.name) / "state"
+        self.state.mkdir(mode=0o700)
+        # Pre-fix behaviour: no producer rule (PRODUCING empty), so alice, who claimed and failed the task
+        # before bob took it over after a recover, approves it (the M3 fail-and-recover case).
+        with mock.patch.object(orchestration, "PRODUCING", frozenset()):
+            store = orchestration.TaskStore(self.state / "tasks")
+            store.create_task({"id": "feat", "project": "p", "branch": "codex/feat", "paths": ["src/feat.py"], "title": "f",
+                               "priority": 1}, self.ORCH, 0)
+            store.create_task({"id": "other", "project": "p", "branch": "codex/other", "paths": ["src/other.py"], "title": "o",
+                               "priority": 1}, self.ORCH, 1)
+            task = store.claim("feat", self.actor("alice"), 1)
+            task = store.fail("feat", self.actor("alice"), task["version"], task["lease"]["id"], self.R)
+            task = store.recover("feat", self.ORCH, task["version"], self.R)
+            task = store.claim("feat", self.actor("bob"), task["version"])
+            task = store.submit("feat", self.actor("bob"), task["version"], task["lease"]["id"], self.R)
+            for who, role in (("alice", "testing"), ("carol", "security"), ("dave", "release")):
+                task = store.review("feat", self.actor(who, role), task["version"], "approved", self.R)
+        self.assertEqual(task["status"], "done")
+
+    def test_the_store_cannot_be_opened_and_fails_closed(self):
+        before = (self.state / "tasks" / "state.json").read_bytes()
+        with self.assertRaises(orchestration.CoordinationError) as caught:
+            orchestration.TaskStore(self.state / "tasks")
+        self.assertIn("also held or worked it", str(caught.exception))
+        with self.assertRaises(o.LifecycleError) as caught:
+            lifecycle(issued()["tasks"][0], state_dir=self.state)
+        self.assertIn("task store:", str(caught.exception))
+        self.assertEqual((self.state / "tasks" / "state.json").read_bytes(), before)  # nothing rewritten
+
+    def test_a_hand_edit_that_drops_the_approval_is_refused_by_the_chain(self):
+        path = self.state / "tasks" / "state.json"
+        state = orchestration.load_json(path.read_bytes())
+        del state["tasks"]["feat"]["approvals"]["testing"]
+        state["tasks"]["feat"]["status"] = "review"
+        path.write_bytes(orchestration.canonical(state))
+        with self.assertRaises(orchestration.CoordinationError) as caught:
+            orchestration.TaskStore(self.state / "tasks")
+        self.assertIn("differs from audit receipt", str(caught.exception))
+
+    def test_archive_and_restart_is_available_and_documented(self):
+        fresh = self.state.parent / "fresh"
+        fresh.mkdir(mode=0o700)
+        run = lifecycle(issued()["tasks"][0], state_dir=fresh)
+        self.assertTrue(run.enqueue()["created"])
+        text = (pathlib.Path(__file__).resolve().parents[1] / "docs" / "specs" / "gaie-20-layers" / "ORCHESTRATION.md").read_text(encoding="utf-8")
+        section = text[text.index("### Task stores written before the producer rule"):text.index("## 7. Worktrees")]
+        for phrase in ("cannot be opened at all", "A reviewer of this task also held or worked it", "owner's choice",
+                       "Archive and restart", "one-time migration", "Not implemented"):
+            self.assertIn(phrase, section)
 
 
 if __name__ == "__main__":

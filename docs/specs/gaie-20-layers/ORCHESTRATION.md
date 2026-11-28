@@ -150,6 +150,28 @@ derived from them, no path may be owned by another role in `agent-roles.json` (`
 `foreign-owner`) and none may lie inside a frozen area the caller names (`frozen=`). A refused task
 creates nothing in the state directory.
 
+### Task stores written before the producer rule (owner decision)
+
+Since review fix M3 (`orchestration.producers`), nobody who claimed, renewed, handed over, submitted
+or failed a task may approve it, and `orchestration.verify_state` checks this every time a store is
+opened. A store written by earlier code that already holds such an approval (the producer approved
+its own work after a handover or a fail-and-recover) therefore **cannot be opened at all**:
+`TaskStore(state_dir)` raises `CoordinationError: A reviewer of this task also held or worked it`,
+and `lifecycle()` raises `LifecycleError: task store: …`. This blocks every task in that store, not
+only the affected one. It fails closed: nothing is read, rewritten or dropped automatically. The
+store is hash-chained, so removing the approval from `state.json` by hand is refused as well
+(`Task data differs from audit receipt`), and relaxing `verify_state` would reopen M3.
+
+There is no migration tool. What to do with such a store is the owner's choice:
+
+1. **Archive and restart** (needs no code): move the old state directory aside, keep it private and
+   outside Git as evidence, and start a new state directory. Enqueue the open tasks again from their
+   verified plan; the affected task goes through an independent review panel again.
+2. **A reviewed one-time migration**: new code in `engineering_os/orchestration.py` (another role's
+   file) that rebuilds the store without the producer's approval, puts the task back to `review` and
+   records the migration in the new audit chain. It rewrites an audit trail, so it needs the owner's
+   explicit approval before anyone writes it. Not implemented.
+
 ## 7. Worktrees
 
 `worktree_plan(plan, repo=…, base_dir=…)` returns, per agent, `git worktree add -b <branch> <dir>
