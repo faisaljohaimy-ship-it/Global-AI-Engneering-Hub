@@ -83,6 +83,17 @@ class MemoryError_(ValueError):
     pass
 
 
+READ_METHODS = frozenset({"adr", "adrs", "brief", "entries", "evidence_status", "graph", "graph_path", "neighbours",
+                          "next_steps", "recall_failure", "retrieve", "search", "solutions", "symbol_status", "where",
+                          "why"})
+
+
+def _imported(store, project):
+    """{journal entry id: engine id} of the legacy journal entries this engine store already holds."""
+    return {provenance["source_sha256"]: entry["id"] for entry in store.entries(project)
+            for provenance in entry["provenances"] + [item["provenance"] for item in entry["merged"]]}
+
+
 def _text(value, limit, name):
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
         raise MemoryError_(f"{name} must be 1-{limit} characters")
@@ -146,11 +157,37 @@ class Memory:
                 self._import_journal(store)
             return store
 
+    def reader(self):
+        """This project's engine store opened read-only, or None when nothing is recorded (pr30-authz F2).
+
+        A read creates nothing: no directory, no lock file, no persisted schema migration. The one exception is
+        the documented first use of a legacy journal that holds entries the engine has not imported yet: those are
+        imported first, through store()."""
+        _engine_required()
+        with _translated():
+            store = None
+            if os.path.lexists(self.root):
+                base = self.home / "memory"
+                info = os.lstat(base)
+                if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+                    raise MemoryError_("$GAIE_HOME/memory must be a caller-owned mode 0700 directory")
+                if self.root.is_symlink() or os.path.realpath(self.root) != os.path.join(os.path.realpath(base), self.project):
+                    raise MemoryError_("project memory directory must be a real directory inside its root")
+                try:
+                    store = ENGINE.MemoryStore(self.root, project=self.project, create=False, read_only=True)
+                    store.snapshot()
+                except ENGINE.MissingMemory:
+                    store = None
+            if self.journal.is_file() and not self.journal.is_symlink():
+                rows = _journal_rows(self)
+                if rows and (store is None or {row["id"] for row in rows} - set(_imported(store, self.project))):
+                    return self.store(create=False)
+            return store
+
     def _import_journal(self, store):
         """Verify the PR #26 hash chain and import new journal entries into the engine in one transaction."""
         rows = _journal_rows(self)
-        seen = {provenance["source_sha256"]: entry["id"] for entry in store.entries(self.project)
-                for provenance in entry["provenances"] + [item["provenance"] for item in entry["merged"]]}
+        seen = _imported(store, self.project)
         items, known = [], {}
         for row in rows:
             if row["id"] in seen:
@@ -189,7 +226,7 @@ class Memory:
         if ENGINE is None:
             self._portable()
             return _journal_rows(self)
-        store = self.store(create=False)
+        store = self.reader()
         if store is None:
             return []
         with _translated():
@@ -236,7 +273,7 @@ class Memory:
         if ENGINE is None:
             self._portable()
             return _journal_search(self, query, kind, tag, limit)
-        store = self.store(create=False)
+        store = self.reader()
         if store is None:
             return []
         with _translated():
@@ -255,7 +292,7 @@ class Memory:
                         for link in row["links"] if link["target"] == identity]
             return {"entry": rows[identity], "outgoing": outgoing, "incoming": incoming}
         with _translated():
-            graph = self.store().neighbours(self.project, identity)
+            graph = self.reader().neighbours(self.project, identity)
         return {"entry": rows[identity],
                 "outgoing": [{"relation": edge["relation"], "entry": rows[edge["node"]["id"]]} for edge in graph["outgoing"]
                              if edge["node"]["type"] == "entry"],
@@ -275,8 +312,9 @@ class Memory:
     # -- engine-only API (ADR, tasks, failures, symbols, checkpoints) ----------
 
     def call(self, method, *args, create=True, **kwargs):
-        """Run an engine method bound to this project; refusals surface as MemoryError_."""
-        store = self.store(create=create)
+        """Run an engine method bound to this project; refusals surface as MemoryError_. Read methods open the store
+        read-only and create nothing."""
+        store = self.reader() if method in READ_METHODS else self.store(create=create)
         if store is None:
             raise MemoryError_("no memory recorded for this project yet")
         with _translated():

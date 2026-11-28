@@ -221,6 +221,93 @@ class EngineImportTests(JournalBase):
         self.assertEqual(self.outside.read_bytes(), data)
 
 
+def tree(root):
+    """{relative path: (mode, size, mtime_ns)} of everything under root (nothing when root is missing)."""
+    found = {}
+    for directory, names, files in os.walk(root):
+        for name in names + files:
+            path = pathlib.Path(directory) / name
+            info = path.lstat()
+            found[str(path.relative_to(root))] = (info.st_mode, info.st_size, info.st_mtime_ns)
+    return found
+
+
+@unittest.skipIf(gaie_memory.ENGINE is None, "the unified engine is not importable here")
+class ReadOnlyCommandTests(JournalBase):
+    """pr30-authz F2: read commands create nothing (no directory, lock file, persisted migration or import)."""
+
+    READS = (("entries",), ("search", "index"), ("brief",), ("next_steps",), ("where", "Cart.total"), ("why", "queue"),
+             ("recall_failure", "TimeoutError"), ("solutions",))
+
+    def run_reads(self):
+        facade = gaie_memory.Memory("demo", {"GAIE_HOME": str(self.home)})
+        outcomes = []
+        for method, *args in self.READS:
+            try:
+                if method == "entries":
+                    outcomes.append(facade.entries())
+                elif method == "search":
+                    outcomes.append(facade.search(*args))
+                else:
+                    outcomes.append(facade.call(method, *args, create=False))
+            except gaie_memory.MemoryError_ as error:
+                outcomes.append(str(error))
+        return outcomes
+
+    def assert_unchanged(self):
+        before = tree(self.home)
+        outcomes = self.run_reads()
+        self.assertEqual(tree(self.home), before)
+        return outcomes
+
+    def test_a_project_with_no_memory_reads_as_empty_and_creates_nothing(self):
+        outcomes = self.assert_unchanged()
+        self.assertEqual(outcomes[:2], [[], []])
+        self.assertEqual(tree(self.home), {})
+
+    def test_reading_a_store_without_its_lock_file_creates_no_lock(self):
+        facade = gaie_memory.Memory("demo", {"GAIE_HOME": str(self.home)})
+        facade.add("decision", "Queue jobs", "Use a durable queue for slow work", ["queue"])
+        (facade.root / "memory.lock").unlink()
+        outcomes = self.assert_unchanged()
+        self.assertEqual([row["title"] for row in outcomes[0]], ["Queue jobs"])
+        self.assertFalse((facade.root / "memory.lock").exists())
+
+    def test_reading_a_schema_1_store_does_not_persist_its_migration(self):
+        from engineering_os.orchestration import sha
+        self.private_dirs()
+        state = {"schema_version": 1, "revision": 0, "records": {}}
+        state["sha256"] = sha(state)
+        legacy = self.memory.root / "memory.json"
+        legacy.write_text(json.dumps(state) + "\n")
+        os.chmod(legacy, 0o600)
+        outcomes = self.assert_unchanged()
+        self.assertEqual(outcomes[:2], [[], []])
+        self.assertFalse((self.memory.root / "memory.jsonl").exists())
+
+    def test_an_imported_legacy_journal_is_not_imported_or_locked_again(self):
+        self.add()
+        facade = gaie_memory.Memory("demo", {"GAIE_HOME": str(self.home)})
+        self.assertEqual([row["title"] for row in facade.entries()], ["Slow query"])
+        self.assertEqual(facade.import_report, {"imported": 1, "refused": 0})
+        (facade.root / "memory.lock").unlink()
+        outcomes = self.assert_unchanged()
+        self.assertEqual([row["title"] for row in outcomes[0]], ["Slow query"])
+
+    def test_the_portable_copy_reads_without_creating_anything(self):
+        engine = self.tmp / "engine"
+        engine.mkdir()
+        for source, name in {"engineering_os/gaie_memory.py": "gaie_memory.py", "engineering_os/gaie_router.py": "gaie_router.py",
+                             "governance/policies/gaie-routes.json": "gaie-routes.json", "projects/registry.json": "projects.json",
+                             "projects/aliases.json": "aliases.json"}.items():
+            shutil.copyfile(ROOT / source, engine / name)
+        env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "GAIE_HOME": str(self.home), "LANG": "C.UTF-8"}
+        done = subprocess.run([sys.executable, str(engine / "gaie_memory.py"), "--project", "demo", "search", "index"],
+                              capture_output=True, text=True, env=env, cwd=self.tmp, timeout=60)
+        self.assertEqual((done.returncode, json.loads(done.stdout)), (0, []), done.stderr)
+        self.assertEqual(tree(self.home), {})
+
+
 class VendoredAloneTests(JournalBase):
     def test_the_vendored_journal_cli_refuses_a_hard_link(self):
         engine = self.tmp / "engine"
