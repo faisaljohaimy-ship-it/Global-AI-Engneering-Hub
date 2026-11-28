@@ -58,6 +58,102 @@ redrawn to make their meaning visible: the orbiting bodies became communication 
 downlinks, the parallax landscape a smart city with connected street lights, the curtain reveal now
 unveils an app screen, and the disintegrating shape is a record card.
 
+## Purposeful motion policy
+
+The owner's order of 2026-11-28 — adopt purposeful digital motions and forbid random motions — is
+one file, `governance/policies/motion-purpose.json`, read by code and tests. It states the rule in
+both languages:
+
+> Every motion states, in one sentence per language, what it stands for in a digital service. A
+> motion with no stated meaning is not added, and no motion draws from unseeded randomness.
+>
+> كل حركة تذكر، في جملة واحدة بكل لغة، ما تمثّله في خدمة رقمية. لا تُضاف حركة بلا معنى معلن، ولا ترسم
+> أي حركة من عشوائية بلا بذرة.
+
+The file holds the required shape of a meaning (exactly `ar` and `en`, 12–240 characters each,
+Arabic script in `ar`), the five classes, the pinned lists, the forbidden source names and the
+record of owner decisions. `python3 -m engineering_os.motion_policy` prints the report and exits 1
+on a violation. Counts under policy 1.0.0, from that report:
+
+| class | count | what it is |
+|---|---|---|
+| `purposeful` | 47 | 33 native motions and the 14 scene types of `packages/digital-shows`: each states a valid meaning |
+| `legacy-unclassified` | 37 | the 34 native motions of PR #16 and the 3 nextgen camera scenes: no meaning stated |
+| `reference-illustrative` | 400 | the Canvas2D reference recipes of `motion-library/expansion`: they illustrate a mechanism and claim no meaning |
+| `specification-index` | 156 | the rows of `motion-library/MOTION_CATALOG.json` (127 specification, 29 implemented; each of the 30 components of `components.json` has a row) |
+| `withdrawn` | 5 | ids removed as decorative; none has a source on disk |
+
+### What is enforced where
+
+| where | what it refuses or reports |
+|---|---|
+| `packages/motion-engines/tools/build_registry.mjs` (`scan()`, used by the registry, the browser harness, the sheet and the exporter) | a native motion with no `meaning` unless its id is in `legacy_ids`; an invalid meaning; a withdrawn id; a `legacy_ids` list longer than 34; a missing policy file. Such a motion cannot be registered, proven or exported. |
+| `engineering_os/motion_policy.py` (`validate()`, `report()`) | every covered registry: a motion without a meaning that is not pinned, an invalid meaning, a pinned id that now states a meaning or is gone, a withdrawn id with a source or a registry row, a registry row whose `source_sha256` no longer matches its file, a 401st recipe or a 157th catalogue row, a show scene without a meaning, a new camera scene, a forbidden name in a covered source, a legacy id that left the list without a decision record. A record that cannot be read is a violation, never a pass. |
+| `tests/test_motion_policy.py` (run by `python3 -m unittest discover -s tests`) | the real tree is clean; each violation above is produced on a temporary copy. |
+| `tests/test_native_motions_digital.mjs`, `packages/motion-engines/test/purpose.test.mjs` | registry motions without a meaning are exactly `legacy_ids`; the camera scenes the module defines are exactly the pinned three; the source scan covers every covered source set; the builder refusals are provoked on temporary copies. |
+| `packages/motion-engines/orchestrator.mjs` (`recommend()`) | each pick carries `policyClass` and `meaning`, and its first reason is the meaning or "no stated digital meaning (legacy-unclassified)". For `goal: 'operational'` a row whose `meaning` is `null` is left out unless `includeLegacy` is set, and then ranks below the purposeful ones. The builder writes `meaning` on every row; a row with no `meaning` key at all (a record older than the field) is answered as before, labelled. |
+
+Some rules are fixed in `engineering_os/motion_policy.py` so that editing the policy file cannot
+relax them: `legacy_ids` must be a subset of the 34 + 3 ids that existed before the rule,
+`withdrawn_ids` must keep the five withdrawn ids, the pins cannot rise above 400 and 156, the limits
+of a meaning cannot loosen past 12 and 240 characters, and every source set must keep its roots and
+still refuse `Math.random()`, `crypto.getRandomValues()`, `crypto.randomUUID()` and a clock used as
+a seed. The owner may tighten any of these in the file. Only the Python validator refuses a
+duplicate JSON key in the policy; the registry builder reads it with `JSON.parse` and applies its
+own fixed limits (12–240 characters, at most 34 legacy ids).
+
+### Randomness
+
+Forbidden in every covered source: `Math.random`, `crypto.getRandomValues`, `crypto.randomUUID`,
+`randomBytes`, `randomInt`. Motion definitions (`packages/motion-engines/motions/**`,
+`motion-library/expansion/*.mjs`, `packages/digital-shows/kit.mjs`) may also read no clock and set
+no timer. Playback code (`packages/motion-engines` core, engines, shaders and adapters,
+`packages/motion-sdk`, `motion-library/runtime`) may read a clock to advance the timeline, never
+as a seed. **A seeded deterministic generator is allowed**, because the same seed draws the same
+frames: `ctx.random(salt)` (mulberry32, `core/util.mjs`), `seeded(seed)` in the show kit and
+`noise(i, seed)` in the recipes. The scan is a text screen (lines starting with `//` are skipped);
+it does not detect a forbidden name built at run time, and it does not cover test, verify, render
+and build tools or the Motion Lab and Motion Studio pages.
+
+### What `legacy-unclassified` means
+
+The 34 native motions of PR #16 (quantum 10, glass 10, atmosphere 10, and one each in typography,
+micro, shaders and compositions) and the 3 nextgen camera scenes were built before the rule. Each is
+deterministic and the 34 pass every browser check, so they are not random; but nobody has stated
+what any of them stands for in a digital service, and five comparable drafts were withdrawn as
+decorative. They are therefore not counted, presented or recommended as purposeful anywhere:
+`meaning` is `null` in the registry, `counts.with_digital_meaning` stays 33, the report lists them by
+id, and the orchestrator labels them. No meaning was written for them to reach 67 of 67: whether a
+motion has a real digital meaning is the owner's decision, one motion at a time. Their sources were
+not edited, so their browser evidence is unchanged.
+
+### Promoting or withdrawing a legacy motion
+
+With no decision an id stays `legacy-unclassified`. A decision is recorded in `owner_decisions.records`
+as `{registry, id, decision, date, note}`; an id that leaves `legacy_ids` without one is a violation.
+
+To **promote** a native motion:
+
+1. The owner states the meaning; add `meaning: { en, ar }` to the motion source. The source hash
+   changes, so the motion is `implemented-unverified` until step 2.
+2. `node packages/motion-engines/verify/browser.mjs --id <id> --write`, then
+   `node packages/motion-engines/tools/build_registry.mjs`.
+3. In the policy, remove the id from `legacy_ids` and add the record with `"decision": "promoted"`.
+   The validator accepts it only when the registry row is purposeful and `operational`.
+4. `tools/native_inventory.mjs` counts every motion with a meaning as added in the batch of
+   2026-11-28 (`BASELINE_ENGINE_MOTIONS = 34`), so its arithmetic and
+   `docs/evidence/gaie-20-layers/native-motions.json` must be updated in the same change.
+   `quantum-light-tunnel` and `atmosphere-core-ignition` are also the shots of
+   `docs/evidence/gaie-20-layers/video-sample.json`, whose manifest is bound to their sources.
+
+To **withdraw** a motion: delete its source, rebuild the registry, move the id from `legacy_ids` to
+`withdrawn_ids` and add the record with `"decision": "withdrawn"`; step 4 applies as well. A camera
+scene has no `meaning` field, so under policy 1.x it can stay legacy or be withdrawn (remove its row
+from `nextgen-camera.mjs`, whose receipts are bound to that file); promoting one needs a format
+that states the meaning, which is a change to the policy itself.
+
+Then `python3 -m engineering_os.motion_policy` and the tests of step 5 below.
+
 ## Catalogue of the batch
 
 | # | id | engine | kind | direction | digital meaning |
@@ -134,6 +230,8 @@ WebKit were not run (`compatibility.browsers` says `not-run`).
 1. Pick an id from `remaining_brief_ids` in `docs/evidence/gaie-20-layers/native-motions.json`
    (never one of the three nextgen camera ids) and decide its digital meaning first: if it cannot be
    said in one sentence about a digital service, do not build it.
+   `tools/build_registry.mjs` refuses a motion without a `meaning`, so it could not be proven
+   or registered anyway (see "Purposeful motion policy").
 2. Write `packages/motion-engines/motions/<module>/<slug>.mjs` following `CONTRACT.md`: `number` and
    `name.en` exactly as in the brief, Arabic `name`, `summary` and `meaning`, at least two
    parameters that each change the picture, `still` for reduced motion, `ctx.count()` for anything
@@ -144,7 +242,8 @@ WebKit were not run (`compatibility.browsers` says `not-run`).
 4. `node packages/motion-engines/verify/browser.mjs --id <id> --write`, then
    `node packages/motion-engines/tools/build_registry.mjs` and
    `node packages/motion-engines/tools/native_inventory.mjs`.
-5. `node --test packages/motion-engines/test/*.test.mjs tests/test_native_motions_digital.mjs`.
+5. `node --test packages/motion-engines/test/*.test.mjs tests/test_native_motions_digital.mjs` and
+   `python3 -m unittest tests.test_motion_policy`.
    Before merging a batch, run the harness once over everything (no `--id`, with `--write`) so
    that frame uniqueness is checked across all motions.
 
