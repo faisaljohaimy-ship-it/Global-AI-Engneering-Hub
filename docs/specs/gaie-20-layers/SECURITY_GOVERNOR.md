@@ -233,6 +233,29 @@ Legacy and loopback calls still mount the whole prefix of `cmd[0]` and of the hu
 but a `cmd[0]` prefix under a home directory or in a directory a non-root user can change is not
 mounted there either (the program then exits 127). Tests: `tests/test_isolation_fixes_mounts.py`.
 
+**Limit: only `cmd[0]` is resolved on the host (recheck item 4).** Everything else the child
+executes is resolved inside the sandbox, where `/etc` and programs outside the system directories
+are hidden. That covers programs the child starts itself (`sh -c ...`, make recipes, npm scripts),
+the `#!` interpreter of a script, and every link that passes through `/etc/alternatives`. Measured
+in a strict run on this host (`sh` as `cmd[0]` unless noted):
+
+| what the child runs | resolves to | result |
+|---|---|---|
+| `cc`, `gcc` | `/usr/bin/cc -> /etc/alternatives/cc`, `/usr/bin/gcc -> /etc/alternatives/gcc` | `not found`, 127 |
+| `/usr/bin/python3` | `/etc/alternatives/python3` | `not found`, 127 |
+| `node` | `/usr/local/bin/node -> /opt/node22/bin/node` (not mounted unless `node` is `cmd[0]`) | `not found`, 127 |
+| a workspace script with `#!/usr/bin/python3` as `cmd[0]` | the same alternatives link | `cannot execute: No such file or directory`, 127 |
+| `npm` as `cmd[0]` (`npm-cli.js`, `#!/usr/bin/env node`) | `node` through `PATH` | `/usr/bin/env: 'node': No such file or directory`, 127 |
+| `python3` (via `PATH`), `#!/usr/bin/env python3`, `#!/bin/sh`, `make --version` | real files inside `/usr` | run |
+
+So `workspace-run -- make` or `-- npm test` cannot build with tools reached this way. Name the
+program itself as `cmd[0]` (`python3`, `node`, `cc` and `/usr/bin/python3` work there, because the
+governor executes the host-resolved file), or use interpreters whose path is a real file or a link
+chain that stays inside `/usr`, `/bin` and `/lib*`. This is not fixed by mounting `/etc` or `/usr`
+wholesale, which would undo the strict profile; a declared list of extra programs, resolved and
+mounted like `cmd[0]`, would be the way to lift it and is not implemented. `isolation_report()`
+lists this limit under `not_enforced`.
+
 ## 8. Threat model
 
 Actors: an agent that requests engine actions (it may be confused or adversarial), code that

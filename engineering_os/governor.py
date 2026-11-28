@@ -1425,6 +1425,10 @@ def isolation_report():
             "legacy and loopback calls mount the whole install prefix (the parent of bin/) of cmd[0] and of the "
             "hub's interpreter read-only; a cmd[0] prefix under a home directory or in a directory a non-root "
             "user can change is not mounted there (the program exits 127)",
+            "strict runs resolve only cmd[0] on the host: a program the child starts itself (sh -c cc, make "
+            "recipes), a #! interpreter (#!/usr/bin/python3, #!/usr/bin/env node) and every link through "
+            "/etc/alternatives resolve inside the sandbox, where /etc and programs outside the system "
+            "directories are hidden, and exit 127 (cc, gcc, /usr/bin/python3 and node from sh -c; npm)",
         ],
     }
 

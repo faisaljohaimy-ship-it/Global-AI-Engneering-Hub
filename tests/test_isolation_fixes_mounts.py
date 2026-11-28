@@ -273,6 +273,22 @@ class LiveTests(Fixture):
         ran = self.strict(["cc", "--version"])
         self.assertEqual(ran["returncode"], 0, ran["stderr"])
 
+    def test_known_limitation_only_cmd0_is_resolved_on_the_host(self):
+        """Recheck item 4, an honest record: links through the hidden /etc dangle for what the child starts."""
+        report = " ".join(governor.isolation_report()["not_enforced"])
+        self.assertIn("strict runs resolve only cmd[0] on the host", report)
+        python = "/usr/bin/python3"
+        if not os.path.islink(python) or not os.readlink(python).startswith("/etc/"):
+            self.skipTest("/usr/bin/python3 is not an /etc/alternatives link on this host")
+        direct = self.strict([python, "-I", "-S", "-c", "print('direct')"])
+        self.assertEqual(direct["stdout"], "direct\n", direct["stderr"])
+        script = self.workspace / "tool.py"
+        script.write_text("#!/usr/bin/python3\nprint('script')\n")
+        script.chmod(0o700)
+        indirect = self.strict(["/bin/sh", "-c", "/usr/bin/python3 -c 'print(1)'; ./tool.py; echo rc=$?"])
+        self.assertIn("not found", indirect["stderr"])
+        self.assertTrue(indirect["stdout"].endswith("rc=127\n"), indirect)
+
     def test_the_report_records_the_strict_mount_table_without_private_paths(self):
         report = governor.isolation_report()
         probe = next(p for p in report["probes"] if p["name"].startswith("strict run mount table"))
