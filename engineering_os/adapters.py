@@ -111,6 +111,8 @@ CANONICAL_PATH_FIELDS = {
     ("master-upgrade", "upgrade"): ("target", "workdir"),
     ("self-healing", "detect"): ("target",),
     ("self-healing", "heal"): ("target", "workdir"),
+    **{("memory", action): ("source_root",) for action in
+       ("retrieve", "adr-get", "why", "solutions", "failure-recall", "brief", "where", "evidence-status")},
 }
 PATH_FIELDS.update(CANONICAL_PATH_FIELDS)
 # Actions that always read the trusted Hub checkout: the grant must cover it.
@@ -509,8 +511,18 @@ def master_release_health():
 
 # ---------------------------------------------------------------- L13 reasoning
 
+# Further reasoning.ENGINE_RECORD actions: payload-only computations through reasoning.engine with an empty
+# context (wall clock for `now`; route-model never sees host credentials).
+REASONING_ACTIONS = ("strategy", "decompose", "plan-goal", "constraints", "dependencies", "rca", "counterfactual",
+                     "uncertainty", "perspectives", "validate-decision", "trade-off", "route-model")
+
+
 def reasoning(action, payload, ctx):
     from . import reasoning as module
+    if action in REASONING_ACTIONS:
+        if not isinstance(payload, dict):
+            raise AdapterError("payload must be an object")
+        return module.engine(action, payload, {})
     if action == "plan":
         return module.plan(payload)
     if action == "review":
@@ -540,8 +552,55 @@ def memory_store(ctx, *, read_only=False):
     return MemoryStore(_state(ctx) / MEMORY_DIR, read_only=read_only)
 
 
+# Further MemoryStore actions (memory.ENGINE_RECORD): method, required and optional fields besides `project`.
+# Reads open the store read-only and never create it; writes need their own state-write grant.
+MEMORY_READS = {
+    "retrieve": ("retrieve", (), ("query", "limit", "kinds", "tags", "include_symbols", "source_root")),
+    "neighbours": ("neighbours", ("node",), ("relation", "direction")),
+    "path": ("graph_path", ("source", "target"), ("max_depth", "relations")),
+    "adr-get": ("adr", ("adr_id",), ("source_root",)),
+    "why": ("why", ("question",), ("limit", "source_root")),
+    "solutions": ("solutions", (), ("source_root",)),
+    "failure-recall": ("recall_failure", ("signature",), ("limit", "source_root")),
+    "next-steps": ("next_steps", (), ("task_id",)),
+    "brief": ("brief", (), ("source_root",)),
+    "where": ("where", ("name",), ("limit", "source_root")),
+    "evidence-status": ("evidence_status", ("id",), ("source_root",)),
+}
+MEMORY_WRITES = {
+    "adr-add": ("adr_add", ("title", "context", "decision", "consequences"), ("engine", "status", "supersedes", "tags", "symbols")),
+    "adr-status": ("adr_status", ("adr_id", "status"), ()),
+    "failure-record": ("record_failure", ("signature", "summary"), ("engine", "title", "root_cause", "fix", "tags", "symbols")),
+    "task-progress": ("task_progress", ("task_id", "title", "done", "remaining"),
+                      ("engine", "status", "summary", "decisions", "symbols")),
+}
+_MEMORY_LISTS = ("kinds", "tags", "relations", "decisions", "symbols", "done", "remaining")
+
+
+def _memory_action(action, payload, ctx):
+    from .memory import MissingMemory
+    read = action in MEMORY_READS
+    method, required, optional = (MEMORY_READS if read else MEMORY_WRITES)[action]
+    _fields(payload, ("project", *required), optional)
+    arguments = {("identifier" if key == "id" else key): value for key, value in payload.items() if key != "project"}
+    if "source_root" in arguments:
+        arguments["source_root"] = _location(arguments["source_root"], "source_root")
+    for key in _MEMORY_LISTS:
+        if key in arguments and not isinstance(arguments[key], list):
+            raise AdapterError(f"{key}: list")
+    try:
+        result = getattr(memory_store(ctx, read_only=read), method)(payload["project"], **arguments)
+    except MissingMemory:
+        if not read:
+            raise
+        return {"project": payload["project"], "memory_present": False, "count": 0, "rows": []}
+    return result if isinstance(result, dict) else _rows(result)
+
+
 def memory(action, payload, ctx):
     from .memory import MissingMemory
+    if action in MEMORY_READS or action in MEMORY_WRITES:
+        return _memory_action(action, payload, ctx)
     if action == "put":
         return memory_store(ctx).put(payload)
     if action == "search":
@@ -667,8 +726,24 @@ def read_usage(ctx, limit=MAX_LEDGER_ROWS):
     return rows[-limit:]
 
 
+# Further economics.ACTIONS: exact payload fields (required, optional); the repository root is this checkout.
+ECONOMICS_FIELDS = {
+    "assess": (("ledger",), ()),
+    "recommend-concurrency": (("waves", "limits"), ()),
+    "estimate-scope": (("scope",), ("assumptions",)),
+    "estimate-infrastructure": (("assumptions",), ()),
+    "estimate-maintenance": (("scope",), ("build_assumptions", "assumptions")),
+    "estimate-rework": (("scope",), ("build_assumptions", "assumptions")),
+    "context-footprint": ((), ()),
+    "measured-baseline": ((), ()),
+}
+
+
 def economics(action, payload, ctx):
     from . import economics as module
+    if action in ECONOMICS_FIELDS:
+        _fields(payload, *ECONOMICS_FIELDS[action])
+        return module.engine(action, payload, {"root": str(ROOT)})
     if action == "summarize":
         return module.summarize(payload)
     if action == "recommend-model":

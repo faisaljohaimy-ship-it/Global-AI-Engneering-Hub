@@ -28,7 +28,13 @@ GOVERNOR = cp.governor is not None
 NEW_ENGINES = {"orchestrator": "L03", "security-audit": "L09", "requirements": "L15", "cinematic-production": "L18"}
 # Actions added to engines that existed before wave 2, by the same integration.
 NEW_ACTIONS = {"master-build": ("plan-app", "build", "evaluate-app", "request-repository"),
-               "master-upgrade": ("audit", "upgrade"), "self-healing": ("detect", "heal")}
+               "master-upgrade": ("audit", "upgrade"), "self-healing": ("detect", "heal"),
+               "reasoning": ("strategy", "decompose", "plan-goal", "constraints", "dependencies", "rca", "counterfactual",
+                             "uncertainty", "perspectives", "validate-decision", "trade-off", "route-model"),
+               "memory": ("retrieve", "neighbours", "path", "adr-add", "adr-status", "adr-get", "why", "solutions",
+                          "failure-record", "failure-recall", "task-progress", "next-steps", "brief", "where", "evidence-status"),
+               "economics": ("assess", "recommend-concurrency", "estimate-scope", "estimate-infrastructure",
+                             "estimate-maintenance", "estimate-rework", "context-footprint", "measured-baseline")}
 HAVE_MEDIA_TOOLS = bool(shutil.which("ffmpeg") and shutil.which("ffprobe") and shutil.which("node"))
 STORYBOARD = {"schema": "gaie.storyboard/1", "id": "registry-clip", "title": {"en": "Registry clip"}, "languages": ["en"],
               "format": {"width": 320, "height": 180, "fps": 24},
@@ -122,6 +128,19 @@ class RegistryTests(unittest.TestCase):
                 self.assertTrue(all(value and len(value) == 64 for value in described["sources"].values()), described["sources"])
         for engine, actions in NEW_ACTIONS.items():
             self.assertLessEqual(set(actions), set(records[engine]["actions"]), engine)
+
+    def test_entrypoints_are_the_thin_adapters_and_module_records_are_fully_exposed(self):
+        from engineering_os import economics, memory, reasoning
+        records = registered()
+        for engine, adapter in (("orchestrator", adapters.orchestrator), ("security-audit", adapters.security_audit),
+                                ("requirements", adapters.requirements),
+                                ("cinematic-production", adapters.cinematic_production)):
+            self.assertIs(contracts.resolve(records[engine]["entrypoint"]), adapter, engine)
+        self.assertEqual(set(records["reasoning"]["actions"]), set(reasoning.ENGINE_RECORD["actions"]))
+        self.assertEqual(set(records["memory"]["actions"]), set(memory.ENGINE_RECORD["actions"]))
+        self.assertLessEqual(set(economics.ACTIONS), set(records["economics"]["actions"]))
+        for name in NEW_ACTIONS["memory"]:
+            self.assertEqual(records["memory"]["actions"][name]["side_effect"], memory.ENGINE_RECORD["actions"][name]["side_effect"])
 
     def test_registered_actions_stay_at_or_below_workspace_write_and_publish_is_not_registered(self):
         for engine, action in wave2_actions():
@@ -417,12 +436,77 @@ class UpgradeAndHealingTests(_Governed):
         self.assertEqual(self.tree(target), before)
 
 
+class ReasoningMemoryEconomicsTests(_Governed):
+    def test_every_further_reasoning_operation(self):
+        import tests.test_reasoning_cases as cases
+        covered = set()
+        for action, payload in cases.EveryOperation.payloads(None):  # the sealed-operation fixtures of L13
+            if action not in NEW_ACTIONS["reasoning"]:
+                continue
+            with self.subTest(action=action):
+                result = self.invoke("reasoning", action, payload)
+                self.assertEqual(result["operation"], action)
+                covered.add(action)
+        self.assertEqual(covered, set(NEW_ACTIONS["reasoning"]))   # this loop is the invoke case of every operation
+        self.invoke("reasoning", "strategy", {"schema_version": 1, "task": "w2", "risk": .1, "complexity": .1,
+                                              "novelty": .1, "reversibility": .9, "evidence_coverage": .9})
+
+    def test_further_memory_actions_write_only_under_their_grant_and_read_without_creating(self):
+        project = "w2-project"
+        absent = self.invoke("memory", "why", {"project": project, "question": "Why the control plane?"})
+        self.assertEqual(absent["memory_present"], False)
+        self.assertFalse((self.state / "memory").exists())              # a read never creates the store
+        adr = self.invoke("memory", "adr-add", {"project": project, "title": "Use the control plane",
+                                                "context": "Engines were reachable only by import.",
+                                                "decision": "Every engine runs through control_plane.invoke.",
+                                                "consequences": "Every call needs a grant."})
+        self.assertEqual(adr["adr_id"], "ADR-0001")
+        self.assertEqual(self.invoke("memory", "adr-status", {"project": project, "adr_id": "ADR-0001",
+                                                              "status": "accepted"})["status"], "accepted")
+        self.assertEqual(self.invoke("memory", "adr-get", {"project": project, "adr_id": "ADR-0001"})["status"], "accepted")
+        why = self.invoke("memory", "why", {"project": project, "question": "Why does every engine use the control plane?"})
+        self.assertEqual(why["answers"][0]["adr_id"], "ADR-0001")
+        signature = "ModuleNotFoundError: engineering_os.missing"
+        self.invoke("memory", "failure-record", {"project": project, "signature": signature, "summary": "A module was missing."})
+        self.assertEqual(self.invoke("memory", "failure-recall", {"project": project, "signature": signature})["count"], 1)
+        self.invoke("memory", "task-progress", {"project": project, "task_id": "w2-task", "title": "Register engines",
+                                                "done": ["records"], "remaining": ["docs"]})
+        self.assertEqual(self.invoke("memory", "next-steps", {"project": project})["rows"][0]["task_id"], "w2-task")
+        self.assertEqual(self.invoke("memory", "brief", {"project": project})["project"], project)
+        self.assertEqual(self.invoke("memory", "retrieve", {"project": project, "query": "control plane"})["rows"][0]["id"],
+                         adr["id"])
+        self.assertEqual(self.invoke("memory", "neighbours", {"project": project, "node": adr["id"]})["node"]["id"], adr["id"])
+        self.assertIn("found", self.invoke("memory", "path", {"project": project, "source": adr["id"], "target": adr["id"]}))
+        self.assertEqual(self.invoke("memory", "solutions", {"project": project})["count"], 0)
+        self.assertEqual(self.invoke("memory", "where", {"project": project, "name": "invoke", "source_root": str(ROOT)},
+                                     paths=[ROOT])["count"], 0)
+        self.assertEqual(self.invoke("memory", "evidence-status", {"project": project, "id": adr["id"]})["id"], adr["id"])
+        with self.assertRaises(cp.governor.GovernorDenied):                # a write needs its own state-write grant
+            cp.invoke("memory", "adr-add", {"project": project, "title": "t", "context": "c", "decision": "d",
+                                            "consequences": "e"}, grant=grant({"memory": ["adr-add"]}), ctx=self.ctx)
+
+    def test_further_economics_actions(self):
+        import tests.test_economics as cases
+        self.assertEqual(self.invoke("economics", "assess", {"ledger": cases.ledger_v2()})["verified_tasks"], 2)
+        self.assertEqual(self.invoke("economics", "recommend-concurrency", {"waves": [], "limits": cases.LIMITS})["agents"], 4)
+        self.assertEqual(self.invoke("economics", "estimate-scope", {"scope": "mvp"})["kind"], "ESTIMATE")
+        infra = self.invoke("economics", "estimate-infrastructure", {"assumptions": {"months": 1, "components": [
+            {"name": "db", "monthly_usd_low": "1", "monthly_usd_high": "2"}]}})
+        self.assertEqual(infra["money"]["low"]["value"], "1")
+        self.assertEqual(self.invoke("economics", "estimate-maintenance", {"scope": "mvp"})["measured"], False)
+        self.assertEqual(self.invoke("economics", "estimate-rework", {"scope": "mvp"})["assumptions"]["rework_share"], ["0", "0.4"])
+        self.assertTrue(self.invoke("economics", "context-footprint", {}))
+        self.assertTrue(self.invoke("economics", "measured-baseline", {}))
+
+
 class CoverageTests(unittest.TestCase):
     """Order-independent: every registered wave-2 action is named in an invoke call of this module."""
 
     def test_every_wave2_action_has_an_invoke_case_in_this_module(self):
         source = pathlib.Path(__file__).read_text(encoding="utf-8")
         for engine, action in sorted(wave2_actions()):
+            if engine == "reasoning":
+                continue  # one data-driven loop invokes every operation and asserts it covered all of them
             with self.subTest(engine=engine, action=action):
                 self.assertIn(f'"{engine}", "{action}"', source)
 

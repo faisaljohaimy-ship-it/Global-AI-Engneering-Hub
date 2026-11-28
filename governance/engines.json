@@ -589,6 +589,90 @@
           "secrets:none"
         ],
         "summary": "Rank root-cause candidates from supplied observations and dependencies."
+      },
+      "strategy": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "choose quick, standard or deep reasoning with the reason"
+      },
+      "decompose": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "expand goal, milestones and tasks into planner nodes"
+      },
+      "plan-goal": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "decompose a goal and schedule it with the wave planner"
+      },
+      "constraints": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "check hard constraints and score soft constraints"
+      },
+      "dependencies": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "critical path, slack, ready and blocked items"
+      },
+      "rca": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "rank competing root-cause hypotheses by weighted evidence"
+      },
+      "counterfactual": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "evaluate what changes when assumptions or decisions flip"
+      },
+      "uncertainty": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "flag missing, stale or conflicting evidence"
+      },
+      "perspectives": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "architecture, security, quality, cost and operability findings"
+      },
+      "validate-decision": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "accept a decision only with evidence for critical criteria"
+      },
+      "trade-off": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "weighted criteria matrix with weight sensitivity"
+      },
+      "route-model": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "routing decision for a step that needs a model; no call"
       }
     },
     "supersedes": [
@@ -669,6 +753,138 @@
           "secrets:none"
         ],
         "summary": "Attach a passed, source-bound test receipt to a stored solution."
+      },
+      "retrieve": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Ranked retrieval over entries and indexed symbols."
+      },
+      "neighbours": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Typed neighbours of a graph node."
+      },
+      "path": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Shortest path between two graph nodes."
+      },
+      "adr-get": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Read one ADR with its evidence status."
+      },
+      "why": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Why a decision was taken, from recorded text."
+      },
+      "solutions": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Verified-solutions registry; unverified ones marked."
+      },
+      "failure-recall": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Known failures for a signature."
+      },
+      "next-steps": {
+        "side_effect": "none",
+        "permissions": [
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Done, remaining and next steps per task."
+      },
+      "brief": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Resume briefing for a new session."
+      },
+      "where": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Locate a symbol from the index."
+      },
+      "evidence-status": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Fresh, stale or missing source evidence."
+      },
+      "adr-add": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Record an architecture decision record."
+      },
+      "adr-status": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Accept a proposed ADR."
+      },
+      "failure-record": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Record a failure signature, root cause and fix."
+      },
+      "task-progress": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:state",
+          "write:state",
+          "secrets:none"
+        ],
+        "summary": "Record a new version of task progress."
       }
     },
     "supersedes": [
@@ -997,6 +1213,68 @@
           "secrets:none"
         ],
         "summary": "Read the control plane's private usage ledger rows."
+      },
+      "assess": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "Typed L19 metrics of a ledger, with units and unknowns."
+      },
+      "recommend-concurrency": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Next agent count and batch from measured waves. (swarm/phase3/adaptive.py loaded read-only by path)"
+      },
+      "estimate-scope": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE for a feature, an MVP or an enterprise system. Planning figures, not measurements."
+      },
+      "estimate-infrastructure": {
+        "side_effect": "none",
+        "permissions": [
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE of infrastructure cost from supplied ranges. Planning figures, not measurements."
+      },
+      "estimate-maintenance": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE of maintenance from a build estimate. Planning figures, not measurements."
+      },
+      "estimate-rework": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "ESTIMATE of rework from a build estimate. Planning figures, not measurements."
+      },
+      "context-footprint": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Re-measure the repository context a session loads. Counts files and characters by a stated method; no tokenizer or model."
+      },
+      "measured-baseline": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "secrets:none"
+        ],
+        "summary": "Measured inputs from the swarm evidence, with sources. Each figure cites its source path."
       }
     },
     "supersedes": [
