@@ -1,0 +1,75 @@
+{
+ "tool": "serena-agent",
+ "version": "2.1.0",
+ "run_with": "stdio MCP server, --agent-interface tools, language servers: pyright and typescript-language-server",
+ "measured": "2026-11-28",
+ "project": "the hub at 629504c",
+ "calls": [
+  {
+   "tool": "get_symbols_overview",
+   "arguments": {
+    "relative_path": "hublink.py"
+   },
+   "reply_chars": 479,
+   "seconds": 0.675,
+   "error": false
+  },
+  {
+   "tool": "find_symbol",
+   "arguments": {
+    "name_path_pattern": "register",
+    "relative_path": "hublink.py",
+    "include_body": true
+   },
+   "reply_chars": 6366,
+   "seconds": 0.101,
+   "error": false
+  },
+  {
+   "tool": "find_referencing_symbols",
+   "arguments": {
+    "name_path": "register",
+    "relative_path": "hublink.py"
+   },
+   "reply_chars": 2463,
+   "seconds": 2.299,
+   "error": false
+  },
+  {
+   "tool": "get_symbols_overview",
+   "arguments": {
+    "relative_path": "packages/motion-sdk/index.mjs"
+   },
+   "reply_chars": 378,
+   "seconds": 0.666,
+   "error": false
+  },
+  {
+   "tool": "find_symbol",
+   "arguments": {
+    "name_path_pattern": "validateScene",
+    "relative_path": "packages/motion-sdk/index.mjs",
+    "include_body": true
+   },
+   "reply_chars": 2029,
+   "seconds": 0.103,
+   "error": false
+  },
+  {
+   "tool": "find_referencing_symbols",
+   "arguments": {
+    "name_path": "validateScene",
+    "relative_path": "packages/motion-sdk/index.mjs"
+   },
+   "reply_chars": 1009,
+   "seconds": 5.15,
+   "error": false
+  }
+ ],
+ "whole_file_chars": {
+  "hublink.py": 22025,
+  "packages/motion-sdk/index.mjs": 21507
+ },
+ "cold_session_seconds_for_six_calls": 10.2,
+ "one_shot_overview_seconds": 3.2
+}
