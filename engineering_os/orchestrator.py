@@ -526,17 +526,33 @@ def task_grant(role, task, actions, grant_id, expires_at):
 
 # ---------------------------------------------------------------- review
 
+def _review_document(roles, root):
+    """The role document review_assignment reads. A caller's document is taken as given (plan() passes the
+    one it already validated, and a subset may lack panel candidates), but its shape is checked here so a
+    malformed one raises OrchestratorError, never a bare KeyError or TypeError."""
+    if not (isinstance(roles, dict) and "roles" in roles):
+        return _roles_document(roles, root)[0]
+    rows = roles["roles"]
+    _need(isinstance(rows, list) and all(isinstance(row, dict) and isinstance(row.get("id"), str)
+                                         and isinstance(row.get("reviewer"), bool) for row in rows),
+          "review: malformed role document: every role needs a string id and a boolean reviewer flag")
+    _need(len({row["id"] for row in rows}) == len(rows), "review: malformed role document: duplicate role id")
+    return roles
+
+
 def review_assignment(task, *, roles=None, root=ROOT):
     """The independent reviewer and the testing/security/release approval panel for a task.
 
     The implementer's role is never the reviewer or on the panel; a reviewer the task asks for that is
     its own implementer is refused (ReviewIndependenceError)."""
-    document = roles if isinstance(roles, dict) and "roles" in roles else _roles_document(roles, root)[0]
+    document = _review_document(roles, root)
     by_id = _by_id(document)
-    _need(isinstance(task, dict) and task.get("role") in by_id, "review: task needs a known role")
+    _need(isinstance(task, dict) and isinstance(task.get("role"), str) and task["role"] in by_id,
+          "review: task needs a known role")
     implementer = task["role"]
     requested = task.get("reviewer")
     if requested is not None:
+        _need(isinstance(requested, str), f"{task.get('id')}: the reviewer must be a role id")
         _need(requested != implementer, f"{task.get('id')}: the reviewer {requested} is the implementer",
               ReviewIndependenceError)
         _need(requested in by_id, f"{task.get('id')}: unknown reviewer {requested}")

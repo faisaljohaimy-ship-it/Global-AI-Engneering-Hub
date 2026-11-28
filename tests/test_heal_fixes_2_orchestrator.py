@@ -7,6 +7,9 @@ as plan() does, and against the frozen areas the caller names. verify_plan took 
 from the plan itself, so a re-sealed plan could empty its own frozen list and move a task into
 the area plan() refused; the verifier can now name the frozen areas it requires.
 
+(g) review_assignment(roles=<dict>) used a caller's role document unchecked, so a malformed one
+raised a bare KeyError or TypeError; it now raises OrchestratorError.
+
 State lives in temporary directories only; nothing is executed.
 """
 
@@ -16,7 +19,8 @@ import tempfile
 import unittest
 
 from engineering_os import orchestrator as o
-from engineering_os.orchestrator import OrchestratorError, OwnershipConflict, lifecycle, plan, sha256, verify_plan
+from engineering_os.orchestrator import (OrchestratorError, OwnershipConflict, ReviewIndependenceError, lifecycle, plan,
+                                         review_assignment, sha256, verify_plan)
 
 NOW = "2026-11-28T06:00:00Z"
 ROLE = "master-build-engine-engineer"
@@ -126,6 +130,42 @@ class VerifyPlanFrozenTests(unittest.TestCase):
                 verify_plan(reseal(dict(copy.deepcopy(issued()), frozen=frozen)))
         with self.assertRaises(OrchestratorError):
             verify_plan(issued(), frozen=["../y"])
+
+
+class MalformedRoleDocumentTests(unittest.TestCase):
+    TASK = {"id": "t", "role": ROLE}
+
+    def test_a_malformed_document_raises_the_module_error(self):
+        roles = DOCUMENT["roles"]
+        cases = {"entry without reviewer": {"roles": [{k: v for k, v in r.items() if k != "reviewer"} for r in roles]},
+                 "non-dict entry": {"roles": roles + [7]},
+                 "roles is text": {"roles": "x"},
+                 "roles is None": {"roles": None},
+                 "entry without id": {"roles": [{"reviewer": True}] + roles},
+                 "unhashable id": {"roles": [{"id": ["x"], "reviewer": True}] + roles},
+                 "reviewer flag is text": {"roles": [dict(r, reviewer="no") for r in roles]},
+                 "duplicate id": {"roles": roles + [roles[0]]}}
+        for name, document in cases.items():
+            with self.subTest(name=name):
+                try:
+                    review_assignment(self.TASK, roles=document)
+                except OrchestratorError as error:
+                    self.assertIn("malformed role document", str(error))
+                else:
+                    self.fail("accepted a malformed role document")
+
+    def test_a_malformed_task_raises_the_module_error(self):
+        for task in ({"id": "t", "role": [ROLE]}, {"id": "t", "role": ROLE, "reviewer": ["x"]}, {"id": "t"}, None, "t"):
+            with self.subTest(task=task), self.assertRaises(OrchestratorError):
+                review_assignment(task, roles=DOCUMENT)
+
+    def test_well_formed_documents_behave_as_before(self):
+        self.assertEqual(review_assignment(self.TASK, roles=DOCUMENT), review_assignment(self.TASK))
+        subset = dict(DOCUMENT, roles=[r for r in DOCUMENT["roles"] if r["id"] not in o.PANEL_CANDIDATES["testing"]])
+        with self.assertRaises(ReviewIndependenceError):
+            review_assignment(self.TASK, roles=subset)
+        with self.assertRaises(OrchestratorError):
+            o.engine("review-assignment", {"task": {"id": "t", "role": "nobody"}})
 
 
 if __name__ == "__main__":
