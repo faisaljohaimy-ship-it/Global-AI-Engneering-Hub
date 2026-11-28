@@ -193,8 +193,10 @@ the old repository paths, and a deliberate control read is detected.
   (`ENGINE`) and in `catalog/packs.json` (`gaie-factory.files`, as `memory.py`,
   `orchestration.py`, `security_scan.py`); then the portable journal can be removed.
 - The control plane reaches memory only through `engineering_os/adapters.py`
-  (`memory_store`, `record_checkpoint`, `memory`, `memory_health`; the `memory` record in
-  `governance/engines.json`: put, search, graph, index, checkpoint, restore, verify). That
+  (`memory_store`, `memory`, `memory_health`; the `memory` record in
+  `governance/engines.json`: put, search, graph, index, checkpoint, restore, verify). A task
+  ID in `ctx` writes no memory and no checkpoint; a checkpoint is written only by the
+  explicit `checkpoint` action under a state-write grant. That
   adapter opens the multi-project `MemoryStore(<state>/memory)` (isolation rule 6) and
   detects an existing store by the engine's own file names. `memory.invoke` /
   `memory.ENGINE_RECORD` offer the wider, always project-isolated action set (adr-add,
