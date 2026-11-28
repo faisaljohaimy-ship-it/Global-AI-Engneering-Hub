@@ -124,6 +124,38 @@ All findings predate the security merge; none was introduced by it. The release 
 until the 4 high findings (H1, W2-BU-01, W2-UP-01, W2-UP-02) are fixed and re-checked by
 their reviewers.
 
+## Re-check register (independent re-checks of the fixes)
+
+Each fix is re-checked by an agent that did not write it. Findings JSON and proofs of
+concept are in the session scratchpad (`reviews/recheck-*.json`).
+
+| Re-check | Verdict | Result |
+|---|---|---|
+| recheck-authz | approve-with-fixes | F1 partly (nested submodules; release engine ran a planted filter during read-only eligibility), F3 partly (origin spellings), M2 residual (Arabic labels without ':'), docs — all fixed by lane recheck-fixes |
+| recheck-w2-heal | approve-with-fixes | **H1 closed** (seven attack variants rejected); low residuals in detectors keys, reasoning minimum support, Lifecycle ownership — lane heal-fixes-2 |
+| recheck-isolation | approve-with-fixes | F1, F2, F6, F7 fixed (F1 held against 18 Git config cases); new medium: strict mode mounted a program's whole install folder (secret read from share/) — lane isolation-fixes-2 |
+| recheck-upgrade | **block** | W2-UP-01 closed (42 SQL attack scripts refused), W2-UP-03 closed; new HIGH: a copied hot journal makes SQLite delete an arbitrary file — lane upgrade-fixes-2; W2-UP-04 residual phrasings |
+| recheck-security | approve-with-fixes | SEC-07, SEC-10, M1, L1, L4, private-mode fixed (measured); SEC-12 partial (edited exception test files ran outside the sandbox), M4 partial — lane sec-fixes-2 |
+| recheck-release | **block** | release-engine Git hardened, but sdk.engineering_sdk.git (checkout_guard) still runs a promisor program; new: homoglyph host matched a registered repository — lane recheck-fixes-2 |
+| recheck-build | running | W2-BU-01 (high) and the other build/requirements fixes |
+
+## Release blockers (status at 2026-11-28 10:40Z)
+
+| Blocker | Status |
+|---|---|
+| H1 self-healing reports "repaired" for a patch that adds a defect | closed, re-checked |
+| W2-UP-01 read-only audit executes target SQL | closed, re-checked |
+| W2-BU-01 generated app link routes ignore ownership | fixed, re-check running |
+| W2-UP-02 WAL corruption → new super-journal deletion | fixing (upgrade-fixes-2) |
+| Release engine runs a planted program during read-only checks | fixing (recheck-fixes-2) |
+| Strict mode mounts whole install folders (secret readable) | fixing (isolation-fixes-2) |
+
+## CI milestone
+
+- 2026-11-28 10:18Z: the isolation job "Full sandbox tier with no skipped isolation test"
+  passed on a GitHub-hosted runner at `6a0330a` (run 46134437218) — the first positive
+  isolation proof in CI. It becomes release-gating in the wave-2 wiring.
+
 ## Acceptance scenarios
 
 Verified by running each test file alone on `0986919`.
@@ -151,17 +183,18 @@ Status values: `open`, `in progress`, `done` (with the commit).
 |---|---|---|
 | pr30 | Review and merge the security hardening of #30 | merged into this branch (`ff3368e`); independent review in progress |
 | motion-policy | Purposeful digital motion policy: one central policy file, validator, tests, registry build refuses a motion with no stated meaning | done (`f95b85e`) |
-| motion-port | Bring over motions that exist only on earlier branches (`claude/native-motion-engines-wip`, `feat/chromium-motion-stack`), as they are, each with a stated meaning and a fresh browser proof | in progress |
-| agents-20 | Standing policy: a team of up to twenty specialist roles for every build and upgrade, bound to `governance/agent-roles.json` | done (`823e6b5`): policy file, standalone loader, orchestrator reads its limits from it, specialist agent definition; router/skills wiring in wave 1 |
+| motion-port | Bring over motions that exist only on earlier branches (`claude/native-motion-engines-wip`, `feat/chromium-motion-stack`), as they are, each with a stated meaning and a fresh browser proof | done (`41bf3d9`): 60 motions ported with meanings and a Chromium receipt; counted by the policy (`ported-sdk`, purposeful 107) in `c31e0c0` |
+| agents-20 | Standing policy: a team of up to twenty specialist roles for every build and upgrade, bound to `governance/agent-roles.json` | done (`823e6b5`): policy file, standalone loader, orchestrator reads its limits from it, specialist agent definition; router agent-team block merged with wiring-1 (`8800176`) |
 | master-central | `MASTER_BUILD` and `MASTER_UPGRADE` adopted, one canonical source with version and digest, drift test | done (`157d8d1`; pinned 1.1.0 in `daacfa6`, merged with wiring-1 in `8800176`) |
-| registry | Register the wave-2 engines in `governance/engines.json` and `engineering_os/adapters.py`; append their interfaces and tests to `governance/layers.json`; bind scenarios A–I | open |
-| assurance | L20 independent assurance module (`engineering_os/assurance.py`): the reviewer is never the producer | done (`121bab9`): assign/record/verify/gate with source-bound receipts; control-plane registration in wave 2 |
+| registry | Register the wave-2 engines in `governance/engines.json` and `engineering_os/adapters.py`; append their interfaces and tests to `governance/layers.json`; bind scenarios A–I | partly done: reg-engines (`9a8903c`), reg-layers (`47848b5`), fix-lane tests bound (`264fbd8`); wave-2 wiring pending |
+| assurance | L20 independent assurance module (`engineering_os/assurance.py`): the reviewer is never the producer | done (`121bab9`): assign/record/verify/gate with source-bound receipts; control-plane registration pending (wave 2) |
 | scenario-g | Release engine acceptance: spec, test on a synthetic repository, evidence | done (`347bd86`): 22 tests, never tags or pushes, evidence reproducible; registration in wave 2 |
-| scenario-i | Install proof in a new Claude Code session and in an independent project | open |
-| security | Remaining findings in `docs/evidence/gaie-20-layers/security-findings.json`; measured isolation | in progress: regenerated after the sec-isolation, sec-findings and isolation-fixes merges (`d9c84ef`): open 2 (SEC-16, SEC-17, low), fixed 10 including SEC-07, SEC-09 and SEC-12 |
+| scenario-i | Install proof in a new Claude Code session and in an independent project | done for the steps without a model (`5189d2a`; evidence re-recorded after each later merge, last in `ec76969`); the fresh Claude Code session is pending the owner (model-backed, billed) |
+| security | Remaining findings in `docs/evidence/gaie-20-layers/security-findings.json`; measured isolation | partly done: sec-isolation (`bd0dbbb`), sec-findings (`2fdbd4c`), isolation-fixes (`2541de2`) merged; findings regenerated in `d9c84ef` (open 2: SEC-16, SEC-17, low); release blockers listed above |
 | activation | Run the approved tools, skills and engines for real and record what ran on this host | done (`867aebf`): 5 of 6 tools ran from their locks, Headroom 71% lossless reduction, 33/33 engine calls; receipt regenerated at the final commit |
-| status-docs | `docs/OPERATING_SYSTEM_STATUS.md`, `CHANGELOG.md`, `docs/GAIE_FACTORY.md` are stale | done for the status documents, README and the final report skeleton (merge `2c0667f`); `CHANGELOG.md` untouched |
+| status-docs | `docs/OPERATING_SYSTEM_STATUS.md`, `CHANGELOG.md`, `docs/GAIE_FACTORY.md` are stale | done (`2c0667f`): status documents, README and the final report skeleton; a final pass at the release head remains |
 | review | Independent engineering review of the whole branch | open |
+| release-prep | Release provenance job list, SDK 1.0.1 label, changelog backfill, post-merge checklist | done (`8d29263`) |
 | release | Version, changelog and release record; merge to `main` | open |
 | report | Final report in Arabic and English with a scenario matrix checked by a test | open |
 
