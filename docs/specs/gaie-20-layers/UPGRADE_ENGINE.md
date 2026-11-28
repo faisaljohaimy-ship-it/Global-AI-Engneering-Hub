@@ -90,9 +90,13 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
    The target's schema SQL is data: it runs only in a throwaway `:memory:` database
    (`detectors.schema_memory`) whose authorizer denies `ATTACH` and `VACUUM` (`VACUUM INTO`
    writes a file), `DETACH`, `load_extension` and every `PRAGMA` except schema introspection,
-   `foreign_keys` and `user_version`; the attached-database limit is 0, extension loading is
-   off and each script's work is bounded. A refused statement stops that script and is
-   reported as `unsafe-schema-sql` (severity high), by the detectors and by the query audit.
+   `foreign_keys` and `user_version`; the attached-database limit is 0 and extension loading
+   is off. Memory and time are bounded: one string, blob or row at most 1 MB
+   (`SQLITE_LIMIT_LENGTH`), one statement at most 1 MB (`SQLITE_LIMIT_SQL_LENGTH`), the main
+   and temp databases 4096 pages each (temp kept in memory), and each script 2000 progress
+   steps of 10000 instructions and 5 seconds. A refused statement or a script past a bound
+   stops that script and is reported as `unsafe-schema-sql` (severity high), by the detectors
+   and by the query audit.
 4. **PLAN** — one step per area from a bounded generator catalogue (§3), filtered by the
    command's scope (by primary area), ordered with `reasoning.decompose` (areas in the order
    `code, architecture, database, performance, security, ui, assets, tests, docs`, the notes

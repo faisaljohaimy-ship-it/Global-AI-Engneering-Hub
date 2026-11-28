@@ -777,22 +777,33 @@ SQL_PRAGMAS_ALLOWED = frozenset({"foreign_keys", "user_version", "table_info", "
                                  "index_xinfo", "foreign_key_list"})
 SQL_FUNCTIONS_REFUSED = frozenset({"load_extension", "fts3_tokenizer"})
 SQL_WORK_LIMIT = 2000  # progress-handler calls of 10000 virtual-machine instructions per schema script
+SQL_TIME_LIMIT_S = 5.0  # wall-clock bound per schema script, checked by the same progress handler
+SQL_VALUE_LIMIT = 1_000_000  # SQLITE_LIMIT_LENGTH: bytes in one string or blob (and one row)
+SQL_STATEMENT_LIMIT = 1_000_000  # SQLITE_LIMIT_SQL_LENGTH: bytes in one statement
+SQL_PAGE_LIMIT = 4096  # max_page_count of the main and the temp database (16 MiB each with 4 KiB pages)
 
 
 def schema_memory(root, schemas):
     """Load schema files into a fresh ``:memory:`` SQLite database that no statement can use to reach a file.
 
     An authorizer denies ATTACH/VACUUM, DETACH, load_extension and PRAGMA outside
-    ``SQL_PRAGMAS_ALLOWED``; the attached-database limit is 0, extension loading stays off
-    and each script's work is bounded. Returns ``(connection, problems)``: one problem per
+    ``SQL_PRAGMAS_ALLOWED``; the attached-database limit is 0 and extension loading stays off.
+    Memory and time are bounded too: one value or row at most ``SQL_VALUE_LIMIT`` bytes, one
+    statement ``SQL_STATEMENT_LIMIT``, the main and temp databases ``SQL_PAGE_LIMIT`` pages
+    each (temp kept in memory), and each script ``SQL_WORK_LIMIT`` progress steps and
+    ``SQL_TIME_LIMIT_S`` seconds. Returns ``(connection, problems)``: one problem per
     schema that did not load, ``kind`` ``unsafe-schema-sql`` (a statement was refused; the
     script stops there) or ``schema-error``. The caller closes the connection.
     """
     memory = sqlite3.connect(":memory:")
     memory.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
+    memory.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, SQL_VALUE_LIMIT)
+    memory.setlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH, SQL_STATEMENT_LIMIT)
+    for pragma in ("temp_store = MEMORY", f"main.max_page_count = {SQL_PAGE_LIMIT}", f"temp.max_page_count = {SQL_PAGE_LIMIT}"):
+        memory.execute(f"PRAGMA {pragma}").fetchall()  # before the authorizer, which refuses every other PRAGMA
     if hasattr(memory, "enable_load_extension"):
         memory.enable_load_extension(False)
-    refused, work = [], [0]
+    refused, work, deadline = [], [0], [0.0]
 
     def authorize(action, first, second, database, trigger):
         if action in (sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH):
@@ -807,8 +818,8 @@ def schema_memory(root, schemas):
 
     def progress():
         work[0] += 1
-        if work[0] > SQL_WORK_LIMIT:
-            refused.append("work limit")
+        if work[0] > SQL_WORK_LIMIT or time.monotonic() > deadline[0]:
+            refused.append("work limit" if work[0] > SQL_WORK_LIMIT else "time limit")
             return 1
         return 0
 
@@ -817,13 +828,15 @@ def schema_memory(root, schemas):
     problems = []
     for rel in schemas:
         refused.clear()
-        work[0] = 0
+        work[0], deadline[0] = 0, time.monotonic() + SQL_TIME_LIMIT_S
         try:
             memory.executescript(read_text(root, rel) or "")
         except sqlite3.Error as error:
+            if getattr(error, "sqlite_errorname", "") in ("SQLITE_TOOBIG", "SQLITE_FULL") or isinstance(error, sqlite3.DataError):
+                refused.append("size limit")  # a value, statement or database past the bounds above
             problems.append({"path": rel, "kind": "unsafe-schema-sql" if refused else "schema-error",
                              "refused": sorted(set(refused)), "error": _redact(str(error), 200)})
-    work[0] = 0
+    work[0], deadline[0] = 0, time.monotonic() + SQL_TIME_LIMIT_S  # the caller's own queries get the same bounds
     return memory, problems
 
 
