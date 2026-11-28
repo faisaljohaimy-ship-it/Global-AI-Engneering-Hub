@@ -9,15 +9,11 @@ import unittest
 from engineering_os import control
 
 
-def unit_only_native_receipt():
-    """Synthetic positive unit fixture; never written/published as runtime proof."""
+def reviewed_native_receipt():
+    """Actual reviewed CI receipt; negative tests mutate private copies only."""
     policy=control.read(control.ROOT/'catalog/capabilities/playwright.json')
     record=copy.deepcopy(policy)
-    record['runtime_receipt']=policy['historical_reviews'][0]['native_receipt']['path']
     receipt=copy.deepcopy(control.read(control.ROOT/record['runtime_receipt']))
-    receipt['toolchain']['playwright']=record['version']
-    receipt['inputs']={name:hashlib.sha256((control.ROOT/'motion-library/chromium-stack'/name).read_bytes()).hexdigest()
-                       for name in receipt['inputs']}
     return record,receipt
 
 
@@ -39,11 +35,10 @@ class ControlTests(unittest.TestCase):
         from unittest import mock
         import datetime
         policy=control.read(control.ROOT/'catalog/capabilities/playwright.json')
-        self.assertIsNone(control.runtime_review(policy), 'A reviewed installation is not current runtime evidence')
-        record,receipt=unit_only_native_receipt()
+        record,receipt=reviewed_native_receipt()
         recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
-        # Explicit unit-only dependency injection exercises the positive validator;
-        # actual policy.runtime_receipt remains null, so no catalog promotion occurs.
+        self.assertEqual(control.runtime_review(policy,recorded), policy)
+        # Source hashes and expiry remain mandatory for this actual dated proof.
         with mock.patch.object(control,'read',return_value=receipt):
             self.assertEqual(control.runtime_review(record,recorded)['revision'],record['revision'])
             self.assertIsNone(control.runtime_review(record,recorded+datetime.timedelta(days=2)))
@@ -63,7 +58,7 @@ class ControlTests(unittest.TestCase):
         import copy
         import datetime
         from unittest import mock
-        record,receipt=unit_only_native_receipt()
+        record,receipt=reviewed_native_receipt()
         recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
         broken=[]
         item=copy.deepcopy(receipt);item['inputs'].pop('native-probes.mjs');broken.append(item)
@@ -74,6 +69,10 @@ class ControlTests(unittest.TestCase):
         item=copy.deepcopy(receipt);item['cases'][0]['direction']='rtl';broken.append(item)
         item=copy.deepcopy(receipt);item['cases'][2]['rendered']['waapi']=True;broken.append(item)
         item=copy.deepcopy(receipt);item['cases'][0]['benchmark']['intervals']=[];broken.append(item)
+        item=copy.deepcopy(receipt);item['cases'][0]['benchmark']['frame_budget_ms']=100;broken.append(item)
+        item=copy.deepcopy(receipt);item['recorded_at_utc']=(recorded+datetime.timedelta(days=1)).isoformat();broken.append(item)
+        policy=control.read(control.ROOT/'catalog/capabilities/playwright.json')
+        broken.append(control.read(control.ROOT/policy['runtime_raw_receipt']['path']))
         for item in broken:
             with self.subTest(item=item.keys()),mock.patch.object(control,'read',return_value=item):
                 self.assertIsNone(control.runtime_review(record,recorded))
@@ -89,13 +88,15 @@ class ControlTests(unittest.TestCase):
         import copy
         from unittest import mock
         real_read=control.read
-        path=control.ROOT/'docs/evidence/motion-expansion-2026-11-27.json'
+        policy_path=control.ROOT/'catalog/capabilities/playwright.json'
+        policy=real_read(policy_path)
+        path=control.ROOT/policy['motion_runtime_receipt']
         receipt=real_read(path)
         expansion=control.motions()['expansion']
         self.assertEqual((expansion['implemented'],expansion['tested']), (400,400))
-        self.assertEqual(expansion['runtime_verified'],0)
+        self.assertEqual(expansion['runtime_verified'],400)
         self.assertEqual(expansion['historical_tested_toolchain']['playwright'],'1.63.0')
-        self.assertEqual(expansion['current_runtime']['state'],'evidence-required')
+        self.assertEqual(expansion['current_runtime']['state'],'recorded-source-bound')
         broken=[]
         item=copy.deepcopy(receipt);item['source_sha256'].pop('packages/motion-sdk/index.mjs');broken.append(item)
         item=copy.deepcopy(receipt);item['profiles'][1]=item['profiles'][0];broken.append(item)
@@ -109,18 +110,30 @@ class ControlTests(unittest.TestCase):
         item=copy.deepcopy(receipt);item['recorded_at_utc']='not-a-timestamp';broken.append(item)
         item=copy.deepcopy(receipt);item['playwright_version']='0.0.1';broken.append(item)
         for item in broken:
-            def amended(target):return item if pathlib.Path(target)==path else real_read(target)
-            with mock.patch.object(control,'read',side_effect=amended):
-                result=control.motions()['expansion']
-                self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (0,0,0))
+            for history_available in (True,False):
+                amended_policy=copy.deepcopy(policy)
+                if not history_available:amended_policy['historical_reviews']=[]
+                def amended(target):
+                    if pathlib.Path(target)==path:return item
+                    if pathlib.Path(target)==policy_path:return amended_policy
+                    return real_read(target)
+                with self.subTest(history_available=history_available),mock.patch.object(control,'read',side_effect=amended):
+                    result=control.motions()['expansion']
+                    count=400 if history_available else 0
+                    self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (count,count,0))
 
     def test_reviewed_history_is_required_and_cannot_relabel_the_old_driver(self):
         from unittest import mock
         real_read=control.read
         policy_path=control.ROOT/'catalog/capabilities/playwright.json'
         policy=real_read(policy_path)
+        # Isolate historical proof: valid current proof must not hide a broken
+        # historical review, or disappear because an unrelated old proof fails.
+        history_only=copy.deepcopy(policy)
+        history_only['motion_runtime_receipt']=None
+        history_only['motion_runtime_receipt_sha256']=None
         for changed in ('missing-review','unapproved-review','arbitrary-pin'):
-            amended=copy.deepcopy(policy)
+            amended=copy.deepcopy(history_only)
             if changed=='missing-review':amended['historical_reviews']=[]
             elif changed=='unapproved-review':amended['historical_reviews'][0]['review_status']='pending'
             else:amended['historical_reviews'][0]['hub_revision']='main'
@@ -128,7 +141,11 @@ class ControlTests(unittest.TestCase):
                 self.assertEqual(control.motions()['expansion']['implemented'],0)
         path=control.ROOT/policy['historical_reviews'][0]['motion_receipt']['path']
         relabeled=copy.deepcopy(real_read(path));relabeled['playwright_version']=policy['version']
-        with mock.patch.object(control,'read',side_effect=lambda target: relabeled if pathlib.Path(target)==path else real_read(target)):
+        def historical_amended(target):
+            if pathlib.Path(target)==path:return relabeled
+            if pathlib.Path(target)==policy_path:return history_only
+            return real_read(target)
+        with mock.patch.object(control,'read',side_effect=historical_amended):
             result=control.motions()['expansion']
             self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (0,0,0))
 
@@ -140,7 +157,7 @@ class ControlTests(unittest.TestCase):
         actual_root=control.ROOT
         policy=control.read(actual_root/'catalog/capabilities/playwright.json')
         historical=policy['historical_reviews'][0]['motion_receipt']['path']
-        receipt=copy.deepcopy(control.read(actual_root/historical))
+        receipt=copy.deepcopy(control.read(actual_root/policy['motion_runtime_receipt']))
         receipt.update(playwright_version=policy['version'],scope='UNIT ONLY synthetic current-receipt validator fixture',
                        recorded_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat())
         sources=list(receipt['source_sha256'])+['catalog/registry.json','motion-library/MOTION_CATALOG.json',historical]
@@ -173,7 +190,7 @@ class ControlTests(unittest.TestCase):
                 current.write_text(json.dumps({**receipt,'playwright_version':'9.9.9'}))
                 self.assertEqual(control.motions()['expansion']['runtime_verified'],0)
                 self.assertEqual(control.motions()['expansion']['implemented'],400)
-        self.assertEqual(control.motions()['expansion']['runtime_verified'],0)
+        self.assertEqual(control.motions()['expansion']['runtime_verified'],400)
 
     def test_unknown_project_health_cannot_approve_release(self):
         with tempfile.TemporaryDirectory() as directory:

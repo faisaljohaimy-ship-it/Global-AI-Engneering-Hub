@@ -3,12 +3,12 @@
   "id": "microsoft/playwright",
   "version": "1.65.1",
   "revision": "bbd948344ea9a60bf1e6f125c02ca99b2b51593b",
-  "requested_state": "APPROVED",
+  "requested_state": "TESTED",
   "scope": "Opt-in isolated developer browser QA, localhost-only, no authenticated profiles or product runtime dependency.",
   "review": {
     "license": "Apache-2.0 npm package; browser redistribution and third-party assets retain their own notices.",
     "commercial_use": "Package license permits scoped developer use; no paid service enabled.",
-    "security": "Exact official npm tarball SHA512/GitHub tag/npm gitHead match verified before isolated npm ci --ignore-scripts; all3 exact-lock advisory scopes returned zero at every severity. This approves scoped installation, not unexecuted1.65.1 browser/runtime behavior.",
+    "security": "Exact official npm tarball SHA512/GitHub tag/npm gitHead match verified before isolated npm ci --ignore-scripts; all3 exact-lock advisory scopes returned zero at every severity. The installation review is retained; separately reviewed actual1.65.1 runtime evidence is bound by the provenance manifest. Its scope is developer laboratory QA, not production or authenticated browser access.",
     "upstream": "GitHub v1.65.1 tag and both npm gitHead values match bbd948344ea9a60bf1e6f125c02ca99b2b51593b; both tarball SHA512 values match the exact three lockfiles. Apache-2.0 LICENSE inspected without extraction/lifecycle execution.",
     "reviewer": "Codex engineering review under owner directive",
     "reviewed_at_utc": "2026-11-28T00:56:09.055386+00:00",
@@ -19,11 +19,10 @@
       "https://github.com/microsoft/playwright/blob/bbd948344ea9a60bf1e6f125c02ca99b2b51593b/LICENSE"
     ]
   },
-  "runtime_receipt": null,
+  "runtime_receipt": "docs/evidence/playwright-1.65.1-native-2026-11-28.json",
   "module_root": "motion-library/chromium-stack",
   "maximum_receipt_age_seconds": 86400,
   "not_proven": [
-    "Current1.65.1 native/400-motion runtime until fresh reviewed receipts",
     "Firefox or Safari hardware",
     "WebGPU rendering",
     "production field metrics",
@@ -31,7 +30,7 @@
     "all Playwright APIs",
     "automatic project activation"
   ],
-  "motion_runtime_receipt": null,
+  "motion_runtime_receipt": "docs/evidence/playwright-1.65.1-motion-chromium-2026-11-28.json",
   "npm_integrities": {
     "playwright": "sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==",
     "playwright-core": "sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw=="
@@ -61,5 +60,32 @@
       "quality_package_lock_sha256": "1313878eccd78bb94eb18e2f2c838fdbaee3009cc2bfdf3f9b0a19638e529c87"
     }
   ],
-  "motion_runtime_receipt_sha256": null
+  "motion_runtime_receipt_sha256": "1bdb4b7088242f1cb98ec3e35e4f103901c4ce1e41f223c6f567ebaad5e23fb6",
+  "runtime_receipt_sha256": "a97db6ef257ea5faa6fa4807a2fc250fec8259024baaeb3c48c63e95704aac7a",
+  "runtime_raw_receipt": {
+    "path": "docs/evidence/playwright-1.65.1-native-raw-2026-11-28.json",
+    "sha256": "7b8f8485d3f7e250906b5f6700d40912443eb31b7deb847a1e730f1b7c4dbca5"
+  },
+  "motion_cross_browser_receipts": {
+    "chromium": {
+      "path": "docs/evidence/playwright-1.65.1-motion-chromium-2026-11-28.json",
+      "sha256": "1bdb4b7088242f1cb98ec3e35e4f103901c4ce1e41f223c6f567ebaad5e23fb6"
+    },
+    "firefox": {
+      "path": "docs/evidence/playwright-1.65.1-motion-firefox-2026-11-28.json",
+      "sha256": "34e3d1674ac11ba56b07c97e71ddaa5051cdde935c9e839bf05a34876ae159d5"
+    },
+    "webkit": {
+      "path": "docs/evidence/playwright-1.65.1-motion-webkit-2026-11-28.json",
+      "sha256": "988e2f098f7b89511d9cfdec1b32dc1c771947d607e3e60790390ae3f5bacfb7"
+    }
+  },
+  "quality_receipt": {
+    "path": "docs/evidence/playwright-1.65.1-quality-2026-11-28.json",
+    "sha256": "bfd6763474285f533856a8e064d39db7403709f8c9c40c990558e9549f745606"
+  },
+  "provenance_manifest": {
+    "path": "docs/evidence/playwright-1.65.1-provenance-2026-11-28.json",
+    "sha256": "9474947436fd88d56b4e0b1b126b147da9b7de5922a09e66fdfc8aac2ee37306"
+  }
 }

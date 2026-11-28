@@ -13,6 +13,26 @@ SECRET_PATTERNS = (
 
 
 class SecurityTests(unittest.TestCase):
+    def test_runtime_provenance_binds_relative_public_files_without_private_paths(self):
+        import hashlib
+        import json
+        policy=json.loads((ROOT/'catalog/capabilities/playwright.json').read_text())
+        reference=policy['provenance_manifest']
+        path=ROOT/reference['path']
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),reference['sha256'])
+        manifest=json.loads(path.read_text())
+        for row in [reference,*manifest['files']]:
+            relative=pathlib.PurePosixPath(row['path'])
+            self.assertFalse(relative.is_absolute());self.assertNotIn('..',relative.parts)
+            self.assertTrue(row['path'].startswith('docs/evidence/'))
+            self.assertFalse((ROOT/row['path']).is_symlink())
+            self.assertRegex(row['sha256'],r'^[a-f0-9]{64}$')
+            self.assertEqual(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest(),row['sha256'])
+        for name,digest in manifest['source_sha256'].items():
+            self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+        for forbidden in ('/workspace/','/home/','download_url','_vercel_share','x-vercel-protection-bypass','private_project'):
+            self.assertNotIn(forbidden,json.dumps(manifest))
+
     def test_tracked_text_has_no_obvious_secrets(self):
         files = subprocess.check_output(
             ["git", "ls-files"], cwd=ROOT, text=True

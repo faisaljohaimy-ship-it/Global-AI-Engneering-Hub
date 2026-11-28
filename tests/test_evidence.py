@@ -1,4 +1,5 @@
 import json
+import copy
 import hashlib
 import math
 import pathlib
@@ -35,6 +36,80 @@ def native_smoke_budget(workflow):
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_reviewed_native_curation_preserves_all_retained_values_and_raw_samples(self):
+        policy=json.loads((ROOT/'catalog/capabilities/playwright.json').read_text())
+        manifest=json.loads((ROOT/policy['provenance_manifest']['path']).read_text())
+        raw=json.loads((ROOT/policy['runtime_raw_receipt']['path']).read_text())
+        curated=json.loads((ROOT/policy['runtime_receipt']).read_text())
+        expected=copy.deepcopy(raw)
+        removed=[]
+        samples=0
+        for index,row in enumerate(expected['cases']):
+            benchmark=row['benchmark']
+            intervals=benchmark.pop('intervals_ms')
+            self.assertEqual(len(intervals),benchmark['frames'])
+            self.assertTrue(all(math.isfinite(value) and value>0 for value in intervals))
+            ordered=sorted(intervals)
+            self.assertEqual(benchmark['median_interval_ms'],ordered[int(len(ordered)*.5)])
+            self.assertEqual(benchmark['p95_interval_ms'],ordered[int(len(ordered)*.95)])
+            self.assertLessEqual(benchmark['p95_interval_ms'],benchmark['frame_budget_ms'])
+            self.assertEqual(benchmark['frame_budget_ms'],20)
+            samples+=len(intervals)
+            removed.append(f'cases/{index}/benchmark/intervals_ms')
+        self.assertEqual(curated,expected)
+        self.assertEqual(samples,90)
+        self.assertEqual(manifest['native_curation']['only_removed_json_paths'],removed)
+        self.assertEqual(manifest['native_curation']['raw_interval_samples_retained'],samples)
+        self.assertEqual(hashlib.sha256((ROOT/policy['runtime_receipt']).read_bytes()).hexdigest(),policy['runtime_receipt_sha256'])
+        self.assertEqual(hashlib.sha256((ROOT/policy['runtime_raw_receipt']['path']).read_bytes()).hexdigest(),policy['runtime_raw_receipt']['sha256'])
+        self.assertEqual(policy['maximum_receipt_age_seconds'],86400)
+
+    def test_current_motion_receipts_bind_all_ids_profiles_and_sources_for_three_engines(self):
+        policy=json.loads((ROOT/'catalog/capabilities/playwright.json').read_text())
+        definitions=json.loads((ROOT/'motion-library/expansion/definitions.json').read_text())['definitions']
+        expected={row['id'] for row in definitions}
+        self.assertEqual(len(expected),400)
+        self.assertEqual(set(policy['motion_cross_browser_receipts']),{'chromium','firefox','webkit'})
+        for engine,reference in policy['motion_cross_browser_receipts'].items():
+            path=ROOT/reference['path']
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),reference['sha256'])
+            receipt=json.loads(path.read_text())
+            self.assertEqual(receipt['engine'],engine+'-canvas2d')
+            self.assertEqual(receipt['playwright_version'],policy['version'])
+            self.assertEqual((receipt['definitions'],receipt['basic'],receipt['advanced']),(400,200,200))
+            self.assertEqual((receipt['frame_samples'],receipt['reduced_motion_cases'],receipt['benchmark_draws']),(2400,800,9600))
+            self.assertFalse(receipt['production_fps_verified']);self.assertFalse(receipt['gpu_runtime_verified'])
+            for name,digest in receipt['source_sha256'].items():
+                self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+            self.assertEqual({(r['viewport']['width'],r['viewport']['height'],r['direction'],r['language']) for r in receipt['profiles']},
+                             {(390,844,'rtl','ar'),(1280,900,'ltr','en')})
+            for profile in receipt['profiles']:
+                self.assertEqual(len(profile['definitions']),400)
+                self.assertEqual({row['id'] for row in profile['definitions']},expected)
+                for row in profile['definitions']:
+                    self.assertEqual((row['frame_samples'],row['benchmark_frames']),(3,12))
+                    self.assertGreaterEqual(row['distinct_sampled_frames'],2)
+                    self.assertGreater(row['minimum_changed_pixels'],0)
+                    self.assertTrue(row['reduced_motion_stable'])
+                    self.assertTrue(0<=row['cpu_p95_ms']<=row['cpu_budget_ms']<=1000/60)
+        self.assertEqual(policy['motion_runtime_receipt'],policy['motion_cross_browser_receipts']['chromium']['path'])
+
+    def test_current_quality_proof_remains_lab_only_and_binds_the_current_lock(self):
+        policy=json.loads((ROOT/'catalog/capabilities/playwright.json').read_text())
+        report=json.loads((ROOT/policy['quality_receipt']['path']).read_text())
+        self.assertFalse(report['live_recheck_performed'])
+        self.assertEqual({row['profile'] for row in report['profiles']},{'desktop','mobile'})
+        for row in report['profiles']:
+            self.assertTrue(row['passed']);self.assertEqual(row['failures'],[])
+            self.assertEqual(row['tool_versions']['playwright'],policy['version'])
+            self.assertEqual(row['package_lock_sha256'],hashlib.sha256((ROOT/'motion-library/quality/package-lock.json').read_bytes()).hexdigest())
+            self.assertGreaterEqual(row['metrics']['performance'],95)
+            self.assertGreaterEqual(row['metrics']['accessibility'],95)
+            self.assertLessEqual(row['metrics']['lcp_ms'],2500);self.assertLessEqual(row['metrics']['cls'],.1)
+            self.assertEqual(row['metrics']['critical_axe'],0);self.assertIsNone(row['metrics']['inp_ms'])
+            for name,digest in row['source_sha256'].items():
+                self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+
     def test_actual_ci_native_smoke_budget_satisfies_strict_receipt_policy(self):
         workflow = (ROOT / '.github/workflows/operating-system.yml').read_text()
         self.assertLessEqual(native_smoke_budget(workflow), 20)

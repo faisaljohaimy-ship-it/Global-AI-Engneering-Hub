@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "recorded_at_utc": "2026-11-28T02:15:24.675Z",
+  "live_recheck_performed": false,
+  "scope": "Recorded developer laboratory Lighthouse/axe measurements; no production FPS, INP or field Web Vitals claim.",
+  "source_head": "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506",
+  "ci_checkout_commit": "a2ca44c88cc58df04d0af1c583af60614385174c",
+  "ci_run_id": 46096974293,
+  "ci_job_id": 140830578109,
+  "artifact_id": 15243931322,
+  "profiles": [
+    {
+      "profile": "desktop",
+      "audited_at_utc": "2026-11-28T02:15:13.502Z",
+      "metrics": {
+        "performance": 100,
+        "accessibility": 100,
+        "lcp_ms": 202.15570000000002,
+        "cls": 0,
+        "critical_axe": 0,
+        "axe_violations": 0,
+        "page_errors": 0,
+        "blocked_external_requests": 0,
+        "inp_ms": null,
+        "inp_status": "not measured; navigation-only lab audit is not a production INP measurement"
+      },
+      "budgets": {
+        "performance_min": 95,
+        "accessibility_min": 95,
+        "lcp_ms_max": 2500,
+        "cls_max": 0.1,
+        "critical_axe_max": 0
+      },
+      "passed": true,
+      "failures": [],
+      "tool_versions": {
+        "lighthouse": "13.6.0",
+        "axe": "4.14.1",
+        "chromium": "159.0.8154.6",
+        "playwright": "1.65.1",
+        "node": "v24.22.3"
+      },
+      "package_lock_sha256": "5ec4328e1200f321dcb6bbbb9275717a25989e9881a789f79fbd96e6dc846764",
+      "source_commit": "a2ca44c88cc58df04d0af1c583af60614385174c",
+      "source_sha256": {
+        "motion-studio/index.html": "f2c3f307027f5ef19dc23faf6a05408eace11418eab56994ce11973970c217f7",
+        "motion-studio/styles.css": "518bad690ec5c016587d885a8c9b610889f7981fd03d4b0c301e5d9862d16d01",
+        "motion-studio/studio.mjs": "34854afd382644b0fd35ee69df7ad00a5cb3c6833fe34b02217ae5510bacd6f3",
+        "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+        "motion-library/expansion/catalog.mjs": "2af27634e1f9416912854b5e6c9cb5740e3a2ee8275989f6ae02dc1f66c31f9c",
+        "motion-library/expansion/families.mjs": "753a7d0e81df964ae557dd66ad54a586a9c2db679db1f87f500773b9c24877c1",
+        "motion-library/expansion/systems.mjs": "5e7f36610c28b950d538a38a37810242839b1ab95da21b38e21a0e169d5796aa",
+        "motion-library/expansion/geometry.mjs": "653b44b798500481f49fa853f1458ad8b2941567bed4e4a736ff34e73e9db57b"
+      }
+    },
+    {
+      "profile": "mobile",
+      "audited_at_utc": "2026-11-28T02:15:24.675Z",
+      "metrics": {
+        "performance": 100,
+        "accessibility": 100,
+        "lcp_ms": 751.7476999999999,
+        "cls": 0,
+        "critical_axe": 0,
+        "axe_violations": 0,
+        "page_errors": 0,
+        "blocked_external_requests": 0,
+        "inp_ms": null,
+        "inp_status": "not measured; navigation-only lab audit is not a production INP measurement"
+      },
+      "budgets": {
+        "performance_min": 95,
+        "accessibility_min": 95,
+        "lcp_ms_max": 2500,
+        "cls_max": 0.1,
+        "critical_axe_max": 0
+      },
+      "passed": true,
+      "failures": [],
+      "tool_versions": {
+        "lighthouse": "13.6.0",
+        "axe": "4.14.1",
+        "chromium": "159.0.8154.6",
+        "playwright": "1.65.1",
+        "node": "v24.22.3"
+      },
+      "package_lock_sha256": "5ec4328e1200f321dcb6bbbb9275717a25989e9881a789f79fbd96e6dc846764",
+      "source_commit": "a2ca44c88cc58df04d0af1c583af60614385174c",
+      "source_sha256": {
+        "motion-studio/index.html": "f2c3f307027f5ef19dc23faf6a05408eace11418eab56994ce11973970c217f7",
+        "motion-studio/styles.css": "518bad690ec5c016587d885a8c9b610889f7981fd03d4b0c301e5d9862d16d01",
+        "motion-studio/studio.mjs": "34854afd382644b0fd35ee69df7ad00a5cb3c6833fe34b02217ae5510bacd6f3",
+        "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+        "motion-library/expansion/catalog.mjs": "2af27634e1f9416912854b5e6c9cb5740e3a2ee8275989f6ae02dc1f66c31f9c",
+        "motion-library/expansion/families.mjs": "753a7d0e81df964ae557dd66ad54a586a9c2db679db1f87f500773b9c24877c1",
+        "motion-library/expansion/systems.mjs": "5e7f36610c28b950d538a38a37810242839b1ab95da21b38e21a0e169d5796aa",
+        "motion-library/expansion/geometry.mjs": "653b44b798500481f49fa853f1458ad8b2941567bed4e4a736ff34e73e9db57b"
+      }
+    }
+  ],
+  "raw_summary_sha256": {
+    "desktop": "ea743bfc1a3d5a9ec85fb41830616222196bdc5c1fe6a3c7a208b0a546868a11",
+    "mobile": "226c7e100b76707c5f8e5c10597e52ee3a90822a09cac38c33738dd994d09713"
+  },
+  "limitations": [
+    "Physical mobile/Safari hardware and production field metrics were not measured.",
+    "Raw axe incomplete/manual checks require human review."
+  ]
+}

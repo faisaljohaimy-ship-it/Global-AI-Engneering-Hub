@@ -12,7 +12,7 @@ class ChromiumStackTests(unittest.TestCase):
         package = json.loads((STACK / 'package.json').read_text())
         lock = json.loads((STACK / 'package-lock.json').read_text())
         policy = json.loads((ROOT / 'catalog/capabilities/playwright.json').read_text())
-        self.assertEqual(policy['requested_state'], 'APPROVED')
+        self.assertEqual(policy['requested_state'], 'TESTED')
         self.assertEqual(package['devDependencies'], {'playwright': policy['version']})
         self.assertNotIn('dependencies', package)
         for path in ['node_modules/playwright', 'node_modules/playwright-core']:
@@ -40,7 +40,7 @@ class ChromiumStackTests(unittest.TestCase):
         self.assertEqual(evidence['webgpu_rendering_cases'], 0)
         self.assertEqual(evidence['toolchain']['playwright'], history['version'])
         self.assertNotEqual(history['version'], policy['version'])
-        self.assertIsNone(policy['runtime_receipt'])
+        self.assertNotEqual(policy['runtime_receipt'], history['native_receipt']['path'])
         self.assertEqual(len(evidence['cases']), 3)
         for row in evidence['cases']:
             self.assertTrue(all(row['checks'].values()))
