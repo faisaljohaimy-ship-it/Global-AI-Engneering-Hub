@@ -113,11 +113,11 @@
       "title": "Frozen gaie_memory journal was appended without an owner, mode or hard-link check"
     },
     {
-      "control": "safe_path requires a regular file",
+      "control": "verify reads manifest files through read_audit_file: directory descriptors with O_NOFOLLOW, a regular file with one link, opened O_NONBLOCK|O_NOFOLLOW and rechecked by fstat; the probe runs verify itself with a timeout",
       "evidence": "tests/test_security_enterprise.py::GitCheckoutTests.test_fifo_capability_file_is_refused_without_blocking",
       "id": "SEC-11",
       "kind": "registered",
-      "location": "sdk/engineering_sdk.py:safe_path",
+      "location": "sdk/engineering_sdk.py:read_audit_file",
       "rule": "unbounded-input",
       "severity": "low",
       "status": "fixed",

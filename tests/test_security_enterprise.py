@@ -734,6 +734,28 @@ class BehaviouralProbeTests(unittest.TestCase):
         with security_audit._private_tmp() as base:
             return function(base)
 
+    def test_sec11_probe_runs_verify_and_measures_a_blocking_or_accepting_read(self):
+        """pr30-merge-quality F2: the probe goes through sdk.verify, so a reader that blocks on or accepts a FIFO is
+        reported open even though safe_path still refuses it."""
+        self.assertFalse(self.probe(security_audit.probe_sdk_fifo))
+        real = sdk.read_audit_file
+
+        def blocking(root, name):  # safe_path is untouched; only the reader verify uses regresses
+            if not name.endswith("pipe"):
+                return real(root, name)
+            with open(pathlib.Path(root) / name, "rb") as handle:
+                return handle.read()
+
+        def accepting(root, name):  # never blocks, but reads a FIFO as if it were a file
+            if not name.endswith("pipe"):
+                return real(root, name)
+            os.close(os.open(pathlib.Path(root) / name, os.O_RDONLY | os.O_NONBLOCK))
+            return b""
+        for reader in (blocking, accepting):
+            with self.subTest(reader=reader.__name__), mock.patch.object(sdk, "read_audit_file", reader), \
+                    mock.patch.object(security_audit, "PROBE_WAIT_SECONDS", 2):
+                self.assertTrue(self.probe(security_audit.probe_sdk_fifo))
+
     def test_sec10_probe_measures_the_journal_append(self):
         from engineering_os import gaie_memory
         self.assertFalse(self.probe(security_audit.probe_legacy_journal))

@@ -458,16 +458,42 @@ def probe_registry_home(base):
     return (home / project_registry.PRIVATE_FILE).exists()
 
 
+PROBE_WAIT_SECONDS = 10
+
+
 def probe_sdk_fifo(base):
-    """True when a manifest-named FIFO is accepted (its read would block the verification forever)."""
+    """True when sdk.verify blocks on a FIFO named in the capability manifest, or accepts it. The checksum in the
+    manifest is that of empty data, so a verify that reads the FIFO succeeds instead of failing later on a mismatch
+    (pr30-merge-quality F2: verify reads through read_audit_file, not safe_path)."""
+    import hashlib
+    import threading
     sdk = _sdk()
     (base / ".engineering").mkdir()
-    os.mkfifo(base / ".engineering" / "pipe")
-    try:
-        sdk.safe_path(base, ".engineering/pipe")
-    except ValueError:
-        return False
-    return True
+    pipe = base / ".engineering" / "pipe"
+    os.mkfifo(pipe)
+    (base / ".engineering/capabilities.json").write_text(json.dumps({
+        "schema_version": 1, "hub_revision": "a" * 40, "production_runtime_dependency": False, "budget_additional_sar": 0,
+        "capabilities": [{"id": "probe", "files": [{"path": ".engineering/pipe", "sha256": hashlib.sha256(b"").hexdigest()}]}]}))
+    outcome = {}
+
+    def verify():
+        try:
+            outcome["result"] = sdk.verify(base)
+        except ValueError:
+            outcome["refused"] = True
+        except Exception as error:  # noqa: BLE001 - handed back to the caller below
+            outcome["error"] = error
+    thread = threading.Thread(target=verify, daemon=True)
+    thread.start()
+    thread.join(PROBE_WAIT_SECONDS)
+    if thread.is_alive():  # blocked on the FIFO: release it with a writer that closes at once
+        with contextlib.suppress(OSError):
+            os.close(os.open(pipe, os.O_WRONLY | os.O_NONBLOCK))
+        thread.join(PROBE_WAIT_SECONDS)
+        return True
+    if "error" in outcome:
+        raise outcome["error"]
+    return not outcome.get("refused")
 
 
 def probe_memory_checkpoint(base):
@@ -705,9 +731,10 @@ FINDINGS = (
      "link, no group/other bits; GAIE_HOME caller-owned and not writable by others, memory directories caller-owned "
      "0700; reads and appends alike; an existing journal that fails is refused with the fix command, never repaired"),
     ("SEC-11", "low", "SDK verify accepted a manifest-named FIFO or device and would block on it",
-     "sdk/engineering_sdk.py:safe_path", "unbounded-input", ("open", "fixed"), probe_sdk_fifo,
+     "sdk/engineering_sdk.py:read_audit_file", "unbounded-input", ("open", "fixed"), probe_sdk_fifo,
      "tests/test_security_enterprise.py::GitCheckoutTests.test_fifo_capability_file_is_refused_without_blocking",
-     "safe_path requires a regular file"),
+     "verify reads manifest files through read_audit_file: directory descriptors with O_NOFOLLOW, a regular file "
+     "with one link, opened O_NONBLOCK|O_NOFOLLOW and rechecked by fstat; the probe runs verify itself with a timeout"),
     ("SEC-12", "medium", "layers.verify declares exec:sandbox and secrets:none but runs repository tests outside the "
      "governor sandbox with the caller's whole environment",
      "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", "held"), probe_layers_environment,
