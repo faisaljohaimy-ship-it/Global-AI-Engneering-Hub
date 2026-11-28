@@ -1,5 +1,7 @@
-"""Check an evidence document written by the second phase's stage.py.
+"""Check an evidence document written by the second phase's stage.py or the third phase's stage3.py.
 
+A document is of the third phase when it has the top-level key counted_before_this_run;
+then the ledger, the security gate, the queue and the limit are checked as well.
 Call: python3 swarm/phase3/schema.py FILE
 Prints each problem found, one per line, and exits 1 if there are any.
 From code: validate(document) returns the list of problems (empty when sound).
@@ -83,6 +85,80 @@ def _stage(i: int, stage) -> list[str]:
     return out
 
 
+def _name(i: int, stage: dict) -> str:
+    return f"stage {stage['label']}" if isinstance(stage.get("label"), str) else f"stage {i}"
+
+
+def _num(value) -> bool:
+    return _is(value, (int, float))
+
+
+def _third(i: int, stage: dict) -> list[str]:
+    """What the gated run adds to a stage: ledger, security gate, queue, guard_enforced."""
+    where, out = _name(i, stage), []
+    book, gate, queue = stage.get("ledger"), stage.get("security_gate"), stage.get("queue")
+    ledger_ok = isinstance(book, dict)
+    if ledger_ok:
+        classes = book.get("by_class")
+        if isinstance(classes, dict) and all(_is(v, int) for v in classes.values()) and _is(book.get("tool_calls"), int):
+            if sum(classes.values()) != book.get("tool_calls"):
+                out.append(f"{where}: ledger classes do not sum to tool_calls")
+        elif "by_class" in book or "tool_calls" in book:
+            out.append(f"{where}: ledger by_class or tool_calls has the wrong type")
+        outside = book.get("calls_outside_the_contract_that_ran")
+        if isinstance(outside, dict) and outside and book.get("clean") is not False:
+            out.append(f"{where}: ledger is clean although calls outside the contract ran")
+    if isinstance(gate, dict):
+        probes = gate.get("probes") if isinstance(gate.get("probes"), list) else []
+        rows = [p for p in probes if isinstance(p, dict)]
+        if gate.get("passed") is True and not all(p.get("held") is True for p in rows):
+            out.append(f"{where}: security gate passed although a probe did not hold")
+        for p in rows:
+            if p.get("must_be") == "refused" and _num(p.get("calls_outside_the_contract_that_ran")) and p["calls_outside_the_contract_that_ran"] > 0:
+                out.append(f"{where}: a probe that must be refused ran a call outside the contract")
+    if stage.get("guard_enforced") is True and ledger_ok:
+        gate_book = book.get("gate")
+        if book.get("clean") is not True or not (isinstance(gate_book, dict) and gate_book.get("reconciled") is True):
+            out.append(f"{where}: guard_enforced although the ledger is not clean or not reconciled")
+    if isinstance(queue, dict):
+        keys = ("handed_in", "given_up", "left_waiting", "claimed_and_not_handed_in", "tasks")
+        if all(_is(queue.get(k), int) for k in keys):
+            if sum(queue[k] for k in keys[:4]) != queue["tasks"]:
+                out.append(f"{where}: queue handed_in + given_up + left_waiting + claimed_and_not_handed_in is not tasks")
+        else:
+            out.append(f"{where}: queue is missing a count or it has the wrong type")
+        if _num(queue.get("agent_calls_per_message")) and queue["agent_calls_per_message"] > 20:
+            out.append(f"{where}: agent_calls_per_message exceeds 20")
+    return out
+
+
+def _third_document(document: dict) -> list[str]:
+    out = []
+    carried = document["counted_before_this_run"]
+    if not isinstance(carried, dict) or not _is(carried.get("total"), int) or not isinstance(carried.get("parts"), dict) \
+            or not all(_is(v, int) for v in carried["parts"].values()):
+        out.append("document: counted_before_this_run needs an integer total and integer parts")
+    elif carried["total"] != sum(carried["parts"].values()):
+        out.append("document: counted_before_this_run total is not the sum of its parts")
+    caps, figures = document.get("caps"), document.get("figures")
+    if isinstance(caps, dict) and isinstance(figures, dict):
+        limit, counted = caps.get("cumulative_input_tokens"), figures.get("input_tokens_counted")
+        if _num(limit) and _num(counted) and counted > limit:
+            out.append("document: the cumulative figure passes the limit in caps")
+    stages = document.get("stages")
+    if isinstance(stages, list):
+        passed = False
+        for i, stage in enumerate(stages):
+            if not isinstance(stage, dict) or "skipped" in stage:
+                continue
+            if stage.get("kind") == "task" and not passed:
+                out.append(f"{_name(i, stage)}: a task stage comes before a security gate that passed")
+            out += _third(i, stage)
+            if isinstance(stage.get("security_gate"), dict) and stage["security_gate"].get("passed") is True:
+                passed = True
+    return out
+
+
 def validate(document: dict) -> list[str]:
     if not isinstance(document, dict):
         return ["document is not an object"]
@@ -90,6 +166,8 @@ def validate(document: dict) -> list[str]:
     if isinstance(document.get("stages"), list):
         for i, stage in enumerate(document["stages"]):
             out += _stage(i, stage)
+    if "counted_before_this_run" in document:
+        out += _third_document(document)
     for path, text in _strings(document):
         for bad in BAD_TEXT:
             if bad in text:
