@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "policy_version": "1.0.0",
+  "implementation": "engineering_os/orchestration.py",
+  "authority": "Local filesystem ownership; actor roles are caller assertions, not external identity-provider authentication.",
+  "primary_engine": "codex",
+  "secondary_engine": "claude-code",
+  "roles": ["orchestrator", "architecture", "development", "database", "security", "testing", "devops", "performance", "cinematic", "research", "release"],
+  "state": {"outside_git": true, "directory_mode": "0700", "file_mode": "0600", "max_bytes": 8388608, "symlinks": "refused", "locking": "OS advisory flock; coordinator writes only", "atomic_write": "fsync plus atomic replacement", "audit": "SHA256 hash chain and current-task digest; not a signed external attestation"},
+  "ownership": {"isolated_branch_prefixes": ["codex/", "claude/"], "exclusive_active_task_per_project_branch": true, "explicit_file_scope": true, "max_lease_seconds": 3600, "stale_write_policy": "reject expired lease and stale task version", "expired_lease_recovery": "explicit orchestrator recovery; never silently assume an editor stopped"},
+  "reviews": {"required_independent_roles": ["testing", "security", "release"], "self_review": "refused", "same_reviewer_multiple_roles": "refused", "evidence": "kind plus SHA256 digest only; no provider credentials or raw production logs"},
+  "execution": {"agent_daemon": false, "provider_calls": false, "deployment_actions": false, "schedule_created": false, "claim": "Coordination and handover protocol, not permanent autonomous workers or OS-level editing confinement"}
+}

@@ -373,11 +373,12 @@
     "id": "microsoft/playwright",
     "source": "https://github.com/microsoft/playwright",
     "category": "quality",
-    "status": "discovered",
-    "revision": null,
-    "license_review": "pending",
-    "security_review": "pending",
-    "commercial_review": "pending"
+    "status": "approved",
+    "revision": "1b025d7e20a026371cd5f98ba0cdce48892737c8",
+    "license_review": "approved",
+    "security_review": "approved",
+    "commercial_review": "approved",
+    "approval_scope": "Playwright1.63.0 isolated localhost developer QA only; see catalog/capabilities/playwright.json"
   },
   {
     "id": "grafana/k6",
@@ -1133,6 +1134,86 @@
     "id": "grafana/tempo",
     "source": "https://github.com/grafana/tempo",
     "category": "infrastructure",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "pydantic/pydantic-ai",
+    "source": "https://github.com/pydantic/pydantic-ai",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "promptfoo/promptfoo",
+    "source": "https://github.com/promptfoo/promptfoo",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "UKGovernmentBEIS/inspect_ai",
+    "source": "https://github.com/UKGovernmentBEIS/inspect_ai",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "upstash/context7",
+    "source": "https://github.com/upstash/context7",
+    "category": "ai",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "microsoft/playwright-mcp",
+    "source": "https://github.com/microsoft/playwright-mcp",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "ChromeDevTools/chrome-devtools-mcp",
+    "source": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
+    "category": "quality",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "microsoft/skills",
+    "source": "https://github.com/microsoft/skills",
+    "category": "engineering",
+    "status": "discovered",
+    "revision": null,
+    "license_review": "pending",
+    "security_review": "pending",
+    "commercial_review": "pending"
+  },
+  {
+    "id": "modelcontextprotocol/modelcontextprotocol",
+    "source": "https://github.com/modelcontextprotocol/modelcontextprotocol",
+    "category": "ai",
     "status": "discovered",
     "revision": null,
     "license_review": "pending",

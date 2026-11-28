@@ -25,6 +25,7 @@ done
 
 XDG_CACHE_HOME="$profile_dir/cache" XDG_CONFIG_HOME="$profile_dir/config" \
 timeout 20s "$browser" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+  --single-process --no-zygote \
   --disable-background-networking --disable-breakpad --disable-component-update \
   --disable-crash-reporter --disable-default-apps --disable-domain-reliability \
   --disable-extensions --disable-sync --no-first-run --no-default-browser-check \
@@ -34,7 +35,7 @@ timeout 20s "$browser" --headless=new --no-sandbox --disable-gpu --disable-dev-s
 
 grep -q 'data-lab-ready="true"' "$output"
 grep -q '<strong id="indexedCount">142</strong>' "$output"
-grep -q '<strong id="implementedCount">26</strong>' "$output"
-grep -q '<strong id="testedCount">26</strong>' "$output"
-grep -q '<strong id="usedCount">26</strong>' "$output"
-printf 'Motion Lab browser load verified: indexed=142 implemented=26 tested=26 used=26\n'
+grep -q '<strong id="implementedCount">30</strong>' "$output"
+grep -q '<strong id="testedCount">30</strong>' "$output"
+grep -q '<strong id="usedCount">30</strong>' "$output"
+printf 'Motion Lab browser load verified: indexed=142 implemented=30 tested=30 used=30\n'

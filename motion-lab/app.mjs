@@ -1,6 +1,7 @@
-import {animationOptions, reducedMotionRequested, statusFor, validateComponent, mirroredKeyframes} from "../motion-library/runtime/core.mjs";
+import {animationOptions, reducedMotionRequested, statusFor, validateComponent} from "../motion-library/runtime/core.mjs";
 import {crossDissolveAtFrame} from "../motion-library/adapters/remotion.mjs";
 import {orbitCameraAtProgress} from "../motion-library/adapters/three.mjs";
+import {renderCounter, renderTypewriter, stagger, toKeyframes} from "../motion-library/runtime/hub-motion.mjs";
 
 const refs = Object.fromEntries([
   "indexedCount", "implementedCount", "testedCount", "usedCount", "filter", "implementedOnly",
@@ -86,7 +87,13 @@ function resetStage() {
   const target = document.createElement("div");
   target.id = "preview";
   target.className = "motion-target";
-  target.textContent = selected?.id === "typography-word-stagger" ? "Motion respects words" : "Motion";
+  const labels = {
+    "typography-word-stagger": "Motion respects words",
+    "typography-typewriter": "مَرْحَبًا بِالعَالَم",
+    "typography-counter-interpolation": "0",
+    "ui-staggered-list": "List",
+  };
+  target.textContent = labels[selected?.id] ?? "Motion";
   refs.stage.replaceChildren(target);
   refs.preview = target;
 }
@@ -129,6 +136,10 @@ async function loadSpec(component) {
   return fetchJson(`../motion-library/${component.spec}`);
 }
 
+async function loadSourceSpec(component) {
+  return fetchJson(`../motion-library/${component.source_spec}`);
+}
+
 function isReduced() {
   return reducedMotionRequested(refs.motionMode.value, matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
@@ -146,7 +157,8 @@ function runCss(component, spec) {
 }
 
 function runWaapi(component, spec) {
-  const frames = mirroredKeyframes(spec.keyframes, spec.rtl_mirror && refs.direction.value === "rtl");
+  const frames = toKeyframes(spec, {mirror: refs.direction.value === "rtl"});
+  const options = {...animationOptions(spec), easing: "linear"};
   if (component.id === "typography-word-stagger") {
     const words = refs.preview.textContent.trim().split(/\s+/);
     refs.preview.replaceChildren();
@@ -155,12 +167,73 @@ function runWaapi(component, spec) {
       span.textContent = `${word}${index === words.length - 1 ? "" : " "}`;
       span.style.display = "inline-block";
       refs.preview.append(span);
-      return span.animate(frames, {...animationOptions(spec), delay: index * spec.stagger_ms});
+      return span.animate(frames, {...options, delay: index * spec.stagger_ms});
     });
     activeAnimation = {cancel: () => animations.forEach((animation) => animation.cancel())};
     return;
   }
-  activeAnimation = refs.preview.animate(frames, animationOptions(spec));
+  activeAnimation = refs.preview.animate(frames, options);
+}
+
+function runProgress(duration, draw, reduced) {
+  if (reduced) {
+    draw(1);
+    activeAnimation = {cancel() {}};
+    return;
+  }
+  let cancelled = false;
+  const started = performance.now();
+  const tick = (now) => {
+    if (cancelled) return;
+    const progress = Math.min(1, (now - started) / duration);
+    draw(progress);
+    if (progress < 1) activeFrame = requestAnimationFrame(tick);
+    else activeFrame = 0;
+  };
+  activeAnimation = {
+    cancel() {
+      cancelled = true;
+      if (activeFrame) cancelAnimationFrame(activeFrame);
+      activeFrame = 0;
+    },
+  };
+  activeFrame = requestAnimationFrame(tick);
+}
+
+async function runWaapiBehavior(component, reduced) {
+  if (component.id === "ui-staggered-list") {
+    const spec = await loadSourceSpec(component);
+    const list = document.createElement("ol");
+    for (let index = 1; index <= 4; index += 1) {
+      const item = document.createElement("li");
+      item.textContent = `Item ${index}`;
+      list.append(item);
+    }
+    refs.stage.replaceChildren(list);
+    refs.preview = list;
+    const animations = stagger(list.children, spec, {each: 80, reducedMotion: reduced});
+    activeAnimation = {cancel: () => animations.forEach((animation) => animation?.cancel())};
+    return;
+  }
+  if (component.id === "typography-typewriter") {
+    const text = "مَرْحَبًا بِالعَالَم";
+    const line = document.createElement("p");
+    line.dir = "rtl";
+    line.lang = "ar";
+    refs.stage.replaceChildren(line);
+    refs.preview = line;
+    runProgress(1200, (progress) => renderTypewriter(line, text, progress, "ar", "word"), reduced);
+    return;
+  }
+  if (component.id === "typography-counter-interpolation") {
+    const counter = document.createElement("span");
+    refs.stage.replaceChildren(counter);
+    refs.preview = counter;
+    const locale = refs.direction.value === "rtl" ? "ar-SA" : "en";
+    runProgress(1000, (progress) => renderCounter(counter, 0, 2500, progress, {locale}), reduced);
+    return;
+  }
+  throw new Error(`Unknown runtime behavior: ${component.id}`);
 }
 
 function compileShader(gl, type, source) {
@@ -179,7 +252,9 @@ async function runGlsl(spec) {
   refs.preview = canvas;
   const gl = canvas.getContext("webgl", {alpha: false, antialias: true});
   if (!gl) throw new Error("WebGL is unavailable");
-  const fragmentSource = await (await fetch(`../motion-library/${spec.shader}`, {credentials: "same-origin"})).text();
+  const shaderResponse = await fetch(`../motion-library/${spec.shader}`, {credentials: "same-origin"});
+  if (!shaderResponse.ok) throw new Error(`Failed to load shader: ${shaderResponse.status}`);
+  const fragmentSource = await shaderResponse.text();
   const vertexSource = "attribute vec2 a_position; void main(){gl_Position=vec4(a_position,0.0,1.0);}";
   const program = gl.createProgram();
   gl.attachShader(program, compileShader(gl, gl.VERTEX_SHADER, vertexSource));
@@ -256,19 +331,28 @@ function runThreeAdapter(spec) {
 async function playSelected() {
   const component = componentsById.get(selected?.id);
   if (!component) return;
+  report.error = null;
+  report.lastRunMs = null;
   resetStage();
-  const spec = await loadSpec(component);
   refs.stage.dir = refs.direction.value;
   report.lastEngine = component.engine;
   const started = performance.now();
-  if (isReduced()) applyReduced(spec);
-  else if (component.engine === "css") runCss(component, spec);
-  else if (component.engine === "waapi") runWaapi(component, spec);
-  else if (component.engine === "glsl-webgl") await runGlsl(spec);
-  else if (component.engine === "remotion-adapter") runRemotionAdapter(spec);
-  else if (component.engine === "three-adapter") runThreeAdapter(spec);
+  const reduced = isReduced();
+  if (component.engine === "waapi-behavior") {
+    await runWaapiBehavior(component, reduced);
+  } else {
+    const spec = await loadSpec(component);
+    if (reduced) applyReduced(spec);
+    else if (component.engine === "css") runCss(component, spec);
+    else if (component.engine === "waapi") runWaapi(component, spec);
+    else if (component.engine === "glsl-webgl") await runGlsl(spec);
+    else if (component.engine === "remotion-adapter") runRemotionAdapter(spec);
+    else if (component.engine === "three-adapter") runThreeAdapter(spec);
+  }
   report.lastRunMs = performance.now() - started;
-  setText(refs.previewNote, `${component.engine} playback started by user action.`);
+  setText(refs.previewNote, reduced
+    ? `${component.engine} reduced-motion end state applied without animation.`
+    : `${component.engine} playback started by user action.`);
 }
 
 async function initialize() {

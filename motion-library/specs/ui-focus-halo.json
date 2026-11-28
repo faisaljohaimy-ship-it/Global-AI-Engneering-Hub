@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "ui-focus-halo",
+  "name": "Focus halo",
+  "duration_ms": 200,
+  "easing": "ease-out",
+  "keyframes": [
+    {"offset": 0, "filter": "blur(0px) brightness(100%)"},
+    {"offset": 1, "filter": "blur(2px) brightness(115%)"}
+  ],
+  "reduced_motion": {"filter": "brightness(115%)"}
+}

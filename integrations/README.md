@@ -15,9 +15,3 @@ Evidence meanings:
 Never store raw connector responses, emails, account/workspace identifiers, balances,
 tokens or client file names here. Re-run probes per environment and keep mutations,
 generation and deployments behind project-specific approval.
-
-`EVIDENCE.claude-code.json` holds the same kind of record for the Claude Code
-environment, in the same row format, with two more results: `failed` (the connector
-answered but refused authorisation) and `metadata-only` (version and licence read from a
-package registry, nothing installed). Each environment proves only its own connections;
-`claude_code_connection` in `PROGRAMS.json` summarises that file per program.

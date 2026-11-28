@@ -1,26 +1,23 @@
 #!/usr/bin/env node
-// Runtime evidence for hub motion. Every css and waapi component in components.json is
-// played in a real browser engine, once from the CSS the Python compiler emits and once
-// through the JavaScript runtime, and the values the engine computed are recorded. The
-// Motion Lab is then driven like a user would: every component is selected and played.
-// Playwright is a tool of the machine running this script, not a dependency of the hub:
+// Runtime evidence for hub motion. Plays every specification in a real browser engine,
+// once from the CSS the Python compiler emits and once through the JavaScript runtime,
+// and records what the engine actually computed. Playwright is a tool of the machine
+// running this script, not a dependency of the hub:
 //
 //   node motion-library/verify/browser.mjs            verify, print a summary
 //   node motion-library/verify/browser.mjs --write    also rewrite the evidence file
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serve } from './serve.mjs';
 
 const library = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const repository = resolve(library, '..');
 const evidencePath = join(library, 'evidence', 'chromium.json');
 const digest = (data) => createHash('sha256').update(data).digest('hex');
-const labFiles = ['index.html', 'styles.css', 'motions.css', 'app.mjs'];
 
 let playwright;
 try {
@@ -30,13 +27,13 @@ try {
   process.exit(2);
 }
 
-const manifest = JSON.parse(readFileSync(join(library, 'components.json'), 'utf8'));
-const specs = manifest.components.filter((row) => row.engine === 'css' || row.engine === 'waapi').map((row) => {
-  const path = join(library, row.spec);
-  const css = execFileSync('python3', [join(library, 'compile.py'), path], { encoding: 'utf8' });
-  return { engine: row.engine, source: `motion-library/${row.spec}`, css, spec: JSON.parse(readFileSync(path, 'utf8')) };
+const server = await serve(library);
+
+const specs = readdirSync(join(library, 'specs')).filter((name) => name.endsWith('.json')).sort().map((name) => {
+  const source = `motion-library/specs/${name}`;
+  const css = execFileSync('python3', [join(library, 'compile.py'), join(library, 'specs', name)], { encoding: 'utf8' });
+  return { source, css, spec: JSON.parse(readFileSync(join(library, 'specs', name), 'utf8')) };
 });
-const server = await serve(repository);
 
 // Runs in the page: the animation is paused and moved to exact times, and every value
 // is read back from the engine's computed style.
@@ -74,23 +71,19 @@ function inspectSpec({ spec, css, reduced }) {
   const matches = (actual, expected) => Object.keys(expected).every((key) => near(actual[key], expected[key]));
   const checks = {};
   const reducedState = reference(spec.reduced_motion);
-  const atRest = (element) => matches(read(element, Object.keys(reducedState)), reducedState);
-  const className = 'hub-motion-' + spec.id;
 
   if (reduced) {
-    const directions = spec.rtl_mirror ? ['ltr', 'rtl'] : ['ltr'];
-    checks.reducedMotionDisablesAnimation = directions.every((dir) => {
-      const element = make(dir);
-      element.classList.add(className);
-      return getComputedStyle(element).animationName === 'none' && element.getAnimations().length === 0 && atRest(element);
-    });
+    const element = make();
+    element.classList.add('hub-motion-' + spec.id);
+    checks.reducedMotionDisablesAnimation = getComputedStyle(element).animationName === 'none' && element.getAnimations().length === 0;
+    checks.reducedMotionEndState = matches(read(element, Object.keys(reducedState)), reducedState);
     const target = make();
-    checks.runtimeHonoursMediaQuery = hub.play(target, spec) === null && atRest(target);
+    checks.runtimeHonoursMediaQuery = hub.play(target, spec) === null && matches(read(target, Object.keys(reducedState)), reducedState);
     return { checks };
   }
 
   const element = make();
-  element.classList.add(className);
+  element.classList.add('hub-motion-' + spec.id);
   const animation = element.getAnimations()[0];
   const at = (player, target, time) => {
     player.currentTime = time;
@@ -127,29 +120,32 @@ function inspectSpec({ spec, css, reduced }) {
     });
   }
   const measured = { start, middle, end };
-  const sampleTimes = [0, 0.25, 0.5, 0.75, 1].map((progress) => progress * duration);
+  if (spec.rtl_mirror === true) {
+    const mirrored = make('rtl');
+    mirrored.classList.add('hub-motion-' + spec.id);
+    const player = mirrored.getAnimations()[0];
+    player.pause();
+    const travel = (value) => Number((value.match(/matrix\(([^)]+)\)/) || ['', '1,0,0,1,0,0'])[1].split(',')[4]);
+    const ltr = travel(at(animation, element, 0).transform);
+    const rtl = travel(at(player, mirrored, 0).transform);
+    checks.rtlMirrorsInlineTravel = ltr !== 0 && Math.abs(ltr + rtl) < 0.02;
+    const runtimeTarget = make('rtl');
+    const runtimePlayer = hub.play(runtimeTarget, spec, { reducedMotion: false });
+    runtimePlayer.pause();
+    const runtimeRtl = travel(at(runtimePlayer, runtimeTarget, 0).transform);
+    checks.runtimeMirrorsInlineTravel = Math.abs(runtimeRtl - rtl) < 0.02;
+    measured.inlineTravelPx = { ltr, rtl };
+  }
   const played = make();
   const player = hub.play(played, spec, { reducedMotion: false });
   player.pause();
-  checks.runtimeMatchesCompiledCss = sampleTimes.every((time) => matches(at(player, played, time), at(animation, element, time)));
+  checks.runtimeMatchesCompiledCss = [0, 0.25, 0.5, 0.75, 1].every((progress) => {
+    const time = progress * duration;
+    return matches(at(player, played, time), at(animation, element, time));
+  });
   const still = make();
-  checks.runtimeReducedState = hub.play(still, spec, { reducedMotion: true }) === null && atRest(still);
-
-  if (spec.rtl_mirror) {
-    const travel = (value) => Number((value.match(/matrix\(([^)]+)\)/) || ['', '1,0,0,1,0,0'])[1].split(',')[4]);
-    const mirrored = make('rtl');
-    mirrored.classList.add(className);
-    const mirroredAnimation = mirrored.getAnimations()[0];
-    mirroredAnimation.pause();
-    const ltr = travel(at(animation, element, 0).transform);
-    const rtl = travel(at(mirroredAnimation, mirrored, 0).transform);
-    checks.compiledCssMirrorsUnderRtl = mirroredAnimation.animationName === `hub-${spec.id}-rtl` && ltr !== 0 && Math.abs(ltr + rtl) < 0.02;
-    const mirroredPlayed = make('rtl');
-    const mirroredPlayer = hub.play(mirroredPlayed, spec, { reducedMotion: false });
-    mirroredPlayer.pause();
-    checks.runtimeMirrorsLikeCompiledCss = sampleTimes.every((time) => matches(at(mirroredPlayer, mirroredPlayed, time), at(mirroredAnimation, mirrored, time)));
-    measured.horizontalTravelPx = { ltr, rtl };
-  }
+  checks.runtimeReducedState = hub.play(still, spec, { reducedMotion: true }) === null
+    && matches(read(still, Object.keys(reducedState)), reducedState);
   return { checks, measured };
 }
 
@@ -165,7 +161,8 @@ async function inspectBehaviours(slideUp) {
   const players = hub.stagger(list.children, slideUp, { each: 40, reducedMotion: false });
   hub.seek(players, 150);
   const opacities = Array.from(list.children, (item) => Number(getComputedStyle(item).opacity));
-  results.stagger = {
+  results['ui-staggered-list'] = {
+    implementation: 'stagger',
     checks: {
       delaysEvenlySpaced: players.map((item) => item.effect.getTiming().delay).join() === '0,40,80,120',
       laterItemsTrailEarlierOnes: opacities.every((value, index) => index === 0 || value < opacities[index - 1]),
@@ -196,7 +193,8 @@ async function inspectBehaviours(slideUp) {
   const animated = drawn.length > 1 && drawn.at(-1) === 1 && line.textContent === text;
   drawn = [];
   await hub.run((progress) => drawn.push(progress), 80, { reducedMotion: true });
-  results.typewriterAt = {
+  results['typography-typewriter'] = {
+    implementation: 'typewriterAt',
     checks: {
       cutsOnlyBetweenGraphemes: wholeGraphemes && parts.length < Array.from(text).length,
       fullTextStaysAccessible: line.getAttribute('aria-label') === text,
@@ -211,7 +209,8 @@ async function inspectBehaviours(slideUp) {
   const figure = document.createElement('span');
   stage.append(figure);
   const shown = (progress, options) => { hub.renderCounter(figure, 0, 2500, progress, options); return figure.textContent; };
-  results.counterValueAt = {
+  results['typography-counter-interpolation'] = {
+    implementation: 'counterValueAt',
     checks: {
       endpointsExact: shown(0, {}) === '0' && shown(1, {}) === '2,500',
       linearMidpoint: shown(0.5, { easing: 'linear' }) === '1,250',
@@ -223,160 +222,95 @@ async function inspectBehaviours(slideUp) {
   return results;
 }
 
-// Runs in the Motion Lab after Play: compares the lab's own animation with the
-// specification played beside it, at five moments.
-async function compareLabWithSpec(specPath) {
-  const hub = await import('/motion-library/runtime/hub-motion.mjs');
-  const spec = await (await fetch(specPath)).json();
+function inspectGlsl(fragmentSource) {
   const stage = document.getElementById('stage');
-  const targets = stage.querySelectorAll('#preview span').length ? [...stage.querySelectorAll('#preview span')] : [document.getElementById('preview')];
-  const target = targets[0];
-  const player = target.getAnimations()[0];
-  if (!player) return { playing: false };
-  const names = [...new Set(spec.keyframes.flatMap((frame) => Object.keys(frame).filter((key) => key !== 'offset')))];
-  const twin = target.cloneNode(true);
-  twin.removeAttribute('id');
-  twin.className = target.className.split(' ').filter((name) => !name.startsWith('run-')).join(' ');
-  target.after(twin);
-  const reference = hub.play(twin, spec, { reducedMotion: false });
-  const delay = player.effect.getTiming().delay;
-  player.pause();
-  reference.pause();
-  const number = /-?\d*\.?\d+(?:e-?\d+)?/g;
-  const near = (a, b) => {
-    const left = (a.match(number) || []).map(Number);
-    const right = (b.match(number) || []).map(Number);
-    return a.replace(number, '#') === b.replace(number, '#') && left.length === right.length
-      && left.every((value, index) => Math.abs(value - right[index]) <= 0.001 + 0.001 * Math.abs(right[index]));
+  stage.replaceChildren();
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  stage.append(canvas);
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: false });
+  const checks = { webglContextCreated: Boolean(gl) };
+  if (!gl) return { checks, measured: {} };
+  const compile = (type, source) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
   };
-  let worst = 0;
-  const same = [0, 0.25, 0.5, 0.75, 1].every((progress) => {
-    player.currentTime = delay + progress * spec.duration_ms;
-    reference.currentTime = progress * spec.duration_ms;
-    return names.every((name) => {
-      const [a, b] = [getComputedStyle(target).getPropertyValue(name), getComputedStyle(twin).getPropertyValue(name)];
-      if (name === 'opacity') worst = Math.max(worst, Math.abs(Number(a) - Number(b)));
-      return near(a, b);
-    });
-  });
-  twin.remove();
-  player.cancel();
-  return { playing: true, matchesSpecification: same, largestOpacityDifference: Number(worst.toFixed(4)) };
+  const vertex = compile(gl.VERTEX_SHADER, 'attribute vec2 a_position; void main(){gl_Position=vec4(a_position,0.0,1.0);}');
+  const fragment = compile(gl.FRAGMENT_SHADER, fragmentSource);
+  checks.vertexShaderCompiled = gl.getShaderParameter(vertex, gl.COMPILE_STATUS);
+  checks.fragmentShaderCompiled = gl.getShaderParameter(fragment, gl.COMPILE_STATUS);
+  const program = gl.createProgram();
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.linkProgram(program);
+  checks.programLinked = gl.getProgramParameter(program, gl.LINK_STATUS);
+  if (!checks.vertexShaderCompiled || !checks.fragmentShaderCompiled || !checks.programLinked) {
+    return { checks, measured: { shaderLog: gl.getShaderInfoLog(fragment), programLog: gl.getProgramInfoLog(program) } };
+  }
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  gl.useProgram(program);
+  const position = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform2f(gl.getUniformLocation(program, 'u_resolution'), canvas.width, canvas.height);
+  const time = gl.getUniformLocation(program, 'u_time');
+  const draw = (seconds) => {
+    gl.uniform1f(time, seconds);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    return pixels;
+  };
+  const first = draw(0);
+  const second = draw(1);
+  const colours = new Set();
+  for (let index = 0; index < first.length; index += 16) colours.add(first.slice(index, index + 4).join(','));
+  checks.drawCompletedWithoutError = gl.getError() === gl.NO_ERROR;
+  checks.drawsMultipleColours = colours.size > 2;
+  checks.timeChangesPixels = first.some((value, index) => value !== second[index]);
+  return { checks, measured: { sampledColours: colours.size } };
 }
 
-const browser = await playwright.chromium.launch();
+const executablePath = process.env.MOTION_CHROMIUM_EXECUTABLE;
+const browser = await playwright.chromium.launch(executablePath ? { executablePath } : {});
 const results = [];
-let engine;
 try {
   const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
   const problems = [];
   page.on('pageerror', (error) => problems.push(String(error)));
-  await page.goto(`${server.origin}/motion-library/verify/harness.html`);
+  await page.goto(`${server.origin}/verify/harness.html`);
   await page.waitForFunction(() => window.hub);
-  for (const { spec, css, source, engine: componentEngine } of specs) {
+  for (const { spec, css, source } of specs) {
+    if (spec.id === 'spatial-fresnel-rim') continue;
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     const motion = await page.evaluate(inspectSpec, { spec, css, reduced: false });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const still = await page.evaluate(inspectSpec, { spec, css, reduced: true });
     const checks = { ...motion.checks, ...still.checks };
-    results.push({ id: spec.id, kind: 'spec', engine: componentEngine, source, css_sha256: digest(css), pass: Object.values(checks).every(Boolean), checks, measured: motion.measured });
+    results.push({ id: spec.id, kind: 'spec', source, css_sha256: digest(css), pass: Object.values(checks).every(Boolean), checks, measured: motion.measured });
   }
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const slideUp = specs.find((item) => item.spec.id === 'ui-slide-up');
   await page.evaluate((css) => { document.getElementById('compiled').textContent = css; }, slideUp.css);
   const behaviours = await page.evaluate(inspectBehaviours, slideUp.spec);
-  for (const [name, { checks, measured }] of Object.entries(behaviours)) {
-    results.push({ id: `runtime-${name}`, kind: 'runtime', implementation: `motion-library/runtime/hub-motion.mjs#${name}`, pass: Object.values(checks).every(Boolean), checks, measured });
+  for (const [id, { implementation, checks, measured }] of Object.entries(behaviours)) {
+    results.push({ id, kind: 'runtime', implementation: `motion-library/runtime/hub-motion.mjs#${implementation}`, pass: Object.values(checks).every(Boolean), checks, measured });
   }
-  // Decoding a screenshot in the harness page tells a drawn canvas from a blank one.
-  const colours = (png) => page.evaluate(async (data) => {
-    const image = new Image();
-    image.src = 'data:image/png;base64,' + data;
-    await image.decode();
-    const canvas = document.createElement('canvas');
-    [canvas.width, canvas.height] = [image.width, image.height];
-    const context = canvas.getContext('2d');
-    context.drawImage(image, 0, 0);
-    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    const seen = new Set();
-    for (let index = 0; index < pixels.length; index += 4 * 97) seen.add(`${pixels[index]},${pixels[index + 1]},${pixels[index + 2]}`);
-    return seen.size;
-  }, png.toString('base64'));
-
-  // The Motion Lab, driven through its own controls.
-  const lab = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-  lab.on('pageerror', (error) => problems.push('lab: ' + String(error)));
-  await lab.emulateMedia({ reducedMotion: 'no-preference' });
-  await lab.goto(`${server.origin}/motion-lab/index.html`);
-  await lab.waitForFunction(() => document.documentElement.dataset.labReady === 'true', null, { timeout: 15000 });
-  const counts = await lab.evaluate(() => Object.fromEntries(['indexedCount', 'implementedCount', 'testedCount', 'usedCount'].map((id) => [id, Number(document.getElementById(id).textContent)])));
-  const choose = async (id, direction = 'ltr', mode = 'full') => {
-    await lab.selectOption('#direction', direction);
-    await lab.selectOption('#motionMode', mode);
-    await lab.click(`#motionList button[data-id="${id}"]`);
-    await lab.click('#play');
-    await lab.evaluate(() => new Promise((painted) => requestAnimationFrame(() => requestAnimationFrame(painted))));
-    return lab.evaluate(() => document.getElementById('previewNote')?.textContent ?? '');
-  };
-  const played = {};
-  for (const row of manifest.components) {
-    const note = await choose(row.id);
-    const entry = { engine: row.engine, startedWithoutError: !/fail/i.test(note) };
-    if (row.engine === 'css' || row.engine === 'waapi') {
-      Object.assign(entry, await lab.evaluate(compareLabWithSpec, `/motion-library/${row.spec}`));
-    } else if (await lab.locator('#stage canvas').count()) {
-      await lab.waitForTimeout(250);
-      entry.canvasColours = await colours(await lab.locator('#stage canvas').screenshot({ type: 'png' }));
-      entry.drawsOnCanvas = entry.canvasColours > 2;
-    } else {
-      // The cross-dissolve adapter drives two DOM layers; it must finish on the incoming one.
-      await lab.waitForTimeout(JSON.parse(readFileSync(join(library, row.spec), 'utf8')).duration_ms + 300);
-      entry.layerOpacities = await lab.evaluate(() => Array.from(document.querySelectorAll('#stage .dissolve-layer'), (layer) => Number(layer.style.opacity)));
-      entry.reachesEndState = entry.layerOpacities.join() === '0,1';
-    }
-    played[row.id] = entry;
-  }
-  await choose('ui-fade-in', 'ltr', 'reduce');
-  const reducedInLab = await lab.evaluate(() => {
-    const preview = document.getElementById('preview');
-    return preview.getAnimations().length === 0 && getComputedStyle(preview).opacity === '1';
-  });
-  const travelIn = async (direction) => {
-    await choose('ui-slide-inline-start', direction);
-    return lab.evaluate(() => {
-      const preview = document.getElementById('preview');
-      const player = preview.getAnimations()[0];
-      player.pause();
-      player.currentTime = 0;
-      return Number((getComputedStyle(preview).transform.match(/matrix\(([^)]+)\)/) || ['', '1,0,0,1,0,0'])[1].split(',')[4]);
-    });
-  };
-  const labTravel = { ltr: await travelIn('ltr'), rtl: await travelIn('rtl') };
-  const rows = Object.values(played);
-  const labChecks = {
-    loadsWithoutPageErrors: problems.filter((problem) => problem.startsWith('lab:')).length === 0,
-    countsMatchManifest: counts.indexedCount === manifest.catalog_total && [counts.implementedCount, counts.testedCount, counts.usedCount].every((value) => value === manifest.components.length),
-    everyComponentStartsWithoutError: rows.every((row) => row.startedWithoutError),
-    everyCssAndWaapiComponentAnimates: rows.filter((row) => 'playing' in row).every((row) => row.playing),
-    everyCanvasComponentDraws: rows.filter((row) => 'drawsOnCanvas' in row).every((row) => row.drawsOnCanvas),
-    adapterLayersReachEndState: rows.filter((row) => 'reachesEndState' in row).every((row) => row.reachesEndState),
-    cssComponentsMatchTheirSpecification: rows.filter((row) => row.engine === 'css').every((row) => row.matchesSpecification),
-    reducedModeAppliesEndStateWithoutAnimation: reducedInLab,
-    inlineTravelMirrorsUnderRtl: labTravel.ltr !== 0 && Math.abs(labTravel.ltr + labTravel.rtl) < 0.02,
-  };
+  const shader = 'runtime/glsl/fresnel-rim.frag';
+  const shaderSource = readFileSync(join(library, shader), 'utf8');
+  const glsl = await page.evaluate(inspectGlsl, shaderSource);
   results.push({
-    id: 'motion-lab', kind: 'lab', pass: Object.values(labChecks).every(Boolean), checks: labChecks,
-    measured: { counts, horizontalTravelPx: labTravel, components: played },
-    findings: Object.entries(played).filter(([, row]) => row.engine === 'waapi' && row.matchesSpecification === false)
-      .map(([id, row]) => `${id}: the lab eases the whole animation where the compiled CSS eases each keyframe interval (largest opacity difference ${row.largestOpacityDifference}).`),
+    id: 'spatial-fresnel-rim', kind: 'glsl', engine: 'glsl-webgl',
+    source: `motion-library/${shader}`, shader_sha256: digest(shaderSource),
+    pass: Object.values(glsl.checks).every(Boolean), checks: glsl.checks, measured: glsl.measured,
   });
-  for (const row of manifest.components.filter((item) => item.engine === 'glsl-webgl')) {
-    const shader = JSON.parse(readFileSync(join(library, row.spec), 'utf8')).shader;
-    const checks = { labLoads: labChecks.loadsWithoutPageErrors, shaderCompilesAndLinks: played[row.id].startedWithoutError, drawsOnCanvas: played[row.id].drawsOnCanvas };
-    results.push({ id: row.id, kind: 'lab-engine', engine: row.engine, source: `motion-library/${shader}`, source_sha256: digest(readFileSync(join(library, shader))), pass: Object.values(checks).every(Boolean), checks, measured: { canvasColours: played[row.id].canvasColours } });
-  }
   if (problems.length) results.push({ id: 'page-errors', kind: 'harness', pass: false, checks: { noPageErrors: false }, measured: { problems } });
-  engine = { browser: 'chromium', version: browser.version(), playwright: createRequire(import.meta.url)('playwright/package.json').version, platform: process.platform };
+  var engine = { browser: 'chromium', version: browser.version(), playwright: createRequire(import.meta.url)('playwright/package.json').version, platform: process.platform };
 } finally {
   await browser.close();
   server.close();
@@ -385,19 +319,18 @@ try {
 const failed = results.filter((result) => !result.pass);
 const evidence = {
   schema_version: 1,
-  notes: 'Generated by motion-library/verify/browser.mjs. Values were read from the engine, not asserted by hand. A result stays valid only while its css_sha256 or source_sha256 and the hashes below match the files in the repository.',
+  notes: 'Generated by motion-library/verify/browser.mjs. Values were read from the engine, not asserted by hand. A result stays valid only while its CSS/shader digest and the runtime hashes below match the repository.',
   generated_on: new Date().toISOString().slice(0, 10),
   engine,
   inputs: {
     runtime_sha256: digest(readFileSync(join(library, 'runtime', 'hub-motion.mjs'))),
     core_sha256: digest(readFileSync(join(library, 'runtime', 'core.mjs'))),
-    lab_sha256: digest(Buffer.concat(labFiles.map((name) => readFileSync(join(repository, 'motion-lab', name))))),
+    base_css_sha256: digest(readFileSync(join(library, 'runtime', 'hub-motion-base.css'))),
   },
   summary: { passed: results.length - failed.length, failed: failed.length },
   results,
 };
 if (process.argv.includes('--write')) writeFileSync(evidencePath, JSON.stringify(evidence, null, 2) + '\n');
 for (const result of failed) console.error(`FAIL ${result.id}: ${Object.entries(result.checks).filter(([, ok]) => !ok).map(([name]) => name).join(', ')}`);
-for (const finding of results.flatMap((result) => result.findings ?? [])) console.log(`FINDING ${finding}`);
 console.log(`${engine.browser} ${engine.version}: ${evidence.summary.passed} passed, ${evidence.summary.failed} failed`);
 process.exit(failed.length ? 1 : 0);

@@ -1,15 +1,17 @@
 {
   "schema_version": 1,
-  "notes": "Verified-source recovery index only. Entries are not installed, approved, or runtime-used by the hub.",
+  "notes": "Canonical recovery index recorded on 2026-11-27. verified-source means the named public source, revision, licence and integrity record were checked; it does not mean installed, approved, or runtime-used by the hub. Items without confirmed redistribution permission remain deferred and are not exposed as hub capabilities.",
   "packages": [
     {
       "id": "video-skill-wrappers-8",
       "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_commit": "0361a1c55b3cf9cadea84a4913b7764b9c3ccd56",
       "source_path": ".claude/skills/video-*",
       "count": 8,
       "files": 166,
       "license": "MIT per vendored package",
-      "integrity": "verified by scripts/toolchain/video-skills.lock.json",
+      "integrity_path": "scripts/toolchain/video-skills.lock.json",
+      "integrity_sha256": "c7f67529f5f8b0d52b04e76416b8018c36dbceee51d602134893cd2876dfe749",
       "status": "verified-source",
       "imported": false,
       "reason": "Wrapper prose requires project-neutral review before public import"
@@ -17,26 +19,67 @@
     {
       "id": "nexios-modern-skills-pack",
       "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_commit": "0361a1c55b3cf9cadea84a4913b7764b9c3ccd56",
       "source_path": "packs/nexios-modern-skills-pack",
+      "version": "1.0.0",
       "skills": 144,
       "categories": 12,
       "files": 157,
       "license": "MIT",
+      "manifest_sha256": "208838ca0e023e92070a53b46da3f459e001dd7008bd684428c8500230028940",
       "status": "verified-source",
       "imported": false
     },
     {
       "id": "nexios-modern-agents-tools-pack",
       "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_commit": "0361a1c55b3cf9cadea84a4913b7764b9c3ccd56",
       "source_path": "packs/nexios-modern-agents-tools-pack",
+      "version": "1.0.0",
       "agents": 72,
       "tools": 180,
       "agent_skill_bindings": 720,
       "skill_tool_bindings": 432,
       "files": 348,
       "license": "MIT",
+      "manifest_sha256": "be98762539a73f6169a6fa89ec25c07c0ceb5f336606f0fc1e7994bc1fc0290b",
       "status": "verified-source",
       "imported": false
+    }
+  ],
+  "references": [
+    {
+      "id": "shared-ai-catalog",
+      "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_commit": "063ac71978755fc98f6011e2cad2a8c5de59bec1",
+      "source_path": "shared-catalog/global.zip",
+      "sha256": "16252e2a1a7e8262ae1d7efd5f081d5b005ed31b4dcd3055adb5d4f1a7aecf9a",
+      "status": "checksum-verified-reference",
+      "imported": false,
+      "reason": "Discovery data only; catalog rows are not approvals or executable capabilities."
+    }
+  ],
+  "deferred": [
+    {
+      "id": "catalog-media-tools",
+      "status": "deferred-unverified-license",
+      "imported": false,
+      "reason": "Byte-identical copies were located in four project repositories, but an authoritative licence and redistribution record were not established. The skill and tools are therefore not published as a hub pack."
+    },
+    {
+      "id": "nexios-modern-stack",
+      "source": "https://github.com/faisaljohaimy-ship-it/biz-pulse-ar",
+      "source_commit": "0361a1c55b3cf9cadea84a4913b7764b9c3ccd56",
+      "source_path": "packs/nexios-modern-stack",
+      "status": "deferred-unverified-license",
+      "imported": false,
+      "reason": "No licence was stated in the pack."
+    },
+    {
+      "id": "q-infinity-motion-pack",
+      "status": "not-found",
+      "imported": false,
+      "reason": "The described 120-variant archive and Remotion sample were not located in the repositories and connected Drive searched during this recovery pass."
     }
   ],
   "excluded": [

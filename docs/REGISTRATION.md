@@ -14,7 +14,7 @@ manifest with an empty capability list is a declaration only; `verify` says so.
 | Id | Installs |
 |---|---|
 | `skill:<name>` | `skills/<name>/` into `.claude/skills/<name>/` and `.agents/skills/<name>/` |
-| `motion:<id>` | the specification and the CSS the pinned compiler emits (with `:dir(rtl)` keyframes when it mirrors), into `.engineering/vendor/hub-motion/` |
+| `motion:<id>` | the specification and the CSS the pinned compiler emits, into `.engineering/vendor/hub-motion/` |
 | `pack:<name>` | the skills and companion files listed in `catalog/packs.json` |
 
 ## Register
@@ -33,9 +33,7 @@ The first command is a dry run and prints the plan. Rules it keeps:
 - A project file the hub does not manage is never overwritten. Identical content is
   adopted; different content stops the run and names the file.
 - Running it again with a newer `--revision` re-pins: every declared capability is
-  reinstalled from the new commit, and a file the new commit no longer provides is
-  deleted if it is unedited. `hub.py update-pin` changes only the SHA and suits
-  manifests that declare no capability.
+  reinstalled from the new commit.
 - `--remove skill:<name>` drops a capability and deletes its files, but only those that
   still match their recorded checksum; a file edited in the project is kept and named.
 - Paths that leave the project, `.git/`, and symlinks are refused.
@@ -59,6 +57,7 @@ the pin, when the pin is not a commit in the hub, or when the manifest breaks a 
 (non-zero budget, a production runtime dependency, another hub URL). It reports one of
 three levels: `verified`, `declared-only`, `broken`.
 
-The project workflow fetches the hub at the pinned commit and runs that commit's own
-`verify`. It triggers only when link files change, so a project's build, tests and
-deployment never wait on the hub.
+The project workflow fetches hub `main`, proves the pin is its ancestor before running
+any code from it, and uses strict verification so a declaration-only manifest fails.
+It triggers only when link files change, so ordinary application builds and deployments
+do not depend on the hub.

@@ -5,8 +5,15 @@
   "scene": "motion-library/render/scene.html",
   "tools": {
     "browser": "chromium",
+    "browser_version": "156.0.8078.79",
     "playwright": "1.63.0",
-    "ffmpeg": "6.1.1-3ubuntu5"
+    "ffmpeg": "7.1.5-0+deb13u1"
+  },
+  "inputs": {
+    "scene_sha256": "e23017927c8ff6b7a47dcd44bc7f2f5c93be0fcab3e9ff832dd2b07f7c9ce1aa",
+    "runtime_sha256": "a12e91bfb530bf78c6947b411395e2af13544fa98867f5064d26d023d9bdc30f",
+    "core_sha256": "34d2917f58f7f539381f962614c7dff0698063568e64175c88f5bb1f6d470ab0",
+    "renderer_sha256": "0be963f709ccac45204d5805e31f4e5eff99af998569922c31a65e5c288ab866"
   },
   "output": {
     "codec": "h264",
@@ -16,10 +23,10 @@
     "frame_rate": "30/1",
     "frames": 126,
     "duration_seconds": 4.2,
-    "bytes": 216768,
+    "bytes": 216118,
     "distinct_frames": 103,
     "captures_repeated_until_settled": 0,
-    "frames_sha256": "94bae6b92bf2e377908119db4cac9cd30c00edf88d46acbf81226f97b7cbce15"
+    "frames_sha256": "4a9838e6391a74461c0dce7b0c0b1f57789dd9a5a2b75c3f240900415063daf4"
   },
   "effects": [
     "cinema-dolly-in",
@@ -28,9 +35,9 @@
     "legacy-10",
     "cinema-cross-dissolve",
     "cinema-rack-focus",
-    "runtime stagger",
-    "runtime typewriter",
-    "runtime counter"
+    "ui-staggered-list",
+    "typography-typewriter",
+    "typography-counter-interpolation"
   ],
   "measured": {
     "minimum_text_contrast": 5.74,

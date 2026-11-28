@@ -33,6 +33,25 @@ def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def _no_duplicates(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def load_json_bytes(data):
+    return json.loads(
+        data,
+        object_pairs_hook=_no_duplicates,
+        parse_constant=lambda value: (_ for _ in ()).throw(
+            ValueError(f"Invalid JSON number: {value}")
+        ),
+    )
+
+
 def head():
     return _git("rev-parse", "HEAD").stdout.decode().strip()
 
@@ -53,6 +72,11 @@ def on_main(revision):
         shallow = _git("rev-parse", "--is-shallow-repository").stdout.strip() == b"true"
         return None if shallow else False
     return None
+
+
+def reviewed_commit(revision):
+    """Only merged main commits are eligible to provide executable capabilities."""
+    return has_commit(revision) and on_main(revision) is True
 
 
 def read(revision, path):
@@ -84,7 +108,7 @@ def motion_specs(revision):
     specs = {}
     for source in tree(revision, "motion-library/specs/"):
         if source.endswith(".json"):
-            specs[json.loads(read(revision, source))["id"]] = source
+            specs[load_json_bytes(read(revision, source))["id"]] = source
     return specs
 
 
@@ -111,7 +135,7 @@ def resolve(revision, capability_id):
             {"path": f"{MOTION_DIR}/{name}.css", "source": source, "mode": "css"},
         ]
     elif kind == "pack":
-        pack = json.loads(read(revision, "catalog/packs.json"))["packs"].get(name)
+        pack = load_json_bytes(read(revision, "catalog/packs.json"))["packs"].get(name)
         if pack is None:
             raise ValueError(f"Pack {name} is not in the hub at {revision[:12]}")
         files = [row for skill in pack.get("skills", []) for row in _skill_files(revision, skill)]
@@ -126,7 +150,7 @@ def resolve(revision, capability_id):
         data = read(revision, row["source"])
         if row["mode"] == "css":
             compiler = compiler or _compiler(revision)
-            data = compiler.compile_css(json.loads(data)).encode("utf-8")
+            data = compiler.compile_css(load_json_bytes(data)).encode("utf-8")
         row["data"] = data
     return files
 
@@ -175,6 +199,9 @@ def validate_manifest(manifest):
         if not isinstance(capability, dict) or not isinstance(capability.get("id"), str):
             errors.append("each capability needs an id")
             continue
+        kind, separator, name = capability["id"].partition(":")
+        if separator != ":" or kind not in {"skill", "motion", "pack"} or not NAME.fullmatch(name):
+            errors.append(f"invalid capability id {capability['id']}")
         if capability["id"] in seen:
             errors.append(f"duplicate capability {capability['id']}")
         seen.add(capability["id"])
@@ -182,6 +209,9 @@ def validate_manifest(manifest):
         if not isinstance(files, list) or not files:
             errors.append(f"{capability['id']} needs a file list")
             continue
+        paths = [row.get("path") for row in files if isinstance(row, dict)]
+        if len(paths) != len(set(paths)):
+            errors.append(f"{capability['id']} has duplicate file paths")
         for row in files:
             valid = (
                 isinstance(row, dict)
@@ -199,10 +229,44 @@ def load_manifest(target):
     path = pathlib.Path(target) / MANIFEST
     if path.is_symlink() or path.parent.is_symlink():
         raise ValueError("Symlink refused")
-    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+    return load_json_bytes(path.read_bytes()) if path.is_file() else None
 
 
-def register(target, revision, project_id=None, repository=None, capabilities=(), apply=False, remove=()):
+def validate_existing_claims(manifest):
+    """Refuse to trust managed/deletable paths until the old pin reproduces them."""
+    capabilities = manifest.get("capabilities", [])
+    if not capabilities:
+        return
+    revision = manifest["hub_revision"]
+    if not reviewed_commit(revision):
+        raise ValueError("Existing capability pin is not a reviewed main commit")
+    for capability in capabilities:
+        expected = []
+        for row in resolve(revision, capability["id"]):
+            expected.append(
+                {
+                    "path": row["path"],
+                    "source": row["source"],
+                    "mode": row["mode"],
+                    "sha256": sha256(row["data"]),
+                }
+            )
+        actual = sorted(capability["files"], key=lambda row: row["path"])
+        if actual != sorted(expected, key=lambda row: row["path"]):
+            raise ValueError(
+                f"Existing manifest claim for {capability['id']} does not match its pinned source"
+            )
+
+
+def register(
+    target,
+    revision,
+    project_id=None,
+    repository=None,
+    capabilities=(),
+    apply=False,
+    remove=(),
+):
     """Install capabilities from one hub revision and record them in the manifest.
 
     Dry-run unless apply is set. Capabilities already declared are reinstalled from the
@@ -210,8 +274,8 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
     manage is never overwritten: identical content is adopted, different content stops.
     Removing a capability deletes only files that still match their recorded checksum.
     """
-    if not has_commit(revision):
-        raise ValueError("Full commit SHA from this hub required")
+    if not reviewed_commit(revision):
+        raise ValueError("A reviewed commit on the hub main branch is required")
     target = pathlib.Path(target).resolve()
     if not target.is_dir():
         raise ValueError("Existing directory required")
@@ -220,6 +284,7 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
         problems = validate_manifest(old)
         if problems:
             raise ValueError("Existing manifest is invalid: " + "; ".join(problems))
+        validate_existing_claims(old)
     managed = {row["path"] for item in old.get("capabilities", []) for row in item["files"]}
     wanted = list(dict.fromkeys([item["id"] for item in old.get("capabilities", [])] + list(capabilities)))
     removing = set(remove)
@@ -245,10 +310,8 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
     conflicts = sorted(path for path, state in plan.items() if state == "conflict")
     if conflicts:
         raise ValueError("Refusing to overwrite project files the hub does not manage: " + ", ".join(conflicts))
-    # Files of a removed capability, and files a newer pin no longer provides, are deleted
-    # only while they still match the checksum recorded when the hub installed them.
     for item in old.get("capabilities", []):
-        for row in item["files"]:
+        for row in item["files"] if item["id"] in removing else []:
             if row["path"] in plan:
                 continue
             destination = _destination(target, row["path"])
@@ -275,28 +338,45 @@ def register(target, revision, project_id=None, repository=None, capabilities=()
     text = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
     manifest_path = _destination(target, MANIFEST)
     current = manifest_path.read_text(encoding="utf-8") if manifest_path.is_file() else None
+    stale = sorted(managed - set(plan))
     plan[MANIFEST] = "unchanged" if current == text else ("update" if current else "create")
     if apply:
-        for path, data in contents.items():
-            if plan[path] in ("create", "update"):
-                destination = _destination(target, path)
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(data)
-        for path, state in plan.items():
-            if state == "delete":
-                destination = _destination(target, path)
-                destination.unlink()
-                for parent in list(destination.parents)[:2]:
-                    if parent != target and not any(parent.iterdir()):
-                        parent.rmdir()
-        if plan[MANIFEST] != "unchanged":
-            manifest_path.parent.mkdir(parents=True, exist_ok=True)
-            manifest_path.write_text(text, encoding="utf-8")
+        temporary = None
+        try:
+            # Prepare the new manifest before touching managed files. A stale or
+            # attacker-created temporary path therefore fails without a partial update.
+            if plan[MANIFEST] != "unchanged":
+                manifest_path.parent.mkdir(parents=True, exist_ok=True)
+                candidate = manifest_path.with_suffix(".json.tmp")
+                if candidate.exists() or candidate.is_symlink():
+                    raise ValueError("Temporary manifest path already exists")
+                temporary = candidate
+                with temporary.open("x", encoding="utf-8") as stream:
+                    stream.write(text)
+            for path, data in contents.items():
+                if plan[path] in ("create", "update"):
+                    destination = _destination(target, path)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.write_bytes(data)
+            for path, state in plan.items():
+                if state == "delete":
+                    destination = _destination(target, path)
+                    destination.unlink()
+                    for parent in list(destination.parents)[:2]:
+                        if parent != target and not any(parent.iterdir()):
+                            parent.rmdir()
+            if temporary is not None:
+                temporary.replace(manifest_path)
+                temporary = None
+        finally:
+            if temporary is not None and temporary.is_file() and not temporary.is_symlink():
+                temporary.unlink()
     return {
         "applied": bool(apply),
         "hub_revision": revision,
         "capabilities": wanted,
         "files": plan,
+        "no_longer_provided": stale,
     }
 
 
@@ -330,10 +410,12 @@ def verify(target, strict=False):
     if not check("pinned-revision-in-hub", has_commit(revision), revision):
         return report
     reviewed = report["pin_on_main"] = on_main(revision)
-    if reviewed is None:
-        warnings.append("main history is unavailable here; whether the pin is a merged revision was not checked")
-    elif not reviewed:
-        warnings.append("the pinned revision is not on the hub's main history; re-pin after it is merged")
+    if not check(
+        "pinned-revision-on-main",
+        reviewed is True,
+        "" if reviewed is True else ("main history unavailable" if reviewed is None else "revision is not on main"),
+    ):
+        return report
     declared, verified = set(), 0
     for capability in manifest["capabilities"]:
         name = "capability " + capability["id"]
@@ -355,7 +437,13 @@ def verify(target, strict=False):
                 bad.append(row["path"])
                 continue
             actual = sha256(destination.read_bytes()) if destination.is_file() else None
-            if actual == row["sha256"] == sha256(wanted["data"]):
+            wanted_digest = sha256(wanted["data"])
+            metadata_matches = (
+                row.get("source") == wanted["source"]
+                and row.get("mode") == wanted["mode"]
+                and row.get("sha256") == wanted_digest
+            )
+            if metadata_matches and actual == wanted_digest:
                 verified += 1
             else:
                 bad.append(row["path"])
@@ -386,7 +474,7 @@ def verify(target, strict=False):
 
 def projects():
     """Validated public project registry. Private repositories are never listed here."""
-    rows = json.loads((ROOT / "projects/registry.json").read_text(encoding="utf-8"))["projects"]
+    rows = load_json_bytes((ROOT / "projects/registry.json").read_bytes())["projects"]
     return validate_projects(rows)
 
 
@@ -419,7 +507,7 @@ def audit_projects():
             if clone.returncode:
                 results.append({"id": row["id"], "ok": False, "level": "unreachable", "verified_files": 0})
                 continue
-            report = verify(workdir + "/project")
+            report = verify(workdir + "/project", strict=True)
             results.append({key: report[key] for key in ("ok", "level", "hub_revision", "pin_on_main", "verified_files")}
                            | {"id": row["id"], "warnings": report["warnings"]})
     return results

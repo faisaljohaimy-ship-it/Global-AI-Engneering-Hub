@@ -7,10 +7,10 @@ name: hub-link
 
 on:
   pull_request:
-    paths: [".engineering/**", ".claude/skills/**", ".agents/skills/**", "tools/shared_catalog.py", "tools/media_tools.py", ".github/workflows/hub-link.yml"]
+    paths: [".engineering/**", ".claude/skills/**", ".agents/skills/**", ".github/workflows/hub-link.yml"]
   push:
     branches: [main]
-    paths: [".engineering/**", ".claude/skills/**", ".agents/skills/**", "tools/shared_catalog.py", "tools/media_tools.py", ".github/workflows/hub-link.yml"]
+    paths: [".engineering/**", ".claude/skills/**", ".agents/skills/**", ".github/workflows/hub-link.yml"]
   workflow_dispatch:
 
 permissions:
@@ -34,6 +34,7 @@ jobs:
           git -C "$RUNNER_TEMP/hub" remote add origin https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub
           git -C "$RUNNER_TEMP/hub" fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main"
           git -C "$RUNNER_TEMP/hub" fetch --quiet origin "$revision"
+          git -C "$RUNNER_TEMP/hub" merge-base --is-ancestor "$revision" refs/remotes/origin/main
           git -C "$RUNNER_TEMP/hub" checkout --quiet --detach "$revision"
       - name: Compare this project with the pinned hub commit
-        run: python3 "$RUNNER_TEMP/hub/hub.py" verify "$GITHUB_WORKSPACE"
+        run: python3 "$RUNNER_TEMP/hub/hub.py" verify "$GITHUB_WORKSPACE" --strict

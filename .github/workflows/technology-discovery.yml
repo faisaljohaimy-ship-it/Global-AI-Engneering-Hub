@@ -1,0 +1,30 @@
+name: technology-discovery
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 5 * * 1'
+permissions:
+  contents: read
+concurrency:
+  group: technology-discovery
+  cancel-in-progress: false
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Review a rotating bounded window of upstream metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          offset=$(python3 -c 'import datetime,json; rows=json.load(open("catalog/registry.json")); print((datetime.date.today().toordinal() // 7 * 12) % max(1,len(rows)))')
+          python3 scripts/discover_technology.py --limit 12 --offset "$offset" --output "$RUNNER_TEMP/technology-discovery.json"
+      - name: Preserve candidates for reviewed adoption PRs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: technology-discovery-${{ github.run_id }}
+          path: ${{ runner.temp }}/technology-discovery.json
+          retention-days: 14

@@ -30,12 +30,22 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(findings, [])
 
     def test_actions_are_sha_pinned_and_permissions_read_only(self):
-        workflow = (ROOT / ".github/workflows/verify.yml").read_text()
-        uses = re.findall(r"uses:\s*[^@\s]+@([^\s#]+)", workflow)
-        self.assertTrue(uses)
-        self.assertTrue(all(re.fullmatch(r"[0-9a-f]{40}", value) for value in uses))
-        self.assertIn("permissions:\n  contents: read", workflow)
-        self.assertIn("timeout-minutes:", workflow)
+        workflows = sorted((ROOT / ".github/workflows").glob("*.yml")) + [ROOT / "templates/hub-link.yml"]
+        for path in workflows:
+            workflow = path.read_text()
+            uses = re.findall(r"uses:\s*[^@\s]+@([^\s#]+)", workflow)
+            self.assertTrue(uses, path)
+            self.assertTrue(all(re.fullmatch(r"[0-9a-f]{40}", value) for value in uses), path)
+            self.assertIn("permissions:\n  contents: read", workflow, path)
+            self.assertIn("timeout-minutes:", workflow, path)
+            self.assertNotIn("pull_request_target", workflow, path)
+
+    def test_browser_verifier_dependency_is_exact_and_integrity_locked(self):
+        package = (ROOT / "motion-library/verify/package.json").read_text()
+        lock = (ROOT / "motion-library/verify/package-lock.json").read_text()
+        self.assertIn('"playwright": "1.63.0"', package)
+        self.assertIn('"version": "1.63.0"', lock)
+        self.assertGreaterEqual(lock.count('"integrity": "sha512-'), 2)
 
     def test_no_tracked_environment_or_key_files(self):
         files = set(

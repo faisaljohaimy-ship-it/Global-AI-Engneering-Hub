@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "id": "microsoft/playwright",
+  "version": "1.63.0",
+  "revision": "1b025d7e20a026371cd5f98ba0cdce48892737c8",
+  "requested_state": "TESTED",
+  "scope": "Opt-in isolated developer browser QA, localhost-only, no authenticated profiles or product runtime dependency.",
+  "review": {
+    "license": "Apache-2.0 npm package; browser redistribution and third-party assets retain their own notices.",
+    "commercial_use": "Package license permits scoped developer use; no paid service enabled.",
+    "security": "Exact integrity lock, npm audit zero findings at test time, isolated local browser, bounded probes, negative path/deadline/budget tests. Not a blanket upstream security guarantee.",
+    "upstream": "GitHub v1.63.0 tag and npm gitHead match the full revision; npm integrity matches committed lockfile.",
+    "reviewer": "Codex engineering review under owner directive"
+  },
+  "runtime_receipt": "docs/evidence/chromium-recovery-2026-11-27.json",
+  "module_root": "motion-library/chromium-stack",
+  "maximum_receipt_age_seconds": 86400,
+  "not_proven": ["Firefox or Safari hardware", "WebGPU rendering", "production field metrics", "authenticated browser sessions", "all Playwright APIs", "automatic project activation"]
+}

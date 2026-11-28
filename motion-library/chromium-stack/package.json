@@ -1,29 +1,16 @@
 {
-  "name": "chromium-motion-stack",
+  "name": "@global-ai-engineering-hub/chromium-stack",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "license": "UNLICENSED",
+  "description": "Bounded native Chromium rendering probes; optional isolated development tooling",
+  "engines": { "node": ">=20" },
   "scripts": {
     "smoke": "node smoke.mjs",
-    "browser": "playwright install chromium"
+    "test": "node --test ../../tests/test_chromium_stack_options.mjs"
   },
-  "dependencies": {
-    "gsap": "latest",
-    "motion": "latest",
-    "three": "latest",
-    "@react-three/fiber": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "remotion": "latest",
-    "@remotion/cli": "latest",
-    "@theatre/core": "latest",
-    "@theatre/studio": "latest",
-    "@rive-app/react-canvas": "latest",
-    "lottie-web": "latest",
-    "playwright": "latest",
-    "puppeteer": "latest",
-    "lighthouse": "latest",
-    "axe-core": "latest",
-    "@playwright/mcp": "latest",
-    "chrome-devtools-mcp": "latest"
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }

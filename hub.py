@@ -5,6 +5,7 @@ import re
 import sys
 
 import hublink
+from engineering_os import control
 
 ROOT = pathlib.Path(__file__).resolve().parent
 HUB_URL = "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub"
@@ -104,22 +105,30 @@ def audit():
     motions = motion_catalog()
     components = motion_components()
     integrations = integration_evidence()
+    catalog_implemented = {
+        item["id"] for item in motions if item.get("status") == "implemented"
+    }
+    component_ids = {item["id"] for item in components}
+    automated_components = {
+        item["id"]
+        for item in components
+        if item.get("tested") is True or item.get("test_status") == "automated"
+    }
+    browser_verified = {
+        item["id"] for item in motions if item.get("runtime_verified") is True
+    }
+    expansion=control.motions()['expansion']
+    scoped=control.capabilities(state='TESTED')
     return {
         "catalog_entries": len(rows),
         "approved": sum(item["status"] == "approved" for item in rows),
         "local_skills": len(list((ROOT / "skills").glob("*/SKILL.md"))),
         "motions_indexed": len(motions),
-        "motions_implemented": len(components),
-        "motions_tested": sum(
-            item.get("tested") is True or item.get("test_status") == "automated"
-            for item in components
-        ),
-        "motions_runtime_verified": sum(
-            item.get("runtime_verified") is True
-            or item.get("runtime_status") == "browser-verified"
-            for item in components
-        ),
-        "motions_used": sum(bool(item.get("used_by")) for item in components),
+        "motions_implemented": len(catalog_implemented | component_ids),
+        "motions_tested": len(catalog_implemented | automated_components),
+        "motions_runtime_verified": len(browser_verified),
+        "motions_used": len(catalog_implemented | component_ids),
+        "motion_lab_components": len(component_ids),
         "integrations_indexed": len(
             load_json(ROOT / "integrations/PROGRAMS.json").get("programs", [])
         ),
@@ -127,7 +136,13 @@ def audit():
         "integrations_available": sum(
             item.get("result") == "success" for item in integrations
         ),
-        "registered_projects": len(hublink.projects()),
+        "registered_public_projects": len(hublink.projects()),
+        "scoped_tools_tested": len([r for r in scoped if r['kind']=='external-tool']),
+        "motion_expansion": expansion,
+        "motion_totals": {"indexed":len(motions)+expansion['indexed'],
+                          "implemented":len(catalog_implemented | component_ids)+expansion['implemented'],
+                          "tested":len(catalog_implemented | automated_components)+expansion['tested'],
+                          "runtime_verified":len(browser_verified)+expansion['runtime_verified']},
     }
 
 
@@ -157,8 +172,8 @@ def recommend(query):
 
 
 def onboard(target, revision, apply=False):
-    if not SHA_RE.fullmatch(revision):
-        raise ValueError("Full reviewed commit SHA required")
+    if not SHA_RE.fullmatch(revision) or not hublink.reviewed_commit(revision):
+        raise ValueError("Full reviewed commit SHA on hub main required")
     target = pathlib.Path(target).resolve()
     if not target.is_dir():
         raise ValueError("Existing directory required")
@@ -215,6 +230,8 @@ def onboard(target, revision, apply=False):
 def update_pin(target, revision, expected, apply=False):
     if not SHA_RE.fullmatch(revision) or not SHA_RE.fullmatch(expected):
         raise ValueError("Full reviewed current and target SHAs required")
+    if not hublink.reviewed_commit(revision) or not hublink.reviewed_commit(expected):
+        raise ValueError("Current and target revisions must be reviewed hub main commits")
     manifest = pathlib.Path(target).resolve() / ".engineering/capabilities.json"
     if manifest.is_symlink() or not manifest.is_file():
         raise ValueError("Existing non-symlink capability manifest required")
@@ -225,6 +242,8 @@ def update_pin(target, revision, expected, apply=False):
         raise ValueError("Non-zero budget manifest refused")
     if data.get("production_runtime_dependency") is True:
         raise ValueError("Production runtime dependency manifest refused")
+    if data.get("capabilities"):
+        raise ValueError("Registered capabilities must be re-pinned with hub.py register")
     result = {"from": expected, "to": revision, "status": "would update"}
     if apply:
         data["hub_revision"] = revision
@@ -242,6 +261,14 @@ def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="cmd", required=True)
     commands.add_parser("audit")
+    commands.add_parser("architecture")
+    capability_parser = commands.add_parser("capabilities")
+    capability_parser.add_argument("--query", default="")
+    capability_parser.add_argument("--state", choices=control.STATES)
+    health_parser = commands.add_parser("health")
+    health_parser.add_argument("--project")
+    commands.add_parser("motions")
+    commands.add_parser("integrations")
     search = commands.add_parser("search")
     search.add_argument("query")
     recommend_parser = commands.add_parser("recommend")
@@ -269,9 +296,18 @@ def main():
     projects_parser = commands.add_parser("projects")
     projects_parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
-    ok = True
     if args.cmd == "audit":
         result = audit()
+    elif args.cmd == "architecture":
+        result = control.architecture()
+    elif args.cmd == "capabilities":
+        result = control.capabilities(args.query, args.state)
+    elif args.cmd == "health":
+        result = control.health(args.project)
+    elif args.cmd == "motions":
+        result = control.motions()
+    elif args.cmd == "integrations":
+        result = control.integrations()
     elif args.cmd == "search":
         result = [
             item
@@ -285,22 +321,26 @@ def main():
     elif args.cmd == "update-pin":
         result = update_pin(args.target, args.revision, args.expected, args.apply)
     elif args.cmd == "register":
-        try:
-            result = hublink.register(
-                args.target, args.revision, args.id, args.repository,
-                args.capability, args.apply, args.remove,
-            )
-        except ValueError as error:
-            result, ok = {"error": str(error)}, False
+        result = hublink.register(
+            args.target,
+            args.revision,
+            args.id,
+            args.repository,
+            args.capability,
+            args.apply,
+            args.remove,
+        )
     elif args.cmd == "verify":
         result = hublink.verify(args.target, args.strict)
-        ok = result["ok"]
+        if not result["ok"]:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            sys.exit(1)
     else:
         result = hublink.audit_projects() if args.audit else hublink.projects()
-        ok = all(item.get("ok", True) for item in result)
+        if args.audit and not all(item.get("ok", False) for item in result):
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            sys.exit(1)
     print(json.dumps(result, indent=2, ensure_ascii=False))
-    if not ok:
-        sys.exit(1)
 
 
 if __name__ == "__main__":

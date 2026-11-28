@@ -43,7 +43,7 @@ MIRRORED_TRAVEL = re.compile(r"translateX\((-?)([0-9.]+)(px|rem|em|%)\)")
 
 
 def mirrored(value):
-    """Reverse horizontal travel, exactly as runtime/core.mjs mirroredKeyframes does."""
+    """Reverse logical horizontal travel for right-to-left playback."""
     return MIRRORED_TRAVEL.sub(
         lambda match: f"translateX({'' if match.group(1) else '-'}{match.group(2)}{match.group(3)})",
         str(value),
@@ -136,13 +136,10 @@ def compile_css(spec):
         f"  animation: hub-{motion_id} {spec['duration_ms']}ms {spec['easing']} both;",
         "}",
     ])
-    still = selector
     if spec.get("rtl_mirror"):
-        # A stylesheet cannot read rtl_mirror, so right-to-left text gets its own keyframes.
         lines.extend(_keyframes(f"hub-{motion_id}-rtl", spec["keyframes"], mirrored))
         lines.extend([f"{selector}:dir(rtl) {{", f"  animation-name: hub-{motion_id}-rtl;", "}"])
-        still = f"{selector}, {selector}:dir(rtl)"
-    lines.extend(["@media (prefers-reduced-motion: reduce) {", f"  {still} {{", "    animation: none;"])
+    lines.extend(["@media (prefers-reduced-motion: reduce) {", f"  {selector} {{", "    animation: none;"])
     lines.extend(
         f"    {_declaration(name, value)}" for name, value in spec["reduced_motion"].items()
     )

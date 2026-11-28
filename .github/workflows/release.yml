@@ -1,0 +1,41 @@
+name: Release provenance
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing engineering-os-v semantic version tag to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  provenance:
+    name: Verify published engineering release provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.12'
+      - name: Require reviewed main ancestry and successful exact-commit checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          python3 scripts/verify_release.py --tag "$RELEASE_TAG" --repository "$GITHUB_REPOSITORY" --output "$RUNNER_TEMP/engineering-release-provenance.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: engineering-release-provenance-${{ github.run_id }}
+          path: ${{ runner.temp }}/engineering-release-provenance.json
+          retention-days: 30
+          if-no-files-found: error

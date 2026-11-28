@@ -40,7 +40,9 @@ def samples(duration_ms, stiffness, damping, mass=1.0, steps=20):
 
 
 def number(value):
-    return f"{round(value, 3) + 0.0:g}"
+    if abs(value) < 0.0005:
+        value = 0
+    return f"{round(value, 3):g}"
 
 
 def spring_card():

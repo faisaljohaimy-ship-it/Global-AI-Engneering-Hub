@@ -1,204 +1,182 @@
 {
   "schema_version": 1,
-  "notes": "Discovery and integration candidates, not shared account connections. Each agent environment verifies its own connection with a harmless authenticated read and records it in its own field. Probe evidence: integrations/EVIDENCE.json (Codex) and integrations/EVIDENCE.claude-code.json (Claude Code). A verified read does not authorise writes, spending or deployment. No secrets or account identifiers are stored.",
+  "notes": "Discovery and integration candidates, not authenticated account connections. Each environment must verify its own credentials, availability, license and cost. No secrets stored.",
   "programs": [
     {
       "name": "GitHub",
       "url": "https://github.com",
       "status": "available",
       "codex_connection": "verified-read-write-2026-11-27",
-      "claude_code_connection": "verified-read-write-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Cloned six repositories, read pull requests and checks, posted one review, pushed a branch."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Vercel",
       "url": "https://vercel.com",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Listed the team, projects and deployments. No deployment was created or changed."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Supabase",
       "url": "https://supabase.com",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Listed the organisation and projects. No SQL was run."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Google Drive",
       "url": "https://drive.google.com",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Ran two metadata searches. No file was opened, changed or shared."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Render",
       "url": "https://render.com",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "no-connector-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "No Render connector is attached to this environment."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Canva",
       "url": "https://www.canva.com",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Listed brand kits (none exist). No design was generated."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Figma",
       "url": "https://www.figma.com",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Read the account and plan. Seat is View on the starter tier."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Runway",
       "url": "https://runwayml.com",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "no-connector-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "No Runway connector is attached to this environment."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Higgsfield",
       "url": "https://higgsfield.ai",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "no-connector-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "No Higgsfield connector is attached to this environment."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "HeyGen",
       "url": "https://www.heygen.com",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "HyperFrames connector listed projects (none exist). The connector disables compose and render for command-line agents; no video was rendered."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "ElevenLabs",
       "url": "https://elevenlabs.io",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "failed-authorization-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Both connectors answered that they need to be reconnected with additional permissions, and the API answered 401. Nothing was generated."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "n8n",
       "url": "https://n8n.io",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "knowledge-base-only-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "A documentation and knowledge skill is available. No n8n instance is connected, so no workflow was read or run."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Lovable",
       "url": "https://lovable.dev",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "verified-read-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "Read the account and its workspaces. No message was sent, so no credits were used."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "OpenRouter",
       "url": "https://openrouter.ai",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "no-connector-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "No OpenRouter connector is attached to this environment."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Remotion",
       "url": "https://www.remotion.dev",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "registry-metadata-only-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "npm reports 4.0.547 under a custom licence (see LICENSE.md upstream) that needs a company licence above three employees. Not installed."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Blender",
       "url": "https://www.blender.org",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "not-installed-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "No blender binary is on PATH in this environment."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "FFmpeg",
       "url": "https://ffmpeg.org",
-      "status": "available",
+      "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "local-binary-verified-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "ffmpeg and ffprobe 6.1.1 are on PATH with libx264 and libvpx-vp9."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Three.js",
       "url": "https://threejs.org",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "registry-metadata-only-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "npm reports three 0.187.0, MIT. Not installed."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Motion",
       "url": "https://motion.dev",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "registry-metadata-only-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "npm reports motion 14.14.0, MIT. Not installed."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "GSAP",
       "url": "https://gsap.com",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "registry-metadata-only-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "npm reports gsap 3.15.1 under GSAP's standard no-charge licence, which is not an open-source licence and needs review. Not installed."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Rive",
       "url": "https://rive.app",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "registry-metadata-only-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "npm reports @rive-app/canvas 2.55.1, MIT. Not installed."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     },
     {
       "name": "Lottie",
       "url": "https://lottiefiles.com",
       "status": "candidate",
       "codex_connection": "unverified",
-      "claude_code_connection": "registry-metadata-only-2026-11-27",
-      "cost_review": "required",
-      "claude_code_note": "npm reports lottie-web 5.13.0, MIT. Not installed."
+      "claude_code_connection": "unverified",
+      "cost_review": "required"
     }
   ]
 }

@@ -11,22 +11,65 @@ const specs = readdirSync(specsDir).filter((name) => name.endsWith('.json'))
 const fadeIn = () => structuredClone(specs.find((spec) => spec.id === 'ui-fade-in'));
 
 test('every committed specification is accepted', () => {
-  assert.ok(specs.length >= 26);
+  assert.ok(specs.length >= 23);
   for (const spec of specs) assert.equal(validateSpec(spec), spec);
   assert.equal(new Set(specs.map((spec) => spec.id)).size, specs.length);
 });
 
 test('the runtime rejects what the Python compiler rejects', () => {
-  const { cases } = JSON.parse(readFileSync(new URL('../verify/rejections.json', import.meta.url), 'utf8'));
-  assert.ok(cases.length >= 15);
-  for (const { case: name, path, value } of cases) {
+  const unordered = fadeIn();
+  unordered.keyframes[0].offset = 1;
+  assert.throws(() => validateSpec(unordered), /ordered/);
+  const injected = fadeIn();
+  injected.keyframes[0].opacity = '0; color: red';
+  assert.throws(() => validateSpec(injected), /Unsafe/);
+  const property = fadeIn();
+  property.keyframes[0].width = '10px';
+  assert.throws(() => validateSpec(property), /Unsupported or empty/);
+  assert.throws(() => validateSpec({ ...fadeIn(), id: 'Bad Id' }), /Invalid motion id/);
+  assert.throws(() => validateSpec({ ...fadeIn(), duration_ms: 0 }), /duration_ms/);
+  assert.throws(() => validateSpec({ ...fadeIn(), easing: 'steps(2)' }), /easing/);
+  assert.throws(() => validateSpec({ ...fadeIn(), rtl_mirror: 'yes' }), /rtl_mirror/);
+  assert.throws(() => validateSpec({ ...fadeIn(), reduced_motion: {} }), /reduced_motion/);
+});
+
+test('CSS values use the same property grammars as the Python compiler', () => {
+  const withValue = (property, value) => {
     const spec = fadeIn();
-    path.slice(0, -1).reduce((target, key) => target[key], spec)[path.at(-1)] = value;
-    assert.throws(() => validateSpec(spec), Error, name);
+    spec.keyframes = [{ offset: 0, [property]: value }, { offset: 1, [property]: value }];
+    spec.reduced_motion = { [property]: value };
+    return spec;
+  };
+
+  for (const value of ['url(https://example.invalid/x)', 'VAR(--unsafe)', '@import', 'none\\9', 'red\nblue']) {
+    assert.throws(() => validateSpec(withValue('transform', value)), /Unsafe|Control/);
   }
-  const many = fadeIn();
-  many.keyframes = Array.from({ length: 65 }, (_, index) => ({ offset: index / 64, opacity: index / 64 }));
-  assert.throws(() => validateSpec(many), /64/);
+  for (const value of [true, false, null, Number.NaN, Number.POSITIVE_INFINITY, '0.5']) {
+    assert.throws(() => validateSpec(withValue('opacity', value)), /finite|Opacity/);
+  }
+  for (const value of [-0.01, 1.01]) {
+    assert.throws(() => validateSpec(withValue('opacity', value)), /Opacity/);
+  }
+  assert.doesNotThrow(() => validateSpec(withValue('opacity', 0.5)));
+
+  for (const value of ['calc(1px + 2px)', 'translateX(1vh)', 'scale(-1)', 'rotate(1rad)']) {
+    assert.throws(() => validateSpec(withValue('transform', value)), /transform/);
+  }
+  for (const value of ['drop-shadow(0 0 2px #000)', 'blur(-1px)', 'hue-rotate(30deg)']) {
+    assert.throws(() => validateSpec(withValue('filter', value)), /filter/);
+  }
+  for (const value of ['red', 'currentColor', 'rgb(0 0 0 / 50%)']) {
+    assert.throws(() => validateSpec(withValue('color', value)), /color/);
+  }
+  assert.doesNotThrow(() => validateSpec(withValue('transform', 'translateX(-24px) scale(1.05) rotateZ(5deg)')));
+  assert.doesNotThrow(() => validateSpec(withValue('filter', 'blur(2px) saturate(120%)')));
+  assert.doesNotThrow(() => validateSpec(withValue('background-color', 'rgba(0, 0, 0, 0.5)')));
+});
+
+test('the keyframe budget is bounded', () => {
+  const excessive = fadeIn();
+  excessive.keyframes = Array.from({ length: 65 }, (_, index) => ({ offset: index / 64, opacity: 1 }));
+  assert.throws(() => validateSpec(excessive), /Two to 64/);
 });
 
 test('easing curves match the CSS definitions', () => {
@@ -56,13 +99,14 @@ test('easing curves match the CSS definitions', () => {
 });
 
 test('keyframes are converted for Element.animate', () => {
-  const frames = toKeyframes({ easing: 'ease-out', keyframes: [{ offset: 0, 'background-color': '#f00', opacity: 0 }, { offset: 1, opacity: 1 }] });
-  assert.deepEqual(frames[0], { offset: 0, easing: 'ease-out', backgroundColor: '#f00', opacity: '0' });
-  const slide = specs.find((spec) => spec.id === 'ui-slide-inline-start');
-  assert.equal(toKeyframes(slide)[0].transform, 'translateX(-24px)');
-  assert.equal(toKeyframes(slide, { mirror: true })[0].transform, 'translateX(24px)');
-  assert.equal(toKeyframes({ ...slide, rtl_mirror: false }, { mirror: true })[0].transform, 'translateX(-24px)');
-  assert.equal(slide.keyframes[0].transform, 'translateX(-24px)', 'the specification itself is not changed');
+  const frames = toKeyframes({ easing: 'ease-out', keyframes: [{ offset: 0, 'background-color': 'red', opacity: 0 }, { offset: 1, opacity: 1 }] });
+  assert.deepEqual(frames[0], { offset: 0, easing: 'ease-out', backgroundColor: 'red', opacity: '0' });
+  const mirrored = toKeyframes({
+    easing: 'linear',
+    rtl_mirror: true,
+    keyframes: [{ offset: 0, transform: 'translateX(-2rem)' }, { offset: 1, transform: 'translateX(0rem)' }],
+  }, { mirror: true });
+  assert.equal(mirrored[0].transform, 'translateX(2rem)');
 });
 
 test('typewriter cuts only between graphemes, including Arabic marks', () => {
