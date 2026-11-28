@@ -196,6 +196,81 @@ class Wal(_Base):
                 self.assertFalse((self.base / "staging").exists())
 
 
+def committed_wal(path):
+    """A WAL database at ``path`` (the clean fixture) with one commit frame of page 1 left in its ``-wal``; its bytes."""
+    shutil.copyfile(DB, path)
+    conn = sqlite3.connect(path, isolation_level=None)
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA wal_autocheckpoint = 0")
+        conn.execute("PRAGMA user_version = 9")  # commits page 1 as the last frame of the -wal
+        raw = pathlib.Path(f"{path}-wal").read_bytes()
+    finally:
+        conn.close()  # checkpoints and removes the -wal and -shm; the frames are put back below
+    pathlib.Path(f"{path}-wal").write_bytes(raw)
+    return raw
+
+
+def wal_declaring(path, pages):
+    """``committed_wal`` whose commit frame (page 1) declares ``pages`` pages, every checksum valid.
+
+    Re-check 2 (low): one such frame made the backup write ``pages`` zero pages (a 37 KB target wrote 102 MB at
+    25,000 pages and 1.02 GB at 250,000) before integrity_check refused the copy.
+    """
+    raw = committed_wal(path)
+    page_size = struct.unpack(">I", raw[8:12])[0]
+    words = ">" if struct.unpack(">I", raw[:4])[0] & 1 else "<"
+
+    def checksum(data, first, second):
+        for offset in range(0, len(data), 8):
+            low, high = struct.unpack(words + "2I", data[offset:offset + 8])
+            first = (first + low + second) & 0xFFFFFFFF
+            second = (second + high + first) & 0xFFFFFFFF
+        return first, second
+
+    frames = [[*struct.unpack(">2I", raw[at:at + 8]), bytearray(raw[at + 24:at + 24 + page_size])]
+              for at in range(32, len(raw) - 24 - page_size + 1, 24 + page_size)]
+    assert frames[-1][0] == 1 and frames[-1][1], "the last frame commits page 1"
+    frames[-1][1] = pages
+    frames[-1][2][28:32] = struct.pack(">I", pages)  # the in-header database size
+    frames[-1][2][92:96] = frames[-1][2][24:28]  # version-valid-for = change counter, so SQLite trusts that size
+    first, second = checksum(raw[:24], 0, 0)
+    out = bytearray(raw[:24] + struct.pack(">2I", first, second))
+    for number, ntruncate, data in frames:
+        head = struct.pack(">2I", number, ntruncate)
+        first, second = checksum(bytes(data), *checksum(head, first, second))
+        out += head + raw[16:24] + struct.pack(">2I", first, second) + data
+    pathlib.Path(f"{path}-wal").write_bytes(bytes(out))
+    return path
+
+
+class DeclaredSize(_Base):
+    def test_a_commit_frame_declaring_more_pages_than_the_files_hold_is_refused_before_writing(self):
+        held = DB.stat().st_size + len(committed_wal(self.base / "measure.db"))  # the file and the -wal of every case below
+        for pages in (25_000, held // 4096 + 2):  # the reviewer's size, and the first size past one spare page
+            with self.subTest(pages=pages):  # (small on purpose: a regression writes these pages, it must not fill a disk)
+                directory = self.base / f"bomb-{pages}"
+                directory.mkdir()
+                source = wal_declaring(directory / "app.db", pages)
+                self.assertEqual(source.stat().st_size + pathlib.Path(f"{source}-wal").stat().st_size, held)
+                self.assertIsNone(engine._wal_refusal(f"{source}-wal"))  # the header and every checksum verify
+                before = digest(directory)
+                with self.assertRaises(UpgradeError) as caught:
+                    engine.snapshot_database(source, self.base / "copy.db", self.base / "staging")
+                self.assertIn(f"it declares {pages} pages of 4096 bytes, more than its file and -wal hold", str(caught.exception))
+                self.assertFalse((self.base / "copy.db").exists())
+                self.assertFalse((self.base / "staging").exists())
+                self.assertEqual(digest(directory), before)
+
+    def test_the_same_database_with_its_true_size_still_snapshots(self):
+        directory = self.base / "honest"
+        directory.mkdir()
+        source = directory / "app.db"
+        committed_wal(source)
+        info = engine.snapshot_database(source, self.base / "copy.db", self.base / "staging")
+        self.assertEqual((info["rows"], info["integrity"], info["journal_mode"]), ({"tasks": 300}, "ok", "wal"))
+
+
 class FullUpgrade(_Base):
     def target(self, journal):
         target = self.base / "target"
@@ -216,6 +291,19 @@ class FullUpgrade(_Base):
         self.assertIn("tasks.db: its -journal ends in a super-journal record", str(caught.exception))
         self.assertTrue(self.victim.is_file())
         self.assertEqual(self.victim.read_text(), "an operator file outside the target\n")
+        self.assertEqual(digest(target), before)
+
+    def test_a_wal_declaring_25000_pages_stops_the_upgrade_before_its_copy_is_written(self):
+        target = self.base / "target"
+        shutil.copytree(TASKAPP, target)
+        wal_declaring(self.base / "bomb.db", 25_000)
+        for suffix in ("", "-wal"):
+            shutil.copyfile(f"{self.base / 'bomb.db'}{suffix}", target / "data" / f"tasks.db{suffix}")
+        (self.base / "home").mkdir(mode=0o700)
+        before = digest(target)
+        with self.assertRaises(UpgradeError) as caught:
+            self.run_upgrade(target)
+        self.assertIn("tasks.db: it declares 25000 pages", str(caught.exception))
         self.assertEqual(digest(target), before)
 
     def test_a_rollback_journal_database_with_an_inert_journal_still_upgrades_with_every_row(self):

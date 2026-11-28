@@ -743,7 +743,9 @@ def snapshot_database(path, dest, staging):
     with a ``-wal`` SQLite opens the copy there and applies the committed frames, otherwise the
     copy is opened ``immutable=1`` (no journal or WAL is consulted). ``dest`` keeps the source's
     journal mode and has no companion file. Raises UpgradeError, before SQLite opens anything,
-    for a refused companion, and afterwards unless ``dest`` passes ``PRAGMA integrity_check``
+    for a refused companion; before the copy is written when the database declares more pages
+    than its file and ``-wal`` hold (``page_count * page_size`` above their size plus one page:
+    one valid commit frame can declare billions of pages, written as zeros); and afterwards unless ``dest`` passes ``PRAGMA integrity_check``
     and every table has the source's row count (both read through the same API). Returns
     ``{journal_mode, companions, rows, integrity, method}``.
     """
@@ -763,9 +765,14 @@ def snapshot_database(path, dest, staging):
             shutil.copyfile(f"{path}-wal", f"{source}-wal")
             refusal = _wal_refusal(f"{source}-wal")  # the bytes SQLite would read
             _need(refusal is None, f"Database {path.name}: {refusal}. Refused before SQLite opened it")
+        on_disk = source.stat().st_size + (pathlib.Path(f"{source}-wal").stat().st_size if wal else 0)
         try:
             src = sqlite3.connect(source) if wal else _open_ro(source)
             try:
+                pages, page_size = (src.execute(f"PRAGMA {name}").fetchone()[0] for name in ("page_count", "page_size"))
+                _need(pages * page_size <= on_disk + page_size,  # a WAL commit frame can declare any size; unwritten pages read as zeros
+                      f"Database {path.name}: it declares {pages} pages of {page_size} bytes, more than its file and -wal hold "
+                      f"({on_disk} bytes); refused before the copy was written")
                 dst = sqlite3.connect(dest)
                 try:
                     src.backup(dst)
