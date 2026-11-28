@@ -641,7 +641,12 @@ class EngineContractTests(unittest.TestCase):
             engine.engine("plan-app", {"spec": {"schema": "gaie.spec/1"}}, {})
         existing = {action for row in json.loads((ROOT / "governance/engines.json").read_text())
                     if row["id"] == "master-build" for action in row["actions"]}
-        self.assertFalse(existing & set(engine.ENGINE_RECORD["actions"]), "no clash with the adapter's actions")
+        from engineering_os import adapters
+        # The control plane reaches the generators by delegation: exactly the delegated build actions overlap,
+        # the adapter's own planning actions keep distinct names, and publish (external-write) is never registered.
+        self.assertEqual(existing & set(engine.ENGINE_RECORD["actions"]), set(adapters.BUILD_ACTIONS),
+                         "only the delegated build actions overlap the adapter's")
+        self.assertNotIn("publish", existing, "publish is never registered")
 
     def test_template_manifest_matches_the_template_directory(self):
         manifest, files = engine._template_files()

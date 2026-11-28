@@ -9,10 +9,10 @@
  "produced_by": "python3 tests/test_gaie_install_scenario_i.py record",
  "checked_by": "python3 -m unittest tests.test_gaie_install_scenario_i",
  "recorded_on": "2026-11-28",
- "hub_revision": "5189d2ad58a7c57676ab13321e44706f42d14f71",
+ "hub_revision": "daac56f8962770d733f901c32de2fe4a34e3e2ab",
  "hub_worktree_clean": false,
  "sources": {
-  "digest": "dd4625a86b492da0f0ecbf0e2d66d8488a6617513bc6a42fc32614e4f909ec95",
+  "digest": "9b0b41819e6965b9d0fd3e07141f720d2be983494d75244757e4a8707ab5e2d6",
   "files": {
    ".claude-plugin/marketplace.json": "81f55caa3712bacbd824a557f1d357cbb23ce3bb853c358705194d6e8d3a6c73",
    ".claude-plugin/plugin.json": "542273ea9a0d0695c6fe685d5c47ea9919ec930e7aa30953af118ae1adf41afa",
@@ -23,11 +23,11 @@
    "engineering_os/gaie_inventory.py": "2081ddf7804a0766918a8c6b426d19b0529e5ecee8a7234cc54297a3b2a08225",
    "engineering_os/gaie_memory.py": "288640e3636b5ae12f2f3c072e29f1d3c5ec01f6e23edfa0556d9c82c68c0651",
    "engineering_os/gaie_router.py": "cd8859945ad4dd7ecef212556e7e747e88e7d7f43f0263077b8986e45b305b56",
-   "engineering_os/memory.py": "924fe7ab3b141f38a39503f9abf13ee4537b2720a2a39d82efb2bb83a02e9526",
-   "engineering_os/orchestration.py": "e1378e3aaaaf8b249522f945daab451acf42b14f2af03205df9bf5ec124587c1",
+   "engineering_os/memory.py": "b16a141181724a99a53b05e02951399d2ee70333817ccff50f35eaef7d901b21",
+   "engineering_os/orchestration.py": "deaa04d226913f35b413caffc727b0a5ab33c8bdb259de582d6bac3ec53388b3",
    "engineering_os/project_registry.py": "a3e4a2f02e327bbb4a672ef583d2654725ce40124f17d0688d39a239b8651537",
    "engineering_os/workspace_policy.py": "a0de796b17459d38287acdf349fdc90cafab20386f41501e94fe54a666589eca",
-   "governance/agent-roles.json": "6af3c9d8f218898b2d8f3530333db7bdd9acb01a8c0ebdb0dfc88505f121147a",
+   "governance/agent-roles.json": "4c5a58bc3662d65973e9ff845d16a65c60c576186bd8e97760be36f0b28cb3e9",
    "governance/policies/agent-team.json": "8f95edc7df1c80899d28ec40d106486634386780a7d19507f2749c747d038794",
    "governance/policies/gaie-routes.json": "58f443a61e6996e5dc7c0ce4c8f2e20875942b180080142a1b3cc19849f7def6",
    "hub.py": "47ad183f53e9636198bebc761de48246057937fe06b6ba11fe5625040d2d3a7d",
@@ -1294,8 +1294,8 @@
    "stderr": null
   },
   "cli.cache": {
-   "files": 894,
-   "bytes": 18572080,
+   "files": 916,
+   "bytes": 19010904,
    "has_pycache": true
   },
   "cli.home": [
