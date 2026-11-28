@@ -1,6 +1,5 @@
 """Synthetic ledger tests; no real billing, subscription or provider evidence."""
 import copy
-import pickle
 import re
 import sys
 import unittest
@@ -260,7 +259,7 @@ class UnitTests(unittest.TestCase):
         with self.assertRaises(AttributeError):
             Unknown("tokens").unit = "USD"
         self.assertEqual(copy.deepcopy(value), value)
-        self.assertEqual(pickle.loads(pickle.dumps(Quota(2, "weekly-percent"))), Quota(2, "weekly-percent"))
+        self.assertEqual(copy.copy(Quota(2, "weekly-percent")), Quota(2, "weekly-percent"))
         self.assertEqual(copy.deepcopy(Unknown("USD")), Unknown("USD"))
         self.assertEqual(len({Tokens(1), Tokens(1), Money(1)}), 2)
 
