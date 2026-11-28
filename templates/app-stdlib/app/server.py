@@ -349,7 +349,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if set(body) - {"email", "password"}:
             raise ApiError(400, "validation_failed", "only email and password are accepted")
         with db.session(self.app.db_path) as connection:
-            token, account = self.app.sessions.login(connection, body.get("email"), body.get("password"))
+            token, account = self.app.sessions.login(connection, body.get("email"), body.get("password"),
+                                                     source=self.client_address[0])
         max_age = int(self.app.sessions.hours * 3600)
         self._json(200, {"account": {"email": account["email"], "role": account["role"]},
                          "csrf_token": account["csrf_token"]}, (self._cookie(token, max_age),))

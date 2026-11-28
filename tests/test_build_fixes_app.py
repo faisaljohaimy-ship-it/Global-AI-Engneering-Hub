@@ -240,6 +240,49 @@ class PrincipalBindingTests(GeneratedApp):
         self.assertEqual(result["after_admin"], [200, []])
 
 
+class SignInHardeningTests(GeneratedApp):
+    """W2-BU-07: equal PBKDF2 work for unknown e-mails; the failure backoff is per (e-mail, client address)."""
+
+    def test_unknown_email_costs_the_same_work_and_nobody_locks_an_account_from_elsewhere(self):
+        result = self.scenario("""
+            import http.client
+            iterations = SCHEMA.auth["pbkdf2_iterations"]
+            email, password = server.account(ADMIN)
+            with db.session(server.db_path) as connection:
+                auth.create_account(connection, SCHEMA, "real@example.invalid", ADMIN, password)
+            calls, original = [], auth.hash_password
+            auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or original(*args, **kwargs)
+            for who in ("real@example.invalid", "nobody@example.invalid"):
+                del calls[:]
+                code = status("POST", "/api/login", {"email": who, "password": "wrong-password-123"}, role=None)
+                result[who] = [code, list(calls)]
+            auth.hash_password = original
+            result["iterations"] = iterations
+
+            def login_from(address, secret):
+                connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=15,
+                                                        source_address=(address, 0))
+                try:
+                    body = json.dumps({"email": email, "password": secret}).encode()
+                    connection.request("POST", "/api/login", body=body, headers={"Content-Type": "application/json"})
+                    response = connection.getresponse()
+                    response.read()
+                    return response.status
+                finally:
+                    connection.close()
+
+            result["attacker"] = [login_from("127.0.0.2", "wrong-" + password) for _ in range(auth.LOCKOUT_FAILURES)]
+            result["attacker_then_right_password"] = login_from("127.0.0.2", password)
+            result["owner_from_own_address"] = login_from("127.0.0.1", password)
+        """)
+        work = [result["iterations"]]
+        self.assertEqual(result["real@example.invalid"], [401, work])
+        self.assertEqual(result["nobody@example.invalid"], [401, work], "the unknown e-mail did the same PBKDF2 work")
+        self.assertEqual(result["attacker"], [401] * 5)
+        self.assertEqual(result["attacker_then_right_password"], 429)
+        self.assertEqual(result["owner_from_own_address"], 200, "failures from another address do not lock the owner")
+
+
 FALSE_CRITERIA = [  # each states the opposite of what the generated server does
     "GET /api/projects/{id}/tasks without a session returns 200 and only that project's tasks",
     "POST /api/logout without a session returns 204",
