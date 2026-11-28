@@ -10,6 +10,7 @@ regenerated whenever lanes are joined; it goes stale in between, and --check say
 """
 import ast
 import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -62,6 +63,115 @@ def _third(path: Path) -> str:
     return _sentence(body) or "(no section)"
 
 
+EVIDENCE = "swarm/phase3/evidence/stages.json"
+NO_RUN = "The gated run has not been recorded on this branch."
+
+
+def _stages(root: Path):
+    try:
+        data = json.loads((Path(root) / EVIDENCE).read_text())
+        return data if isinstance(data.get("stages"), list) else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def _ended(data: dict, root: Path) -> str:
+    for key in ("ended", "end", "ended_because"):
+        if data.get(key):
+            v = data[key]
+            return "; ".join(v) if isinstance(v, list) else str(v)
+    try:
+        sys.path[:0] = [str(Path(root) / "swarm/phase3"), str(Path(root) / "swarm/phase2"), str(Path(root) / "swarm")]
+        import stage3
+        stops = stage3.decide(data["stages"], None)[0]
+        return "; ".join(stops) if stops else "no stop rule fired in the recorded stages"
+    except Exception:  # the reason is derived only when the run's own code can be loaded
+        return "the file does not record why the run ended"
+
+
+def _gate_section(root: Path, data) -> list[str]:
+    out = ["## The security gate", ""]
+    if data is None:
+        return out + [NO_RUN, ""]
+    gates = [(s["label"], s["security_gate"]) for s in data["stages"] if s.get("security_gate")]
+    if not gates:
+        return out + [NO_RUN, ""]
+    for label, gate in gates:
+        out.append(f"Gate stage `{label}`: " + ("passed." if gate.get("passed") else "did not pass."))
+        for why in gate.get("why") or []:
+            out.append(f"- Reason: {why}")
+        out += ["", "| probe | agent type | must be | agents | held |", "|---|---|---|---|---|"]
+        out += [f"| {r.get('what')} | {r.get('agent_type')} | {r.get('must_be')} | {r.get('agents')} | "
+                f"{'yes' if r.get('held') else 'no'} |" for r in gate.get("probes", [])]
+        out.append("")
+    return out
+
+
+def _run_section(root: Path, data) -> list[str]:
+    out = ["## The run", ""]
+    if data is None:
+        return out + [NO_RUN, ""]
+    ran = [s for s in data["stages"] if not s.get("skipped")]
+    skipped = [s for s in data["stages"] if s.get("skipped")]
+    agents = sum(s.get("actual_agents") or 0 for s in ran)
+    verified = sum(s.get("verified_tasks") or 0 for s in ran)
+    tasks = sum(s.get("tasks") or 0 for s in ran)
+    out += [f"- Stages run: {len(ran)}" + (" (" + ", ".join(s["label"] for s in ran) + ")" if ran else "") + ".",
+            f"- Stages skipped: {len(skipped)}" + (" (" + "; ".join(f"{s['label']}: {s['skipped']}" for s in skipped) + ")" if skipped else "") + ".",
+            f"- Real agents started: {agents}.",
+            f"- Tasks verified: {verified} of {tasks}.",
+            f"- Why the run ended: {_ended(data, root)}.", ""]
+    return out
+
+
+def _reviews_section(root: Path) -> list[str]:
+    out = ["## The reviews", ""]
+    files = sorted(p for p in (Path(root) / "swarm/phase3/reviews").glob("*") if p.is_file()) \
+        if (Path(root) / "swarm/phase3/reviews").is_dir() else []
+    if not files:
+        return out + ["No review file is present under `swarm/phase3/reviews/`.", ""]
+    for p in files:
+        try:
+            head = next((ln.lstrip("#").strip() for ln in p.read_text().splitlines() if ln.startswith("#")), "(no heading)")
+        except (OSError, UnicodeDecodeError):
+            head = "(not readable)"
+        out.append(f"- `swarm/phase3/reviews/{p.name}`: {head}")
+    return out + [""]
+
+
+def _freeze_section(root: Path) -> list[str]:
+    out = ["## The freeze", ""]
+    p = Path(root) / "swarm/phase3/FREEZE.json"
+    if not p.is_file():
+        return out + ["`swarm/phase3/FREEZE.json` does not exist: nothing is frozen.", ""]
+    try:
+        d = json.loads(p.read_text())
+        files = d.get("files", d) if isinstance(d, dict) else d
+        n = len(files)
+    except (OSError, ValueError):
+        return out + ["`swarm/phase3/FREEZE.json` exists but cannot be read.", ""]
+    return out + [f"`swarm/phase3/FREEZE.json` exists and holds {n} files.", ""]
+
+
+def _decisions(root: Path) -> list[str]:
+    try:
+        hooks = json.loads((Path(root) / ".claude/settings.json").read_text())["hooks"]["PreToolUse"]
+        cmds = [h["command"] for g in hooks for h in g["hooks"]]
+        cmd = cmds[0]
+        fallback = "exit 0" in cmd and "command -v" in cmd
+        gate = ("`.claude/settings.json` sets a PreToolUse gate (matcher `" + hooks[0].get("matcher", "") + "`) for every session "
+                "started in this repository. Its command is `" + cmd + "`. " +
+                ("When the gate program is not installed that command exits 0, so every call is allowed: the session runs ungated. "
+                 "Install the gate before any worker starts." if fallback else "Read the command to see what it does without the program."))
+    except (OSError, ValueError, KeyError, IndexError, TypeError):
+        gate = "`.claude/settings.json` could not be read as a gate setting; check it before any session starts."
+    return ["## What the reviewer must decide", "",
+            "1. The order in which the three branches stack: `claude/swarm-100x100`, then `claude/swarm-phase-2`, then `claude/swarm-phase-3`.",
+            "2. The author never merges. The merge and the release belong to the reviewer.",
+            "3. " + gate,
+            "4. The worker definitions under `.claude/agents/` are for the experiment only, not for general use of the repository.", ""]
+
+
 def write(root: Path) -> str:
     root = Path(root)
     one = _doc(root / "swarm/ladder.py")
@@ -98,9 +208,14 @@ def write(root: Path) -> str:
         "## What has not been done from the other engine", "",
         "Nothing in these phases was run from Codex. No stage, test run or task-store call "
         "listed here has been performed by Codex, and Codex availability has not been tested.", "",
+        "@@SECTIONS@@",
         "## Receipts", "",
         "| path | sha256 | lines |", "|---|---|---|",
     ]
+    i = out.index("@@SECTIONS@@")
+    data = _stages(root)
+    out[i:i + 1] = (_gate_section(root, data) + _run_section(root, data) + _reviews_section(root)
+                    + _freeze_section(root) + _decisions(root))
     out += [f"| {r['path']} | {r['sha256']} | {r['lines']} |" for r in receipts(root)]
     return "\n".join(out) + "\n"
 

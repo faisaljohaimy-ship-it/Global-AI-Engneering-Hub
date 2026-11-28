@@ -1,3 +1,4 @@
+import hashlib
 import re
 import subprocess
 import sys
@@ -51,6 +52,48 @@ class Handover(unittest.TestCase):
             self.assertIn("Ladder runs.", text)
             self.assertIn("The third phase scales.", text)
             self.assertIn("Nothing in these phases was run from Codex", text)
+
+    def test_gate_section_from_fixture(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            tree(root)
+            ev = root / "swarm/phase3/evidence"
+            ev.mkdir(parents=True)
+            (ev / "stages.json").write_text((HERE / "tests/fixtures/p3-stand-in-stages.json").read_text())
+            text = handover.write(root)
+            self.assertIn("read a file with a file tool", text)
+            self.assertIn("passed.", text)
+            self.assertIn("Real agents started: 7.", text)
+            self.assertNotIn(handover.NO_RUN, text)
+
+    def test_no_evidence_sentence(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            tree(root)
+            self.assertIn("The gated run has not been recorded on this branch.", handover.write(root))
+
+    def test_reviews_freeze_decisions(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            tree(root)
+            (root / "swarm/phase3/reviews").mkdir()
+            (root / "swarm/phase3/reviews/a.md").write_text("intro\n# Attack review\n")
+            (root / "swarm/phase3/FREEZE.json").write_text('{"files": {"a": "1", "b": "2"}}')
+            text = handover.write(root)
+            self.assertIn("a.md`: Attack review", text)
+            self.assertIn("holds 2 files", text)
+            self.assertIn("claude/swarm-phase-3", text)
+            self.assertIn("could not be read", text)
+
+    def test_receipts_match_and_write_twice(self):
+        for root in (HERE,):
+            for r in handover.receipts(root):
+                self.assertEqual(hashlib.sha256((root / r["path"]).read_bytes()).hexdigest(), r["sha256"])
+            self.assertEqual(handover.write(root), handover.write(root))
+
+    def test_real_settings_described(self):
+        text = handover.write(HERE)
+        self.assertIn("exits 0", text)
 
     def test_check_fails_when_stale(self):
         page = HERE / handover.PAGE
