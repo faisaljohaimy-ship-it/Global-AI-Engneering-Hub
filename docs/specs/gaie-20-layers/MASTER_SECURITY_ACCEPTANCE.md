@@ -22,6 +22,48 @@ A trusted operator separately approves and dispatches a scoped write.
   selected agents and revalidates each one at launch. The strict governor gives
   the child one writable mount with protected Git metadata and no network or
   ambient credentials. If the boundary is unavailable, the command is refused.
+- The workspace preflight runs Git offline and without the checkout's programs:
+  fsmonitor, hooks and the untracked cache are off; every transport is refused
+  (`protocol.allow=never` plus an empty `GIT_ALLOW_PROTOCOL`, which also
+  overrides a checkout's `protocol.<name>.allow`); lazy fetching is off where
+  Git honours `GIT_NO_LAZY_FETCH` (Git 2.43.0-1ubuntu7.4 on the measured host
+  does; it has no `--no-lazy-fetch` option). The origin is verified before any
+  object lookup. A checkout config with includes, URL rewrites, filters,
+  `core.hooksPath`, `core.sshCommand`, `core.gitProxy`, any `protocol.*` key, a
+  promisor remote (`remote.<x>.promisor` or `.partialCloneFilter`), a remote
+  program (`.uploadpack`, `.receivepack`, `.vcs`) or a repository extension
+  other than `worktreeConfig` and `objectFormat` is refused
+  (`tests/test_isolation_fixes_git.py`).
+- Only an existing `.git` pointer is overlaid read-only, so after every run the
+  supervisor re-inspects the writable root. A new `.git` (any letter case), a
+  directory holding `HEAD` next to `objects`, `refs` or `commondir`, a link or a
+  special file makes the run fail (`hub.py workspace-run` prints
+  `"status": "failed"` with the child's result and exits 1). Nothing is removed;
+  the operator inspects the tree before running Git there, and the next launch
+  of that agent is refused. The build engine's Git helper runs without hooks,
+  fsmonitor, untracked cache, lazy fetch or any transport except a push's own
+  https or local destination, and refuses a repository whose config names a
+  program, filter, include, URL rewrite, promisor, credential helper or HTTP
+  setting (`tests/test_isolation_fixes_planted_git.py`).
+- Strict mode hides `/etc` and everything outside the system directories, so
+  the governor resolves the requested program on the host and executes its
+  real file (argv[0] unchanged); an `/etc/alternatives` link therefore cannot
+  dangle. The install prefix of that program and of the sandbox's own
+  interpreter are mounted read-only in both tiers; the sandbox's pid 1 imports
+  C modules such as `resource` from it after `pivot_root`, which failed on
+  GitHub runners whose Python lives in `/opt/hostedtoolcache`. A prefix is
+  never `/`, a whole top-level directory such as `/opt`, a system directory, or
+  a directory holding `/tmp` or the home directory, and it must not overlap the
+  writable workspace. A strict program that cannot be resolved is refused
+  (`program-not-visible`) instead of exiting 127
+  (`tests/test_isolation_fixes_governor.py`).
+- The strict seccomp filter also refuses `unshare` and `clone` with
+  `CLONE_NEWUSER`, and answers `clone3` with `ENOSYS` so the C library falls
+  back to `clone`. Measured before: a strict child created a nested user
+  namespace with a full capability set inside it (the mount walls held). After:
+  `EPERM`, `CapEff` 0, `unshare -U` fails, while fork, exec and threads work.
+  Other kernel interfaces (keyctl, bpf, perf_event_open, userfaultfd) are not
+  filtered, and legacy calls install no filter; `isolation_report()` states both.
 - A Claude Code audit forks into the verifier's Read/Grep/Glob-only tool scope.
   Native host settings and hooks determine path and tool enforcement. Treat a
   validated plugin as artifact evidence and use the governed static audit when
@@ -42,6 +84,14 @@ python3 hub.py workspace-run --assignments /private/assignments.json \
   --agent build-fixture --timeout 20 -- python3 -c 'print("workspace ready")'
 ```
 
+Each call validates the selected agent in full: identity, Git metadata, links
+and, on a first launch, an empty build directory or a clean worktree. Add
+`--relaunch` once that agent's workspace holds its own work; every check except
+emptiness or cleanliness still applies. The other assignments are checked only
+for canonical, private roots that do not overlap the selected one, so one
+agent's writes never lock out its own relaunch or another agent
+(`tests/test_isolation_fixes_relaunch.py`).
+
 This starts a single local work unit. It never creates a remote repository or
 publishes a project. The control-plane `master-build` and `master-upgrade`
 engines remain plan and artifact-evaluation functions. The deterministic
@@ -49,8 +99,17 @@ engines remain plan and artifact-evaluation functions. The deterministic
 local entry points that a trusted operator calls directly. A route gives them
 no grant. The build engine writes only under the operator's build workspace.
 It reaches a remote and records the project in the private registry only
-through its approved `publish` step. The upgrade engine writes only under the
-caller's `workdir` and never changes the target. A command that names a
+through its approved `publish` step. The upgrade engine's own writes go only
+under the caller's `workdir` and never change the target; the target's tests
+that it runs execute in the governor's OS sandbox where the host has the full
+tier (the copy read-only, one writable directory per run, no host network,
+nothing of the host outside the system directories), and are refused where it
+does not, unless the caller explicitly opts into the recorded process-only
+mode, which is no boundary (SEC-07, sec-isolation lane). The build engine's
+`run_suites` still runs the generated application's own unit, API and browser
+suites as plain child processes with a reduced environment, outside the
+governor sandbox; the app's tests need a loopback server, which the strict
+profile denies (pr30-isolation F5, build part, open). A command that names a
 registered project runs only on that project's verified isolated worktree.
 Native autonomous execution requires a trusted dispatcher to authenticate the
 selected agent.

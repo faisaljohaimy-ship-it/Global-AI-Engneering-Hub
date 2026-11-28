@@ -1413,9 +1413,41 @@ def _git_env(moment=None):
 
 
 def _git(cwd, *args, moment=None, env=None, check=True):
-    command = ["git", "-c", "core.hooksPath=" + os.devnull, "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false",
-               "-c", "core.autocrlf=false", "-c", "init.defaultBranch=main", "-C", str(cwd), *args]
-    result = subprocess.run(command, capture_output=True, text=True, env=env or _git_env(moment), timeout=120)
+    """Git in an engine-owned repository, without that repository's own programs.
+
+    Hooks, fsmonitor and the untracked cache are off and lazy fetching is disabled. No transport is
+    allowed except, for a push, the one of its explicit https:// or local destination
+    (GIT_ALLOW_PROTOCOL overrides any protocol.* setting). Before any command but init, a repository
+    whose config names a program, filter, include, URL rewrite, promisor, credential helper or HTTP
+    setting is refused: a sandboxed child may have planted it (pr30-isolation F2), and `status` or
+    `add` would run a clean filter on the host even with the flags above.
+    """
+    from .workspace_policy import DENIED_CONFIG
+    destination = next((arg for arg in args[1:] if not arg.startswith("-")), "") if args[:1] == ("push",) else ""
+    allowed = "https" if destination.startswith("https://") else "file" if destination.startswith("/") else ""
+    flags = ["git", "-c", "core.hooksPath=" + os.devnull, "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false",
+             "-c", "protocol.allow=never", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false",
+             "-c", "core.autocrlf=false", "-c", "init.defaultBranch=main", "-C", str(cwd)]
+    base = {**(env or _git_env(moment)), "GIT_NO_LAZY_FETCH": "1"}
+    if args[:1] != ("init",):
+        offline = {**base, "GIT_ALLOW_PROTOCOL": ""}
+        located = subprocess.run([*flags, "rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"],
+                                 capture_output=True, text=True, env=offline, timeout=120)
+        places = located.stdout.splitlines() if located.returncode == 0 else []
+        for config in ([pathlib.Path(places[1]) / "config", pathlib.Path(places[0]) / "config.worktree"]
+                       if len(places) == 2 else []):
+            if not os.path.lexists(config):
+                continue
+            listed = subprocess.run([*flags, "config", "--file", str(config), "--no-includes", "--name-only", "--null",
+                                     "--list"], capture_output=True, text=True, env=offline, timeout=120)
+            names = listed.stdout.split("\0") if listed.returncode == 0 else None
+            if names is None or any(DENIED_CONFIG.fullmatch(name) or re.fullmatch(r"(credential|http)\..*|core\.askpass",
+                                                                                 name, re.DOTALL) for name in names):
+                raise BuildError("git refused: the repository config names programs, filters, credentials or "
+                                 "transports that the engine never sets")
+    command = [*flags, *args]
+    result = subprocess.run(command, capture_output=True, text=True, env={**base, "GIT_ALLOW_PROTOCOL": allowed},
+                            timeout=120)
     if check and result.returncode:
         raise BuildError(f"git {args[0]} failed: {result.stderr.strip()[:300]}")
     return result
