@@ -201,6 +201,36 @@
     "icons-volumetric-illumination": "no stated purpose: light beams fall on a shield; a decorative lighting effect",
     "icons-morphing": "no stated purpose: a circle morphs into a star; a decorative icon effect"
    }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-light.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "eb2366fa74b7038638ab9ade615fd96d73190351",
+   "from_blob": "b6427069c3bdf3911f16cd72221c8340f929c87c",
+   "ids": [
+    "product-feature-spotlight",
+    "product-system-demonstration",
+    "product-timeline-transformation"
+   ],
+   "left_out": {
+    "lighting-bloom-reveal": "no stated purpose: halos and spokes spread from a glowing crystal; a lighting effect",
+    "lighting-atmospheric-scattering": "no stated purpose: a sun moves through haze over a landscape; a lighting effect",
+    "lighting-shadow-sweep": "no stated purpose: a point light moves and three blocks' shadows turn; a lighting effect",
+    "lighting-reflection-transition": "no stated purpose: mountains settle into their reflection on water; a lighting effect",
+    "lighting-light-painting": "no stated purpose: a light point traces a long ribbon; a lighting effect",
+    "lighting-emissive-activation": "no stated purpose: a signal lights material cells along a conductor; presented as a material lighting effect, with no digital service shown",
+    "lighting-exposure-transition": "no stated purpose: an exposure ramp brightens swatches and bars; a photographic effect",
+    "product-materialization": "no stated purpose: tiles converge into a device outline; a product presentation effect",
+    "product-executive-rotation": "no stated purpose: a box turns on a grid; a product presentation effect",
+    "product-component-reveal": "no stated purpose: a scan line lights rows of cells in a device outline; a presentation effect with no service shown",
+    "product-interface-flythrough": "no stated purpose: unlabelled interface planes pass the camera; a presentation effect",
+    "product-multi-screen-assembly": "no stated purpose: tilted screens slide into a row; a presentation effect",
+    "product-feature-explosion": "no stated purpose: linked panels fan out from a hub; a presentation effect with no service shown",
+    "product-brand-reveal": "no stated purpose: a mark is traced above the word STUDIO; a brand reveal",
+    "lighting-volumetric-beams": "withdrawn: the owner withdrew this id as decorative (policy withdrawn_ids)",
+    "lighting-studio-spotlight": "withdrawn: the owner withdrew this id as decorative (policy withdrawn_ids)",
+    "lighting-lens-flare": "withdrawn: the owner withdrew this id as decorative (policy withdrawn_ids)"
+   }
   }
  ],
  "not_ported": {
