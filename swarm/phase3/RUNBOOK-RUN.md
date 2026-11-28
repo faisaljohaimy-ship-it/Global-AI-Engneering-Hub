@@ -32,6 +32,11 @@ agents started and finished, 20 at a time.
 
 ## Steps
 
+0. Be on the branch, at the remote's tip. A fresh checkout may sit on a detached commit:
+
+       git fetch origin claude/swarm-phase-3
+       git checkout -B claude/swarm-phase-3 FETCH_HEAD
+
 1. `swarm-queue-1`, `swarm-queue`, `swarm-large`, `swarm-probe`, `swarm-probe-wide` and
    `swarm-probe-open` must be among the agent types you can start. If they are not, stop and say so in your last message.
 
@@ -64,6 +69,12 @@ agents started and finished, 20 at a time.
 
    c. When every agent of the stage has returned, whatever it answered:
       `python3 swarm/phase3/stage3.py finish`
+      The host may let an agent go on in the background although you asked for the
+      foreground. Then wait until the host tells you it has finished. In a stage with a
+      queue, `status` shows how many tasks are still `claimed`: agents are working on
+      those. Run `finish` when every agent has returned; if `status` still shows claimed
+      tasks two minutes after the last agent returned, run `finish` anyway and say so in
+      your report.
 
    d. Save the stage:
 
