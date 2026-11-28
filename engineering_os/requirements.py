@@ -699,18 +699,15 @@ def _variants(token):
 
 
 def _entries(knowledge, base):
-    """Lexicon phrases: (category, key, phrase tokens, rank, order)."""
+    """Phrase index by first token: lexicon rows {cat, key, phrase, rank, order} and control-word rows."""
     lexicon, packs = knowledge["lexicon"], knowledge["packs"]
     rows = []
 
     def add(category, key, words):
-        for lang in LOCALES:
-            for word in words.get(lang, []) if isinstance(words, dict) else words:
-                phrase = tuple(_words(word))
-                if phrase:
-                    rows.append({"cat": category, "key": key, "phrase": phrase, "rank": _RANK[category], "order": len(rows)})
-            if not isinstance(words, dict):
-                break
+        for word in [w for lang in LOCALES for w in words[lang]] if isinstance(words, dict) else words:
+            phrase = tuple(_words(word))
+            if phrase:
+                rows.append({"cat": category, "key": key, "phrase": phrase, "rank": _RANK[category], "order": len(rows)})
 
     if base is not None:
         for entity in base["entities"]:
@@ -736,12 +733,12 @@ def _entries(knowledge, base):
     index = {}
     for row in rows:
         index.setdefault(row["phrase"][0], []).append(row)
-    control = {}
+    control, order = {}, 0
     for name, words in lexicon["control"].items():
-        for lang in LOCALES:
-            for word in words[lang]:
-                phrase = tuple(_words(word))
-                control.setdefault(phrase[0], []).append({"cat": name, "phrase": phrase, "order": len(control)})
+        for word in (w for lang in LOCALES for w in words[lang]):
+            phrase = tuple(_words(word))
+            control.setdefault(phrase[0], []).append({"cat": name, "phrase": phrase, "order": order})
+            order += 1
     return index, control
 
 
@@ -860,6 +857,8 @@ _A = {
     "standalone": ("الكيان «{name}» مستقل بلا علاقة (بإجابة المالك).", "Entity '{name}' stands alone without a relation (owner answer)."),
     "primary-kept": ("الكيان الأساسي «{name}» لا يُستبعد من حزمة مجاله.", "The primary entity '{name}' of the pack cannot be excluded."),
     "ai-dropped": ("أُلغي جزء الذكاء الاصطناعي بإجابة المالك.", "The AI part was dropped by the owner's answer."),
+    "answer-moot": ("الإجابة {name} لم تعد لازمة بعد الإجابات الأخرى فلم تُطبَّق.",
+                    "Answer {name} became moot after the other answers and was not applied."),
     "feature-na": ("الميزة «{name}» تحتاج حقل تعداد ولا يوجد كيان مناسب.", "Feature '{name}' needs an enum field and no entity has one."),
 }
 
@@ -877,8 +876,8 @@ def _fill(template, values):
 
 
 class _Builder:
-    def __init__(self, text, language, knowledge, answers, base, base_sha):
-        self.text, self.language, self.knowledge = text, language, knowledge
+    def __init__(self, text, language, knowledge, answers, base, base_sha, strict=True):
+        self.text, self.language, self.knowledge, self.strict = text, language, knowledge, strict
         self.lexicon, self.packs = knowledge["lexicon"], knowledge["packs"]
         self.fields = _field_lexicon(knowledge)
         self.answers, self.used = dict(answers), set()
@@ -1214,7 +1213,8 @@ class _Builder:
 
     def instantiate(self, template, entity):
         enum = self.enum_of(entity)
-        required = next((f for f in entity["fields"] if f["required"]), entity["fields"][0])
+        required = next((f for f in entity["fields"] if f["required"] and "default" not in f),
+                        next((f for f in entity["fields"] if f["required"]), entity["fields"][0]))
         values = {"plural": entity["plural"], "label_en": _label(entity, "en"), "label_ar": _label(entity, "ar"),
                   "enum_field": enum["name"] if enum else "", "enum_field_ar": _label(enum, "ar") if enum else "",
                   "required_field": required["name"], "required_field_ar": _label(required, "ar")}
@@ -1486,8 +1486,10 @@ class _Builder:
             spec["nfr"] = {key: list(self.lexicon["defaults"]["nfr"][key]) for key in NFR_KEYS}
             spec["nfr"]["i18n"] = [f"{l} {'rtl' if l == 'ar' else 'ltr'}" for l in spec["locales"]] + spec["nfr"]["i18n"]
         unused = sorted(set(self.answers) - self.used)
-        if unused:
+        if unused and self.strict:
             raise SpecError([f"answer {qid!r} does not match an open question of this command" for qid in unused])
+        for qid in unused:  # refine(): an earlier answer made this question moot (e.g. intent=change)
+            self.note("answer-moot", qid, name=f"{qid}={self.answers.pop(qid)}")
         order = ["intent", "base", "domain", "product_type", "database", "field_entity", "remove_field", "feature_entity",
                  "relation", "ai_use_case", "ai_provider", "integration"]
         questions = sorted(self.questions.values(), key=lambda q: (order.index(q["id"].split(":")[0]), q["id"]))
@@ -1546,10 +1548,10 @@ def parse(command_or_brief, *, language=None, base=None, answers=None, domains_d
     return _parse(command_or_brief, language, base, answers, domains_dir, digest(base) if base is not None else None)
 
 
-def _parse(text, language, base, answers, domains_dir, base_sha):
+def _parse(text, language, base, answers, domains_dir, base_sha, strict=True):
     text = _input(text)
     knowledge = load_knowledge(domains_dir)
-    return _Builder(text, _language(text, language), knowledge, _answers(answers), base, base_sha).run()
+    return _Builder(text, _language(text, language), knowledge, _answers(answers), base, base_sha, strict).run()
 
 
 def refine(spec, answers, *, base=None, domains_dir=None):
@@ -1574,10 +1576,13 @@ def refine(spec, answers, *, base=None, domains_dir=None):
     if base is not None:
         if "base" not in open_ids:
             raise SpecError("base= given but the spec does not ask for one")
-        return parse(source["command"], language=source["language"], base=base, answers=merged, domains_dir=domains_dir)
+        validate_spec(base)
+        if base["open_questions"]:
+            raise SpecError("base specification still has open questions; refine it first")
+        return _parse(source["command"], source["language"], base, merged, domains_dir, digest(base), strict=False)
     if "base_sha256" in source:
-        return _parse(source["command"], source["language"], spec, merged, domains_dir, source["base_sha256"])
-    return _parse(source["command"], source["language"], None, merged, domains_dir, None)
+        return _parse(source["command"], source["language"], spec, merged, domains_dir, source["base_sha256"], strict=False)
+    return _parse(source["command"], source["language"], None, merged, domains_dir, None, strict=False)
 
 
 def _index(items, key):
