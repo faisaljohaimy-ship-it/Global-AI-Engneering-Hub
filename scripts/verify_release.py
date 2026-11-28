@@ -18,7 +18,11 @@ WORKFLOWS = {
 }
 # Workflows that run on a push to main without gating a release, each mapped to the reason.
 # tests/test_release_provenance.py requires every push-triggered workflow to be in WORKFLOWS or here.
-NOT_RELEASE_GATING = {}
+# Push-triggered workflows that do not gate a release, each with the reason.
+# isolation.yml moves to WORKFLOWS once its job has been observed green on a GitHub-hosted runner.
+NOT_RELEASE_GATING = {
+    '.github/workflows/isolation.yml': 'Full sandbox tier on the GitHub runner not yet observed; gates pull-request review, not release.',
+}
 # The only tag shape release.yml accepts; docs/specs/gaie-20-layers/RELEASE_CHECKLIST.md quotes it.
 TAG_PATTERN = r'engineering-os-v[0-9]+\.[0-9]+\.[0-9]+'
 
