@@ -9,9 +9,7 @@ next to the work bound; hitting one is reported as `unsafe-schema-sql`.
 
 import json
 import pathlib
-import resource
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -23,15 +21,43 @@ from engineering_os import detectors
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "upgrade" / "taskapp"
 HOSTILE = "CREATE TABLE big AS SELECT printf('%.*c', 200000000, 'x') AS a;\nCREATE TABLE blob AS SELECT zeroblob(200000000) AS b;\n"
-CHILD = """
-import json, pathlib, resource, sys
+# How a child measures the memory the target SQL itself costs, the same on any host. ru_maxrss cannot: Linux carries the
+# parent's peak resident size into the child across execve (a child of a full unittest run started at 297 MB on a
+# GitHub runner, so the old absolute budget failed there with the schema refused). VmHWM belongs to the child's own
+# address space; clear_refs "5" resets it to the current size, so VmHWM - VmRSS, read around the load, is the peak
+# growth during the load. Without /proc the ru_maxrss difference is used (a lower bound only).
+MEASURE = """
+import resource
+def _status(key):
+    try:
+        with open("/proc/self/status") as stream:
+            return next(int(line.split()[1]) for line in stream if line.startswith(key))
+    except (OSError, StopIteration, ValueError):
+        return None
+def memory_start():
+    try:
+        with open("/proc/self/clear_refs", "w") as stream:
+            stream.write("5")
+    except OSError:
+        pass
+    return _status("VmRSS:"), resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+def memory_growth_kib(start):
+    resident, maxrss = start
+    peak = _status("VmHWM:")
+    if resident is not None and peak is not None:
+        return peak - resident
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - maxrss
+"""
+CHILD = MEASURE + """
+import json, pathlib, sys
 sys.path.insert(0, sys.argv[2])
 from engineering_os import detectors
+start = memory_start()
 conn, problems = detectors.schema_memory(pathlib.Path(sys.argv[1]), ["hostile.sql"])
 conn.close()
-print(json.dumps({"problems": problems, "maxrss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}))
+print(json.dumps({"problems": problems, "growth_kib": memory_growth_kib(start)}))
 """
-BUDGET_KIB = 160 * 1024  # an interpreter with sqlite3 needs a few tens of MiB; the unbounded load reached 622 MB
+BUDGET_KIB = 64 * 1024  # growth of the child while the schema loads (refused near 1 MiB here); unbounded it grew 622 MB
 
 
 class SchemaMemory(unittest.TestCase):
@@ -55,7 +81,7 @@ class SchemaMemory(unittest.TestCase):
         result = json.loads(done.stdout)
         self.assertEqual([(p["path"], p["kind"], p["refused"]) for p in result["problems"]],
                          [("hostile.sql", "unsafe-schema-sql", ["size limit"])])
-        self.assertLess(result["maxrss_kib"], BUDGET_KIB)
+        self.assertLess(result["growth_kib"], BUDGET_KIB)
 
     def test_values_statements_and_pages_are_bounded(self):
         cases = {
@@ -128,37 +154,64 @@ HEAP_HOSTILE = {  # name: (schema, expected refusal)
                      + "".join(f"CREATE VIEW v{k} AS SELECT * FROM v{k - 1} UNION ALL SELECT * FROM v{k - 1};\n" for k in range(1, 17))
                      + "SELECT * FROM v16;", "memory limit"),
 }
-HEAP_CHILD = """
-import json, pathlib, resource, sys
+HEAP_CHILD = MEASURE + """
+import json, pathlib, sys
 sys.path.insert(0, sys.argv[2])
 cap = int(sys.argv[3]) << 20
 resource.setrlimit(resource.RLIMIT_AS, (cap, cap))
 from engineering_os import detectors
-before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 limit = resource.getrlimit(resource.RLIMIT_AS)
+start = memory_start()
 try:
     conn, problems = detectors.schema_memory(pathlib.Path(sys.argv[1]), ["schema.sql"])
     conn.close()
     result = [{"kind": p["kind"], "refused": p["refused"], "error": p["error"]} for p in problems]
 except MemoryError:
     result = "MemoryError: the child's address-space cap was reached"
-print(json.dumps({"problems": result, "growth_mib": (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - before) >> 10,
+print(json.dumps({"problems": result, "growth_mib": memory_growth_kib(start) >> 10,
                   "limit_restored": list(resource.getrlimit(resource.RLIMIT_AS)) == list(limit)}))
 """
-HEAP_AUDIT = """
-import json, pathlib, resource, sys
+HEAP_AUDIT = MEASURE + """
+import json, pathlib, sys
 sys.path.insert(0, sys.argv[2])
 cap = int(sys.argv[3]) << 20
 resource.setrlimit(resource.RLIMIT_AS, (cap, cap))
 from engineering_os.upgrade_engine import upgrade
 base = pathlib.Path(sys.argv[1])
-before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+start = memory_start()
 try:
     status = upgrade(base / "target", command="Audit the task management system", workdir=base / "wd", now=1800000000,
                      environ={"GAIE_HOME": str(base / "home")})["status"]
 except MemoryError:
     status = "MemoryError: the child's address-space cap was reached"
-print(json.dumps({"status": status, "growth_mib": (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - before) >> 10}))
+print(json.dumps({"status": status, "growth_mib": memory_growth_kib(start) >> 10}))
+"""
+# The address-space checks lower this process's RLIMIT_AS for a moment: they run in a child, never in the test runner,
+# so no other thread of a full test run can meet the lowered limit.
+HEAP_LIMITS = """
+import json, pathlib, resource, sqlite3, sys
+from unittest import mock
+sys.path.insert(0, sys.argv[2])
+from engineering_os import detectors
+base, out = pathlib.Path(sys.argv[1]), {}
+limit = resource.getrlimit(resource.RLIMIT_AS)
+with mock.patch.object(detectors, "SQL_ADDRESS_HEADROOM", 8 << 20):  # small enough to stop the 999 arguments
+    conn, problems = detectors.schema_memory(base, ["args.sql"])
+conn.close()
+out["refusal"] = [[p["kind"], p["refused"]] for p in problems]
+out["restored_after_refusal"] = resource.getrlimit(resource.RLIMIT_AS) == limit
+conn, problems = detectors.schema_memory(base, ["views.sql"])  # only CREATE VIEW: it loads
+out["views_problems"] = problems
+with mock.patch.object(detectors, "SQL_ADDRESS_HEADROOM", 32 << 20):
+    try:
+        conn.execute("EXPLAIN SELECT * FROM v16")
+        out["caller"] = "ran"
+    except sqlite3.Error as error:  # what detect_database and the query audit handle
+        out["caller"] = type(error).__name__
+out["restored_after_caller"] = resource.getrlimit(resource.RLIMIT_AS) == limit
+out["views"] = conn.execute("SELECT count(*) FROM sqlite_master WHERE type = 'view'").fetchone()[0]
+conn.close()
+print(json.dumps(out))
 """
 HEAP_BOUNDED = detectors._process_memory()[1] is not None  # the address-space bound needs the process size (/proc/self/statm)
 
@@ -196,30 +249,14 @@ class SchemaHeap(unittest.TestCase):
                 self.assertTrue(result["limit_restored"])
 
     @unittest.skipUnless(HEAP_BOUNDED, "the address-space bound needs /proc/self/statm")
-    def test_the_address_space_limit_is_restored_after_a_refusal(self):
+    def test_the_address_space_limit_is_restored_and_bounds_the_callers_statements(self):
         (self.base / "args.sql").write_text(HEAP_HOSTILE["function-arguments"][0], encoding="utf-8")
-        before = resource.getrlimit(resource.RLIMIT_AS)
-        with mock.patch.object(detectors, "SQL_ADDRESS_HEADROOM", 8 << 20):  # small enough to stop it in this process
-            conn, problems = detectors.schema_memory(self.base, ["args.sql"])
-        conn.close()
-        self.assertEqual([(p["kind"], p["refused"]) for p in problems], [("unsafe-schema-sql", ["memory limit"])])
-        self.assertEqual(resource.getrlimit(resource.RLIMIT_AS), before)
-
-    @unittest.skipUnless(HEAP_BOUNDED, "the address-space bound needs /proc/self/statm")
-    def test_a_callers_statement_on_the_connection_is_bounded_too(self):
         (self.base / "views.sql").write_text(HEAP_HOSTILE["nested-views"][0].rsplit("SELECT * FROM v16;", 1)[0], encoding="utf-8")
-        conn, problems = detectors.schema_memory(self.base, ["views.sql"])  # only CREATE VIEW: it loads
-        try:
-            self.assertEqual(problems, [])
-            before = resource.getrlimit(resource.RLIMIT_AS)
-            with mock.patch.object(detectors, "SQL_ADDRESS_HEADROOM", 32 << 20):
-                with self.assertRaises(sqlite3.Error) as caught:  # what detect_database and the query audit handle
-                    conn.execute("EXPLAIN SELECT * FROM v16")
-            self.assertIsInstance(caught.exception, detectors.SqlMemoryLimit)
-            self.assertEqual(resource.getrlimit(resource.RLIMIT_AS), before)
-            self.assertEqual(conn.execute("SELECT count(*) FROM sqlite_master WHERE type = 'view'").fetchone()[0], 17)
-        finally:
-            conn.close()
+        done = subprocess.run([sys.executable, "-I", "-c", HEAP_LIMITS, str(self.base), str(ROOT)], capture_output=True, text=True,
+                              timeout=120, check=True)
+        self.assertEqual(json.loads(done.stdout), {"refusal": [["unsafe-schema-sql", ["memory limit"]]], "restored_after_refusal": True,
+                                                   "views_problems": [], "caller": "SqlMemoryLimit", "restored_after_caller": True,
+                                                   "views": 17})
 
     def test_a_script_past_its_work_bound_is_stopped(self):
         (self.base / "work.sql").write_text(HEAP_ROWS.format(n=1_000_000) + "SELECT count(*) FROM c;", encoding="utf-8")
