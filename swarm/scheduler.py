@@ -26,7 +26,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from engineering_os.orchestration import TaskStore  # noqa: E402
+from engineering_os.orchestration import CoordinationError, TaskStore  # noqa: E402
 
 ORCHESTRATOR = {"id": "swarm-orchestrator", "engine": "claude-code", "role": "orchestrator"}
 CHECKER = {"id": "swarm-checker", "engine": "claude-code", "role": "testing"}
@@ -111,14 +111,14 @@ def own(state: Path, stage: str, task_ids: list[str]) -> list[dict]:
         store.create_task({"id": slug, "project": "swarm-experiment", "branch": f"claude/swarm-{slug}", "paths": [f"work/{stage}/{task_id}/solution.py"],
                            "title": f"Write solution.py for {task_id}", "priority": 2, "role": WORKER_ROLE, "engine": "claude-code"},
                           ORCHESTRATOR, store.snapshot()["revision"])
-        task = store.claim(slug, worker, 1, ttl=1800)
+        task = store.claim(slug, worker, 1, ttl=3600)  # the longest lease the store gives; a stage of 1,000 agents took longer than the 1,800 s it had
         leases.append({"task": slug, "owner": worker["id"], "lease": task["lease"]["id"], "version": task["version"]})
     return leases
 
 
 def submit(state: Path, stage: str, check: dict) -> dict:
     """Each worker hands in the checksum of its file; the checker records its verdict."""
-    store, counts = TaskStore(state), {"submitted": 0, "approved": 0, "rejected": 0, "failed": 0}
+    store, counts = TaskStore(state), {"submitted": 0, "approved": 0, "rejected": 0, "failed": 0, "lease_ran_out": 0}
     tasks = {t["id"]: t for t in store.tasks()}
     for row in check["rows"]:
         slug = f"{stage}-{row['id']}".lower()
@@ -126,11 +126,17 @@ def submit(state: Path, stage: str, check: dict) -> dict:
         if not task or task["status"] != "active":
             continue
         verdict = hashlib.sha256(json.dumps(row, sort_keys=True).encode()).hexdigest()
-        if not row["written"]:
-            store.fail(slug, task["owner"], task["version"], task["lease"]["id"], [{"kind": "checker-result", "sha256": verdict}])
-            counts["failed"] += 1
+        try:
+            if not row["written"]:
+                store.fail(slug, task["owner"], task["version"], task["lease"]["id"], [{"kind": "checker-result", "sha256": verdict}])
+                counts["failed"] += 1
+                continue
+            task = store.submit(slug, task["owner"], task["version"], task["lease"]["id"], [{"kind": "solution", "sha256": row["sha256"]}])
+        except CoordinationError:
+            # The task's lease ran out before the stage closed. The store refuses the hand-in, as it should. That is counted and the
+            # stage is still closed: the verdict on the work comes from the withheld tests, not from this book of who held what.
+            counts["lease_ran_out"] += 1
             continue
-        task = store.submit(slug, task["owner"], task["version"], task["lease"]["id"], [{"kind": "solution", "sha256": row["sha256"]}])
         counts["submitted"] += 1
         decision = "approved" if row["verified"] else "rejected"
         store.review(slug, CHECKER, task["version"], decision, [{"kind": "hidden-tests", "sha256": verdict}])

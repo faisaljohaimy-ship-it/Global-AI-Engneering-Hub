@@ -229,6 +229,39 @@ class LedgerTests(unittest.TestCase):
             self.assertEqual(ledger.build([path])["by_tool"], {"Bash": 1})
 
 
+class LeaseTests(unittest.TestCase):
+    def test_a_stage_that_outlasts_its_leases_is_still_closed_and_says_how_many_ran_out(self):
+        """The stage of 1,000 agents took about 36 minutes; its tasks' leases in the hub's store lasted 30. Closing the stage ended
+        with an error on the first one, after every agent had run, and the stage was left open with no evidence."""
+        sys.path.insert(0, str(ROOT / "swarm"))
+        import scheduler
+        from engineering_os.orchestration import TaskStore
+        with tempfile.TemporaryDirectory() as folder:
+            state = pathlib.Path(folder) / "state"
+            leases = scheduler.own(state, "q9", ["S-0001", "S-0002", "S-0003"])
+            self.assertEqual(len(leases), 3)
+            store = TaskStore(state)
+            first = next(t for t in store.tasks() if t["id"] == "q9-s-0001")
+            self.assertGreaterEqual(first["lease"]["expires_at"] - store.clock(), 3500, "the longest lease the store gives")
+            rows = [{"id": "S-0001", "written": True, "verified": True, "sha256": "a" * 64}, {"id": "S-0002", "written": False, "verified": False, "sha256": None},
+                    {"id": "S-0003", "written": True, "verified": False, "sha256": "b" * 64}]
+            real = TaskStore.__init__
+
+            def late(self, state_dir, clock=None):  # the same store, two hours later
+                real(self, state_dir, clock=lambda: __import__("time").time() + 7200)
+
+            TaskStore.__init__ = late
+            try:
+                counts = scheduler.submit(state, "q9", {"rows": rows})
+            finally:
+                TaskStore.__init__ = real
+            self.assertEqual({k: counts[k] for k in ("submitted", "approved", "rejected", "failed", "lease_ran_out")},
+                             {"submitted": 0, "approved": 0, "rejected": 0, "failed": 0, "lease_ran_out": 3})
+            in_time = scheduler.submit(state, "q9", {"rows": rows})
+            self.assertEqual({k: in_time[k] for k in ("submitted", "approved", "rejected", "failed", "lease_ran_out")},
+                             {"submitted": 2, "approved": 1, "rejected": 1, "failed": 1, "lease_ran_out": 0})
+
+
 class RawReachTests(unittest.TestCase):
     def test_in_a_plain_stage_a_search_shows_every_failed_record_of_a_one_line_file_and_little_else(self):
         """L-0012 and L-0014 failed in the second phase. The events file is one line of about 72,000 characters. A search returned the

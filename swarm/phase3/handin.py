@@ -25,6 +25,7 @@ here", never as passed. The network wall needs the kernel to allow a network nam
 Command line: python3 handin.py selftest   prints each wall and what happened.
 """
 import fcntl
+import json
 import os
 import shutil
 import socket
@@ -314,8 +315,54 @@ def selftest() -> list[str]:
     return lines
 
 
+CONCURRENT = ("import sys, pathlib, tempfile, json\n"
+              "sys.path[:0] = %r\n"
+              "import handin, tasks\n"
+              "handin.install()\n"
+              "task = tasks.medium(1, 7)\n"
+              "with tempfile.TemporaryDirectory() as t:\n"
+              "    sol = pathlib.Path(t) / 'solution.py'\n"
+              "    sol.write_text(task['reference'])\n"
+              "    result = tasks.run_suite(sol, task['suite'])\n"
+              "print(json.dumps(result))\n")
+
+
+def concurrency(widths=(20, 40), rounds: int = 3) -> dict:
+    """Correct hand-ins made many at once, each in a process of its own as a worker's hand-in is: how many are judged correct?
+    No agent and no model: the same correct file every time."""
+    code = CONCURRENT % [str(HERE), str(HERE.parent / "phase2"), str(HERE.parent)]
+    rows = []
+    for width in widths:
+        judged = right = 0
+        began = time.perf_counter()
+        for _ in range(rounds):
+            started = [subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True) for _ in range(width)]
+            for process in started:
+                try:
+                    result = json.loads(process.communicate(timeout=180)[0] or "{}")
+                except (ValueError, subprocess.TimeoutExpired):
+                    result = {}
+                judged += 1
+                right += bool(result.get("total")) and result.get("passed") == result.get("total")
+        rows.append({"hand_ins_at_once": width, "correct_hand_ins_made": judged, "judged_correct": right, "seconds": round(time.perf_counter() - began, 1)})
+    return {"about": "The cage for worker-written code under hand-ins made at once. The same correct file is handed in each time, each in a process of its own. "
+                     "No agent and no model ran. Measured on the machine this file was written on.",
+            "caller_is_root": os.geteuid() == 0, "each_cage_is_a_user_of_its_own": os.geteuid() == 0, "measured": rows,
+            "before_the_change": {"what": "every cage was one shared user, and ending that user's leftovers after a run ended the other cages",
+                                  "measured_through_the_worker_command": [{"hand_ins_at_once": 20, "correct_hand_ins_made": 60, "judged_correct": 39},
+                                                                         {"hand_ins_at_once": 40, "correct_hand_ins_made": 60, "judged_correct": 24}],
+                                  "seen_in_the_run": "stage q200: the queue counted 176 hand-ins that passed their examples; the withheld tests verified 197 of 200"},
+            "holds": all(row["judged_correct"] == row["correct_hand_ins_made"] for row in rows)}
+
+
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["concurrency"]:
+        result = concurrency()
+        if "--save" in argv:
+            (HERE / "evidence" / "cage-concurrency.json").write_text(json.dumps(result, indent=1) + "\n")
+        print(json.dumps(result, indent=1))
+        return 0 if result["holds"] else 1
     if argv[:1] != ["selftest"]:
         print(__doc__)
         return 2

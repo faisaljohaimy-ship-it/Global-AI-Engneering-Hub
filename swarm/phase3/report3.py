@@ -14,6 +14,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
+sys.path.insert(0, str(HERE))
+import accounting  # noqa: E402
 FILES = {
     "summary": "swarm/evidence/summary.json", "ladder": "swarm/evidence/ladder.json",
     "limits": "swarm/evidence/host-limits.json", "second": "swarm/phase2/evidence/stages.json",
@@ -189,6 +191,11 @@ def capacity_section(root):
     cap = load(root, FILES["capacity"])
     out = ["## 6. Simulation, not a measurement", ""]
     if not cap:
+        decided = [d for d in (load(root, "swarm/phase3/DECISIONS.json") or {}).get("decisions", []) if d.get("cancels") == FILES["capacity"]]
+        if decided:
+            return out + [f"Not run, by decision of {decided[0].get('by')} on {decided[0].get('date')}: {decided[0].get('what')}",
+                          "", "No agent in this report is a simulated agent of that study. What was measured about the coordinator's own parts at 100,000 tasks, with no agent, "
+                              "is in `swarm/phase3/evidence/coordinator-scale.json`."]
         return out + [na(FILES["capacity"])]
     out += [f"Every figure below is from `{FILES['capacity']}`, a simulation; no real agent produced it.", ""]
     rows = cap_rows(cap)
@@ -234,6 +241,8 @@ def counted_section(root):
     if ra.get("note"):
         out += ["", ra["note"]]
     out += ["", f"Counted at the last stage: {num(f.get('input_tokens_counted'))} of a limit of {num(f.get('cap', caps.get('cumulative_input_tokens')))}."]
+    out += ["", "### Each kind of user apart, and the sum", "", "The owner asked for orchestrators, agents and reviewers to be counted apart and for the sum of all of them. "
+            "From `swarm/phase3/accounting.py`, which reads the evidence files:", ""] + accounting.render(accounting.build(Path(root)))
     return out
 
 
