@@ -141,5 +141,43 @@ class RoleRemovalTests(unittest.TestCase):
         self.assertEqual((role_ids(spec), questions(spec)), (role_ids(self.pm), []))
 
 
+
+class TighteningIsBreakingTests(unittest.TestCase):
+    """W2-RQ-02: a tighter field constraint can reject stored values, so diff_specs calls it breaking."""
+
+    def changed(self, edit):
+        old = fixture()
+        new = copy.deepcopy(old)
+        edit(next(f for f in new["entities"][0]["fields"] if f["name"] == "title"), new)
+        return rq.diff_specs(old, new)["breaking"]
+
+    def test_lower_max_higher_min_and_new_bounds_are_breaking(self):
+        cases = {
+            "max 200 -> 5": (lambda f, s: f.update(max=5), {"constraint": "max", "before": 200, "after": 5}),
+            "min added": (lambda f, s: f.update(min=3), {"constraint": "min", "before": 0, "after": 3}),
+        }
+        for label, (edit, detail) in cases.items():
+            with self.subTest(label):
+                self.assertEqual(self.changed(edit), [{"kind": "field-tightened", "entity": "Task", "field": "title",
+                                                       **detail}])
+
+    def test_numeric_bounds_are_compared_too(self):
+        old = fixture()
+        old["entities"][0]["fields"].append({"name": "estimate", "type": "int", "required": False, "min": 0, "max": 100})
+        rq.validate_spec(old)
+        for edit, detail in (({"max": 50}, ("max", 100, 50)), ({"min": 1}, ("min", 0, 1))):
+            new = copy.deepcopy(old)
+            new["entities"][0]["fields"][-1].update(edit)
+            self.assertEqual([(b["constraint"], b["before"], b["after"]) for b in rq.diff_specs(old, new)["breaking"]],
+                             [detail])
+        unbounded = copy.deepcopy(old)
+        del unbounded["entities"][0]["fields"][-1]["min"]
+        self.assertEqual(rq.diff_specs(unbounded, old)["breaking"][0]["constraint"], "min", "a new lower bound")
+
+    def test_loosening_is_not_breaking(self):
+        for edit in (lambda f, s: f.update(max=500), lambda f, s: f.pop("max"), lambda f, s: f.update(min=0)):
+            self.assertEqual(self.changed(edit), [])
+
+
 if __name__ == "__main__":
     unittest.main()

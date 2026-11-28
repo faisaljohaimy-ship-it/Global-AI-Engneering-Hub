@@ -1752,6 +1752,14 @@ def diff_specs(old, new):
                     breaking.append({"kind": "enum-values-removed", "entity": name, "field": field, "values": lost})
                 if after[field].get("unique") and not before[field].get("unique"):
                     breaking.append({"kind": "field-now-unique", "entity": name, "field": field})
+                if before[field]["type"] == after[field]["type"]:  # a tighter bound can reject stored values
+                    for bound, tighter in (("max", lambda old, new: new < old), ("min", lambda old, new: new > old)):
+                        old_bound, new_bound = before[field].get(bound), after[field].get(bound)
+                        if bound == "min" and after[field]["type"] in ("text", "email"):  # no min = length 0
+                            old_bound = 0 if old_bound is None else old_bound
+                        if new_bound is not None and (old_bound is None or tighter(old_bound, new_bound)):
+                            breaking.append({"kind": "field-tightened", "entity": name, "field": field,
+                                             "constraint": bound, "before": old_bound, "after": new_bound})
         other = {k: v for k, v in old_entities[name].items() if k != "fields"} != {k: v for k, v in new_entities[name].items() if k != "fields"}
         if any(change["fields"].values()) or other:
             change["meta_changed"] = other

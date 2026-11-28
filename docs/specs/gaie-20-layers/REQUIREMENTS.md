@@ -199,7 +199,7 @@ breaking[], summary{added, removed, changed, breaking}}`. Breaking kinds:
 `entity-removed`, `entity-path-changed`, `field-removed`, `required-field-added`,
 `field-type-changed`, `field-now-required`, `field-now-unique`, `enum-values-removed`,
 `relation-removed`, `relation-changed`, `required-relation-added`, `feature-removed`,
-`role-removed`, `locale-removed`. Upgrade flow: `new = parse(command, base=old)` →
+`role-removed`, `locale-removed`, `field-tightened` (same type, a lower `max`, a higher `min`, or a bound where there was none: `{constraint, before, after}`; a text field without `min` counts as `min` 0). Upgrade flow: `new = parse(command, base=old)` →
 `diff_specs(old, new)`.
 
 ## 7. Registration (for the integrator — not edited by L15)
