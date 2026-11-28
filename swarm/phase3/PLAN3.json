@@ -1,6 +1,7 @@
 {
  "about": "The plan of the third phase's measured run, written before its first agent ran and rewritten once before that, when the second phase had shown two things about this host: it runs at most 20 agents at once, and it runs a gate set for the whole session but not one written into an agent's definition. So the run begins with a security gate stage that real agents must fail to get through, no other stage may start before it has passed, every stage is ended by a call outside a worker's contract that ran or by a call the gate did not see, and every message starts at most 20 agents. A stage of 1,000 agents is 1,000 real agents started and finished, 20 at a time.",
  "seed": 20261130,
+ "requires": {"caged_worker_code": true, "why": "Workers hand in code and the run executes it. The run does that only where the code can be run as another user, with no network, with limits and without sight of the withheld tests. Where that cannot be had, no stage is opened."},
  "caps": {
   "cumulative_input_tokens": 150000000,
   "spent_before_phase2": 0,

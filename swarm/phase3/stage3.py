@@ -18,6 +18,9 @@ This is the second phase's stage driver with four differences.
   did not see, ends the run.
 - A stage's tasks go into a queue (taskqueue.py) and every agent of such a stage gets the
   same prompt, so its records are told apart by agent type and not by a task id.
+- Code a worker wrote is run in a cage (handin.py): another user, no network, limits, and
+  a copy of its own file only. The plan says whether the run requires that; when it does
+  and the cage cannot be had here, no stage is opened.
 - What was spent before this run is added up from the repository's own evidence when this
   script starts, and written into the run's evidence with its parts.
 
@@ -40,6 +43,10 @@ os.environ.setdefault("SWARM_REPORT_DIR", str(HERE))
 sys.path[:0] = [str(HERE), str(HERE.parent / "phase2"), str(HERE.parent)]
 import hook  # noqa: E402
 import ledger  # noqa: E402
+try:
+    import handin  # noqa: E402 - the cage worker-written code is run in
+except ImportError:
+    handin = None
 import measure  # noqa: E402
 import stage  # noqa: E402
 import taskqueue  # noqa: E402
@@ -113,6 +120,26 @@ def following(stages: list[dict]) -> tuple[dict | None, list[str]]:
     return nxt, end
 
 
+def cage_problems(fresh: bool = False) -> list[str]:
+    """Why worker-written code cannot be run safely here; empty when it can. The hostile samples take seconds to run,
+    so setup runs them and keeps the answer, and the later steps read it."""
+    kept = HOME / "state" / "cage.json"
+    if handin is None:
+        return ["the cage for worker-written code (handin.py) is not in this checkout"]
+    if fresh or not kept.exists():
+        try:
+            problems = [str(problem) for problem in handin.selftest()]
+        except Exception as fault:  # noqa: BLE001 - a cage whose own test fails is a cage that is not there
+            problems = [f"the cage's self-test failed: {type(fault).__name__}"]
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        kept.write_text(json.dumps(problems))
+    return json.loads(kept.read_text())
+
+
+def cage_required() -> bool:
+    return bool(stage.PLAN.get("requires", {}).get("caged_worker_code"))
+
+
 def card(spec: dict, model: str, ids: list[str], out: Path) -> str:
     done = "When every agent has returned, run: python3 swarm/phase3/stage3.py finish"
     if spec.get("gate"):
@@ -143,6 +170,8 @@ def configure() -> dict:
     stage.EVIDENCE = stage.OUT / "evidence" / "stages.json"
     stage.GUARDED = (*stage.GUARDED, "swarm-queue", "swarm-queue-1", "swarm-probe-wide", "swarm-probe-open")
     stage.card, stage.decide, stage.following, stage.save = card, decide, following, save
+    if handin is not None:
+        handin.install()  # the withheld tests at the end of a stage run the workers' code: in the cage
     return carried
 
 
@@ -159,13 +188,15 @@ def setup() -> int:
     problems = hook.selftest()
     settings = json.loads((ROOT / ".claude" / "settings.json").read_text())
     wired = any("swk-hook" in h.get("command", "") and entry.get("matcher") == "*" for entry in settings.get("hooks", {}).get("PreToolUse", []) for h in entry.get("hooks", []))
+    caged = cage_problems(fresh=True)
     facts = {"worker_command": shutil.which("swk") is not None, "session_gate_installed": shutil.which("swk-hook") is not None, "session_gate_set_for_every_tool": wired,
-             "gate_holds_in_self_test": not problems, "self_test_problems": problems, "session_record_found": main.exists(), "agent_records_folder_found": folder.exists(),
+             "gate_holds_in_self_test": not problems, "self_test_problems": problems, "worker_code_is_caged": not caged, "cage_problems": caged,
+             "the_plan_requires_the_cage": cage_required(), "session_record_found": main.exists(), "agent_records_folder_found": folder.exists(),
              "no_network_cage": subprocess.run(["unshare", "-n", "true"], capture_output=True).returncode == 0,
              "agent_definitions": sorted(p.stem for p in (ROOT / ".claude" / "agents").glob("swarm-*.md")), "cores": os.cpu_count(),
              "counted_before_this_run": carried_over(), "limit": stage.PLAN["caps"]["cumulative_input_tokens"]}
     print(json.dumps(facts, indent=1))
-    return 0 if facts["worker_command"] and wired and not problems and facts["session_record_found"] else 1
+    return 0 if facts["worker_command"] and wired and not problems and facts["session_record_found"] and (not caged or not cage_required()) else 1
 
 
 def prep() -> int:
@@ -173,12 +204,17 @@ def prep() -> int:
     if problems:
         print("END - the session gate does not pass its self-test, so no stage is opened: " + "; ".join(problems))
         return 1
+    if cage_required() and cage_problems():
+        print("END - worker-written code cannot be caged here, so no stage is opened: " + "; ".join(cage_problems()))
+        return 1
     done = stage.prep(None)
     if done == 0:
         spec = stage.spec_of((HOME / "open").read_text().strip())
         if spec["kind"] == "task" and spec.get("delivery") == "queue":
             run = json.loads((HOME / "runs" / f"{spec['id']}.json").read_text())
             taskqueue.create(HOME / "work" / spec["id"], run["tasks"], spec["batch"])
+        if spec["kind"] == "task" and handin is not None:
+            handin.protect(HOME / "work" / spec["id"])  # the withheld tests lie beside the tasks: only the owner reads them
     return done
 
 
