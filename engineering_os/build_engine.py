@@ -131,7 +131,24 @@ EXPECTATIONS = (
 )
 _CONDITIONS = [(key, re.compile(pattern)) for key, pattern in CONDITIONS]
 _EXPECTATIONS = [(key, re.compile(pattern)) for key, pattern in EXPECTATIONS]
-GRAMMAR = re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?$")
+# Route kind -> (conditions, expectations) its check_<kind> handler in tests/test_acceptance.py
+# actually exercises (None = no condition / no expectation). The template keeps the same
+# table (EXERCISED) and fails a generated test whose criterion falls outside it.
+HANDLED = {
+    "page": ((None,), (None, "html-dir-lang", "html-labels")),
+    "login": ((None, "valid-credentials", "wrong-password"), (None, "session-cookie")),
+    "logout": ((None, "without-session"), (None, "session-revoked")),
+    "collection": ((None, "valid-body", "without-session", "without-field", "field-value", "longer-than",
+                    "missing-reference", "duplicate", "as-role", "reference-existing"),
+                   (None, "record", "lists-created", "only-assigned", "only-overdue", "only-field-value",
+                    "ordered-nulls-last")),
+    "item": ((None, "valid-body", "without-session", "field-value", "field-value-while-linked", "longer-than",
+              "missing-reference", "unknown-id", "as-role", "reference-existing"), (None, "record")),
+    "progress": ((None, "without-session", "parent-without-children"), (None, "progress", "percent-zero")),
+    "children": ((None, "without-session"), (None, "only-children")),
+    "link": ((None, "without-session", "link-existing", "link-duplicate"), (None, "membership")),
+}
+GRAMMAR =re.compile(r"^(GET|POST|PUT|PATCH|DELETE) (/\S*)(?: (.+?))? returns ([1-5][0-9]{2})(?: and (.+))?$")
 
 
 class BuildError(ValueError):
@@ -626,10 +643,10 @@ def _resolve(model, locales, roles, check):
             if rule not in model["rules"]["completion"]:
                 model["rules"]["completion"].append(rule)
     elif cond == "longer-than":
-        need(cg["field"] in fields and fields[cg["field"]]["type"] in ("text", "email") and method in ("POST", "PUT", "PATCH"),
-             "text field")
+        need(kind in ("collection", "item") and cg["field"] in fields and fields[cg["field"]]["type"] in ("text", "email")
+             and method in ("POST", "PUT", "PATCH"), "text field")
     elif cond == "missing-reference":
-        need(cg["field"] in refs and method in ("POST", "PUT", "PATCH"), "reference")
+        need(kind in ("collection", "item") and cg["field"] in refs and method in ("POST", "PUT", "PATCH"), "reference")
     elif cond == "unknown-id":
         need(kind == "item", "item")
     elif cond == "duplicate":
@@ -640,8 +657,8 @@ def _resolve(model, locales, roles, check):
         need(kind == "login", "login")
     elif cond == "reference-existing":
         target = _entity_by_word(model, cg["entity"])
-        need(cg["field"] in refs and target is not None and refs[cg["field"]]["entity"] == target["name"]
-             and method in ("POST", "PUT", "PATCH"), "reference target")
+        need(kind in ("collection", "item") and cg["field"] in refs and target is not None
+             and refs[cg["field"]]["entity"] == target["name"] and method in ("POST", "PUT", "PATCH"), "reference target")
         cg["entity"] = target["name"]
     elif cond in ("link-existing", "link-duplicate"):
         need(kind == "link" and (cond == "link-duplicate" or cg["field"] == route["link"]["target_key"]), "link")
@@ -653,6 +670,8 @@ def _resolve(model, locales, roles, check):
         need(method in ("POST", "PUT", "PATCH") and kind in ("collection", "item"), "record")
     elif exp == "lists-created":
         need(kind == "collection" and method == "GET" and not query, "list")
+    elif exp in ("only-field-value", "only-assigned", "only-overdue", "ordered-nulls-last") and method != "GET":
+        raise KeyError(f"expectation {exp} is a list check; it needs GET, not {method}")
     elif exp == "only-field-value":
         field = fields.get(eg["field"])
         need(kind == "collection" and field is not None and field["type"] == "enum" and eg["value"] in field["values"]
@@ -704,6 +723,9 @@ def _resolve(model, locales, roles, check):
         need(kind == "page", "page")
     elif exp is not None:
         raise KeyError(f"expectation {exp}")
+    conditions, expectations = HANDLED[kind]
+    need(cond in conditions and exp in expectations,
+         f"the generated {kind} test does not exercise {cond or 'no condition'} with {exp or 'no expectation'}")
     return route, cg, eg
 
 

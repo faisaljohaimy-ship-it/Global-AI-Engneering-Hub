@@ -138,6 +138,16 @@ name to the model (fields, foreign keys, entities by name/plural/label, roles, l
 stores the result in `app/acceptance.json`. The generated test runs each one against a fresh
 server and asserts the stated status and expectation.
 
+A criterion compiles only when the handler for its route kind actually exercises both its
+condition and its expectation (`build_engine.HANDLED`, mirrored as `EXERCISED` in the
+generated `tests/test_acceptance.py`, which also refuses any other pair at run time):
+records the scenario needs are created as the administrator, and the request the criterion
+is about is made as the criterion says (`without a session` on every route except the page
+and login, `as <role>` on collections and items); list expectations (`lists …`, `only …`,
+`ordered by …`) need GET; body conditions apply to collection and item writes only. Any
+other criterion is unmapped — not covered by any generated test — and never reported as
+passed. A criterion is `passed` only when its generated test ran and passed.
+
 | Conditions | Expectations |
 |---|---|
 | with a valid body · without a session · without `<field>` · with `<field>=<value>` · with `<field>=<value>` while a linked `<child>` is not `<value>` · with `<field>` longer than N characters · with a/an `<field>` that does not exist · with an unknown id · with a duplicate `<field>` · as `<role>` · with valid credentials · with a wrong password · with `<field>` of an existing `<entity>` · with an existing `<link key>` · with a `<target>` already in the `<source>` · for a `<parent>` without `<children>` | the (updated) record · lists the created records · only `<items>` assigned to that `<entity>` · only `<items>` with `<date>` before today and `<field>` not `<value>` · only `<items>` with `<field>` `<value>` · `<items>` ordered by `<field>` ascending with empty … last · only that `<parent>`'s `<children>` [ordered by `<field>`] · total_X, done_X and percent … rounded down · percent 0 · the membership · a session cookie · the session is no longer accepted · html with dir=… and lang=… · html where every form input has a label |

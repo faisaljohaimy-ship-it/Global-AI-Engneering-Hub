@@ -7,6 +7,7 @@ on a loopback port in a child process, through the application's own test helper
 (tests/support.py). The child runs with -I and only the application on sys.path, so the
 hub is never imported by the code under test. No network beyond loopback is used.
 """
+import ast
 import importlib.util
 import json
 import os
@@ -239,7 +240,90 @@ class PrincipalBindingTests(GeneratedApp):
         self.assertEqual(result["after_admin"], [200, []])
 
 
-COMMENTS_COMMAND ="ابنِ نظامًا جديدًا لإدارة المشاريع مع تعليقات على المهام"
+FALSE_CRITERIA = [  # each states the opposite of what the generated server does
+    "GET /api/projects/{id}/tasks without a session returns 200 and only that project's tasks",
+    "POST /api/logout without a session returns 204",
+    "GET /api/projects/{id}/progress without a session returns 200 and percent 0",
+    "POST /api/projects/{id}/members without a session returns 201 and the membership",
+    "POST /api/tasks?status=done with a valid body returns 201 and only tasks with status done",
+    "POST /api/tasks?overdue=true with a valid body returns 201 and only tasks with due_date before today and status not done",
+]
+TRUE_CRITERIA = [
+    "GET /api/projects/{id}/tasks without a session returns 401",
+    "POST /api/logout without a session returns 401",
+    "GET /api/projects/{id}/progress without a session returns 401",
+    "POST /api/projects/{id}/members without a session returns 401",
+    "GET /api/projects/{id}/progress for a project without tasks returns 200 and percent 0",
+    "GET /api/tasks?status=done returns 200 and only tasks with status done",
+]
+
+
+class AcceptanceExercisedTests(GeneratedApp):
+    """W2-BU-05: a criterion is passed only when a generated test that exercises it passed."""
+
+    @classmethod
+    def spec(cls):
+        spec = requirements.parse(_FIXTURE.COMMAND)
+        spec["features"] += [{"id": "VAC", "title": {"en": "Opposite of the behaviour", "ar": "عكس السلوك"},
+                              "acceptance": list(FALSE_CRITERIA)},
+                             {"id": "HON", "title": {"en": "The behaviour", "ar": "السلوك"},
+                              "acceptance": list(TRUE_CRITERIA)}]
+        return spec
+
+    def outcomes(self, names):
+        """Outcome per generated acceptance test, recorded by the application's own test runner."""
+        code = textwrap.dedent("""
+            import json, os, sys, unittest
+            sys.path.insert(0, sys.argv[1])
+            from tests.run_tests import _Result
+            suite = unittest.defaultTestLoader.loadTestsFromNames(sys.argv[2:])
+            with open(os.devnull, "w") as sink:
+                result = unittest.TextTestRunner(stream=sink, resultclass=_Result).run(suite)
+            print(json.dumps(result.outcomes))
+        """)
+        run = subprocess.run([sys.executable, "-I", "-c", code, str(self.app)]
+                             + [engine.ACCEPTANCE_ID + name for name in names], cwd=self.app,
+                             env={"PATH": os.environ.get("PATH", ""), "HOME": str(self.tmp), "TMPDIR": str(self.tmp),
+                                  "LANG": "C.UTF-8", "PYTHONDONTWRITEBYTECODE": "1"},
+                             capture_output=True, text=True, timeout=600)
+        self.assertEqual(run.returncode, 0, run.stderr[-3000:])
+        return {key[len(engine.ACCEPTANCE_ID):]: value for key, value in json.loads(run.stdout.splitlines()[-1]).items()}
+
+    def test_list_expectations_on_a_write_are_unmapped(self):
+        planned = engine.plan(self.spec())
+        self.assertEqual(sorted(aid for aid in planned["unmapped_criteria"] if aid.startswith(("vac", "hon"))),
+                         ["vac-a5", "vac-a6"])
+        self.assertIn("needs GET", planned["unmapped_criteria"]["vac-a5"])
+
+    def test_false_criteria_fail_and_true_ones_pass_against_the_real_server(self):
+        names = [f"test_vac_{n}" for n in range(4)] + [f"test_hon_{n}" for n in range(6)]
+        outcomes = self.outcomes(names)
+        self.assertEqual(outcomes, {**{f"test_vac_{n}": "failed" for n in range(4)},
+                                    **{f"test_hon_{n}": "passed" for n in range(6)}})
+        spec = engine.validate_spec(self.spec())
+        model = engine.derive_model(spec)
+        checks, unmapped = engine.compile_acceptance(spec, model)
+        _, coverage = engine.requirements(spec, model, checks, unmapped)
+        suites = {"python": {"status": "failed", "tests": {engine.ACCEPTANCE_ID + k: v for k, v in outcomes.items()}},
+                  "e2e": {"status": "not-run"}}
+        rows = engine.coverage_matrix({aid: row for aid, row in coverage.items() if aid.startswith(("vac", "hon"))},
+                                      {}, suites, engine.expected_tests(model, spec["locales"], checks))
+        self.assertEqual({row["acceptance"]: row["status"] for row in rows},
+                         {**{f"vac-a{n}": "failed" for n in range(1, 5)}, "vac-a5": "unmapped", "vac-a6": "unmapped",
+                          **{f"hon-a{n}": "passed" for n in range(1, 7)}})
+
+    def test_engine_and_template_agree_on_what_each_handler_exercises(self):
+        tree = ast.parse((self.app / "tests/test_acceptance.py").read_text(encoding="utf-8"))
+        table = next(ast.literal_eval(node.value) for node in tree.body if isinstance(node, ast.Assign)
+                     and getattr(node.targets[0], "id", None) == "EXERCISED")
+        self.assertEqual({kind: (set(c), set(e)) for kind, (c, e) in table.items()},
+                         {kind: (set(c), set(e)) for kind, (c, e) in engine.HANDLED.items()})
+        kinds = {node.name[len("check_"):] for node in ast.walk(tree)
+                 if isinstance(node, ast.FunctionDef) and node.name.startswith("check_")}
+        self.assertEqual(kinds, set(engine.HANDLED))
+
+
+COMMENTS_COMMAND = "ابنِ نظامًا جديدًا لإدارة المشاريع مع تعليقات على المهام"
 
 
 class TransitiveScopingTests(GeneratedApp):
