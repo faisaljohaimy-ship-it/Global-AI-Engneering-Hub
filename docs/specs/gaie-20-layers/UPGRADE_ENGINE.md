@@ -236,7 +236,15 @@ and malformed steps are refused before anything is created.
   dead code". Their area joins the run's scope. Each is met only when the upgraded copy is
   verified: no unreferenced asset left, no filtered full-table scan left, no dead-code finding
   left. The upgrade keeps every function, so existing dead code is reported as unmet, never
-  deleted. Arabic wording with «غير» (for example «غير المستخدمة») is refused by the router as
+  deleted. A removal runs on over coordinated conjuncts and comma-separated items with an
+  elided verb, up to the next verb, clause break or signal, and inside it a data-bearing item
+  (field, column, attribute, table, entity, record, row, locale, language, role, data, database
+  and their Arabic forms), the target itself (app, system, project, platform, service, tool)
+  or a pronoun is never a function word: "remove unused code and fields", «واحذف الكود الميت
+  والحقول», "remove dead code, fields and columns" or "remove dead code and the whole app" is
+  a removal the diff must reflect, so it stops the run. After a link word the same nouns say
+  where to remove from ("remove dead code from the system", «من النظام»); a conjunct after
+  such a phrase is an object again. Arabic wording with «غير» (for example «غير المستخدمة») is refused by the router as
   a negation before this check; «المهملة» is accepted.
 - Asset non-use is a static proof over internal references; external links to a served file
   cannot be ruled out (hence the backup); directory listings in code make it unprovable.

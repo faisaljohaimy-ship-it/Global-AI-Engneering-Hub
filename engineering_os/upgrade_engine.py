@@ -402,6 +402,18 @@ _FUNCTION_WORDS = frozenset(token for word in (*requirements._GAP, *requirements
     "service should so system systems that their them this tool up whole will would your").split(), *(
     "نظام منظومة تطبيق مشروع منصة خدمة أداة كل جميع كامل كاملا بالكامل كله هذا هذه عن").split(),
     *("ال" + word for word in "نظام منظومة تطبيق مشروع منصة خدمة أداة".split())) for token in requirements._words(word))
+# What a removal can act on: a data-bearing specification item (field, column, table, entity, locale, role, data), the
+# target itself (app, system, project ...) or a pronoun. Inside a removal these are never function words: "remove dead
+# code and fields" removes fields too, so it must be reflected in the specification diff or stop the run. After a link
+# word ("from the app", «من النظام») they say where to remove from, as before.
+_REMOVAL_OBJECTS = frozenset(token for word in (*(
+    "field fields column columns attribute attributes table tables entity entities record records row rows locale locales "
+    "language languages role roles data database databases app application apps platform project projects service services "
+    "system systems tool tools it them this that these those").split(), *(
+    "حقل حقول خانه خانات عمود أعمدة جدول جداول كيان كيانات سجل سجلات لغة لغات دور أدوار بيانات قاعدة "
+    "نظام منظومة تطبيق مشروع منصة خدمة أداة هذا هذه").split()) for form in (word, "ال" + word) for token in requirements._words(form))
+_REMOVAL_FUNCTION_WORDS = _FUNCTION_WORDS - _REMOVAL_OBJECTS
+_LINK_WORDS = frozenset(token for word in requirements._LINKS for token in requirements._words(word))
 _SPEC_ITEMS = frozenset({"entity", "field", "feature", "role", "locale", "integration", "ai", "database", "product"})
 
 
@@ -424,7 +436,10 @@ def _account(command, spec, names=()):
     can delete their own tasks" removes nothing) or a negation, with its clause text. A change is
     any later commanding change verb («عدّل», "modify") whose clause names a specification item.
     A request is an ``ENGINE_REQUESTS`` phrase; a remove verb in front of one is that request,
-    not an exclusion. ``unaccounted`` lists the clause text of every word that nothing accounts
+    not an exclusion. A removal runs on over coordinated conjuncts and comma-separated items
+    whose verb is elided ("remove dead code and fields"); inside it the words of
+    ``_REMOVAL_OBJECTS`` are never function words (before a link word), so such a conjunct makes
+    the removal an exclusion. ``unaccounted`` lists the clause text of every word that nothing accounts
     for: not the router's own vocabulary (command verbs, focus, fillers, coordinators), not a
     function word, not the target's name (the specification's title and slug, ``names``), not a
     requirements-lexicon phrase (what the specification diff is computed from) and not an engine
@@ -452,9 +467,10 @@ def _account(command, spec, names=()):
         words, hits = sentence["raw"], sentence["hits"]
         starts = {h["clause"][1] for h in hits} | {0}
         coordinators = {h["pos"] for h in hits if h["cat"] == "signal:coordinators"}
+        signals = {h["pos"] for h in hits if h["cat"].startswith("signal:")}
         verbs_at = [k for k, word in enumerate(words) if verb(word)]
         # a segment ends at the next clause, coordinator, control verb or command verb
-        bounds = sorted(starts | coordinators | {h["pos"] for h in hits if h["cat"].startswith("signal:")} | set(verbs_at))
+        bounds = sorted(starts | coordinators | signals | set(verbs_at))
         covered = [False] * len(words)
         for hit in hits:
             covered[hit["pos"]:hit["end"]] = [True] * (hit["end"] - hit["pos"])
@@ -470,6 +486,31 @@ def _account(command, spec, names=()):
         def end(start):
             return min([b for b in bounds if b > start] + [len(words), start + 12])
 
+        def removal(start):
+            """Where a removal ends and the words it removes. It runs on over coordinated conjuncts with an elided verb
+            ("remove dead code, fields and columns", «واحذف الكود الميت والحقول») up to the next verb, clause break or
+            other signal; a word is removed unless it is a function word (the narrower set before a link word)."""
+            def goes_on(b):  # a coordinator, or a comma-separated item, that does not start a clause of its own
+                if b in coordinators:
+                    return b + 1 not in verbs_at
+                return b in starts and b not in verbs_at and b not in signals
+
+            stop = min([b for b in bounds if b > start] + [len(words)])
+            while stop < len(words) and goes_on(stop):
+                stop = min([b for b in bounds if b > stop] + [len(words)])
+            objects, location = [], False
+            for k in range(start + 1, stop):
+                if k in coordinators:
+                    location = False
+                    continue
+                if gaie_router._conjoined(words[k])[1]:
+                    location = False  # و/ف attached: the next conjunct of the list
+                if _known(words[k], _LINK_WORDS):
+                    location = True
+                if not _known(words[k], _FUNCTION_WORDS if location else _REMOVAL_FUNCTION_WORDS):
+                    objects.append(k)
+            return stop, objects
+
         first_verb = None
         if not later and verbs_at:
             first_verb, later = verbs_at[0], True
@@ -477,10 +518,11 @@ def _account(command, spec, names=()):
             start = hit["pos"]
             commanding = start in starts or start - 1 in coordinators or words[start][:1] in "وف"
             if hit["cat"] == "signal:remove" and commanding:
-                rest = [k for k in range(start + 1, end(start)) if not _known(words[k], _FUNCTION_WORDS)]
-                if rest and all(any(a <= k < b for a, b in engine) for k in rest):
-                    continue  # "remove unused assets": an engine request, not an exclusion
-            if (hit["cat"] == "signal:remove" and commanding) or hit["cat"] == "signal:negations":
+                stop, objects = removal(start)
+                if not (objects and all(any(a <= k < b for a, b in engine) for k in objects)):
+                    out["exclusions"].add(" ".join(words[start:stop]))
+                # else "remove unused assets" (and "remove dead code and slow queries"): engine requests, not an exclusion
+            elif hit["cat"] == "signal:negations":
                 out["exclusions"].add(" ".join(words[start:end(start)]))
             elif hit["cat"] == "signal:change" and commanding and start != first_verb \
                     and any(h["cat"] in _SPEC_ITEMS and start < h["pos"] < end(start) for h in hits):

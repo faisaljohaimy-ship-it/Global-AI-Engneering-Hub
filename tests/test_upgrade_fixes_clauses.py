@@ -97,7 +97,8 @@ class Accounting(unittest.TestCase):
 
     def test_a_removal_beyond_an_engine_request_is_still_an_exclusion(self):
         requested = engine.requested_changes("Upgrade the task management system and remove unused assets and the Arabic locale", SPEC)
-        self.assertEqual((requested["status"], requested["unmet"]), ("unsettled", ["not accounted for: arabic locale"]))
+        self.assertEqual((requested["status"], requested["unmet"]),  # re-check 2: the conjunct is named as part of the removal
+                         ("unsettled", ["remove or exclude: remove unused assets and the arabic locale"]))
         for command in ("Upgrade the task management system and remove the duplicate code",
                         "Upgrade the task management system and delete old banner images"):
             self.assertEqual(engine.requested_changes(command, SPEC)["status"], "unsettled", command)
@@ -119,6 +120,70 @@ class Accounting(unittest.TestCase):
         for command in ("Upgrade the tool minus the cache", "Upgrade the calculator and get rid of the logs",
                         "طور الحاسبة وامسح السجلات"):
             self.assertEqual(engine.requested_changes(command, None)["status"], "unsettled", command)
+
+
+# Re-check 2 (medium, item 2 residual): a removal coordinated onto an engine request ("remove unused code and fields")
+# ended "upgraded" with requested-changes-met true: the remove clause ended at "and", and field/column/حقول and the
+# target's generic nouns were function words. A removal now runs on over coordinated conjuncts (and comma-separated
+# items) up to the next verb, clause break or signal, and inside it a data-bearing item or the target is never a
+# function word. Each case must stop, naming the removal.
+REVIEWER = ("Upgrade the task management system and remove unused code and fields", "طور نظام إدارة المهام واحذف الكود الميت والحقول")
+COORDINATED = REVIEWER + (
+    "Upgrade the task management system and remove unused code and the fields",
+    "Upgrade the task management system and remove dead code and columns",
+    "Upgrade the task management system and remove dead code and attributes",
+    "Upgrade the task management system and remove unused images and every field",
+    "Upgrade the task management system and remove dead code, fields and columns",
+    "Upgrade the task management system and remove dead code then fields",
+    "Upgrade the task management system, remove dead code and the fields",
+    "Upgrade the task management system and remove dead code and the whole app",
+    "Upgrade the task management system and remove unused assets and the entire project",
+    "Upgrade the task management system and remove dead code and the task management system",
+    "Upgrade the task management system and delete slow queries and the platform",
+    "Upgrade the task management system and remove dead code and unused assets and the tables",
+    "Upgrade the task management system and remove dead code and user data",
+    "Upgrade the task management system and remove slow queries and the admin role",
+    "طور نظام إدارة المهام واحذف الأصول المهملة والحقول",
+    "طور نظام إدارة المهام واحذف الكود الميت والحقل",
+    "طور نظام إدارة المهام واحذف الكود الميت والنظام كله",
+    "طور نظام إدارة المهام واحذف الكود الميت والتطبيق بالكامل",
+    "طور نظام إدارة المهام واحذف الكود الميت والأعمدة",
+    "طور نظام إدارة المهام واحذف الكود الميت من النظام والحقول",
+)
+STILL_REQUESTS = {  # removals that are only engine requests (or where to remove them from) stay accepted
+    "Upgrade the task management system and remove dead code and unused assets": ["dead-code", "unused-assets"],
+    "Upgrade the task management system and remove dead code then unused assets": ["dead-code", "unused-assets"],
+    "Upgrade the task management system and remove dead code and slow queries": ["dead-code", "slow-queries"],
+    "Upgrade the task management system and remove the dead code and the unused images": ["dead-code", "unused-assets"],
+    "Upgrade the task management system and remove dead code from the system": ["dead-code"],
+    "Upgrade the task management system and remove all dead code in the whole project": ["dead-code"],
+    "Upgrade the task management system and remove unused assets from the app": ["unused-assets"],
+    "Upgrade the task management system and remove dead code and improve performance": ["dead-code"],
+    "طور نظام إدارة المهام واحذف الكود الميت والأصول المهملة": ["dead-code", "unused-assets"],
+    "طور نظام إدارة المهام واحذف الكود الميت من النظام": ["dead-code"],
+}
+
+
+class CoordinatedRemovals(unittest.TestCase):
+    def test_a_removal_coordinated_onto_an_engine_request_is_unsettled(self):
+        for command in COORDINATED:
+            with self.subTest(command=command):
+                requested = engine.requested_changes(command, SPEC, ["taskapp"])
+                self.assertEqual(requested["status"], "unsettled")
+                self.assertTrue(any(row.startswith("remove or exclude: ") for row in requested["unmet"]), requested["unmet"])
+        self.assertEqual(engine.requested_changes(REVIEWER[0], SPEC)["unmet"], ["remove or exclude: remove unused code and fields"])
+        self.assertEqual(engine.requested_changes(REVIEWER[1], SPEC)["unmet"], ["remove or exclude: واحذف الكود الميت والحقول"])
+
+    def test_engine_requests_and_their_location_are_still_accepted(self):
+        for command, requests in {**{c: [r] for c, r in ENGINE.items()}, **STILL_REQUESTS}.items():
+            with self.subTest(command=command):
+                requested = engine.requested_changes(command, SPEC, ["taskapp"])
+                self.assertEqual((requested["status"], requested["unmet"]), ("ok", []))
+                self.assertEqual([row["id"] for row in requested["requests"]], requests)
+
+    def test_without_a_specification_the_coordinated_removal_still_stops(self):
+        self.assertEqual(engine.requested_changes("Upgrade the calculator and remove dead code and fields", None)["status"], "unsettled")
+        self.assertEqual(engine.requested_changes("Upgrade the calculator and remove dead code", None)["status"], "no-specification")
 
 
 class _Run(unittest.TestCase):
@@ -144,6 +209,14 @@ class UpgradeStops(_Run):
                 self.assertIn("Requested change not settled (unsettled", str(caught.exception))
                 self.assertIn("Nothing was copied or changed", str(caught.exception))
                 self.assertFalse((self.base / f"wd-{number}").exists())
+
+    def test_the_reviewers_coordinated_removals_stop_before_anything_is_copied(self):
+        for number, command in enumerate(REVIEWER):
+            with self.subTest(command=command):
+                with self.assertRaises(UpgradeError) as caught:
+                    self.run_upgrade(command, f"coordinated-{number}")
+                self.assertIn("Requested change not settled (unsettled: remove or exclude: ", str(caught.exception))
+                self.assertFalse((self.base / f"coordinated-{number}").exists())
 
 
 class EngineRequests(_Run):
