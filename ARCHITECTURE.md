@@ -33,7 +33,7 @@ per-layer specification is `docs/specs/gaie-20-layers/LAYERS.md`.
 |L17 Self-Healing & Recovery Intelligence|Diagnosis, repair proposals, repair verification|Repair proposals and fixed declarative checks; candidate code is never executed|
 |L18 Advanced Cinematic Intelligence|Original-motion proof, selection, engine-native motions|Source-bound inventory and engine-motion resolution; every render needs its own browser receipt|
 |L19 Engineering Economics & Resource Intelligence|Usage, cost, quota and context budgets|Offline accounting over supplied ledgers; tokens, cost and subscription quota stay separate|
-|L20 Independent Engineering Assurance|Source-bound evidence, independent review, release provenance|Source-bound test receipts; engineering_os/assurance.py is wave 2; hashes do not authenticate reviewers|
+|L20 Independent Engineering Assurance|Source-bound evidence, independent review, release provenance|Source-bound test receipts; engineering_os/assurance.py is not yet integrated; hashes do not authenticate reviewers|
 
 Dependencies (`depends_on` in the registry; an arrow points from a layer to a layer it
 uses; the graph is acyclic and every edge points to an earlier layer):
