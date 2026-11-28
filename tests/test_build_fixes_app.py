@@ -395,5 +395,58 @@ class ScopingBoundTests(unittest.TestCase):
         self.assertTrue(engine.derive_model(engine.validate_spec(requirements.parse(COMMENTS_COMMAND)))["auth"]["scoping"])
 
 
+UNIMPLEMENTED_NFR = [  # none of these is implemented by the generated application
+    "sign-in requires multi-factor authentication (MFA)",
+    "sessions expire after 15 minutes of inactivity",
+    "passwords must be rotated every 90 days",
+    "every endpoint is rate limited to 100 requests per minute",
+    "audit log of every permission change",
+    "audit of failed sign-ins and permission changes",
+    "p95 page render < 1 s locally with 10,000 records",
+    "status never conveyed by colour alone (text label next to the colour)",
+    "p95 API latency < 50 ms locally with 10,000 records",
+    "list endpoints paginated (default 20, max 100)",
+    "role check on every endpoint except the admin pages",
+]
+
+
+class NfrMappingTests(unittest.TestCase):
+    """W2-BU-06: a non-functional statement maps to tests only through a reviewed whole-statement form."""
+
+    def model(self, spec):
+        spec = engine.validate_spec(spec)
+        model = engine.derive_model(spec)
+        engine.compile_acceptance(spec, model)
+        return spec, model
+
+    def test_unimplemented_statements_are_unmapped(self):
+        spec, model = self.model(requirements.parse(_FIXTURE.COMMAND))
+        for text in UNIMPLEMENTED_NFR:
+            with self.subTest(text):
+                self.assertEqual(engine.map_statement(model, spec["locales"], text), [])
+
+    def test_every_statement_of_the_reference_spec_still_maps(self):
+        spec, model = self.model(requirements.parse(_FIXTURE.COMMAND))
+        statements = [text for items in spec["nfr"].values() for text in items]
+        self.assertEqual(len(statements), 16)
+        for text in statements:
+            with self.subTest(text):
+                self.assertTrue(engine.map_statement(model, spec["locales"], text))
+        api = engine.API_ID
+        self.assertEqual(engine.map_statement(model, spec["locales"], "passwords stored as salted PBKDF2-SHA256 hashes"),
+                         [api + "test_passwords_are_salted_pbkdf2"])
+        self.assertEqual(engine.map_statement(model, spec["locales"], "rate limit on sign-in (5 failures per 15 minutes)"),
+                         [api + "test_login_lockout"])
+
+    def test_unmapped_statements_block_the_plan_and_are_reported(self):
+        spec = requirements.parse(_FIXTURE.COMMAND)
+        spec["nfr"]["security"] += UNIMPLEMENTED_NFR[:5]
+        planned = engine.plan(spec)
+        offset = len(spec["nfr"]["security"]) - 5
+        self.assertEqual(sorted(aid for aid in planned["unmapped_criteria"] if aid.startswith("nfr-")),
+                         sorted(f"nfr-security-a{offset + n}" for n in range(1, 6)))
+        self.assertEqual(set(planned["unmapped_criteria"].values()), {"no generated test or check covers this statement"})
+
+
 if __name__ == "__main__":
     unittest.main()

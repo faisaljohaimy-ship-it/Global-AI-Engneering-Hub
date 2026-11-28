@@ -156,11 +156,17 @@ State rules are taken only from criteria that state them (progress endpoint, ove
 filter, "cannot become X while a linked child is not Y" → 409). A criterion that does not
 match, names an unknown field/route, or needs an unstated rule is **unmapped** with its
 reason; unmapped criteria fail the requirements stage, so nothing downstream verifies.
-Non-functional statements map by keyword rules to named tests and checks (secrets → secret
-scan; parameterized SQL → injection test; CSRF → CSRF tests; p95 → latency test with the
-stated record count; pagination; keyboard; focus; labels; ISO dates per locale; "ar rtl" →
-server and E2E locale checks; passwords → PBKDF2 test; role checks; scoping). A statement
-with no generated evidence is unmapped too.
+Non-functional statements map to named tests and checks only through a reviewed table of
+whole-statement forms (`_nfr_rules`: the statements `requirements` writes, matched in full,
+case-insensitive): no secrets in the repository → secret scan; parameterized SQL → injection
+test; input validation → validation tests; role check on every endpoint; CSRF token on
+cookie sessions; passwords stored as salted PBKDF2-SHA256 hashes → PBKDF2 test; rate limit on
+sign-in (5 failures per 15 minutes) → lockout test; p95 API latency and pagination → their
+tests when the stated numbers are the ones the test measures; keyboard; labels; focus; ISO
+dates per locale; "ar rtl"/"en ltr" → server and E2E locale checks; one-aggregate progress;
+the scoping statement. Any other statement — including one that merely contains such a
+keyword (multi-factor sign-in, session expiry, password rotation, request rate limits,
+audit logs, page render time) — is unmapped (no generated test or check covers it).
 
 For «ابنِ نظامًا جديدًا لإدارة المشاريع» the real L15 spec yields 4 entities, 14 features,
 64 criteria (all 64 executable) and 16 NFR statements (all mapped): 165 Python tests

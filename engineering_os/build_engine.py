@@ -840,47 +840,64 @@ LOCALE_WORDS = {
 
 
 def _nfr_rules(model, locales):
-    """(pattern, evidence) pairs for non-functional statements; evidence only for what was generated."""
+    """Reviewed statement forms -> the evidence that covers exactly that statement.
+
+    Each pattern must match the WHOLE statement (case-insensitive; the forms are the ones
+    engineering_os.requirements writes, governance/domains/). A statement that is not one
+    of these forms is unmapped, so a keyword inside a longer statement (multi-factor
+    sign-in, session expiry, password rotation, rate limits, audit logs, page render
+    times ...) never borrows evidence from an unrelated passing test. Optional checks
+    compare the stated numbers with what the generated tests measure.
+    """
     dates = any(f["type"] == "date" for e in model["entities"] for f in e["fields"])
+    numbers = model["nfr"]
     rules = [
-        (r"\bsecrets?\b|credential", ["static:security:secrets"]),
-        (r"parameteri[sz]ed|sql injection|prepared statement", [API_ID + "test_sql_injection_is_inert"]),
-        (r"security headers?|\bcsp\b|content-security|frame-ancestors|nosniff|clickjacking",
-         [API_ID + "test_security_headers", "e2e:headers", "e2e:csp"]),
-        (r"\bcsrf\b", [API_ID + "test_csrf_token_required", API_ID + "test_cross_origin_write_refused"]),
-        (r"cross-origin|same-origin|cross-site", [API_ID + "test_cross_origin_write_refused"]),
-        (r"\bp95\b|latency|response time", [API_ID + "test_list_latency_budget"]),
-        (r"paginat", [API_ID + "test_pagination_limits"]),
-        (r"keyboard", ["e2e:keyboard"]),
-        (r"\bfocus\b", ["e2e:focus-indicator"]),
-        (r"\blabels?\b|accessib\w*|screen reader|aria", ["e2e:labels"]),
-        (r"size limit|payload|too large|\b413\b", [API_ID + "test_oversized_body_refused"]),
-        (r"no network|offline|external request|\bcdn\b|third-party request", ["e2e:no-external-requests"]),
-        (r"synthetic|\bseed", [API_ID + "test_seed_is_synthetic"]),
-        (r"migration|rollback|\bschema\b", [MIGRATION_ID + name for name in MIGRATION_TESTS] + ["static:database:migration"]),
-        (r"password|pbkdf2|hash", [API_ID + "test_passwords_are_salted_pbkdf2", API_ID + "test_login_lockout"]),
-        (r"role check|every endpoint|\brbac\b|permission", [API_ID + "test_role_check_on_every_endpoint",
-                                                            API_ID + "test_unauthenticated_requests_refused"]),
-        (r"\bsessions?\b|sign[ -]?in|log[ -]?in", [API_ID + "test_login_logout_cycle"]),
-        (r"input validation|validate input|validation on every", ["@validation"]),
+        (r"no secrets in (?:the )?(?:repo|repository)", ["static:security:secrets"], None),
+        (r"parameteri[sz]ed sql(?: only)?", [API_ID + "test_sql_injection_is_inert"], None),
+        (r"input validation(?: on every write endpoint)?", ["@validation"], None),
+        (r"role check on every endpoint", [API_ID + "test_role_check_on_every_endpoint",
+                                           API_ID + "test_unauthenticated_requests_refused"], None),
+        (r"csrf token on cookie sessions", [API_ID + "test_csrf_token_required", API_ID + "test_cross_origin_write_refused",
+                                            API_ID + "test_login_logout_cycle"], None),
+        (r"passwords stored as salted pbkdf2-sha256 hashes", [API_ID + "test_passwords_are_salted_pbkdf2"], None),
+        (r"rate limit on sign-in \(5 failures per 15 minutes\)", [API_ID + "test_login_lockout"], None),
+        (r"p95 api latency < (?P<ms>\d{1,5}) ms locally(?: with (?P<records>[\d,]{1,9}) records)?",
+         [API_ID + "test_list_latency_budget"],
+         lambda m: int(m["ms"]) == numbers["p95_ms"]
+         and (m["records"] is None or int(m["records"].replace(",", "")) == numbers["latency_records"])),
+        (r"list endpoints paginated(?: \(default (?P<default>\d{1,4}), max (?P<max>\d{1,4})\))?",
+         [API_ID + "test_pagination_limits"],
+         lambda m: m["default"] is None or (int(m["default"]), int(m["max"])) == (numbers["page_size"],
+                                                                                   numbers["max_page_size"])),
+        (r"keyboard navigable", ["e2e:keyboard"], None),
+        (r"labels on form fields", ["e2e:labels"], None),
+        (r"visible focus indicator", ["e2e:focus-indicator"], None),
     ]
-    if model["rules"]["progress"]:
-        rules.append((r"aggregate query", [API_ID + "test_progress_uses_one_aggregate_query"]))
+    for rule in model["rules"]["progress"]:
+        entity = next(e for e in model["entities"] if e["name"] == rule["parent"])
+        forms = sorted({entity["name"].casefold(), entity["table"].replace("_", " "),
+                        model["labels"]["en"]["entities"][entity["name"]]["singular"].casefold()})
+        rules.append((r"(?:" + "|".join(re.escape(form) for form in forms) + r") progress computed with one aggregate query",
+                      [API_ID + "test_progress_uses_one_aggregate_query"], None))
     if model["auth"]["scoping"]:
-        rules.append((r"see only .* belong to", [API_ID + "test_scoped_roles_see_only_their_records"]))
+        rules.append((re.escape(model["auth"]["scoping"]["statement"].strip()),
+                      [API_ID + "test_scoped_roles_see_only_their_records"], None))
     if dates:
-        rules.append((r"iso-?8601|displayed per locale", [VALIDATION_ID + "test_dates_are_strict"]
-                      + [f"e2e:{loc}:dates" for loc in locales]))
+        rules.append((r"dates stored as iso-8601 and displayed per locale", [VALIDATION_ID + "test_dates_are_strict"]
+                      + [f"e2e:{loc}:dates" for loc in locales], None))
     for loc in locales:
-        rules.append((rf"^{loc} {DIRECTION[loc]}$", [f"e2e:{loc}:language", API_ID + "test_pages_follow_requested_locale"]))
-    return [(re.compile(pattern, re.I), ids) for pattern, ids in rules]
+        rules.append((rf"{loc} {DIRECTION[loc]}", [f"e2e:{loc}:language", API_ID + "test_pages_follow_requested_locale"],
+                      None))
+    return [(re.compile(pattern, re.I), ids, check) for pattern, ids, check in rules]
 
 
 def map_statement(model, locales, text):
-    """Evidence ids for one non-functional statement (keyword rules; [] when nothing fits)."""
+    """Evidence ids for one non-functional statement ([] = unmapped: no reviewed form fits it whole)."""
+    statement = " ".join(str(text).split())
     evidence = set()
-    for pattern, ids in _nfr_rules(model, locales):
-        if pattern.search(text):
+    for pattern, ids, check in _nfr_rules(model, locales):
+        found = pattern.fullmatch(statement)
+        if found and (check is None or check(found)):
             evidence.update(ids)
     if "@validation" in evidence:
         evidence.discard("@validation")
