@@ -30,7 +30,9 @@
     "number of processes: a sandbox mapped to uid 0 is exempt from RLIMIT_NPROC (bounded by timeout only)",
     "the base probe does not measure strict profile socket, filesystem or environment restrictions",
     "legacy calls can reach visible unix sockets and opt into the host network",
-    "system runtime directories are read-only; legacy calls can also read host /etc"
+    "system runtime directories are read-only; legacy calls can also read host /etc",
+    "strict runs filter only socket, io_uring_setup, unshare, clone with CLONE_NEWUSER and clone3; other kernel interfaces (keyctl, bpf, perf_event_open, userfaultfd) are not filtered",
+    "legacy calls install no seccomp filter: a child can create a nested user namespace and hold a full capability set inside it (the mount walls are locked, measured in pr30-isolation F6)"
   ],
   "probes": [
     {
@@ -597,7 +599,7 @@
         ],
         "sources": {
           "engineering_os/detectors.py:DRIVER,Sandbox,_interpreter,_tail,_output_limit,_sweep,_stop": "5cab62c0cfbbc7b36984e8eedf5f407b9ac32c9cd297c9290dabc86602716545",
-          "engineering_os/governor.py:sandbox_run,_run_full,_run_plain,_launch,_environment,_strict_paths,_inspect_scope,_exec_prefix,_disable_socket_creation,_loopback_up,_sandbox_init,isolation_probe,_probe_sandbox,isolation_report": "fb74fd8abd3417ff7eda62187b8327b26fb6dc562621afcb100f9ee3a156df83",
+          "engineering_os/governor.py:sandbox_run,_run_full,_run_plain,_launch,_environment,_strict_paths,_inspect_scope,_exec_prefix,_disable_socket_creation,_loopback_up,_sandbox_init,isolation_probe,_probe_sandbox,isolation_report": "01c95cdb1c0864dc45bf9521c97c79bb2162b4c4fa139bcd814d3d275172aa58",
           "engineering_os/layers.py:_python,_outside_system,_workspace,_git_metadata,_scrubbed_env,_profile,_run": "b001f6c6a8a35968ba59715f778fd426dff5c21c7b798b1067bec317b01f7742",
           "scripts/isolation_evidence.py": "422ac98d7f6ff95d3b0a37e473b527c4a6669058ca72e3a989416daa68eb16e9"
         },
