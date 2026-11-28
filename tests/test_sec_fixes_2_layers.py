@@ -252,5 +252,28 @@ class ShippedListTests(unittest.TestCase):
             self.assertGreater(len(entry["reason"]), 40, test)
 
 
+class ProcessOnlyOutputTests(unittest.TestCase):
+    """sec-fixes-2 request 4: the process-only branch of layers._run reads back only the output's tail."""
+
+    def run_code(self, code):
+        from engineering_os import governor, layers
+        with tempfile.TemporaryDirectory(prefix="gaie-sf2o-", dir="/tmp") as scratch:
+            work = layers._workspace(pathlib.Path(scratch), "out")
+            return layers._run([layers._python(), "-c", code], root=layers.ROOT, timeout=60, workspace=work,
+                               profile="process-only", reason="output bound test"), governor.OUTPUT_TAIL_BYTES
+
+    def test_a_flood_of_output_is_cut_to_the_governor_tail_and_says_so(self):
+        (code, output, _, timed_out, isolation), limit = self.run_code(
+            "import sys\nfor _ in range(48): sys.stdout.write('x' * 65536)\nprint('END')")
+        self.assertEqual((code, timed_out, isolation["profile"]), (0, False, "process-only"))
+        self.assertTrue(output.startswith("[governor: the first "), output[:80])
+        self.assertTrue(output.rstrip().endswith("END"))
+        self.assertLess(len(output), limit + 200)
+
+    def test_ordinary_output_and_the_return_code_are_kept_whole(self):
+        (code, output, _, timed_out, _), _ = self.run_code("print('ran'); raise SystemExit(3)")
+        self.assertEqual((code, output, timed_out), (3, "ran\n", False))
+
+
 if __name__ == "__main__":
     unittest.main()

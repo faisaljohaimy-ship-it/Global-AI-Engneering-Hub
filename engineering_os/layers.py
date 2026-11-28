@@ -739,26 +739,30 @@ def _run(argv, *, root, timeout, workspace, profile="strict", reason=None, read=
         # the host's temp directory, as before: a test may drop to another uid (the swarm cage
         # chowns its workspace to 65534), which cannot traverse the private per-run directory
         env["TMPDIR"] = tempfile.gettempdir()
-        process = subprocess.Popen(argv, cwd=root, env=env, stdin=subprocess.DEVNULL,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
-        try:
-            output, _ = process.communicate(timeout=timeout)
-            timed_out = False
-        except subprocess.TimeoutExpired:
+        # The output goes to a file in the private workspace and only its tail is read back, as the governor
+        # does for sandboxed runs (governor.OUTPUT_TAIL_BYTES): a test that prints without end costs no memory.
+        with tempfile.TemporaryFile(dir=work) as sink:
+            process = subprocess.Popen(argv, cwd=root, env=env, stdin=subprocess.DEVNULL,
+                                       stdout=sink, stderr=subprocess.STDOUT, start_new_session=True)
             try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
+                process.wait(timeout=timeout)
+                timed_out = False
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+                timed_out = True
+            try:
+                os.killpg(process.pid, signal.SIGKILL)  # nothing it started in its group outlives the run
+            except (ProcessLookupError, PermissionError):
                 pass
-            output, _ = process.communicate()
-            timed_out = True
-        try:
-            os.killpg(process.pid, signal.SIGKILL)  # nothing it started in its group outlives the run
-        except (ProcessLookupError, PermissionError):
-            pass
+            output = governor._text(sink)
         elapsed = int((time.monotonic() - started) * 1000)
         isolation = {"profile": "process-only", "sandboxed": False, "tier": tier, "environment": "scrubbed",
                      "reason": reason}
-        return process.returncode, output.decode("utf-8", "replace"), elapsed, timed_out, isolation
+        return process.returncode, output, elapsed, timed_out, isolation
     # env -i: exactly `env`; -C: the repository root is the working directory, as for
     # `python3 -m unittest discover` (the sandbox's own cwd must be the writable workspace)
     command = [shutil.which("env", path="/usr/bin:/bin") or "/usr/bin/env", "-i", "-C", str(root),
