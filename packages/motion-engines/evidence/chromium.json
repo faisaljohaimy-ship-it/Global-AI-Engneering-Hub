@@ -15,7 +15,7 @@
   "core_sha256": "0fe34d1f484c3650ef7d9fcdbda9510585608e1a8d7abbceff4e22bb0af46d0c"
  },
  "summary": {
-  "passed": 34,
+  "passed": 51,
   "failed": 0
  },
  "results": [
@@ -493,6 +493,150 @@
     "fallback": null,
     "heapGrowthPerInstanceMB": -0.961,
     "heapAfterAllChecksMB": 9.77
+   }
+  },
+  {
+   "id": "camera-dolly-out",
+   "module": "camera",
+   "engine": "webgl2-glsl",
+   "source_sha256": "b36141d517f32d8d237d165bcdcb515bf5749f4c35cf5468eb3e9fd116a96c79",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 177,
+     "spread": 0.7184,
+     "largestChange": 0.6565,
+     "readback": "pixels"
+    },
+    "signature": "03a4eb35-6a4df2b2-a0e1b45b-7e393b06",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.283,
+     "p95Ms": 0.5,
+     "maxMs": 2.4,
+     "framesPerSecond": 3529.4
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.582,
+    "heapAfterAllChecksMB": 14.02
+   }
+  },
+  {
+   "id": "camera-focus-pull",
+   "module": "camera",
+   "engine": "webgl2-glsl",
+   "source_sha256": "47f20a400468e6dd8be4cdedfc74d8dbf9f92251625e839ca697d1715d2eaca7",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 264,
+     "spread": 0.6417,
+     "largestChange": 0.1162,
+     "readback": "pixels"
+    },
+    "signature": "891aec01-6a6a79b9-13ca78a3-fe493e11",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 14.171,
+     "p95Ms": 16.8,
+     "maxMs": 26.6,
+     "framesPerSecond": 70.6
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.546,
+    "heapAfterAllChecksMB": 13.81
+   }
+  },
+  {
+   "id": "camera-spatial-roll",
+   "module": "camera",
+   "engine": "webgl2-glsl",
+   "source_sha256": "3f5d999d468d9921995fb6fdad827a7c59c9ead6d5a1cbc215a1e21c06c0dfee",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 968,
+     "spread": 0.8557,
+     "largestChange": 0.8579,
+     "readback": "pixels"
+    },
+    "signature": "31552680-ef93b2d9-f5868441-41a53ed6",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.262,
+     "p95Ms": 0.4,
+     "maxMs": 2.2,
+     "framesPerSecond": 3809.5
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.985,
+    "heapAfterAllChecksMB": 14.03
    }
   },
   {
@@ -1023,6 +1167,152 @@
    }
   },
   {
+   "id": "lighting-lens-flare",
+   "module": "lighting",
+   "engine": "webgl2-glsl",
+   "source_sha256": "9c25f527fa72493b0ee5ddb50f49240320e4f3be6c6bee7e51267306b339aae8",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "mirrorsUnderRtl": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 418,
+     "spread": 0.5919,
+     "largestChange": 0.3914,
+     "readback": "pixels"
+    },
+    "signature": "2dcf7ed7-e6000ec1-03cf118f-574c91a0",
+    "centroidX": {
+     "ltr": 0.445,
+     "rtl": 0.555
+    },
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 4.075,
+     "p95Ms": 5.2,
+     "maxMs": 7,
+     "framesPerSecond": 245.4
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.18,
+    "heapAfterAllChecksMB": 7.87
+   }
+  },
+  {
+   "id": "lighting-studio-spotlight",
+   "module": "lighting",
+   "engine": "webgl2-glsl",
+   "source_sha256": "8a8b08e47f09b7f216b9bd9bc2a9b65ade7858ef2de8340342ccd4294f6109ee",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 98,
+     "spread": 0.6777,
+     "largestChange": 0.1193,
+     "readback": "pixels"
+    },
+    "signature": "533d8f4f-b1e5e76e-33b87758-eaa17914",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.275,
+     "p95Ms": 0.6,
+     "maxMs": 1.4,
+     "framesPerSecond": 3636.4
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.399,
+    "heapAfterAllChecksMB": 12.92
+   }
+  },
+  {
+   "id": "lighting-volumetric-beams",
+   "module": "lighting",
+   "engine": "webgl2-glsl",
+   "source_sha256": "3201b634afe03ee97801dff153de40d62bfef71faa926c33372726f55696ba24",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 154,
+     "spread": 0.7797,
+     "largestChange": 0.1326,
+     "readback": "pixels"
+    },
+    "signature": "2ae15e73-5511241c-2ce845f7-1bc0d850",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 3.213,
+     "p95Ms": 4.3,
+     "maxMs": 5.7,
+     "framesPerSecond": 311.3
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.582,
+    "heapAfterAllChecksMB": 14.02
+   }
+  },
+  {
    "id": "micro-magnetic-button",
    "module": "micro",
    "engine": "dom",
@@ -1070,6 +1360,291 @@
     "fallback": null,
     "heapGrowthPerInstanceMB": -0.758,
     "heapAfterAllChecksMB": 7.12
+   }
+  },
+  {
+   "id": "neural-embedding-space",
+   "module": "neural",
+   "engine": "webgl2-points",
+   "source_sha256": "1dee9fc977e498432017123292361b74fec99a3b7cf853d8775f288629557a0a",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 628,
+     "spread": 0.0666,
+     "largestChange": 0.2873,
+     "readback": "pixels"
+    },
+    "signature": "fe2b9a75-b957fabe-9629187b-5270489a",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.325,
+     "p95Ms": 0.8,
+     "maxMs": 1.5,
+     "framesPerSecond": 3076.9
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.875,
+    "heapAfterAllChecksMB": 14.25
+   }
+  },
+  {
+   "id": "particles-disintegration",
+   "module": "particles",
+   "engine": "webgl2-points",
+   "source_sha256": "ced9ea566bc665af46dc55e8b233de4ab3124cac8c2755b0fea4167dffcba682",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 377,
+     "spread": 0.0893,
+     "largestChange": 0.1302,
+     "readback": "pixels"
+    },
+    "signature": "94ad0072-7402f3b5-421b237c-2f283dcc",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.271,
+     "p95Ms": 0.5,
+     "maxMs": 2,
+     "framesPerSecond": 3692.3
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.363,
+    "heapAfterAllChecksMB": 12.71
+   }
+  },
+  {
+   "id": "particles-gpu-swarm",
+   "module": "particles",
+   "engine": "webgl2-points",
+   "source_sha256": "affe75bc24c169856d7b1e1c08f930fa98c1922ebb1a988d03aefe1af0bceb1d",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 520,
+     "spread": 0.0666,
+     "largestChange": 0.1156,
+     "readback": "pixels"
+    },
+    "signature": "95c23762-ba997263-28c42dae-d8b8ece5",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.454,
+     "p95Ms": 2,
+     "maxMs": 3.1,
+     "framesPerSecond": 2201.8
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.436,
+    "heapAfterAllChecksMB": 13.14
+   }
+  },
+  {
+   "id": "particles-path-convergence",
+   "module": "particles",
+   "engine": "webgl2-points",
+   "source_sha256": "ff80b2471db9b4d9f705381e9209bc68d7cc3a0923d5783b005808e8f5354fbf",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 180,
+     "spread": 0.0389,
+     "largestChange": 0.2282,
+     "readback": "pixels"
+    },
+    "signature": "3c7c1deb-f938c8a2-9e0e4ca9-66512ca2",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.275,
+     "p95Ms": 0.3,
+     "maxMs": 2.1,
+     "framesPerSecond": 3636.4
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.326,
+    "heapAfterAllChecksMB": 12.49
+   }
+  },
+  {
+   "id": "particles-vortex",
+   "module": "particles",
+   "engine": "webgl2-points",
+   "source_sha256": "98122d4e0aad289012ae903dfa819e2e528b23595e918ae033f3ea538e271705",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 597,
+     "spread": 0.1245,
+     "largestChange": 0.1523,
+     "readback": "pixels"
+    },
+    "signature": "118d64f1-3eae9e8f-e91624f6-91714adb",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.258,
+     "p95Ms": 0.3,
+     "maxMs": 2.1,
+     "framesPerSecond": 3871
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.326,
+    "heapAfterAllChecksMB": 12.48
+   }
+  },
+  {
+   "id": "physics-metaball-fusion",
+   "module": "physics",
+   "engine": "webgl2-glsl",
+   "source_sha256": "1f9300b35f98b204662c7c2c44a25b7712c3019276eea265b45511bb634029c1",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 471,
+     "spread": 0.534,
+     "largestChange": 0.546,
+     "readback": "pixels"
+    },
+    "signature": "b6762aaf-a708c3a5-f597c055-786e025c",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 8.45,
+     "p95Ms": 9.2,
+     "maxMs": 17.8,
+     "framesPerSecond": 118.3
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.18,
+    "heapAfterAllChecksMB": 7.87
    }
   },
   {
@@ -1551,6 +2126,196 @@
    }
   },
   {
+   "id": "shaders-chromatic-aberration",
+   "module": "shaders",
+   "engine": "webgl2-glsl",
+   "source_sha256": "fc06a2acc9e63ecff8b3bb079963129486e130ae708dc9b17afb74b26641c932",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 497,
+     "spread": 0.0946,
+     "largestChange": 0.4819,
+     "readback": "pixels"
+    },
+    "signature": "89596245-a3f86ac1-ecd1e540-54e8582a",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.212,
+     "p95Ms": 3.3,
+     "maxMs": 3.9,
+     "framesPerSecond": 452
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.875,
+    "heapAfterAllChecksMB": 12.7
+   }
+  },
+  {
+   "id": "shaders-material-dissolve",
+   "module": "shaders",
+   "engine": "webgl2-glsl",
+   "source_sha256": "5bfe1040bc859448abc8b4f79e3c53590f88c0a55b9e9309af3c50ac27330ea4",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 686,
+     "spread": 0.6553,
+     "largestChange": 0.8207,
+     "readback": "pixels"
+    },
+    "signature": "16aa09bf-b4d445ef-fe3c1d95-863728ba",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.279,
+     "p95Ms": 0.9,
+     "maxMs": 1.4,
+     "framesPerSecond": 3582.1
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.363,
+    "heapAfterAllChecksMB": 12.71
+   }
+  },
+  {
+   "id": "shaders-raymarched-geometry",
+   "module": "shaders",
+   "engine": "webgl2-glsl",
+   "source_sha256": "7177040a50092205cf0dccc73863344898dfaa81af1bcfeca8041c51923f96b2",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 425,
+     "spread": 0.7786,
+     "largestChange": 0.2455,
+     "readback": "pixels"
+    },
+    "signature": "f09db55e-7aab9881-2614f8fd-94ec9e8d",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.2,
+     "p95Ms": 0.3,
+     "maxMs": 0.6,
+     "framesPerSecond": 5000
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.85,
+    "heapAfterAllChecksMB": 9.63
+   }
+  },
+  {
+   "id": "shaders-sdf-morph",
+   "module": "shaders",
+   "engine": "webgl2-glsl",
+   "source_sha256": "2caacfaae4ed1b853f7bd6105dfbdf1da96191970dd7cb3987c439a2d5fdd725",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 367,
+     "spread": 0.5935,
+     "largestChange": 0.4194,
+     "readback": "pixels"
+    },
+    "signature": "07dc8409-31a12b91-2eb7bedc-b11fad49",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.342,
+     "p95Ms": 0.9,
+     "maxMs": 1.5,
+     "framesPerSecond": 2926.8
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.363,
+    "heapAfterAllChecksMB": 12.7
+   }
+  },
+  {
    "id": "shaders-wgsl-compute-particles",
    "module": "shaders",
    "engine": "webgpu-wgsl",
@@ -1599,6 +2364,53 @@
     "canvasPresentation": "device lost here; recovered with the fallback (webgpu-lost)",
     "heapGrowthPerInstanceMB": -0.518,
     "heapAfterAllChecksMB": 5.35
+   }
+  },
+  {
+   "id": "twin-risk-heatmap",
+   "module": "twin",
+   "engine": "webgl2-glsl",
+   "source_sha256": "feaf3221dbae1f211c204b10600815c7fb4cd7c2d90b5cc0af7eb24fe3bcb7d5",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 793,
+     "spread": 0.5817,
+     "largestChange": 0.2881,
+     "readback": "pixels"
+    },
+    "signature": "19d946b1-5c661f7e-e6cc5de8-62d904ea",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.229,
+     "p95Ms": 0.4,
+     "maxMs": 1.9,
+     "framesPerSecond": 4363.6
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -2.132,
+    "heapAfterAllChecksMB": 14.9
    }
   },
   {
