@@ -428,7 +428,7 @@
  ],
  "command": "python3 tests/fixtures/release/scenario_g.py --out docs/evidence/gaie-20-layers/scenario-g.json",
  "commands_executed": {
-  "git_invocations": 713,
+  "git_invocations": 714,
   "git_subcommands": [
    "cat-file",
    "config",
@@ -442,7 +442,7 @@
   "git_write_or_network_commands": 0,
   "non_git_processes": 0,
   "origin_refs_after": 0,
-  "processes_started": 713,
+  "processes_started": 714,
   "socket_exec_or_url_events": 0,
   "template_tags_unchanged": true
  },
