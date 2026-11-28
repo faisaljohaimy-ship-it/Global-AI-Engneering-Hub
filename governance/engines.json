@@ -215,6 +215,38 @@
     ]
   },
   {
+    "id": "layers",
+    "layer": "L04",
+    "title": {
+      "en": "Twenty-Layer Architecture Registry",
+      "ar": "سجل معمارية الطبقات العشرين"
+    },
+    "entrypoint": "engineering_os.adapters:layers",
+    "health": "engineering_os.adapters:layers_health",
+    "actions": {
+      "status": {
+        "side_effect": "none",
+        "permissions": [
+          "read:repo",
+          "read:state",
+          "secrets:none"
+        ],
+        "summary": "Report each layer's status from its latest receipt bound to current sources; runs nothing."
+      },
+      "verify": {
+        "side_effect": "state-write",
+        "permissions": [
+          "read:repo",
+          "write:state",
+          "exec:sandbox",
+          "secrets:none"
+        ],
+        "summary": "Run each layer's listed tests in subprocesses (not the governor sandbox) and write source-bound receipts to the private state directory."
+      }
+    },
+    "supersedes": []
+  },
+  {
     "id": "master-upgrade",
     "layer": "L06",
     "title": {

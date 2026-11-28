@@ -302,6 +302,11 @@ def main():
     commands = parser.add_subparsers(dest="cmd", required=True)
     commands.add_parser("audit")
     commands.add_parser("architecture")
+    layers_parser = commands.add_parser("layers")
+    layers_parser.add_argument("--verify", action="store_true")
+    layers_parser.add_argument("--layer", action="append", default=[])
+    layers_parser.add_argument("--state")
+    layers_parser.add_argument("--json", action="store_true")
     capability_parser = commands.add_parser("capabilities")
     capability_parser.add_argument("--query", default="")
     capability_parser.add_argument("--state", choices=control.STATES)
@@ -356,7 +361,23 @@ def main():
     if args.cmd == "audit":
         result = audit()
     elif args.cmd == "architecture":
-        result = control.architecture()
+        from engineering_os import layers as layer_registry
+        result = layer_registry.architecture()
+    elif args.cmd == "layers":
+        from engineering_os import layers as layer_registry
+        ids = [part for value in args.layer for part in value.split(",") if part] or None
+        try:
+            if args.verify:
+                report = layer_registry.verify(ids, state_dir=args.state)
+                rows, code = report["layers"], 0 if report["ok"] else 1
+            else:
+                report = rows = layer_registry.status(ids, state_dir=args.state)
+                code = 0
+        except layer_registry.LayerError as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(2)
+        print(json.dumps(report, indent=2, ensure_ascii=False) if args.json else layer_registry.table(rows))
+        sys.exit(code)
     elif args.cmd == "capabilities":
         result = control.capabilities(args.query, args.state)
     elif args.cmd == "health":

@@ -215,3 +215,81 @@ def audit_inventory(request=None, *, now=None):
 
 def catalog_report():
     return audit_inventory()
+
+
+ENGINE_REGISTRY = 'packages/motion-engines/registry.json'
+REFERENCE_DEFINITIONS = 'motion-library/expansion/definitions.json'
+COMPONENTS = 'motion-library/components.json'
+NATIVE_MOTIONS = 'packages/motion-engines/motions/'
+GPU_API_ENGINES = frozenset({'webgl2-glsl', 'webgl2-points', 'webgpu-wgsl'})
+
+
+def motion_inventory():
+    """Honest, source-bound counts of the motion namespaces, never conflated. Read-only.
+
+    native: packages/motion-engines (PR #16) motions, each on its own engine, bound to its
+    registry digest; camera: the nextgen perspective scenes (CPU projection drawn with
+    Canvas2D); reference: the 400 portable Canvas2D recipes of motion-library/expansion.
+    GPU-API motions call WebGL2/WebGPU; whether a hardware GPU ran them is a separate,
+    probed fact (video_pipeline.browser_probe), never implied by these counts.
+    """
+    registry = _read(ENGINE_REGISTRY)
+    rows = registry.get('motions') if isinstance(registry, dict) else None
+    if not isinstance(rows, list) or not rows:
+        raise CinematicError('Invalid native engine registry')
+    engines, bound, identifiers = {}, 0, set()
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get('id'), str) or not SLUG.fullmatch(row['id']) or row['id'] in identifiers:
+            raise CinematicError('Invalid or duplicate native motion')
+        identifiers.add(row['id'])
+        engine = row.get('engine')
+        if not isinstance(engine, str) or not SLUG.fullmatch(engine):
+            raise CinematicError('Invalid native motion engine')
+        engines[engine] = engines.get(engine, 0) + 1
+        source = row.get('source')
+        if isinstance(source, str) and source.startswith(NATIVE_MOTIONS):
+            try:
+                bound += _hash(source) == row.get('source_sha256')
+            except CinematicError:
+                pass
+    files = sorted(p.name for p in (ROOT / NATIVE_MOTIONS).glob('*/*.mjs') if p.is_file() and not p.is_symlink())
+    definitions = _read(REFERENCE_DEFINITIONS)
+    reference = definitions.get('definitions') if isinstance(definitions, dict) else None
+    if not isinstance(reference, list):
+        raise CinematicError('Invalid reference definitions')
+    tiers, reference_ids = {}, set()
+    for row in reference:
+        if not isinstance(row, dict) or row.get('id') in reference_ids or row.get('engine') != 'canvas2d':
+            raise CinematicError('Invalid reference recipe')
+        reference_ids.add(row.get('id'))
+        tiers[str(row.get('tier'))] = tiers.get(str(row.get('tier')), 0) + 1
+    if reference_ids & identifiers:
+        raise CinematicError('Reference and native namespaces overlap')
+    components = _read(COMPONENTS)
+    camera = len(CAMERA_IDS) if _file(CAMERA_SOURCE).is_file() else 0
+    return {
+        'schema_version': 1,
+        'native_engine_motions': {
+            'count': len(rows), 'source_files': len(files), 'source_bound_to_registry': bound,
+            'by_engine': dict(sorted(engines.items())),
+            'gpu_api_motions': sum(v for k, v in engines.items() if k in GPU_API_ENGINES),
+            'cpu_motions': sum(v for k, v in engines.items() if k not in GPU_API_ENGINES),
+            'source': 'packages/motion-engines (PR #16)'},
+        'nextgen_camera_motions': {
+            'count': camera, 'ids': sorted(CAMERA_IDS), 'engine': 'canvas2d',
+            'projection': 'CPU perspective projection; no WebGL or 3D engine', 'source': CAMERA_SOURCE},
+        'native_total': len(rows) + camera,
+        'reference_canvas2d_motions': {
+            'count': len(reference), 'by_tier': dict(sorted(tiers.items())), 'engine': 'canvas2d',
+            'source': 'motion-library/expansion (portable 2D reference recipes, not native engines)'},
+        'motion_library_components': {
+            'implemented': len(components.get('components', [])) if isinstance(components, dict) else 0,
+            'catalog_indexed': components.get('catalog_total') if isinstance(components, dict) else None,
+            'source': COMPONENTS},
+        'native_3d_scene_engines': [],
+        'gpu_hardware_claimed': False,
+        'notes': ('Native engine motions and Canvas2D reference recipes are separate namespaces and are '
+                  'never added together. Nextgen camera scenes project 3D geometry on the CPU. No '
+                  'Three.js/Babylon-class 3D engine is installed. GPU-API motions use WebGL2/WebGPU; '
+                  'hardware execution is a probed fact, not implied by a count.'),
+    }

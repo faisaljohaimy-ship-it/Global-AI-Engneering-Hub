@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "module": "app.py",
+  "table": "ROUTES",
+  "handler_convention": "conn-query->status-type-body",
+  "routes": [
+    {"method": "GET", "path": "/", "handler": "index",
+     "response": {"status": 200, "type": "html"}},
+    {"method": "GET", "path": "/health", "handler": "health",
+     "response": {"status": 200, "type": "json", "shape": {"status": "str"}}},
+    {"method": "GET", "path": "/api/items", "handler": "list_items",
+     "response": {"status": 200, "type": "json", "shape": {"items": "list"}}},
+    {"method": "GET", "path": "/api/items/count", "handler": "count_items",
+     "response": {"status": 200, "type": "json", "shape": {"count": "int"}},
+     "implementation": {"template": "sql-scalar", "query": "SELECT COUNT(*) FROM items", "field": "count"}},
+    {"method": "GET", "path": "/api/price", "handler": "price", "probe": "/api/price?unit=200&qty=3",
+     "response": {"status": 200, "type": "json", "shape": {"total": "int"}}}
+  ]
+}

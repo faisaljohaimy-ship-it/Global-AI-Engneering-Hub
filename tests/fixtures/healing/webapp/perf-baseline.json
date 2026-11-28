@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "note": "Synthetic, deliberately generous budget for the fixture; not a measured production baseline.",
+  "functions": {
+    "pricing:quote": {"args": [200, 12], "median_ms": 0.05, "tolerance": 40, "repeats": 5, "number": 2000}
+  }
+}

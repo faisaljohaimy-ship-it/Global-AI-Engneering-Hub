@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "contracts": [
+    {"id": "storefront-catalogue", "consumer": "storefront-ui", "interactions": [
+      {"request": {"method": "GET", "path": "/api/items"}, "response": {"status": 200, "shape": {"items": "list"}}},
+      {"request": {"method": "GET", "path": "/api/items/count"}, "response": {"status": 200, "shape": {"count": "int"}}}
+    ]},
+    {"id": "checkout-quote", "consumer": "checkout", "interactions": [
+      {"request": {"method": "GET", "path": "/api/price?unit=200&qty=12"}, "response": {"status": 200, "json": {"total": 2040}}}
+    ]}
+  ]
+}

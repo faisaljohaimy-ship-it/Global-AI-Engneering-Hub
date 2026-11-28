@@ -52,6 +52,8 @@ SOURCES = {
     "self-healing": ("engineering_os/healing.py",),
     "economics": ("engineering_os/economics.py", "engineering_os/model_router.py"),
     "capability-registry": ("engineering_os/control.py", "hub.py", "catalog/registry.json"),
+    "layers": ("engineering_os/layers.py", "engineering_os/contracts.py", "governance/layers.json",
+               "governance/agent-roles.json"),
     "motion-sdk": ("engineering_os/control.py", "hub.py", "motion-library/MOTION_CATALOG.json",
                    "packages/motion-sdk/index.mjs"),
     "context-intelligence": ("tools/headroom_context.py", "tools/headroom_worker.py",
@@ -406,13 +408,16 @@ def reasoning_health():
 # ---------------------------------------------------------------- L14 memory
 
 def memory_store(ctx):
-    """The single place that opens engineering memory for the control plane."""
+    """The single place that opens engineering memory (the unified L14 engine) for the control plane."""
     from .memory import MemoryStore
     return MemoryStore(_state(ctx) / MEMORY_DIR)
 
 
 def _memory_exists(ctx):
-    return (_state(ctx) / MEMORY_DIR / "memory.json").is_file()
+    """A store exists in the engine's schema-2 file, or a schema-1 file it migrates on open; reads never create one."""
+    from .memory import LEGACY_STATE_FILE, STATE_FILE
+    directory = _state(ctx) / MEMORY_DIR
+    return any((directory / name).is_file() for name in (STATE_FILE, LEGACY_STATE_FILE))
 
 
 def record_checkpoint(ctx, *, task_id, project, host, engine, action, receipt):
@@ -464,7 +469,10 @@ def memory_health():
         from . import memory as module
         if not {"checkpoint", "solution"} <= module.KINDS or not callable(module.MemoryStore):
             raise AdapterError("memory store API changed")
-        return "MemoryStore API present (private state directory outside Git; opened per invocation)"
+        engine = module.health()  # side-effect free: secret guard and state serialization checked in memory
+        if not engine["ok"]:
+            raise AdapterError(f"memory engine unhealthy: {engine['detail']}")
+        return "MemoryStore API present (private state directory outside Git; opened per invocation); " + engine["detail"]
     return _healthy(check)
 
 
@@ -587,6 +595,39 @@ def capability_registry_health():
         import hub
         rows = hub.registry()
         return f"{len(rows)} catalog entries validated; skills and lifecycle projection available"
+    return _healthy(check)
+
+
+# ---------------------------------------------------------------- L04 layers
+
+def _layer_ids(payload):
+    ids = payload.get("layers")
+    if ids is None:
+        return None
+    if not isinstance(ids, list) or not 1 <= len(ids) <= 20 or not all(isinstance(i, str) for i in ids):
+        raise AdapterError("layers: list of 1-20 layer ids")
+    return ids
+
+
+def layers(action, payload, ctx):
+    """Twenty-layer registry. Receipts live under the control plane's private state dir, in layers/."""
+    from . import layers as module
+    if action == "status":
+        _fields(payload, (), ("layers",))
+        return _rows(module.status(_layer_ids(payload), state_dir=_state(ctx) / "layers"))
+    if action == "verify":
+        _fields(payload, (), ("layers",))
+        return module.verify(_layer_ids(payload), state_dir=_state(ctx) / "layers")
+    return _unknown("layers", action)
+
+
+def layers_health():
+    def check():
+        from . import layers as module
+        records = module.load_layers()
+        if [record["id"] for record in records] != [f"L{n:02d}" for n in range(1, 21)]:
+            raise AdapterError("layer registry is not L01..L20")
+        return "twenty-layer registry validates (contract and repository checks); status reads receipts only"
     return _healthy(check)
 
 
