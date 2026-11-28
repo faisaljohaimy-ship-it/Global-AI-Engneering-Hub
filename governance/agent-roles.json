@@ -59,6 +59,9 @@
           "layers": [
             "status"
           ],
+          "capability-registry": [
+            "architecture"
+          ],
           "reasoning": [
             "plan",
             "review"
@@ -95,6 +98,9 @@
           "layers": [
             "status",
             "verify"
+          ],
+          "capability-registry": [
+            "architecture"
           ]
         },
         "paths": [],
@@ -128,6 +134,14 @@
         "engines": {
           "layers": [
             "status"
+          ],
+          "capability-registry": [
+            "list",
+            "integrations",
+            "architecture"
+          ],
+          "master-audit": [
+            "health"
           ]
         },
         "paths": [],
@@ -157,6 +171,9 @@
             "plan",
             "review",
             "root-causes"
+          ],
+          "master-router": [
+            "route"
           ]
         },
         "paths": [],
@@ -184,6 +201,7 @@
         "engines": {
           "memory": [
             "search",
+            "graph",
             "put",
             "checkpoint",
             "restore"
@@ -214,7 +232,16 @@
       "default_grant": {
         "engines": {
           "memory": [
-            "search"
+            "search",
+            "graph"
+          ],
+          "context-intelligence": [
+            "view",
+            "retrieve"
+          ],
+          "capability-registry": [
+            "search",
+            "recommend"
           ]
         },
         "paths": [],
@@ -243,17 +270,16 @@
       "default_grant": {
         "engines": {
           "master-build": [
+            "spec",
             "plan",
-            "build"
+            "evaluate"
           ],
           "master-router": [
             "route"
           ]
         },
-        "paths": [
-          "workspace/*"
-        ],
-        "max_side_effect": "workspace-write"
+        "paths": [],
+        "max_side_effect": "none"
       }
     },
     {
@@ -278,17 +304,16 @@
       "default_grant": {
         "engines": {
           "master-upgrade": [
+            "spec",
             "plan",
-            "upgrade"
+            "evaluate"
           ],
-          "inventory": [
-            "scan"
+          "master-audit": [
+            "inventory"
           ]
         },
-        "paths": [
-          "workspace/*"
-        ],
-        "max_side_effect": "workspace-write"
+        "paths": [],
+        "max_side_effect": "none"
       }
     },
     {
@@ -315,7 +340,8 @@
       "default_grant": {
         "engines": {
           "master-router": [
-            "route"
+            "route",
+            "projects"
           ]
         },
         "paths": [],
@@ -342,14 +368,16 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "orchestration": [
-            "status",
-            "claim",
-            "handover"
+          "agent-swarm": [
+            "plan",
+            "simulate"
+          ],
+          "adaptive-scheduler": [
+            "next-wave"
           ]
         },
         "paths": [],
-        "max_side_effect": "state-write"
+        "max_side_effect": "none"
       }
     },
     {
@@ -376,10 +404,12 @@
         "engines": {
           "economics": [
             "summarize",
-            "recommend"
+            "recommend-model",
+            "ledger"
           ],
-          "model-router": [
-            "select"
+          "context-intelligence": [
+            "status",
+            "view"
           ]
         },
         "paths": [],
@@ -407,8 +437,12 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "cinematic": [
+          "master-cinematic": [
+            "spec",
             "audit"
+          ],
+          "motion-sdk": [
+            "catalog"
           ]
         },
         "paths": [],
@@ -435,8 +469,10 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "cinematic": [
-            "audit"
+          "motion-sdk": [
+            "catalog",
+            "components",
+            "runtime"
           ]
         },
         "paths": [],
@@ -463,7 +499,10 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "cinematic": [
+          "motion-sdk": [
+            "runtime"
+          ],
+          "master-cinematic": [
             "audit"
           ]
         },
@@ -493,8 +532,9 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "security-scan": [
-            "scan"
+          "security-governor": [
+            "check",
+            "validate-grant"
           ]
         },
         "paths": [],
@@ -522,8 +562,11 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "security-scan": [
-            "scan"
+          "security-governor": [
+            "validate-grant"
+          ],
+          "quality-assurance": [
+            "contracts"
           ]
         },
         "paths": [],
@@ -549,16 +592,21 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "healing": [
+          "self-healing": [
             "analyze",
-            "verify"
+            "verify-repair"
+          ],
+          "quality-assurance": [
+            "run-tests"
           ],
           "layers": [
             "status"
           ]
         },
-        "paths": [],
-        "max_side_effect": "none"
+        "paths": [
+          "workspace/*"
+        ],
+        "max_side_effect": "workspace-write"
       }
     },
     {
@@ -583,7 +631,10 @@
             "status",
             "verify"
           ],
-          "assurance": [
+          "quality-assurance": [
+            "contracts"
+          ],
+          "reasoning": [
             "review"
           ]
         },
@@ -614,8 +665,10 @@
       "reviewer": false,
       "default_grant": {
         "engines": {
-          "release": [
-            "check"
+          "master-release": [
+            "spec",
+            "provenance",
+            "eligibility"
           ]
         },
         "paths": [],
@@ -645,6 +698,9 @@
         "engines": {
           "master-router": [
             "route"
+          ],
+          "capability-registry": [
+            "list"
           ]
         },
         "paths": [],

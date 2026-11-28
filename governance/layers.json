@@ -171,7 +171,8 @@
     "responsibilities": [
       "Expose the hub's registries, architecture, capability and health projections.",
       "Dispatch offline engine operations through one entry point shared by Codex and Claude Code.",
-      "Report the twenty-layer architecture and each layer's receipt-backed status."
+      "Report the twenty-layer architecture and each layer's receipt-backed status.",
+      "Invoke every engine, the layer registry included, only under a grant the Security Governor allows."
     ],
     "interfaces": [
       "engineering_os.control:architecture",
@@ -180,7 +181,9 @@
       "engineering_os.intelligence:dispatch",
       "hub:audit",
       "engineering_os.layers:architecture",
-      "engineering_os.layers:status"
+      "engineering_os.layers:status",
+      "engineering_os.control_plane:invoke",
+      "engineering_os.adapters:layers"
     ],
     "inputs": [
       "CLI commands",
@@ -218,7 +221,8 @@
       "tests/test_os_control.py",
       "tests/test_hub.py",
       "tests/test_intelligence.py",
-      "tests/test_layers.py"
+      "tests/test_layers.py",
+      "tests/test_control_plane.py"
     ],
     "scenarios": [],
     "evidence": {

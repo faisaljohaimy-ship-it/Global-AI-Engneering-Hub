@@ -346,6 +346,10 @@ def _check_grant_template(role, template, actions):
                 effect = actions[engine][action]
                 _need(effect not in GATED and side_effect_rank(effect) <= rank,
                       f"{rid}: privilege escalation, {engine}.{action} is {effect} above {ceiling}")
+    if actions is not None:  # least privilege: the ceiling is exactly what the granted actions need
+        needed = max(side_effect_rank(actions[engine][action]) for engine, granted in engines.items() for action in granted)
+        _need(rank == needed, f"{rid}.default_grant: over-broad ceiling, {ceiling} where the granted actions "
+                              f"need only {SIDE_EFFECTS[needed]}")
 
 
 def validate_roles(document, *, layers=None, engines=None):

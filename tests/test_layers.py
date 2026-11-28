@@ -14,7 +14,7 @@ import sys
 import tempfile
 import unittest
 
-from engineering_os import contracts, control, layers
+from engineering_os import adapters, contracts, control, control_plane, layers
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 NAMES = [
@@ -42,6 +42,10 @@ def real_layers():
 
 def real_roles():
     return json.loads((ROOT / "governance/agent-roles.json").read_text(encoding="utf-8"))
+
+
+def real_engines():
+    return json.loads((ROOT / "governance/engines.json").read_text(encoding="utf-8"))
 
 
 def demo_record(lid, tests=("tests/test_pkgdemo.py",), interfaces=("pkgdemo.core:answer",), agents=None):
@@ -297,9 +301,11 @@ class RoleTests(unittest.TestCase):
     def setUp(self):
         self.layers = real_layers()
         self.document = real_roles()
+        self.engines = real_engines()
 
     def check(self, document, engines=None):
-        return layers.validate_roles(document, layers=self.layers, engines=engines)
+        """Validate against the layers and the real engine registry unless another registry is given."""
+        return layers.validate_roles(document, layers=self.layers, engines=self.engines if engines is None else engines)
 
     def mutated(self, rid, **changes):
         document = copy.deepcopy(self.document)
@@ -324,6 +330,12 @@ class RoleTests(unittest.TestCase):
                                      contracts.side_effect_rank("state-write"))
         mine = next(r for r in document["roles"] if r["id"] == "twenty-layer-architecture-engineer")
         self.assertIn("engineering_os/layers.py", mine["owns"])
+        self.assertTrue(self.check(self.document))
+        registered = {e["id"]: {a: spec["side_effect"] for a, spec in e["actions"].items()} for e in self.engines}
+        for role in self.document["roles"]:
+            for engine, granted in role["default_grant"]["engines"].items():
+                self.assertTrue(set(granted) <= set(registered[engine]), (role["id"], engine))
+        self.assertEqual(registered["layers"], {"status": "none", "verify": "state-write"})
 
     def test_unknown_missing_and_duplicate_roles_are_rejected(self):
         unknown = copy.deepcopy(self.document); unknown["roles"][0]["id"] = "rogue-engineer"
@@ -346,44 +358,92 @@ class RoleTests(unittest.TestCase):
              "reviewer is limited"),
             (self.mutated("twenty-layer-architecture-engineer", max_side_effect="repo-write", paths=["hub.py"]),
              "not owned by the role"),
-            (self.mutated("master-build-engine-engineer", paths=["engineering_os/*"]), "stay under workspace/"),
-            (self.mutated("master-build-engine-engineer", paths=["workspace/../../etc"]), "unsafe path"),
-            (self.mutated("master-build-engine-engineer", paths=[]), "need scoped paths"),
+            (self.mutated("testing-self-healing-engineer", paths=["engineering_os/*"]), "stay under workspace/"),
+            (self.mutated("testing-self-healing-engineer", paths=["workspace/../../etc"]), "unsafe path"),
+            (self.mutated("testing-self-healing-engineer", paths=[]), "need scoped paths"),
             (self.mutated("chief-engineering-architect", paths=["workspace/*"]), "need scoped paths"),
             (self.mutated("chief-engineering-architect", max_side_effect="root"), "unknown side-effect"),
             (self.mutated("chief-engineering-architect", owns=["../outside"]), "unsafe pattern"),
+            # a ceiling above what the granted actions need is refused too (least privilege)
+            (self.mutated("master-build-engine-engineer", max_side_effect="state-write"), "over-broad ceiling"),
+            # templates may only name registered engines and actions
+            (self.mutated("chief-engineering-architect", engines={"inventory": ["scan"]}),
+             "unknown engine action inventory.scan"),
+            (self.mutated("engineering-reasoning-engineer", engines={"reasoning": ["deploy"]}),
+             "unknown engine action reasoning.deploy"),
         ]
         for document, message in cases:
             with self.assertRaisesRegex(layers.LayerError, message):
                 self.check(document)
 
     def test_engine_registry_bounds_every_granted_action(self):
-        def engine(eid, actions):
-            return {"id": eid, "layer": "L04", "title": {"en": eid, "ar": "محرك"},
-                    "entrypoint": "engineering_os.contracts:canonical", "health": "engineering_os.contracts:canonical",
-                    "actions": {name: {"side_effect": effect, "permissions": ["read:repo"], "summary": "Demo."}
-                                for name, effect in actions.items()}, "supersedes": []}
-        granted = {}
-        for role in self.document["roles"]:
-            for eid, actions in role["default_grant"]["engines"].items():
-                granted.setdefault(eid, set()).update(actions)
-        registry = [engine(eid, {action: "none" for action in sorted(actions)}) for eid, actions in sorted(granted.items())]
+        registry = self.engines
         self.assertTrue(self.check(self.document, engines=registry))
-        above = copy.deepcopy(registry)
-        next(e for e in above if e["id"] == "reasoning")["actions"]["plan"]["side_effect"] = "repo-write"
+        layers.load_roles()                                       # the on-disk registry is the one checked
+
+        def changed(engine, action, effect):
+            mutated = copy.deepcopy(registry)
+            next(e for e in mutated if e["id"] == engine)["actions"][action]["side_effect"] = effect
+            return mutated
+
         with self.assertRaisesRegex(layers.LayerError, "reasoning.plan is repo-write above none"):
-            self.check(self.document, engines=above)
-        gated = copy.deepcopy(registry)
-        next(e for e in gated if e["id"] == "release")["actions"]["check"]["side_effect"] = "external-write"
+            self.check(self.document, engines=changed("reasoning", "plan", "repo-write"))
         with self.assertRaisesRegex(layers.LayerError, "privilege escalation"):
-            self.check(self.document, engines=gated)
+            self.check(self.document, engines=changed("master-release", "eligibility", "external-write"))
+        with self.assertRaisesRegex(layers.LayerError, "privilege escalation"):
+            self.check(self.document, engines=changed("layers", "verify", "production"))
+        with self.assertRaisesRegex(layers.LayerError, "over-broad ceiling"):
+            self.check(self.document, engines=changed("layers", "verify", "none"))
         with self.assertRaisesRegex(layers.LayerError, "unknown engine action"):
             self.check(self.document, engines=[e for e in registry if e["id"] != "memory"])
+        with self.assertRaisesRegex(layers.LayerError, "engines:"):
+            self.check(self.document, engines=[{"id": "not a record"}])
 
     def test_roles_and_layer_agents_must_agree(self):
         document = self.mutated("persistent-memory-engineer", layers=["L07", "L14"])
         with self.assertRaisesRegex(layers.LayerError, "differ from the layers that list it"):
             self.check(document)
+
+
+class GovernedEngineTests(TempCase):
+    """The layers engine (L04) through control_plane.invoke, the real Security Governor and the role templates."""
+
+    def setUp(self):
+        super().setUp()
+        if control_plane.governor is None:
+            self.skipTest("engineering_os.governor is not installed")
+        self.ctx = {"state_dir": str(self.base / "state")}
+        self.roles = {role["id"]: role for role in layers.load_roles()["roles"]}
+
+    def grant(self, rid):
+        return layers.instantiate_grant(self.roles[rid], "g-layers-engine-test", "2099-01-01T00:00:00Z")
+
+    def test_role_templates_verify_and_report_through_the_control_plane(self):
+        out = control_plane.invoke("layers", "verify", {"layers": ["L13"]},
+                                   grant=self.grant("twenty-layer-architecture-engineer"), ctx=self.ctx)
+        contracts.validate_receipt(out["receipt"])
+        self.assertEqual(out["receipt"]["side_effect"], "state-write")
+        self.assertTrue(out["result"]["ok"], out["result"])
+        self.assertTrue((self.base / "state/layers/L13.json").is_file())
+        status = control_plane.invoke("layers", "status", {"layers": ["L13", "L14"]},
+                                      grant=self.grant("independent-assurance-engineer"), ctx=self.ctx)
+        self.assertEqual({row["id"]: row["status"] for row in status["result"]["rows"]},
+                         {"L13": "VERIFIED", "L14": "UNVERIFIED"})
+        self.assertEqual(status["receipt"]["side_effect"], "none")
+
+    def test_templates_without_verify_are_denied_and_bad_payloads_refused(self):
+        for rid in ("testing-self-healing-engineer", "chief-engineering-architect", "master-build-engine-engineer"):
+            with self.subTest(role=rid), self.assertRaises(control_plane.governor.GovernorDenied):
+                control_plane.invoke("layers", "verify", {}, grant=self.grant(rid), ctx=self.ctx)
+        self.assertFalse((self.base / "state/layers").exists())
+        for payload in ({"layers": "L13"}, {"layers": ["L21"]}, {"layers": []}, {"unexpected": True}):
+            with self.subTest(payload=payload), self.assertRaises(control_plane.EngineFailure):
+                control_plane.invoke("layers", "status", payload, grant=self.grant("testing-self-healing-engineer"),
+                                     ctx=self.ctx)
+        with self.assertRaisesRegex(adapters.AdapterError, "has no action"):
+            adapters.layers("delete", {}, {"state_dir": str(self.base / "state")})
+        self.assertIs(adapters.layers_health()["ok"], True)
+        self.assertFalse((self.base / "state/layers").exists())
 
 
 class HubCommandTests(TempCase):
