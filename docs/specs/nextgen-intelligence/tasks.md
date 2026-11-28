@@ -9,7 +9,7 @@
 - [x] M06 complete-team usage/cost ledger and accounting tests.
 - [x] Shared lazy CLI and Codex/Claude invocation skill.
 - [ ] Independent review and mandatory local checks, exact source receipts.
-- [ ] Publish independent reviewable PR; remote gates and owner review pending.
+- [x] Publish independent reviewable draft PR #25; remote gates and owner review pending.
 
 Runtime model review, autonomous application generation, semantic embeddings,
 production repair execution, all 200 original motions, real-device/cross-browser

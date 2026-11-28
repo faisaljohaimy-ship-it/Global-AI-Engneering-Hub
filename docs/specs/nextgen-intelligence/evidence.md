@@ -91,3 +91,12 @@ fresh evidence still require resolution in its own review.
 
 Canonical architecture remains L01–L12. plan.md maps eight proposed additional
 responsibilities for review; it does not claim twenty operational layers.
+
+## Remote handoff
+
+Draft PR #25 holds the complete increment on `codex/nextgen-intelligence`.
+Initial remote security/dependency jobs passed. The first new camera workflow
+failed during startup because runner context was used in job-level environment
+values; those paths are now prepared in a step through GITHUB_ENV. Fresh checks
+on the corrected head are required. Other mandatory results remain independent
+of this local validation record.

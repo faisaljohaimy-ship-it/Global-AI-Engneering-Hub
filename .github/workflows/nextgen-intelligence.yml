@@ -17,9 +17,6 @@ jobs:
     name: Original camera motions in Chromium
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/nextgen-browsers
-      NEXTGEN_CAMERA_RECEIPT: ${{ runner.temp }}/nextgen-evidence/camera-chromium.json
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -27,6 +24,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - name: Prepare local runtime and evidence paths
+        run: |
+          printf 'PLAYWRIGHT_BROWSERS_PATH=%s/nextgen-browsers\nNEXTGEN_CAMERA_RECEIPT=%s/nextgen-evidence/camera-chromium.json\n' "$RUNNER_TEMP" "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Check original mechanisms and existing SDK compatibility
         run: node --test tests/test_nextgen_camera.mjs tests/test_universal_motion_sdk.mjs
       - name: Install the existing reviewed exact browser lock
