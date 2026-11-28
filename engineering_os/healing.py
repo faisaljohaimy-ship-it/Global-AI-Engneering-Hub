@@ -475,14 +475,32 @@ def _test_slug(test_id):
     return f"{base}-{hashlib.sha256(test_id.encode()).hexdigest()[:12]}"
 
 
+def _lines(text):
+    """Split at LF only, keeping it: the line model of unified diffs and ``git apply``.
+
+    ``str.splitlines`` also breaks at form feed, \\x1c-\\x1e, \\x85 and U+2028/2029, which
+    split one diff line in two and corrupted the patch of any file holding one.
+    """
+    parts = text.split("\n")
+    return [part + "\n" for part in parts[:-1]] + ([parts[-1]] if parts[-1] else [])
+
+
+_SOURCE_LINE = re.compile(r"[^\r\n]*(?:\r\n|\r|\n)|[^\r\n]+\Z")
+
+
+def _source_lines(text):
+    """Split like the Python tokenizer (CRLF, CR, LF; never form feed) so ``ast`` line numbers index it."""
+    return _SOURCE_LINE.findall(text)
+
+
 def _diff(rel, before, after):
-    lines = difflib.unified_diff(before.decode("utf-8").splitlines(keepends=True), after.decode("utf-8").splitlines(keepends=True), f"a/{rel}", f"b/{rel}")
+    lines = difflib.unified_diff(_lines(before.decode("utf-8")), _lines(after.decode("utf-8")), f"a/{rel}", f"b/{rel}")
     return "".join(line if line.endswith("\n") else line + "\n\\ No newline at end of file\n" for line in lines)
 
 
 def apply_patch(files, patch):
     """Apply a unified diff exactly (no fuzz) to ``{path: text}``; HealingError on any mismatch."""
-    result, lines, index = dict(files), patch.splitlines(keepends=True), 0
+    result, lines, index = dict(files), _lines(patch), 0
     while index < len(lines):
         if not lines[index].startswith("--- ") or index + 1 >= len(lines) or not lines[index + 1].startswith("+++ "):
             raise HealingError("Malformed patch header")
@@ -491,7 +509,7 @@ def apply_patch(files, patch):
         source = "" if old == "/dev/null" else result.get(rel)
         if source is None:
             raise HealingError("Patch target missing")
-        original, out, position = source.splitlines(keepends=True), [], 0
+        original, out, position = _lines(source), [], 0
         index += 2
         while index < len(lines) and lines[index].startswith("@@"):
             match = re.match(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", lines[index])
@@ -798,8 +816,8 @@ def handler_source(route, spec, *, root=None, schemas=()):
 
 def _insert_handler(source, code, handlers):
     tree = ast.parse(source)
-    lines = source.splitlines(keepends=True)
-    if lines and not lines[-1].endswith("\n"):
+    lines = _source_lines(source)
+    if lines and not lines[-1].endswith(("\n", "\r")):
         lines[-1] += "\n"
     defs = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name in handlers]
     guard = next((n for n in tree.body if isinstance(n, ast.If) and "__main__" in ast.unparse(n.test)), None)
@@ -998,7 +1016,7 @@ class _Heal:
             node = next((n for n in ast.parse(source).body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.name == symbol), None)
             if node is None or node.decorator_list:
                 return
-            lines = source.splitlines(keepends=True)
+            lines = _source_lines(source)
             end = node.end_lineno
             while end < len(lines) and end - node.end_lineno < 2 and not lines[end].strip():
                 end += 1
@@ -1089,7 +1107,7 @@ class _Heal:
                     reasons.append("regression-gate-disagreement")
         elif not reasons:
             reasons.append("full-suite-not-run")
-        changed = sum(1 for rel, data in candidate["edits"].items() for line in _diff(rel, pre[rel], data).splitlines()
+        changed = sum(1 for rel, data in candidate["edits"].items() for line in _lines(_diff(rel, pre[rel], data))
                       if line[:1] in "+-" and not line.startswith(("+++", "---")))
         if changed > self.policy["max_patch_lines"]:
             reasons.append("patch-exceeds-bound")
