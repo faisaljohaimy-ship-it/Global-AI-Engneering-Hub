@@ -194,17 +194,15 @@
    "version": "4.7.0",
    "published": "2026-11-12",
    "license": "MIT",
-   "lock": "activation/locks/context7/package-lock.json",
+   "lock": null,
    "upstream_git_revision": null,
    "test": "activation/tests/context7_probe.py",
    "labels": [
     "DISCOVERED",
     "REVIEWED",
-    "INSTALLED",
-    "OPERATIONAL",
     "BLOCKED"
    ],
-   "blocked_by": "Its service refuses requests without an API key once the shared anonymous allowance is used: both requests were answered with a quota message. It needs a free key from the owner.",
+   "blocked_by": "Two things. Its service refuses requests without an API key once the shared anonymous allowance is used: both requests were answered with a quota message, so it needs a free key from the owner. And its lock is not committed: the hub's dependency scan accepts at most eight npm locks and this would be the ninth. It was installed and started once in the session from the package and checksum recorded here.",
    "review": {
     "commercial": "MIT. The service has a free tier; no paid plan was used.",
     "security": "104 packages installed with install scripts disabled; npm audit reported 1 moderate advisory and none high or critical. It sends a library name and a question to context7.com: send no code and no project text.",

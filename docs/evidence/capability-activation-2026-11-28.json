@@ -232,7 +232,7 @@
   "upstash/context7": {
    "package": "@upstash/context7-mcp@4.7.0",
    "status": "blocked",
-   "installed": true,
+   "installed": "in the session only, from the pinned package; no lock is committed (the dependency scan's limit of eight npm locks is reached)",
    "server": "Context7 4.7.0 started over stdio and listed resolve-library-id and query-docs",
    "reason": "Both requests were answered: Monthly quota exceeded. Create a free API key. The hosts themselves are reachable since the owner allowed them.",
    "needs": "A free Context7 API key from the owner, saved through the environment's credential settings.",

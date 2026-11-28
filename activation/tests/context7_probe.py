@@ -2,6 +2,9 @@
 
     python3 context7_probe.py TOOLS_DIR
 
+TOOLS_DIR/context7 must hold an install of the package and version named in activation/tools.json;
+no lock for it is committed here.
+
 Only a library name and a question are sent to the service: no code and no project text.
 Prints one JSON object; exit status 1 if the service did not return documentation, which
 is what happens without an API key once the shared anonymous allowance is used up.
