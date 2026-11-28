@@ -67,11 +67,11 @@ test('every ported motion states the digital meaning its browser receipt recorde
 
 test('ported motions draw deterministic, changing, mirrored and reduced-motion-safe frames', () => {
   const width = 390, height = 844;
+  const geometry = new Set();
   for (const group of manifest.groups) {
     const catalog = modules.get(group.source);
     const sdk = createMotionSystem();
     sdk.registerCatalog(catalog);
-    const geometry = new Set();
     for (const { id } of catalog.definitions) {
       const clip = sdk.create(id, { width, height, reducedMotion: 'full' });
       const scenes = [0.1, 0.5, 0.9].map((t) => validateScene(clip.render(t)));
