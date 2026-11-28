@@ -126,6 +126,11 @@ class SecondRoundTests(unittest.TestCase):
                                env={k: v for k, v in os.environ.items() if k != "SWARM_TEAM_FILE"})
         self.assertEqual(first.stdout.split(), ["20", "team.json"], first.stderr)
 
+    def test_a_lane_number_of_two_digits_is_read_whole(self):
+        sys.path.insert(0, str(ROOT / "swarm" / "phase3"))
+        import team
+        self.assertEqual([team.LANE.search(text).group(1) for text in ("LANE-H1", "LANE-H10", "LANE-H16 ", "do LANE-E2 now")], ["H1", "H10", "H16", "E2"])
+
     def test_no_path_has_two_owners_and_every_lane_has_a_test_file_and_a_new_id(self):
         second = json.loads((ROOT / "swarm" / "phase3" / "TEAM2.json").read_text())
         first = json.loads((ROOT / "swarm" / "phase3" / "TEAM.json").read_text())

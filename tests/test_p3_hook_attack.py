@@ -108,13 +108,13 @@ class AsAProgram(unittest.TestCase):
     def test_the_record_holds_no_command_and_no_content(self):
         with tempfile.TemporaryDirectory() as folder:
             program = Program(folder)
-            secret = "rm-rf-secret-content"
-            program.code({"agent_type": "swarm-probe", "agent_id": "ident-" + secret, "tool_name": f"SubagentHandback; {secret}", "tool_input": {"command": secret}})
-            program.code({"agent_type": f"x {secret}", "agent_id": "a", "tool_name": "Bash", "tool_input": {}, f"field {secret}": 1})
-            program.code({"agent_type": "swarm-probe", "agent_id": "a", "tool_name": "SubagentHandback", "tool_input": {"command": secret}, "t" * 5000: 1})
+            marker = "rm-rf-marker-content"
+            program.code({"agent_type": "swarm-probe", "agent_id": "ident-" + marker, "tool_name": f"SubagentHandback; {marker}", "tool_input": {"command": marker}})
+            program.code({"agent_type": f"x {marker}", "agent_id": "a", "tool_name": "Bash", "tool_input": {}, f"field {marker}": 1})
+            program.code({"agent_type": "swarm-probe", "agent_id": "a", "tool_name": "SubagentHandback", "tool_input": {"command": marker}, "t" * 5000: 1})
             program.code({"tool_name": "A" * 100_000, "tool_input": {}})
             text = program.log.read_text()
-            self.assertNotIn(secret, text)
+            self.assertNotIn(marker, text)
             self.assertLess(len(text), 3000)
             for line in text.splitlines():
                 json.loads(line)

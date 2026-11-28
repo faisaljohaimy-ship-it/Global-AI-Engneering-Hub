@@ -37,7 +37,7 @@ TEAM = json.loads(TEAM_FILE.read_text())
 LANES = Path(os.environ.get("SWARM_LANES", ROOT.parent / "p3-lanes")).resolve()
 BIN = Path(os.environ.get("SWARM_BIN", "/usr/local/bin"))
 EVIDENCE = ROOT / "swarm" / "phase3" / "evidence" / TEAM_FILE.name.lower()  # team.json, team2.json
-LANE = re.compile(r"LANE-([A-Z]\d)")
+LANE = re.compile(r"LANE-([A-Z]\d+)\b")  # the whole number: H10 is not H1
 
 
 def git(*arguments: str, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess:
@@ -155,34 +155,82 @@ def integrate() -> int:
                     row["state"] = "not joined: its own tests fail here"
         record = used.get(lane["id"])
         if record:
-            row.update(agent={"replies": record["roundtrips"], "tool_calls": record["tool_calls"], "seconds": record["seconds"], "model": stage.alias(record["model"]),
-                              "first_request_context": record["first_context"], "input_tokens": record["input_total"], "output_tokens": record["output"],
-                              "cost_units": stage.cost_units(record), "refused_calls": sum(1 for _ in range(record["refused_calls"])),
-                              "final_reply": record["final_reply"].split()[0] if record["final_reply"] else "", "met_a_limit": record["limit_error"]})
+            row.update(agent=agent_of(record))
         rows.append(row)
     suite = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=ROOT, capture_output=True, text=True, timeout=1800)
     count = re.search(r"Ran (\d+) tests?", suite.stderr)
-    agents = [row["agent"] for row in rows if row.get("agent")]
-    timed = [record for record in used.values() if record["start"] is not None and record["end"] is not None]
     evidence = {"about": "Development agents of the third phase: each built one part of the system in its own worktree. They are not agents of the measured experiment. "
                          "Counts, times and tool names from the host's records; no record content.",
-                "kind": "development agents", "lanes": rows,
-                "totals": {"lanes": len(rows), "agents_started": len(agents), "ran_at_once": measure.peak(timed) if timed else 0,
-                           "wall_seconds": round(max(r["end"] for r in timed) - min(r["start"] for r in timed), 1) if timed else None,
-                           "joined": sum(row["state"] == "joined" for row in rows), "input_tokens": sum(a["input_tokens"] for a in agents),
-                           "output_tokens": sum(a["output_tokens"] for a in agents), "cost_units": sum(a["cost_units"] for a in agents),
-                           "agents_that_met_a_limit": sum(bool(a["met_a_limit"]) for a in agents), "lines_added_joined": sum(r["lines_added"] for r in rows if r["state"] == "joined"),
-                           "tests_added_joined": sum(r["tests_of_its_own"] for r in rows if r["state"] == "joined")},
+                "kind": "development agents", "lanes": rows, "totals": totals(rows, used),
                 "suite_after_joining": {"tests": int(count.group(1)) if count else 0, "passed": suite.returncode == 0}}
     EVIDENCE.parent.mkdir(parents=True, exist_ok=True)
     EVIDENCE.write_text(json.dumps(evidence, indent=1) + "\n")
+    show(evidence)
+    return 0
+
+
+def agent_of(record: dict) -> dict:
+    return {"replies": record["roundtrips"], "tool_calls": record["tool_calls"], "seconds": record["seconds"], "model": stage.alias(record["model"]),
+            "first_request_context": record["first_context"], "input_tokens": record["input_total"], "output_tokens": record["output"],
+            "cost_units": stage.cost_units(record), "refused_calls": record["refused_calls"],
+            "final_reply": record["final_reply"].split()[0] if record["final_reply"] else "", "met_a_limit": record["limit_error"]}
+
+
+def totals(rows: list[dict], used: dict) -> dict:
+    agents = [row["agent"] for row in rows if row.get("agent")]
+    timed = [record for record in used.values() if record["start"] is not None and record["end"] is not None]
+    return {"lanes": len(rows), "agents_started": len(agents), "ran_at_once": measure.peak(timed) if timed else 0,
+            "wall_seconds": round(max(r["end"] for r in timed) - min(r["start"] for r in timed), 1) if timed else None,
+            "joined": sum(row["state"].startswith("joined") for row in rows), "input_tokens": sum(a["input_tokens"] for a in agents),
+            "output_tokens": sum(a["output_tokens"] for a in agents), "cost_units": sum(a["cost_units"] for a in agents),
+            "agents_that_met_a_limit": sum(bool(a["met_a_limit"]) for a in agents), "lines_added_joined": sum(r["lines_added"] for r in rows if r["state"].startswith("joined")),
+            "tests_added_joined": sum(r["tests_of_its_own"] for r in rows if r["state"].startswith("joined"))}
+
+
+def recount() -> int:
+    """Read every lane's use again from the host's records and write it into the evidence. Nothing is merged and no state changes.
+    The first count of the second round read a two-digit lane id as a one-digit one, so seven lanes had no figures and one had another lane's."""
+    info, evidence = json.loads((LANES / "team.json").read_text()), json.loads(EVIDENCE.read_text())
+    used = usage(info)
+    for row in evidence["lanes"]:
+        row.pop("agent", None)
+        if row["lane"] in used:
+            row["agent"] = agent_of(used[row["lane"]])
+    evidence["totals"] = totals(evidence["lanes"], used)
+    evidence["recounted"] = "Each lane's use was read again from the host's records after the lane pattern was corrected to take the whole lane number."
+    EVIDENCE.write_text(json.dumps(evidence, indent=1) + "\n")
+    show(evidence)
+    return 0
+
+
+def take(names: list[str]) -> int:
+    """Merge lanes that were not joined, as they are, at the request of the session that set the team up. Their state says so."""
+    evidence = json.loads(EVIDENCE.read_text())
+    for name in names:
+        lane = lane_of(name)
+        row = next(row for row in evidence["lanes"] if row["lane"] == lane["id"])
+        if row["state"].startswith("joined"):
+            continue
+        done = git("merge", "--no-ff", "-q", "-m", f"Take lane {lane['id']} as it is: {lane['title']}", f"claude/p3-{lane['id'].lower()}", check=False)
+        if done.returncode != 0:
+            git("merge", "--abort", check=False)
+            print(f"{lane['id']}: could not be merged")
+            continue
+        row["state"] = "joined later, as it is, for the setting session to repair; before that: " + row["state"]
+    evidence["totals"]["joined"] = sum(row["state"].startswith("joined") for row in evidence["lanes"])
+    EVIDENCE.write_text(json.dumps(evidence, indent=1) + "\n")
+    show(evidence)
+    return 0
+
+
+def show(evidence: dict) -> None:
+    rows = evidence["lanes"]
     for row in rows:
         agent = row.get("agent") or {}
         print(f"{row['lane']:3} {row['group']:12} {row['state'][:46]:46} +{row['lines_added']:<5} tests {row['tests_of_its_own']:<3} "
               f"replies {agent.get('replies', '-')!s:<3} input {agent.get('input_tokens', 0):>10,} {agent.get('final_reply', '')}")
     print("totals", json.dumps(evidence["totals"]))
     print("suite after joining:", evidence["suite_after_joining"])
-    return 0
 
 
 def main() -> int:
@@ -193,6 +241,10 @@ def main() -> int:
         return brief(sys.argv[2])
     if command == "integrate":
         return integrate()
+    if command == "recount":
+        return recount()
+    if command == "take" and len(sys.argv) > 2:
+        return take(sys.argv[2:])
     if command == "card":
         print(card())
         return 0
