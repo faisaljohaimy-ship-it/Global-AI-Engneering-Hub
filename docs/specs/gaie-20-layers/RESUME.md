@@ -63,7 +63,7 @@ listed as `done` below must be re-run from its brief if the machine is lost.
 | sec-findings | enterprise-security-privacy-engineer | SEC-10, private-mode finding, behavioural audit probes |
 | agents-20 | adaptive-agent-orchestration-engineer | standing team policy, loader, specialist agent definition |
 | master-docs | master-build-engine-engineer | manifest, loader and drift test for the two MASTER documents |
-| motion-policy | motion-sdk-animation-engineer | purposeful-motion policy, validator, registry build rule |
+| motion-policy | Purposeful digital motion policy: one central policy file, validator, tests, registry build refuses a motion with no stated meaning | done (`f95b85e`): 47 purposeful, 37 legacy-unclassified pinned, 400 reference, 156 index, 0 violations |
 | install | claude-code-integration-engineer | vendored pack, Scenario I test and evidence |
 | ci | testing-self-healing-engineer | time limits, node tests in no workflow, positive isolation job, coverage guard |
 | activation | knowledge-intelligence-integration-engineer | approved tools installed from their locks and run, regenerable receipt |
@@ -134,7 +134,7 @@ Status values: `open`, `in progress`, `done` (with the commit).
 |---|---|---|
 | pr30 | Review and merge the security hardening of #30 | merged into this branch (`ff3368e`); independent review in progress |
 | motion-policy | Purposeful digital motion policy: one central policy file, validator, tests, registry build refuses a motion with no stated meaning | in progress |
-| motion-port | Bring over motions that exist only on earlier branches (`claude/native-motion-engines-wip`, `feat/chromium-motion-stack`), as they are | open |
+| motion-port | Bring over motions that exist only on earlier branches (`claude/native-motion-engines-wip`, `feat/chromium-motion-stack`), as they are, each with a stated meaning and a fresh browser proof | in progress |
 | agents-20 | Standing policy: a team of up to twenty specialist roles for every build and upgrade, bound to `governance/agent-roles.json` | open |
 | master-central | `MASTER_BUILD` and `MASTER_UPGRADE` adopted, one canonical source with version and digest, drift test | open |
 | registry | Register the wave-2 engines in `governance/engines.json` and `engineering_os/adapters.py`; append their interfaces and tests to `governance/layers.json`; bind scenarios A–I | open |
