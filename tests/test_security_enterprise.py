@@ -822,6 +822,42 @@ class BehaviouralProbeTests(unittest.TestCase):
             with self.subTest(runner=runner.__name__), mock.patch.object(layers, "_run_python_test", runner):
                 self.assertIs(self.probe(security_audit.probe_layers_environment), expected)
 
+    def test_sec12_probe_catches_an_exception_list_that_trusts_more_than_reviewed_bytes(self):
+        """recheck-security item 1: the probe plants an edited file at a listed path and a pinned file with a
+        shadowing module and bytecode beside it, so each way back to the path-keyed exception reads open."""
+        from engineering_os import layers
+        if governor.isolation_probe()["tier"] == "full":  # elsewhere every test is a scrubbed subprocess: open
+            self.assertFalse(self.probe(security_audit.probe_layers_environment))
+        real = layers._exception
+
+        def path_only(root, test):  # the digest is computed and ignored: any listed path matches
+            record = real(root, test)
+            return record and {**record, "matched": record["reason"] is not None, "changed": []}
+        stand_ins = {"ordinary runner for a pinned file (tests/ first, bytecode trusted)":
+                     {"_PINNED_UNITTEST": layers._UNITTEST},
+                     "path-keyed exception run without the runner's own digest check":
+                     {"_exception": path_only, "_PINNED_UNITTEST": layers._UNITTEST}}
+        for label, changes in stand_ins.items():
+            with self.subTest(label), mock.patch.multiple(layers, **changes):
+                self.assertTrue(self.probe(security_audit.probe_layers_environment))
+        self.assertNotIn(security_audit.PINNED_NAME, layers.PROCESS_ONLY_TESTS)  # the probe's pin is temporary
+
+    def test_sec12_reads_mitigated_while_the_exception_list_is_non_empty(self):
+        from engineering_os import layers
+        row = next(row for row in security_audit.FINDINGS if row[0] == "SEC-12")
+        self.assertIs(row[5][1], security_audit.layers_contained_status)
+        for exploitable, entries, expected in ((False, None, "mitigated"), (False, {}, "fixed"), (True, None, "open"),
+                                               (True, {}, "open")):
+            stand_in = row[:6] + ((lambda base, verdict=exploitable: verdict),) + row[7:]
+            with self.subTest(exploitable=exploitable, entries=entries), \
+                    mock.patch.object(security_audit, "FINDINGS", (stand_in,)), \
+                    mock.patch.dict(layers.PROCESS_ONLY_TESTS, entries if entries is not None else {},
+                                    clear=entries is not None):
+                finding, = security_audit.registered_findings()
+                self.assertEqual(finding["status"], expected)
+        self.assertTrue(layers.PROCESS_ONLY_TESTS)
+        self.assertEqual(security_audit.layers_contained_status(), "mitigated")
+
     def test_sec16_probe_runs_the_generated_suite_and_measures_what_it_reached(self):
         from engineering_os import build_engine
 
