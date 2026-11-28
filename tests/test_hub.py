@@ -58,7 +58,7 @@ class HubTests(unittest.TestCase):
   self.assertIn('motion',kinds)
  def test_audit_uses_evidence_manifests(self):
   result=hub.audit()
-  self.assertEqual(result['motions_indexed'],142)
+  self.assertEqual(result['motions_indexed'],156)  # main bf96921 indexed 14 documented specifications
   self.assertEqual(result['motions_implemented'],30)
   self.assertEqual(result['motions_tested'],30)
   self.assertEqual(result['motions_runtime_verified'],29)
