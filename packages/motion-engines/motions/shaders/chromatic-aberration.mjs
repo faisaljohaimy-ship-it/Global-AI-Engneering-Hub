@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'A target of rings hands over to a field of dots. During the cut the red, green and blue of the picture are pulled apart radially and slipped sideways in bands, then snap back together on the new scene.',
     ar: 'هدفٌ من الحلقات يسلّم مكانه لحقلٍ من النقاط. خلال القطع تنفصل مكوّنات الأحمر والأخضر والأزرق في الصورة شعاعيًّا وتنزلق جانبيًّا في شرائط، ثم تلتئم من جديد على المشهد الجديد.',
   },
+  meaning: {
+    en: 'System cut-over: the legacy interface switches to the new digital platform in one controlled glitch.',
+    ar: 'التحوّل إلى النظام الجديد: تنتقل الواجهة القديمة إلى المنصّة الرقمية الجديدة في قطعٍ واحدٍ مضبوط.',
+  },
   engine: 'webgl2-glsl',
   kind: 'oneshot',
   duration: 2400,

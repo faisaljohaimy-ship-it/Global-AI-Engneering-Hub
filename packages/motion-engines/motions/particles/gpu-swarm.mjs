@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'A swarm of fifteen thousand points chases a leader along a looping path. Each point keeps its own offset from the leader and lags by its distance, so the swarm stretches on turns, bunches on straights and splits into three streams.',
     ar: 'سربٌ من خمسة عشر ألف نقطة يطارد قائدًا على مسارٍ ملتفّ. تحافظ كل نقطة على إزاحتها الخاصة عن القائد وتتأخر بقدر بُعدها عنه، فيتمدّد السرب في المنعطفات ويتجمّع على المستقيمات وينقسم ثلاثة تيارات.',
   },
+  meaning: {
+    en: 'Three streams of requests follow a load-balanced route through the network, stretching and bunching with the traffic.',
+    ar: 'ثلاثة تياراتٍ من الطلبات تتبع مسارًا موزَّع الحمل عبر الشبكة، تتمدّد وتتجمّع بحسب حركة المرور.',
+  },
   engine: 'webgl2-points',
   kind: 'loop',
   duration: 10000,

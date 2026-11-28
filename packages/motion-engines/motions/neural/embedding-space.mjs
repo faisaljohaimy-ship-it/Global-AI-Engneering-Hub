@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'A shapeless cloud of points, the vectors of many items, turns in three dimensions while it sorts itself: items of the same kind drift together into coloured clusters, and the clusters settle at their own places in the space.',
     ar: 'سحابةٌ بلا شكل من النقاط، هي متّجهات عناصر كثيرة، تدور في ثلاثة أبعاد وهي تفرز نفسها: تتقارب عناصر النوع الواحد في عناقيد ملوّنة، وتستقرّ العناقيد كلٌّ في موضعه من الفضاء.',
   },
+  meaning: {
+    en: 'An AI model groups incoming requests or documents by meaning, so similar cases cluster together for routing.',
+    ar: 'نموذج ذكاءٍ اصطناعي يجمّع الطلبات أو المستندات الواردة بحسب معناها، فتتقارب الحالات المتشابهة لتوجيهها.',
+  },
   engine: 'webgl2-points',
   kind: 'oneshot',
   duration: 5000,

@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'A tilted floor plan of a facility, its rooms drawn as walls. Risk hotspots swell and fade over it as heat, banded by contour lines, and the room under the worst one is outlined with a pulsing ring.',
     ar: 'مخطّطٌ مائل لطابقٍ في منشأة، غرفه مرسومة بجدرانها. تنتفخ فوقه بؤر المخاطر وتخبو حرارةً مقسّمةً بخطوط الكنتور، وتُحاط الغرفة الواقعة تحت أشدّها بحلقةٍ نابضة.',
   },
+  meaning: {
+    en: "Real-time risk monitoring of a facility's digital twin: hotspots rise and the room under the worst one is flagged.",
+    ar: 'مراقبة المخاطر لحظيًّا في التوأم الرقمي لمنشأة: ترتفع البؤر وتُعلَّم الغرفة الواقعة تحت أشدّها.',
+  },
   engine: 'webgl2-glsl',
   kind: 'loop',
   duration: 10000,

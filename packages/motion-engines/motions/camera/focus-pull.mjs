@@ -8,8 +8,12 @@ export default defineMotion({
   module: 'camera',
   name: { en: 'Dynamic Focus Pull', ar: 'سحب التركيز الديناميكي' },
   summary: {
-    en: 'Three planes of a scene: leaves of light close to the lens, a ringed emblem in the middle and a city of tiny lamps far away. The focus is pulled from the near plane through the emblem to the lamps, and every shape blurs into a soft disc by its distance from the plane in focus.',
-    ar: 'ثلاثة مستويات في المشهد: أوراقٌ من الضوء قريبة من العدسة، وشعارٌ ذو حلقات في الوسط، ومدينةٌ من مصابيح صغيرة في البعيد. يُسحب التركيز من المستوى القريب عبر الشعار إلى المصابيح، فيذوب كلّ شكلٍ قرصًا ناعمًا بقدر بُعده عن مستوى التركيز.',
+    en: 'Three planes of a scene: leaves of light close to the lens, a ringed service hub in the middle and a city of tiny lamps far away. The focus is pulled from the near plane through the hub to the lamps, and every shape blurs into a soft disc by its distance from the plane in focus.',
+    ar: 'ثلاثة مستويات في المشهد: أوراقٌ من الضوء قريبة من العدسة، ومركز خدمةٍ ذو حلقات في الوسط، ومدينةٌ من مصابيح صغيرة في البعيد. يُسحب التركيز من المستوى القريب عبر المركز إلى المصابيح، فيذوب كلّ شكلٍ قرصًا ناعمًا بقدر بُعده عن مستوى التركيز.',
+  },
+  meaning: {
+    en: "Attention shifts from the alerts on a user's device to the digital service hub, then to the city's connected infrastructure behind it.",
+    ar: 'ينتقل الانتباه من التنبيهات على جهاز المستخدم إلى مركز الخدمة الرقمية، ثم إلى البنية التحتية المتصلة للمدينة خلفه.',
   },
   engine: 'webgl2-glsl',
   kind: 'oneshot',
@@ -50,7 +54,7 @@ void main() {
     float twinkle = 0.75 + 0.25 * sin(u_time * (1.0 + 2.0 * h.z) + h.x * 30.0);
     colour += mix(u_color1, u_color4, h.z) * disc(p, c, 0.012 + 0.01 * h.z, bFar) * twinkle;
   }
-  // Middle: the emblem at depth 3, a ring with a bar through it.
+  // Middle: the service hub at depth 3, a ring with a bar through it.
   float bMid = blurAt(3.0, focus);
   float r = length(p - vec2(0.0, 0.05));
   float ring = smoothstep(0.04 + bMid, 0.04 - bMid * 0.2, abs(r - 0.36));

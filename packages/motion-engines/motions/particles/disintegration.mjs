@@ -8,8 +8,12 @@ export default defineMotion({
   module: 'particles',
   name: { en: 'Particle Disintegration', ar: 'تفكّك الجسيمات' },
   summary: {
-    en: 'A solid emblem, a ring around a diamond, is made of tightly packed grains. A line sweeps up through it and every grain it passes breaks loose, glows, and is carried up and away on a curling wind until only dust is left.',
-    ar: 'شعارٌ صلب، حلقةٌ حول معيّن، مصنوعٌ من حبيباتٍ متراصّة. يصعد خطٌّ عبره وكل حبّةٍ يمرّ بها تنفلت وتتوهّج وتحملها ريحٌ ملتفّة إلى الأعلى بعيدًا حتى لا يبقى إلا الغبار.',
+    en: 'A record card, its frame and field lines made of tightly packed grains, is retired. A line sweeps up through it and every grain it passes breaks loose, glows, and is carried up and away on a curling wind until only dust is left.',
+    ar: 'بطاقةُ سجلٍّ، إطارها وأسطر حقولها من حبيباتٍ متراصّة، تُحال إلى الإتلاف. يصعد خطٌّ عبرها وكل حبّةٍ يمرّ بها تنفلت وتتوهّج وتحملها ريحٌ ملتفّة إلى الأعلى بعيدًا حتى لا يبقى إلا الغبار.',
+  },
+  meaning: {
+    en: 'Secure disposal of a retired data record: it is shredded beyond recovery once its retention period ends.',
+    ar: 'الإتلاف الآمن لسجلّ بياناتٍ منتهٍ: يُفتَّت بلا إمكانية استرجاع عند انتهاء مدة الاحتفاظ به.',
   },
   engine: 'webgl2-points',
   kind: 'oneshot',
@@ -31,15 +35,24 @@ export default defineMotion({
 uniform float u_wind;
 uniform float u_curl;
 ${hash}
-// A point on the emblem: two of every five grains form the ring, the rest fill the diamond.
+// A point on the record card: two of every five grains form its frame, the rest its photo box and field lines.
 vec2 emblem(vec3 h) {
+  vec2 box = vec2(0.85, 0.52);
   if (h.x < 0.4) {
-    float a = h.y * 6.2831853; float r = 0.62 + 0.08 * (h.z - 0.5);
-    return vec2(cos(a), sin(a)) * r;
+    float along = h.y * 2.0 * (box.x + box.y) * 2.0;
+    float edge = 0.025 * (h.z - 0.5);
+    if (along < 2.0 * box.x) return vec2(along - box.x, box.y + edge);
+    along -= 2.0 * box.x;
+    if (along < 2.0 * box.y) return vec2(box.x + edge, box.y - along);
+    along -= 2.0 * box.y;
+    if (along < 2.0 * box.x) return vec2(box.x - along, -box.y + edge);
+    along -= 2.0 * box.x;
+    return vec2(-box.x + edge, -box.y + along);
   }
-  vec2 q = vec2(h.y, h.z) * 2.0 - 1.0;
-  q = vec2(q.x + q.y, q.y - q.x) * 0.5;
-  return q * vec2(0.42, 0.52);
+  if (h.x < 0.6) return vec2(-0.68 + h.y * 0.42, -0.3 + h.z * 0.62);
+  float row = floor(h.z * 4.0);
+  float span = row == 0.0 ? 0.9 : (row == 3.0 ? 0.55 : 0.75);
+  return vec2(-0.12 + h.y * span, 0.3 - row * 0.2 + (fract(h.z * 4.0) - 0.5) * 0.05);
 }
 void main() {
   float id = float(gl_VertexID);

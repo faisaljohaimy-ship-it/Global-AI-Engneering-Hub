@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'Particles set out from the whole edge of the frame along curved paths that bend toward one point. They speed up as the paths gather, trace bright threads where they bunch, and pile into a glowing core when they arrive.',
     ar: 'تنطلق الجسيمات من حافة الإطار كلّها على مساراتٍ منحنية تنثني نحو نقطةٍ واحدة. تتسارع كلما تجمّعت المسارات، وترسم خيوطًا مضيئة حيث تتكاثف، وتتراكم في نواةٍ متوهّجة عند وصولها.',
   },
+  meaning: {
+    en: 'Data from many separate sources converges into one unified platform.',
+    ar: 'بياناتٌ من مصادر متفرّقة كثيرة تتقارب لتصبّ في منصّةٍ موحّدة واحدة.',
+  },
   engine: 'webgl2-points',
   kind: 'oneshot',
   duration: 3200,

@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'A funnel of particles turns like a tornado seen from the side: wide and slow at the top, narrow and fast at the base, each grain climbing as it circles and the whole column swaying.',
     ar: 'قمعٌ من الجسيمات يدور كإعصارٍ يُرى من الجانب: عريضٌ بطيء في أعلاه، ضيّقٌ سريع عند قاعدته، كلّ حبّةٍ تصعد وهي تدور والعمود كلّه يتمايل.',
   },
+  meaning: {
+    en: 'An ingestion funnel: a wide intake of raw events is drawn into one fast, narrow processing stream.',
+    ar: 'قمع الاستيعاب: مدخلٌ واسع من الأحداث الخام يُسحب إلى مجرى معالجةٍ واحدٍ ضيّق وسريع.',
+  },
   engine: 'webgl2-points',
   kind: 'loop',
   duration: 8000,

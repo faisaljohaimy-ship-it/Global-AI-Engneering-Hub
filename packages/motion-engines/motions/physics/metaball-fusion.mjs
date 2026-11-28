@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'Molten blobs wander on their own orbits. When two come close their fields add up and a glowing neck of hotter material bridges them, then stretches and snaps as they part. The surface is lit as a raised, glossy mass.',
     ar: 'كتلٌ منصهرة تهيم في مداراتٍ خاصة بها. حين تقترب اثنتان تتجمّع حقولهما فيصل بينهما عنقٌ متوهّج من مادةٍ أسخن، ثم يتمدّد وينقطع حين تفترقان. يُضاء السطح ككتلةٍ بارزة لامعة.',
   },
+  meaning: {
+    en: 'Duplicate records from separate systems merge into one master record when they match, and part again when they do not.',
+    ar: 'سجلاتٌ مكرّرة من أنظمةٍ منفصلة تندمج في سجلٍّ رئيسي واحد حين تتطابق، وتنفصل حين لا تتطابق.',
+  },
   engine: 'webgl2-glsl',
   kind: 'loop',
   duration: 11000,

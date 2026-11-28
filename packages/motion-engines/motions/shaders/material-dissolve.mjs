@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'A riveted steel panel burns away in noisy islands from the middle out. A glowing rim and drifting embers ride the burning edge, and a lit circuit board shows through the holes until the panel is gone.',
     ar: 'لوحٌ فولاذيّ مثبَّت بالمسامير يحترق ويتلاشى في جزرٍ متعرّجة من الوسط إلى الخارج. حافةٌ متوهّجة وجمراتٌ هائمة تركب حدّ الاحتراق، ولوحةُ دوائر مضيئة تظهر من الثقوب حتى يختفي اللوح كلّه.',
   },
+  meaning: {
+    en: 'Legacy modernisation: the old metal layer burns away to reveal the live digital circuitry beneath it.',
+    ar: 'تحديث الأنظمة القديمة: تحترق الطبقة المعدنية القديمة لتكشف الدوائر الرقمية الحيّة تحتها.',
+  },
   engine: 'webgl2-glsl',
   kind: 'oneshot',
   duration: 3400,

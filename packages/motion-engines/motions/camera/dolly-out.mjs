@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'The shot opens close on a polished sphere that mirrors the room around it, then the camera pulls back and rises to show it at the centre of a ring of smaller spheres on a reflective floor.',
     ar: 'تبدأ اللقطة قريبةً من كرةٍ مصقولة تعكس ما حولها، ثم تتراجع الكاميرا وترتفع لتُظهرها في قلب حلقةٍ من كراتٍ أصغر على أرضيةٍ عاكسة.',
   },
+  meaning: {
+    en: 'Zooming out from one core platform to show the ring of connected digital services that depend on it.',
+    ar: 'الابتعاد عن منصّةٍ رقمية محورية لإظهار حلقة الخدمات الرقمية المتصلة بها والمعتمدة عليها.',
+  },
   engine: 'webgl2-glsl',
   kind: 'oneshot',
   duration: 4200,

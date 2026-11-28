@@ -11,6 +11,10 @@ export default defineMotion({
     en: 'The camera flies low over a gridded plain between two rows of beacons and rolls about its line of flight. The horizon tilts, turns upside down and comes level again while the beacons stream past and the sun keeps its place in the sky.',
     ar: 'تطير الكاميرا منخفضةً فوق سهلٍ مُشبَّك بين صفّين من المنارات وتدور حول خطّ طيرانها. يميل الأفق وينقلب ثم يعود مستويًا بينما تتدفّق المنارات مارّةً وتبقى الشمس في مكانها من السماء.',
   },
+  meaning: {
+    en: 'A flight along a network backbone lined with edge nodes, turning to inspect the infrastructure from every angle.',
+    ar: 'رحلةٌ على امتداد العمود الفقري للشبكة تصطفّ على جانبيه عُقد الحافة، تدور لتفحص البنية التحتية من كل زاوية.',
+  },
   engine: 'webgl2-glsl',
   kind: 'oneshot',
   duration: 4400,
