@@ -3,11 +3,13 @@
 The engine decides whether one exact commit of a Git checkout may be released as one
 version, and writes a record of that decision. It never deploys, pushes, tags or
 publishes. Every Git call is a read-only subcommand (allow-list in `READ_ONLY_GIT`) run
-through the hardened `sdk.engineering_sdk.git` (hooks and fsmonitor off, no system
-config, no inherited GIT_* variables, no optional locks), after
-`sdk.engineering_sdk.checkout_guard` has refused checkouts that would run filter
-programs or hide changes. The output is a record plus the exact commands the owner
-would run; the engine runs none of them.
+with the SDK's hardening flags and more (`_run`: hooks, fsmonitor and the untracked cache
+off, no system or global config, no inherited GIT_* variables, no optional locks, no
+transport and no lazy fetch), after `sdk.engineering_sdk.checkout_guard` has refused
+checkouts that would run filter programs or hide changes; each call re-checks that the
+checkout's config names no filter program, and `status` never enters a submodule (the
+flags of `sdk.engineering_sdk.target`). The output is a record plus the exact commands
+the owner would run; the engine runs none of them.
 
 A release is ELIGIBLE only when all of these hold (docs/specs/gaie-20-layers/RELEASE_ENGINE.md):
 the checkout is safe and clean; HEAD is the exact 40-hex tested commit; every required
@@ -57,6 +59,15 @@ MAX_TEXT = 500
 MAX_JOBS = 200
 MAX_JSON = 1024 * 1024
 READ_ONLY_GIT = frozenset({"rev-parse", "status", "ls-tree", "merge-base", "tag", "cat-file"})
+# Added to sdk.engineering_sdk.GIT_HARDENING on every call. GIT_ALLOW_PROTOCOL="" overrides any protocol.*
+# setting of the checkout, so no transport (and no lazy fetch of a partial clone) can start a program.
+GIT_FLAGS = ("-c", "core.untrackedCache=false", "-c", "protocol.allow=never")
+GIT_ENV = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_OPTIONAL_LOCKS": "0",
+           "GIT_TERMINAL_PROMPT": "0", "GIT_NO_LAZY_FETCH": "1", "GIT_ALLOW_PROTOCOL": ""}
+# The only status the engine runs. checkout_guard checks the recorded commit of every populated submodule but
+# not the configs of submodules nested inside them; a plain `git status` recursed into one and ran its filter
+# program during the read-only eligibility check (recheck-authz F1).
+CLEAN_STATUS = ("status", "--porcelain=v1", "--untracked-files=normal", "--ignore-submodules=all")
 PERFORMED = {"tag_created": False, "pushed": False, "published": False, "deployed": False, "network_requests": 0}
 PASS = frozenset({"pass", "passed", "approve", "approved"})
 FAIL = frozenset({"fail", "failed", "block", "blocked", "unverified", "refused"})
@@ -109,12 +120,35 @@ def _refuse(refusals, code, detail):
     refusals.append({"code": code, "detail": detail})
 
 
+def _run(root, *args):
+    """Git with the SDK's hardening flags plus GIT_FLAGS and GIT_ENV; nothing inherited from GIT_* variables."""
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env.update(GIT_ENV)
+    try:
+        return subprocess.run(["git", *_sdk().GIT_HARDENING, *GIT_FLAGS, "-C", str(root), "--no-pager", *args],
+                              capture_output=True, check=True, env=env,
+                              timeout=120).stdout.decode("utf-8", "surrogateescape")
+    except subprocess.TimeoutExpired:
+        raise ReleaseError("Git did not finish in time") from None
+
+
 def _git(root, *args):
-    """Run one read-only Git subcommand through the SDK's hardened runner; `tag` may only list."""
+    """Run one read-only Git subcommand hardened; `tag` may only list and `status` is exactly CLEAN_STATUS.
+
+    Before every call the checkout's config, includes followed, must name no filter program: `status` runs
+    one on a changed file whatever the flags, so this holds even if the call is not preceded by
+    checkout_guard or the config changed after it."""
     command = args[0] if args else ""
-    if command not in READ_ONLY_GIT or (command == "tag" and args[1:2] != ("--list",)):
-        raise ReleaseError(f"git {command!r} is not a read-only command of the release engine")
-    return _sdk().git(root, *args)
+    if (command not in READ_ONLY_GIT or (command == "tag" and args[1:2] != ("--list",))
+            or (command == "status" and args != CLEAN_STATUS)):
+        raise ReleaseError(f"git {' '.join(args[:2])!r} is not a read-only command of the release engine")
+    try:
+        names = _run(root, "config", "--list", "--includes", "--name-only", "-z").split("\0")
+    except subprocess.CalledProcessError:
+        raise ReleaseError("the checkout's Git config cannot be read") from None
+    if any(_sdk().FILTER_SETTING.fullmatch(name) for name in names):
+        raise ReleaseError("the checkout's Git config defines filter programs; inspect its .git/config")
+    return _run(root, *args)
 
 
 def _probe(root, *args):
@@ -447,7 +481,7 @@ def evaluate(root, profile, version, commit, *, receipts=None, authorization=Non
         return refusals, facts
     if exact and head != commit:
         _refuse(refusals, "commit-not-head", "the tested commit is not the checkout HEAD")
-    if _git(root, "status", "--porcelain", "--untracked-files=normal"):
+    if _git(root, *CLEAN_STATUS):
         _refuse(refusals, "dirty-tree", "the checkout has uncommitted or untracked files")
     if exact and head == commit:
         facts["tree"] = _tree(root, commit)
@@ -651,7 +685,7 @@ def verify_record(root, profile, record_path, *, receipts=None, authorization=No
     commit = body.get("tested_commit")
     if head != commit:
         _refuse(reasons, "commit-not-head", "the checkout HEAD is not the recorded tested commit")
-    if _git(root, "status", "--porcelain", "--untracked-files=normal"):
+    if _git(root, *CLEAN_STATUS):
         _refuse(reasons, "dirty-tree", "the checkout has uncommitted or untracked files")
     if isinstance(commit, str) and SHA.fullmatch(commit) and _probe(root, "cat-file", "-e", f"{commit}^{{commit}}") is not None:
         if _tree(root, commit) != body.get("tree"):
