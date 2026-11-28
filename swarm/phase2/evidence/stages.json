@@ -10,9 +10,9 @@
   "phase2_output_tokens": 3000000
  },
  "figures": {
-  "input_tokens_counted": 38435936,
+  "input_tokens_counted": 38499690,
   "cap": 150000000,
-  "agents_started_in_phase_2": 2,
+  "agents_started_in_phase_2": 3,
   "projected_for_stage": null
  },
  "stages": [
@@ -64,6 +64,117 @@
    },
    "guard_enforced": false,
    "allowed_command_ran": true
+  },
+  {
+   "label": "c1",
+   "actual_agents": 1,
+   "peak_concurrent_agents": 1,
+   "tasks": 1,
+   "verified_tasks": 1,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 14,
+   "hidden_tests_total": 14,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 19.0,
+   "agents_replying_done": 1,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 7.73,
+   "sum_of_agent_seconds": 7.73,
+   "effective_concurrency": 1.0,
+   "tasks_per_minute": 7.77,
+   "models": [
+    "haiku"
+   ],
+   "agent_tokens": {
+    "input_uncached": 10,
+    "cache_write": 17201,
+    "cache_read": 46543,
+    "input_total": 63754,
+    "output": 721,
+    "total": 64475
+   },
+   "cache_read_share": 0.73,
+   "model_roundtrips": 4,
+   "tool_calls": 3,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 868,
+   "per_verified_task": {
+    "input_total": 63754,
+    "output": 721,
+    "roundtrips": 4.0,
+    "agent_seconds": 7.73
+   },
+   "helper_calls": {},
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 1534,
+    "cache_read": 324395,
+    "input_total": 325932,
+    "output": 578,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.835,
+   "machine": {
+    "samples": 16,
+    "peak_load_1m": 0.26,
+    "least_memory_available_mb": 15501,
+    "peak_host_process_rss_mb": 342,
+    "host_process_cpu_seconds": 0.7
+   },
+   "kind": "task",
+   "size": "small",
+   "agent_type": "swarm-light",
+   "model": "haiku",
+   "effort": "low",
+   "mode": null,
+   "delivery": "id",
+   "registered_agents": 1,
+   "started": "2026-11-28T03:53:24.077294Z",
+   "finished": "2026-11-28T03:53:39.549242Z",
+   "first_request_context": {
+    "median": 5486,
+    "least": 5486,
+    "most": 5486
+   },
+   "first_request_read_from_cache": 0.4493,
+   "cache_written": {
+    "five_minutes": 17201,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 29771,
+   "swk_calls": 2,
+   "refused_calls": 0,
+   "foreign_calls": 0,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-light"
+   ],
+   "replies_per_agent": {
+    "median": 4,
+    "most": 4
+   },
+   "ownership": {
+    "submitted": 1,
+    "approved": 1,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 1
+    },
+    "revision": 4
+   },
+   "not_verified": [],
+   "worker_command": {
+    "hand_ins": 1,
+    "calls": 2,
+    "characters_printed": 808,
+    "headroom_views": 0
+   },
+   "per_verified_task_cost_units": 29771,
+   "guard_enforced": false,
+   "index_cross_check": null
   }
  ]
 }
