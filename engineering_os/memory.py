@@ -15,6 +15,7 @@ import hashlib
 import os
 import pathlib
 import re
+import stat
 
 from scripts.security_scan import secret_findings
 
@@ -23,6 +24,7 @@ from .orchestration import (DIGEST, ENGINES, _atomic_write, _open_private,
 
 KINDS = frozenset({"architecture", "decision", "solution", "failure", "recovery", "checkpoint", "symbol"})
 MAX_RECORDS = 2000
+MAX_SOURCE_BYTES = 2 * 1024 * 1024
 RECORD_FIELDS = {"project", "kind", "title", "summary", "tags", "symbols", "links", "provenance"}
 CONCEPTS = ({"database", "sql", "schema", "migration", "postgres", "قاعدة", "بيانات"},
             {"failure", "error", "bug", "incident", "repair", "recovery", "خطأ", "إصلاح"},
@@ -83,24 +85,42 @@ def _content(record):
     return {key: value for key, value in record.items() if key != "provenance"}
 
 
-def _safe_source(root, relative):
+def _read_source(root, relative):
+    """Read one bounded regular-file snapshot without following path links."""
     if not isinstance(relative, str) or len(relative) > 500 or "\\" in relative:
         raise MemoryError("Invalid relative source path")
     path = pathlib.PurePosixPath(relative)
     if path.is_absolute() or any(part in {"..", ".git"} for part in path.parts) or str(path) != relative or not path.parts:
         raise MemoryError("Unsafe source path")
     root = pathlib.Path(root).absolute()
-    for ancestor in [root, *root.parents]:
-        if ancestor.is_symlink():
-            raise MemoryError("Symlink source root refused")
-    target = root
-    for part in path.parts:
-        target = target / part
-        if target.is_symlink():
-            raise MemoryError("Symlink source refused")
-    if not target.is_file() or target.stat().st_size > 2 * 1024 * 1024:
-        raise MemoryError("Missing or oversized source")
-    return target
+    if ".." in root.parts:
+        raise MemoryError("Noncanonical source root")
+    target = root / path
+    try:
+        directory = os.open(target.anchor, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for part in target.parts[1:-1]:
+                child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=directory)
+                os.close(directory)
+                directory = child
+            fd = os.open(target.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                         dir_fd=directory)
+        finally:
+            os.close(directory)
+        with os.fdopen(fd, "rb") as stream:
+            before = os.fstat(stream.fileno())
+            if not stat.S_ISREG(before.st_mode) or before.st_size > MAX_SOURCE_BYTES:
+                raise MemoryError("Source must be a bounded regular file")
+            data = stream.read(MAX_SOURCE_BYTES + 1)
+            after = os.fstat(stream.fileno())
+        if (len(data) != before.st_size or len(data) > MAX_SOURCE_BYTES
+                or (before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                != (after.st_size, after.st_mtime_ns, after.st_ctime_ns)):
+            raise MemoryError("Source changed during the read")
+        return data
+    except OSError as error:
+        raise MemoryError("Source file unavailable or unsafe") from error
 
 
 def _verification(value):
@@ -263,7 +283,7 @@ class MemoryStore:
                 status = "evidence-recorded"
                 if source_root is not None:
                     try:
-                        current = all(hashlib.sha256(_safe_source(source_root, relative).read_bytes()).hexdigest() == digest
+                        current = all(hashlib.sha256(_read_source(source_root, relative)).hexdigest() == digest
                                       for relative, digest in verification["source_sha256"].items())
                     except (OSError, ValueError):
                         current = False
@@ -278,8 +298,7 @@ class MemoryStore:
         _slug(project)
         if engine not in ENGINES:
             raise MemoryError("Unknown indexing engine")
-        target = _safe_source(source_root, path)
-        data = target.read_bytes()
+        data = _read_source(source_root, path)
         # Guard transient source too; never store source bodies or docstrings.
         from .orchestration import SECRET
         if SECRET.search(data.decode("utf-8")) or secret_findings(path, data.decode("utf-8")):
@@ -323,7 +342,7 @@ class MemoryStore:
         if value["solution_sha256"] != identifier:
             raise MemoryError("Test receipt belongs to a different solution")
         for relative, digest in value["source_sha256"].items():
-            if hashlib.sha256(_safe_source(source_root, relative).read_bytes()).hexdigest() != digest:
+            if hashlib.sha256(_read_source(source_root, relative)).hexdigest() != digest:
                 raise MemoryError("Source differs from test evidence")
         with self._locked():
             state = self._load()

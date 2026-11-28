@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from engineering_os.factory import FactoryError
-from engineering_os.factory_generate import _call, _server, generate_system
+from engineering_os.factory_generate import MAX_BODY, _call, _server, _write_files, generate_system
 from engineering_os.orchestration import sha
 
 
@@ -163,6 +163,29 @@ class FactoryGenerationTests(unittest.TestCase):
             one, two = list(pool.map(lambda _: publish(), range(2)))
         self.assertEqual(sum(value is not None for value in (one, two)), 1)
         self.assertEqual(json.loads((output / 'manifest.json').read_bytes()), one or two)
+
+    def test_server_rejects_oversized_header_without_waiting_for_body(self):
+        output = self.root / 'app'
+        generate_system(projection(), destination=output, verify=False)
+        with _server(output, 'synthetic-app') as endpoint:
+            result = _call(endpoint, 'POST', '/v1/tasks', 413, declared_length=MAX_BODY + 1)
+        self.assertEqual(result, {'error': 'request too large'})
+
+    def test_publication_cannot_replace_an_empty_destination_created_during_staging(self):
+        output = self.root / 'app'
+
+        def write_and_create_competing_destination(stage, files):
+            self.assertFalse(output.exists())
+            _write_files(stage, files)
+            output.mkdir()
+            self.competing_inode = output.stat().st_ino
+
+        with patch('engineering_os.factory_generate._write_files', write_and_create_competing_destination):
+            with self.assertRaisesRegex(FactoryError, 'already exists'):
+                generate_system(projection(), destination=output, verify=False)
+        self.assertEqual(output.stat().st_ino, self.competing_inode)
+        self.assertEqual(list(self.root.iterdir()), [output])
+        self.assertEqual(list(output.iterdir()), [])
 
 
 if __name__ == '__main__':

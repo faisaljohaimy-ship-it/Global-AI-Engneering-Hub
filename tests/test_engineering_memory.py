@@ -192,6 +192,29 @@ class EngineeringMemoryTests(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises((MemoryError, OSError)):
                 self.store.index_python('demo', path, self.source, 'codex')
 
+    def test_index_refuses_a_source_that_changes_after_the_initial_descriptor_check(self):
+        target = self.source / 'module.py'
+        target.write_text('def first():\n    pass\n')
+        target_stat = target.stat()
+        original_fstat = os.fstat
+        changed = False
+
+        def append_after_first_stat(fd):
+            nonlocal changed
+            observed = original_fstat(fd)
+            if observed.st_ino == target_stat.st_ino and observed.st_dev == target_stat.st_dev and not changed:
+                with target.open('a', encoding='utf-8') as stream:
+                    stream.write('def second():\n    pass\n')
+                changed = True
+            return observed
+
+        with mock.patch('engineering_os.memory.os.fstat', side_effect=append_after_first_stat):
+            with self.assertRaisesRegex(MemoryError, 'changed during the read'):
+                self.store.index_python('demo', 'module.py', self.source, 'codex')
+        self.assertTrue(changed)
+        self.assertEqual(self.store.snapshot()['records'], {})
+        self.assertEqual(len(self.store.index_python('demo', 'module.py', self.source, 'codex')), 2)
+
     def test_credentials_unknown_fields_bounds_and_control_text(self):
         for changes in [{'summary': 'sk-' + 'a' * 35}, {'title': 'unsafe\ntext'}, {'summary': 'postgres://worker:' + 'private-value' + '@localhost/data'}, {'summary': 'API_KEY = \"' + 'private-key-value' + '\"'}, {'project': '../escape'},
                         {'kind': 'arbitrary'}, {'tags': ['dup', 'dup']}, {'tags': ['a'] * 31},

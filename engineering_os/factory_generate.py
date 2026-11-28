@@ -3,10 +3,14 @@
 The version 1 input describes named SQLite resources and typed fields. The fixed
 runtime accepts HTTP over a user-private Unix socket. Generation can verify its
 own freshly generated source in a disposable subprocess before publication.
+Publishing requires Linux renameat2 or macOS renameatx_np with exclusive rename
+support on the destination filesystem.
 It never accepts application code, deploys, or certifies production readiness.
 """
 
 import contextlib
+import ctypes
+import errno
 import hashlib
 import http.client
 import os
@@ -431,11 +435,15 @@ class _UnixHTTP(http.client.HTTPConnection):
         self.sock = connection
 
 
-def _call(endpoint, method, path, status, value=None, *, raw=None):
+def _call(endpoint, method, path, status, value=None, *, raw=None, declared_length=None):
     connection = _UnixHTTP(endpoint)
     try:
         body = raw if raw is not None else canonical(value) if value is not None else None
         headers = {'Content-Type': 'application/json'} if body is not None else {}
+        if declared_length is not None:
+            if body is not None:
+                raise FactoryError('Length-only fixture cannot have a body')
+            headers = {'Content-Type': 'application/json', 'Content-Length': str(declared_length)}
         connection.request(method, path, body=body, headers=headers)
         response = connection.getresponse()
         if response.status != status:
@@ -515,7 +523,8 @@ def _verify(config, files):
                 _call(endpoint, 'POST', base, 400, {**values, 'bad_field': True})
                 _call(endpoint, 'POST', base, 400, {**values, fields[0]['name']: []})
                 _call(endpoint, 'POST', base, 400, raw=b'{"x":1,"x":2}')
-                _call(endpoint, 'POST', base, 413, raw=b' ' * (MAX_BODY + 1))
+                # The handler rejects the declared size before reading the body.
+                _call(endpoint, 'POST', base, 413, declared_length=MAX_BODY + 1)
                 update = _fixture(fields, alternate=True)
                 expected = {'id': identifier, **{field['name']: update.get(field['name']) for field in fields}}
                 _same(_call(endpoint, 'PUT', detail, 200, update), expected)
@@ -533,6 +542,39 @@ def _verify(config, files):
             'resources': sorted(row['name'] for row in config['resources']),
             'checks': ['health', 'create', 'read', 'list', 'cursor', 'replace', 'delete',
                        'invalid-fields', 'duplicate-json', 'oversized-body', 'restart-persistence']}
+
+
+def _publish(target, files):
+    """Stage complete artifacts and publish with the kernel's no-replace rename."""
+    libc = ctypes.CDLL(None, use_errno=True)
+    if sys.platform.startswith('linux'):
+        rename, exclusive = getattr(libc, 'renameat2', None), 1  # RENAME_NOREPLACE
+    elif sys.platform == 'darwin':
+        rename, exclusive = getattr(libc, 'renameatx_np', None), 4  # RENAME_EXCL
+    else:
+        rename, exclusive = None, None
+    if rename is None:
+        raise FactoryError('This platform lacks supported atomic no-overwrite publication')
+    rename.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint)
+    rename.restype = ctypes.c_int
+
+    with tempfile.TemporaryDirectory(prefix='.gaie-factory-', dir=target.parent) as temporary:
+        stage = pathlib.Path(temporary)
+        _write_files(stage, files)
+        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        with contextlib.ExitStack() as descriptors:
+            stage_fd = os.open(stage, flags)
+            descriptors.callback(os.close, stage_fd)
+            parent_fd = os.open(target.parent, flags)
+            descriptors.callback(os.close, parent_fd)
+            os.fsync(stage_fd)
+            os.fsync(parent_fd)
+            if rename(parent_fd, os.fsencode(stage.name), parent_fd, os.fsencode(target.name), exclusive):
+                failure = ctypes.get_errno()
+                if failure in (errno.EEXIST, errno.ENOTEMPTY):
+                    raise FactoryError('System destination already exists')
+                raise OSError(failure, 'Atomic no-overwrite publication failed')
+            os.fsync(parent_fd)
 
 
 def generate_system(request, *, destination, verify=True):
@@ -564,17 +606,5 @@ def generate_system(request, *, destination, verify=True):
     }
     result['manifest_sha256'] = sha(result)
     files['manifest.json'] = canonical(result) + b'\n'
-    target.mkdir(mode=0o700)
-    try:
-        _write_files(target, files)
-        fd = os.open(target, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-    except BaseException:
-        for name in files:
-            (target / name).unlink(missing_ok=True)
-        target.rmdir()
-        raise
+    _publish(target, files)
     return result
