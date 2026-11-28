@@ -1,10 +1,20 @@
 import json
+import copy
+import hashlib
 import pathlib
 import subprocess
 import tempfile
 import unittest
 
 from engineering_os import control
+
+
+def reviewed_native_receipt():
+    """Actual reviewed CI receipt; negative tests mutate private copies only."""
+    policy=control.read(control.ROOT/'catalog/capabilities/playwright.json')
+    record=copy.deepcopy(policy)
+    receipt=copy.deepcopy(control.read(control.ROOT/record['runtime_receipt']))
+    return record,receipt
 
 
 class ControlTests(unittest.TestCase):
@@ -24,17 +34,19 @@ class ControlTests(unittest.TestCase):
     def test_runtime_claim_withdraws_when_receipt_inputs_change(self):
         from unittest import mock
         import datetime
-        record=control.read(control.ROOT/'catalog/capabilities/playwright.json')
-        receipt=control.read(control.ROOT/record['runtime_receipt'])
+        policy=control.read(control.ROOT/'catalog/capabilities/playwright.json')
+        record,receipt=reviewed_native_receipt()
         recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
-        self.assertEqual(control.runtime_review(record,recorded)['revision'],record['revision'])
-        self.assertIsNone(control.runtime_review(record,recorded+datetime.timedelta(days=2)))
-        record['module_root']='../outside'
-        self.assertIsNone(control.runtime_review(record))
-        record=control.read(control.ROOT/'catalog/capabilities/playwright.json')
-        with mock.patch.object(control.hashlib,'sha256') as digest:
-            digest.return_value.hexdigest.return_value='0'*64
-            self.assertIsNone(control.runtime_review(record))
+        self.assertEqual(control.runtime_review(policy,recorded), policy)
+        # Source hashes and expiry remain mandatory for this actual dated proof.
+        with mock.patch.object(control,'read',return_value=receipt):
+            self.assertEqual(control.runtime_review(record,recorded)['revision'],record['revision'])
+            self.assertIsNone(control.runtime_review(record,recorded+datetime.timedelta(days=2)))
+            unsafe=copy.deepcopy(record);unsafe['module_root']='../outside'
+            self.assertIsNone(control.runtime_review(unsafe,recorded))
+            with mock.patch.object(control.hashlib,'sha256') as digest:
+                digest.return_value.hexdigest.return_value='0'*64
+                self.assertIsNone(control.runtime_review(record,recorded))
 
     def test_provider_probe_is_historical_not_live_authentication(self):
         report=control.integrations()
@@ -42,12 +54,48 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(len(report['programs']),22)
         self.assertIn('not implemented',report['protocols']['a2a'])
 
+    def test_native_runtime_requires_reviewed_bytes_and_cannot_refresh_expired_proof(self):
+        """Temporary copies exercise integrity; published evidence is never rewritten."""
+        import datetime
+        import shutil
+        from unittest import mock
+        record,receipt=reviewed_native_receipt()
+        actual_root=control.ROOT
+        recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
+        original=(actual_root/record['runtime_receipt']).read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            target=root/record['runtime_receipt'];target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(original)
+            for name in receipt['inputs']:
+                relative=pathlib.Path(record['module_root'])/name
+                destination=root/relative;destination.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(actual_root/relative,destination)
+            with mock.patch.object(control,'ROOT',root):
+                self.assertEqual(control.runtime_review(record,recorded),record)
+                for expected in (None,'','0'*64,'A'*64,True,123):
+                    amended=copy.deepcopy(record)
+                    if expected is None:amended.pop('runtime_receipt_sha256')
+                    else:amended['runtime_receipt_sha256']=expected
+                    with self.subTest(expected=expected):
+                        self.assertIsNone(control.runtime_review(amended,recorded))
+                expired=recorded+datetime.timedelta(seconds=86401)
+                self.assertIsNone(control.runtime_review(record,expired))
+                relabeled=copy.deepcopy(receipt)
+                relabeled['recorded_at_utc']=(expired-datetime.timedelta(seconds=10)).isoformat()
+                target.write_text(json.dumps(relabeled))
+                self.assertNotEqual(hashlib.sha256(target.read_bytes()).hexdigest(),record['runtime_receipt_sha256'])
+                self.assertIsNone(control.runtime_review(record,expired))
+                target.write_bytes(original+b'\n')
+                self.assertIsNone(control.runtime_review(record,recorded))
+                target.write_bytes(original)
+                self.assertEqual(control.runtime_review(record,recorded),record)
+
     def test_partial_or_failed_browser_evidence_never_advances_lifecycle(self):
         import copy
         import datetime
         from unittest import mock
-        record=control.read(control.ROOT/'catalog/capabilities/playwright.json')
-        receipt=control.read(control.ROOT/record['runtime_receipt'])
+        record,receipt=reviewed_native_receipt()
         recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
         broken=[]
         item=copy.deepcopy(receipt);item['inputs'].pop('native-probes.mjs');broken.append(item)
@@ -58,9 +106,44 @@ class ControlTests(unittest.TestCase):
         item=copy.deepcopy(receipt);item['cases'][0]['direction']='rtl';broken.append(item)
         item=copy.deepcopy(receipt);item['cases'][2]['rendered']['waapi']=True;broken.append(item)
         item=copy.deepcopy(receipt);item['cases'][0]['benchmark']['intervals']=[];broken.append(item)
+        item=copy.deepcopy(receipt);item['cases'][0]['benchmark']['frame_budget_ms']=100;broken.append(item)
+        item=copy.deepcopy(receipt);item['recorded_at_utc']=(recorded+datetime.timedelta(days=1)).isoformat();broken.append(item)
+        policy=control.read(control.ROOT/'catalog/capabilities/playwright.json')
+        broken.append(control.read(control.ROOT/policy['runtime_raw_receipt']['path']))
         for item in broken:
             with self.subTest(item=item.keys()),mock.patch.object(control,'read',return_value=item):
                 self.assertIsNone(control.runtime_review(record,recorded))
+
+    def test_native_hash_and_parser_share_one_buffer_under_receipt_replacement(self):
+        import datetime
+        import shutil
+        from unittest import mock
+        record,receipt=reviewed_native_receipt()
+        actual_root=control.ROOT
+        recorded=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
+        expired=recorded+datetime.timedelta(seconds=86401)
+        original=(actual_root/record['runtime_receipt']).read_bytes()
+        relabeled={**receipt,'recorded_at_utc':(expired-datetime.timedelta(seconds=10)).isoformat()}
+        real_read_bytes=pathlib.Path.read_bytes
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            target=root/record['runtime_receipt'];target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(original)
+            for name in receipt['inputs']:
+                relative=pathlib.Path(record['module_root'])/name
+                destination=root/relative;destination.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(actual_root/relative,destination)
+            reads=[]
+            def replace_after_read(path):
+                data=real_read_bytes(path)
+                if path==target:
+                    reads.append(path)
+                    path.write_text(json.dumps(relabeled))
+                return data
+            with mock.patch.object(control,'ROOT',root),mock.patch.object(pathlib.Path,'read_bytes',new=replace_after_read):
+                self.assertIsNone(control.runtime_review(record,expired))
+            self.assertEqual(reads,[target])
+            self.assertEqual(json.loads(target.read_text()),relabeled)
 
     def test_evidence_json_rejects_duplicate_and_overflowed_numbers(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -68,14 +151,22 @@ class ControlTests(unittest.TestCase):
             for text in ('{"a":1,"a":2}','{"a":1e9999}','{"a":NaN}'):
                 target.write_text(text)
                 with self.assertRaises(ValueError):control.read(target)
+                digest=hashlib.sha256(target.read_bytes()).hexdigest()
+                with self.assertRaises(ValueError):control.read(target,expected_sha256=digest)
 
     def test_motion_proof_withdraws_for_partial_sources_duplicate_profiles_or_failed_budgets(self):
         import copy
         from unittest import mock
         real_read=control.read
-        path=control.ROOT/'docs/evidence/motion-expansion-2026-11-27.json'
+        policy_path=control.ROOT/'catalog/capabilities/playwright.json'
+        policy=real_read(policy_path)
+        path=control.ROOT/policy['motion_runtime_receipt']
         receipt=real_read(path)
-        self.assertEqual(control.motions()['expansion']['runtime_verified'],400)
+        expansion=control.motions()['expansion']
+        self.assertEqual((expansion['implemented'],expansion['tested']), (400,400))
+        self.assertEqual(expansion['runtime_verified'],400)
+        self.assertEqual(expansion['historical_tested_toolchain']['playwright'],'1.63.0')
+        self.assertEqual(expansion['current_runtime']['state'],'recorded-source-bound')
         broken=[]
         item=copy.deepcopy(receipt);item['source_sha256'].pop('packages/motion-sdk/index.mjs');broken.append(item)
         item=copy.deepcopy(receipt);item['profiles'][1]=item['profiles'][0];broken.append(item)
@@ -89,9 +180,87 @@ class ControlTests(unittest.TestCase):
         item=copy.deepcopy(receipt);item['recorded_at_utc']='not-a-timestamp';broken.append(item)
         item=copy.deepcopy(receipt);item['playwright_version']='0.0.1';broken.append(item)
         for item in broken:
-            def amended(target):return item if pathlib.Path(target)==path else real_read(target)
-            with mock.patch.object(control,'read',side_effect=amended):
+            for history_available in (True,False):
+                amended_policy=copy.deepcopy(policy)
+                if not history_available:amended_policy['historical_reviews']=[]
+                def amended(target):
+                    if pathlib.Path(target)==path:return item
+                    if pathlib.Path(target)==policy_path:return amended_policy
+                    return real_read(target)
+                with self.subTest(history_available=history_available),mock.patch.object(control,'read',side_effect=amended):
+                    result=control.motions()['expansion']
+                    count=400 if history_available else 0
+                    self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (count,count,0))
+
+    def test_reviewed_history_is_required_and_cannot_relabel_the_old_driver(self):
+        from unittest import mock
+        real_read=control.read
+        policy_path=control.ROOT/'catalog/capabilities/playwright.json'
+        policy=real_read(policy_path)
+        # Isolate historical proof: valid current proof must not hide a broken
+        # historical review, or disappear because an unrelated old proof fails.
+        history_only=copy.deepcopy(policy)
+        history_only['motion_runtime_receipt']=None
+        history_only['motion_runtime_receipt_sha256']=None
+        for changed in ('missing-review','unapproved-review','arbitrary-pin'):
+            amended=copy.deepcopy(history_only)
+            if changed=='missing-review':amended['historical_reviews']=[]
+            elif changed=='unapproved-review':amended['historical_reviews'][0]['review_status']='pending'
+            else:amended['historical_reviews'][0]['hub_revision']='main'
+            with mock.patch.object(control,'read',side_effect=lambda path: amended if pathlib.Path(path)==policy_path else real_read(path)):
+                self.assertEqual(control.motions()['expansion']['implemented'],0)
+        path=control.ROOT/policy['historical_reviews'][0]['motion_receipt']['path']
+        relabeled=copy.deepcopy(real_read(path));relabeled['playwright_version']=policy['version']
+        def historical_amended(target):
+            if pathlib.Path(target)==path:return relabeled
+            if pathlib.Path(target)==policy_path:return history_only
+            return real_read(target)
+        with mock.patch.object(control,'read',side_effect=historical_amended):
+            result=control.motions()['expansion']
+            self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (0,0,0))
+
+    def test_unit_only_current_receipt_requires_reviewed_bytes_and_stays_isolated(self):
+        """Synthetic temporary fixture, never a published current-driver proof."""
+        import datetime
+        import shutil
+        from unittest import mock
+        actual_root=control.ROOT
+        policy=control.read(actual_root/'catalog/capabilities/playwright.json')
+        historical=policy['historical_reviews'][0]['motion_receipt']['path']
+        receipt=copy.deepcopy(control.read(actual_root/policy['motion_runtime_receipt']))
+        receipt.update(playwright_version=policy['version'],scope='UNIT ONLY synthetic current-receipt validator fixture',
+                       recorded_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat())
+        sources=list(receipt['source_sha256'])+['catalog/registry.json','motion-library/MOTION_CATALOG.json',historical]
+        sources.extend(f'motion-library/{scope}/package.json' for scope in ('verify','chromium-stack','quality'))
+        sources.extend(f'motion-library/{scope}/package-lock.json' for scope in ('verify','chromium-stack','quality'))
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            for name in sources:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(actual_root/name,target)
+            policy=copy.deepcopy(policy)
+            policy['motion_runtime_receipt']='docs/evidence/unit-only-current.json'
+            current=root/policy['motion_runtime_receipt']
+            current.write_text(json.dumps(receipt))
+            policy['motion_runtime_receipt_sha256']=hashlib.sha256(current.read_bytes()).hexdigest()
+            path=root/'catalog/capabilities/playwright.json';path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_text(json.dumps(policy))
+            with mock.patch.object(control,'ROOT',root):
+                result=control.motions()['expansion']
+                self.assertEqual((result['implemented'],result['tested'],result['runtime_verified']), (400,400,400))
+                self.assertEqual(result['receipt'],policy['motion_runtime_receipt'])
+                self.assertEqual(result['recorded_at_utc'],receipt['recorded_at_utc'])
+                self.assertEqual(result['historical_tested_toolchain']['playwright'],'1.63.0')
+                lock=root/'motion-library/verify/package-lock.json';original=lock.read_bytes()
+                changed=json.loads(original);changed['packages']['node_modules/playwright-core']['integrity']='unreviewed'
+                lock.write_text(json.dumps(changed))
                 self.assertEqual(control.motions()['expansion']['runtime_verified'],0)
+                lock.write_bytes(original)
+                # Approved bytes are mandatory; a modified file cannot inherit green status.
+                current.write_text(json.dumps({**receipt,'playwright_version':'9.9.9'}))
+                self.assertEqual(control.motions()['expansion']['runtime_verified'],0)
+                self.assertEqual(control.motions()['expansion']['implemented'],400)
+        self.assertEqual(control.motions()['expansion']['runtime_verified'],400)
 
     def test_unknown_project_health_cannot_approve_release(self):
         with tempfile.TemporaryDirectory() as directory:

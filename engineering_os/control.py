@@ -24,7 +24,11 @@ LAYERS = [
 ]
 
 
-def read(path):
+def read(path, expected_sha256=None):
+    data=pathlib.Path(path).read_bytes()
+    if expected_sha256 is not None:
+        if not isinstance(expected_sha256,str) or not re.fullmatch('[a-f0-9]{64}',expected_sha256):raise ValueError('invalid receipt digest')
+        if hashlib.sha256(data).hexdigest()!=expected_sha256:raise ValueError('changed receipt bytes')
     def pairs(items):
         result={}
         for key,value in items:
@@ -35,7 +39,7 @@ def read(path):
         number=float(value)
         if not math.isfinite(number):raise ValueError('invalid number')
         return number
-    return json.loads(pathlib.Path(path).read_text(),object_pairs_hook=pairs,parse_float=finite,
+    return json.loads(data.decode('utf-8'),object_pairs_hook=pairs,parse_float=finite,
                       parse_constant=lambda _: (_ for _ in ()).throw(ValueError('invalid number')))
 
 
@@ -98,7 +102,10 @@ def capabilities(query='', state=None):
 def runtime_review(record, now=None):
     """Withdraw a recorded runtime claim when source or time-bound evidence changes."""
     try:
-        receipt=read(safe_path(record['runtime_receipt']))
+        path=safe_path(record['runtime_receipt'])
+        expected=record.get('runtime_receipt_sha256')
+        if not isinstance(expected,str) or not re.fullmatch('[a-f0-9]{64}',expected):return None
+        receipt=read(path,expected_sha256=expected)
         if receipt.get('status')!='passed' or receipt.get('functional_status')!='passed':return None
         required={'package.json','package-lock.json','options.mjs','native-probes.mjs','smoke.mjs','harness.html'}
         if set(receipt['inputs'])!=required or record['module_root']!='motion-library/chromium-stack':return None
@@ -153,6 +160,36 @@ def integrations():
                          'current_authorization':'must be rechecked per environment'} for p in programs]}
 
 
+def _motion_toolchain_review(receipt, historical=False):
+    """Separate a reviewed immutable historical proof from the current driver."""
+    policy=read(safe_path('catalog/capabilities/playwright.json'))
+    if historical:
+        digest=hashlib.sha256(json.dumps(receipt,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+        for review in policy.get('historical_reviews',[]):
+            if (review.get('review_status')=='approved' and review.get('version')==receipt['playwright_version']
+                and re.fullmatch('[a-f0-9]{40}',review.get('revision',''))
+                and re.fullmatch('[a-f0-9]{40}',review.get('hub_revision',''))
+                and review['motion_receipt']['canonical_sha256']==digest):return review
+        return None
+    version=policy['version']
+    catalog=next(r for r in read(safe_path('catalog/registry.json')) if r['id']=='microsoft/playwright')
+    if catalog['status']!='approved' or catalog['revision']!=policy['revision'] or policy['requested_state'] not in ('APPROVED','INSTALLED','OPERATIONAL','TESTED','PROJECT_VERIFIED'):return None
+    if any(catalog.get(field)!='approved' for field in ('license_review','security_review','commercial_review')):return None
+    if not re.fullmatch('[a-f0-9]{40}',policy['revision']) or receipt['playwright_version']!=version:return None
+    current=policy.get('motion_runtime_receipt')
+    expected=policy.get('motion_runtime_receipt_sha256')
+    if not isinstance(current,str) or not isinstance(expected,str) or not re.fullmatch('[a-f0-9]{64}',expected):return None
+    approved=safe_path(current)
+    if hashlib.sha256(approved.read_bytes()).hexdigest()!=expected or read(approved)!=receipt:return None
+    for scope in ('verify','chromium-stack','quality'):
+        if read(safe_path(f'motion-library/{scope}/package.json'))['devDependencies']['playwright']!=version:return None
+        packages=read(safe_path(f'motion-library/{scope}/package-lock.json'))['packages']
+        for name in ('playwright','playwright-core'):
+            entry=packages['node_modules/'+name]
+            if entry['version']!=version or entry['integrity']!=policy['npm_integrities'][name]:return None
+    return policy
+
+
 def motions():
     legacy=read(ROOT/'motion-library/MOTION_CATALOG.json')['entries']
     result={'legacy':{'indexed':len(legacy),'runtime_verified':sum(x.get('runtime_verified') is True for x in legacy)},
@@ -162,22 +199,35 @@ def motions():
         document=read(path)
         rows=document if isinstance(document,list) else document.get('definitions',document.get('motions',[]))
         result['expansion']['indexed']=len(rows)
-        result['expansion']['note']='Implementation and test counts require current runtime evidence; see expansion receipt.'
-        receipt_path=ROOT/'docs/evidence/motion-expansion-2026-11-27.json'
-        if receipt_path.is_file():
+        result['expansion']['note']='Counts require reviewed source-bound evidence, not source presence alone.'
+        policy=read(safe_path('catalog/capabilities/playwright.json'))
+        current=policy.get('motion_runtime_receipt')
+        result['expansion']['current_runtime']={'playwright':policy['version'],'runtime_verified':0,'receipt':current,'state':'evidence-required'}
+        candidates=[(current,False)] if current else []
+        candidates.extend((r['motion_receipt']['path'],True) for r in policy.get('historical_reviews',[]) if r.get('review_status')=='approved')
+        for name,historical in candidates:
             try:
-                receipt=read(safe_path(str(receipt_path.relative_to(ROOT))))
-                valid=motion_receipt_valid(receipt,rows)
+                receipt_path=safe_path(name)
+                receipt=read(receipt_path)
+                review=_motion_toolchain_review(receipt,historical)
+                valid=review is not None and motion_receipt_valid(receipt,rows,historical=historical)
+                if historical and review is not None and hashlib.sha256(receipt_path.read_bytes()).hexdigest()!=review['motion_receipt']['sha256']:valid=False
                 if valid:
-                    result['expansion'].update(implemented=400,tested=400,runtime_verified=400,basic=200,advanced=200,
-                        recorded_at_utc=receipt['recorded_at_utc'],receipt=str(receipt_path.relative_to(ROOT)),
+                    result['expansion'].update(implemented=400,tested=400,basic=200,advanced=200,
                         live_recheck_performed=False,engine='Canvas2D reference',production_fps_verified=False,gpu_runtime_verified=False,
-                        note='Recorded Chromium proof bound to current source; viewports, timing scope and limitations are in the receipt.')
+                        note='Implementation/test counts retain reviewed dated proof for unchanged sources. Current-driver runtime requires its own reviewed receipt.')
+                    if historical:
+                        result['expansion']['historical_tested_toolchain']={'playwright':receipt['playwright_version'],'recorded_at_utc':receipt['recorded_at_utc'],'hub_revision':review['hub_revision'],'receipt':name}
+                        if not result['expansion']['runtime_verified']:
+                            result['expansion'].update(recorded_at_utc=receipt['recorded_at_utc'],receipt=name)
+                    else:
+                        result['expansion'].update(runtime_verified=400,recorded_at_utc=receipt['recorded_at_utc'],receipt=name)
+                        result['expansion']['current_runtime'].update(runtime_verified=400,state='recorded-source-bound',recorded_at_utc=receipt['recorded_at_utc'])
             except (OSError,ValueError,KeyError,TypeError,AttributeError):pass
     return result
 
 
-def motion_receipt_valid(receipt, rows):
+def motion_receipt_valid(receipt, rows, *, historical=False):
     """Validate recorded, reviewed-source evidence; this is not evaluator authentication."""
     expected={r['id'] for r in rows}
     required={'packages/motion-sdk/index.mjs','motion-studio/index.html','motion-studio/studio.mjs',
@@ -188,7 +238,7 @@ def motion_receipt_valid(receipt, rows):
     if set(receipt['source_sha256'])!=required or not source_matches(receipt['source_sha256']):return False
     if not isinstance(receipt['raw_receipt_sha256'],str) or not re.fullmatch('[a-f0-9]{64}',receipt['raw_receipt_sha256']):return False
     if receipt['engine']!='chromium-canvas2d' or not isinstance(receipt['browser'],str) or not re.fullmatch(r'\d+\.\d+\.\d+\.\d+',receipt['browser']):return False
-    if receipt['playwright_version']!=read(ROOT/'motion-library/verify/package.json')['devDependencies']['playwright']:return False
+    if _motion_toolchain_review(receipt,historical) is None:return False
     if receipt['production_fps_verified'] is not False or receipt['gpu_runtime_verified'] is not False:return False
     at=datetime.datetime.fromisoformat(receipt['recorded_at_utc'].replace('Z','+00:00'))
     if at.utcoffset()!=datetime.timedelta(0) or at>datetime.datetime.now(datetime.timezone.utc):return False

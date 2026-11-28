@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -12,6 +13,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { chromium } from 'playwright';
 import { DEFAULT_BUDGETS, evaluateBudgets, validateAuditUrl } from './budgets.mjs';
 import { inside, serveStudio } from './server.mjs';
+
+const require=createRequire(import.meta.url);
+const playwrightVersion=require('playwright/package.json').version;
 
 const STUDIO_SOURCES = ['motion-studio/index.html', 'motion-studio/styles.css', 'motion-studio/studio.mjs', 'packages/motion-sdk/index.mjs', 'motion-library/expansion/catalog.mjs', 'motion-library/expansion/families.mjs', 'motion-library/expansion/systems.mjs', 'motion-library/expansion/geometry.mjs'];
 async function sourceSnapshot(root, fixture) {
@@ -119,7 +123,7 @@ export async function runAudit(options) {
       schema_version: 1, kind: options.fixture === true ? 'synthetic-fixture-quality-audit' : 'motion-studio-local-lab-quality-audit', audited_at_utc: new Date().toISOString(),
       profile: options.profile, url, metrics, budgets: DEFAULT_BUDGETS,
       ...evaluateBudgets(metrics),
-      tool_versions: { lighthouse: lhr.lighthouseVersion, axe: axe.testEngine.version, chromium: context.browser()?.version(), playwright: '1.63.0', node: process.version },
+      tool_versions: { lighthouse: lhr.lighthouseVersion, axe: axe.testEngine.version, chromium: context.browser()?.version(), playwright: playwrightVersion, node: process.version },
       package_lock_sha256: createHash('sha256').update(packageLock).digest('hex'),
       source_commit: before.commit, source_sha256: before.hashes,
       limits: ['Single local laboratory run, not a field measurement', 'No FPS or INP claim', 'No production, authenticated profile or external service was used', 'Raw axe incomplete/manual checks require human review'],

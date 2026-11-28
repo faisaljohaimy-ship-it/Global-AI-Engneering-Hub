@@ -74,11 +74,23 @@ jobs:
           import {createRequire} from 'node:module';
           import {readFileSync} from 'node:fs';
           const require=createRequire(`${process.env.MOTION_PLAYWRIGHT_PACKAGE}/package.json`);
-          const expected=JSON.parse(readFileSync('motion-library/chromium-stack/package.json','utf8')).devDependencies.playwright;
-          const studioExpected=JSON.parse(readFileSync('motion-library/verify/package.json','utf8')).devDependencies.playwright;
-          assert.equal(expected,'1.63.0');
-          assert.equal(studioExpected,expected);
-          assert.equal(require('playwright/package.json').version,expected);
+          const policy=JSON.parse(readFileSync('catalog/capabilities/playwright.json','utf8'));
+          const row=JSON.parse(readFileSync('catalog/registry.json','utf8')).find(row=>row.id==='microsoft/playwright');
+          assert.equal(row.status,'approved');assert.equal(row.revision,policy.revision);
+          for (const field of ['license_review','security_review','commercial_review']) assert.equal(row[field],'approved');
+          assert.match(policy.revision,/^[a-f0-9]{40}$/);assert.match(policy.version,/^\d+\.\d+\.\d+$/);
+          assert(['APPROVED','INSTALLED','OPERATIONAL','TESTED','PROJECT_VERIFIED'].includes(policy.requested_state));
+          for (const scope of ['chromium-stack','verify','quality']) {
+            const packagePath=`motion-library/${scope}`;
+            assert.equal(JSON.parse(readFileSync(`${packagePath}/package.json`,'utf8')).devDependencies.playwright,policy.version);
+            const lock=JSON.parse(readFileSync(`${packagePath}/package-lock.json`,'utf8'));
+            for (const name of ['playwright','playwright-core']) {
+              assert.match(policy.npm_integrities[name],/^sha512-[A-Za-z0-9+/]{86}==$/);
+              assert.equal(lock.packages[`node_modules/${name}`].version,policy.version);
+              assert.equal(lock.packages[`node_modules/${name}`].integrity,policy.npm_integrities[name]);
+            }
+          }
+          assert.equal(require('playwright/package.json').version,policy.version);
           JS
           motion-library/chromium-stack/node_modules/.bin/playwright install --with-deps chromium --only-shell
       - name: Exercise native runtime, RTL, reduced motion and failing performance budgets
@@ -86,7 +98,7 @@ jobs:
           set -euo pipefail
           node tests/test_chromium_stack_runtime.mjs
           # A bounded CI lab budget is not a production FPS or GPU claim.
-          node motion-library/chromium-stack/smoke.mjs --frames 30 --frame-budget-ms 100 --out "$CHROMIUM_EVIDENCE_DIR" > "$OS_EVIDENCE_ROOT/chromium-console.json"
+          node motion-library/chromium-stack/smoke.mjs --frames 30 --frame-budget-ms 20 --out "$CHROMIUM_EVIDENCE_DIR" > "$OS_EVIDENCE_ROOT/chromium-console.json"
       - name: Render every Motion Studio recipe in desktop and mobile Chromium
         run: node tests/test_motion_studio_browser.mjs
       - name: Measure real Studio Lighthouse and axe budgets
@@ -143,7 +155,8 @@ jobs:
               'motion-library/expansion/definitions.json', 'motion-library/expansion/families.mjs',
               'motion-library/expansion/systems.mjs', 'motion-library/expansion/geometry.mjs',
               'tests/test_motion_studio_browser.mjs'])
-          assert native['toolchain']['playwright'] == studio['playwright_version'] == '1.63.0'
+          policy = json.loads((checkout / 'catalog/capabilities/playwright.json').read_text())
+          assert native['toolchain']['playwright'] == studio['playwright_version'] == policy['version']
           assert native['browser']['engine'] == 'chromium' and studio['engine'] == 'chromium-canvas2d'
           assert native['browser']['version'] == studio['browser']
           assert native['functional_status'] == native['performance_budget']['status'] == 'passed'

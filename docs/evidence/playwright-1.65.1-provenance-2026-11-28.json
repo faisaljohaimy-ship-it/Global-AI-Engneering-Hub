@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "status": "passed-recorded-source-bound-developer-QA",
+  "reviewed_at_utc": "2026-11-28T02:54:35.424669+00:00",
+  "scope": "Reviewed1.65.1 native browser and400-motion laboratory evidence; no production or automatic project activation.",
+  "tested_head": "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506",
+  "tested_tree": "dca90c5942c53950d754dd402dfbe69883bac04c",
+  "test_merge_commit": "a2ca44c88cc58df04d0af1c583af60614385174c",
+  "test_merge_parents": [
+    "d7bbb16539ed26c044e5f4bb7af440ebe3556b7b",
+    "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506"
+  ],
+  "adoption_base": "b10a1cbeae3b99b5838157e5ef6d5fe15c818a33",
+  "tested_source_equal_at_adoption_base": true,
+  "source_sha256": {
+    "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+    "motion-studio/index.html": "f2c3f307027f5ef19dc23faf6a05408eace11418eab56994ce11973970c217f7",
+    "motion-studio/studio.mjs": "34854afd382644b0fd35ee69df7ad00a5cb3c6833fe34b02217ae5510bacd6f3",
+    "motion-studio/styles.css": "518bad690ec5c016587d885a8c9b610889f7981fd03d4b0c301e5d9862d16d01",
+    "motion-library/expansion/catalog.mjs": "2af27634e1f9416912854b5e6c9cb5740e3a2ee8275989f6ae02dc1f66c31f9c",
+    "motion-library/expansion/definitions.json": "2c61fede11d5199c11e7eae23d4ca6e39256ad9051f94b29317b0c0d5609dbd9",
+    "motion-library/expansion/families.mjs": "753a7d0e81df964ae557dd66ad54a586a9c2db679db1f87f500773b9c24877c1",
+    "motion-library/expansion/systems.mjs": "5e7f36610c28b950d538a38a37810242839b1ab95da21b38e21a0e169d5796aa",
+    "motion-library/expansion/geometry.mjs": "653b44b798500481f49fa853f1458ad8b2941567bed4e4a736ff34e73e9db57b",
+    "tests/test_motion_studio_browser.mjs": "1a781a7d49bdaa7e0213511a3cacce1e0ec31c39098e157fa5b3030f6dd12c65",
+    "motion-library/chromium-stack/package.json": "1c5d01b838ff9f5a18cc73ebc5befa6f25063721e429be3feebaba0593311557",
+    "motion-library/chromium-stack/package-lock.json": "d9707412b1d264ae7aa625d6192170228e61a1f2a7ec777c2f001cae3ab24d3c",
+    "motion-library/chromium-stack/options.mjs": "da805dae3dfdd1a948b0d77516ec2da8dcc24ed00f721a81cd5b9038ab1b214e",
+    "motion-library/chromium-stack/native-probes.mjs": "fe07b47a73658ed5d2772ed5c906fc0f3d2a117ba6d826df24fe3bfdc172c436",
+    "motion-library/chromium-stack/smoke.mjs": "82ae20eff583d02b3230578dfb6342e5a608d5063318fbb748dab9b305709ce0",
+    "motion-library/chromium-stack/harness.html": "1ab65f6d93ac1c13d5459df0fa1fd036a52ea28fd310b2c2fa03d57f264cfd9c",
+    "motion-library/verify/package.json": "dde1ee994f248105456b67f577820381a7dd30150af03cbd702816345be659ff",
+    "motion-library/verify/package-lock.json": "48c111a32cbaa68ca30ad73a9c724cf9660f232568123416ef8d85c4bc441a99",
+    "motion-library/quality/package.json": "c417fbbeaef6c64470047e4306bdafa9518a4cec9777da72ed277920c035feee",
+    "motion-library/quality/package-lock.json": "5ec4328e1200f321dcb6bbbb9275717a25989e9881a789f79fbd96e6dc846764",
+    "motion-library/quality/audit.mjs": "07460f7f6c5908358dc99d0db59b93dea431ea1ca71f30267faafe3bfab3893d",
+    "motion-library/quality/budgets.mjs": "2d42fd4c376efeacbdbbf55552441d9cf852460cca04b3ef9793bc07c414d7c1",
+    "motion-library/quality/server.mjs": "456e0b49723c6f08333e6a53ddd5d17680bc55ca4339cad422bdd99cb4da0140"
+  },
+  "playwright_version": "1.65.1",
+  "files": [
+    {
+      "path": "docs/evidence/playwright-1.65.1-native-raw-2026-11-28.json",
+      "sha256": "7b8f8485d3f7e250906b5f6700d40912443eb31b7deb847a1e730f1b7c4dbca5",
+      "bytes": 10205,
+      "kind": "exact-native-raw"
+    },
+    {
+      "path": "docs/evidence/playwright-1.65.1-native-2026-11-28.json",
+      "sha256": "a97db6ef257ea5faa6fa4807a2fc250fec8259024baaeb3c48c63e95704aac7a",
+      "bytes": 7435,
+      "kind": "native-curated-drop-only-intervals"
+    },
+    {
+      "path": "docs/evidence/playwright-1.65.1-motion-chromium-2026-11-28.json",
+      "sha256": "1bdb4b7088242f1cb98ec3e35e4f103901c4ce1e41f223c6f567ebaad5e23fb6",
+      "bytes": 269270,
+      "kind": "motion-chromium-curated"
+    },
+    {
+      "path": "docs/evidence/playwright-1.65.1-motion-firefox-2026-11-28.json",
+      "sha256": "34e3d1674ac11ba56b07c97e71ddaa5051cdde935c9e839bf05a34876ae159d5",
+      "bytes": 255801,
+      "kind": "motion-firefox-curated"
+    },
+    {
+      "path": "docs/evidence/playwright-1.65.1-motion-webkit-2026-11-28.json",
+      "sha256": "988e2f098f7b89511d9cfdec1b32dc1c771947d607e3e60790390ae3f5bacfb7",
+      "bytes": 255815,
+      "kind": "motion-webkit-curated"
+    },
+    {
+      "path": "docs/evidence/playwright-1.65.1-quality-2026-11-28.json",
+      "sha256": "bfd6763474285f533856a8e064d39db7403709f8c9c40c990558e9549f745606",
+      "bytes": 4792,
+      "kind": "quality-desktop-mobile-curated"
+    }
+  ],
+  "native_curation": {
+    "raw": "docs/evidence/playwright-1.65.1-native-raw-2026-11-28.json",
+    "curated": "docs/evidence/playwright-1.65.1-native-2026-11-28.json",
+    "only_removed_json_paths": [
+      "cases/0/benchmark/intervals_ms",
+      "cases/1/benchmark/intervals_ms",
+      "cases/2/benchmark/intervals_ms"
+    ],
+    "all_retained_values_identical": true,
+    "raw_interval_samples_retained": 90,
+    "statistics_recomputed_from_raw_and_matching": true,
+    "configured_frame_budget_ms": 20,
+    "case_p95_interval_ms": {
+      "desktop-ltr": 16.799999999999955,
+      "mobile-rtl": 16.700000000000045,
+      "mobile-reduced-rtl": 16.700000000000045
+    },
+    "run_id": 46096974293,
+    "job_id": 140830578109,
+    "artifact_id": 15243931322,
+    "artifact_member": "chromium/report.json",
+    "archive_sha256": "b8bf5e0785b27012b93c9d14acd392cdbe84e69af23245632b3edc11155dabde",
+    "generator_provenance_scope": "The native generator provenance object is static recovered-module metadata, not account-wide Claude handover recovery status."
+  },
+  "motion_curation": {
+    "derivation": "Exact per-ID minima, distinct sampled frame counts, reduced-motion flags and CPU statistics derived from the reviewed raw4af91f receipts. Metadata format is a summary; no measured value was improved or fabricated.",
+    "engines": {
+      "chromium": {
+        "artifact_id": 15243931322,
+        "run_id": 46096974293,
+        "job_id": 140830578109,
+        "artifact_member": "motion-studio/motion-studio-runtime.json",
+        "raw_receipt_sha256": "68060de6755860ea9da5bb08608659a5d6016789321a2480bb8bcd5d469875bf",
+        "archive_sha256": "b8bf5e0785b27012b93c9d14acd392cdbe84e69af23245632b3edc11155dabde"
+      },
+      "firefox": {
+        "artifact_id": 15243474294,
+        "run_id": 46096974281,
+        "job_id": 140830467984,
+        "artifact_member": "motion-studio-runtime.json",
+        "raw_receipt_sha256": "7017d1b159feeb5375e00d6fe8c3363045604a9ae22d2f16850ff3322a67ad53",
+        "archive_sha256": "74356ea49a7098990100181cc455f88bdbb203607736e4bca6806713959928ec"
+      },
+      "webkit": {
+        "artifact_id": 15243593716,
+        "run_id": 46096974281,
+        "job_id": 140830468271,
+        "artifact_member": "motion-studio-runtime.json",
+        "raw_receipt_sha256": "dbeb5fa1fb7a0d448256797ebf3e027b4fd61192866e6904b32f8a317d7485eb",
+        "archive_sha256": "0f0aef3a631e8d41cdf0ece1f436f3fba47e759057be83fc54632870b4f43b3f"
+      }
+    },
+    "same_unique_definitions": 400,
+    "profiles_per_engine": 2,
+    "frame_samples_per_engine": 2400,
+    "reduced_motion_cases_per_engine": 800
+  },
+  "quality_curation": {
+    "profiles": [
+      "desktop",
+      "mobile"
+    ],
+    "performance_accessibility_minimum": 95,
+    "inp_measured": false,
+    "run_id": 46096974293,
+    "artifact_id": 15243931322
+  },
+  "workflow_runs": [
+    {
+      "id": 46096974293,
+      "name": "operating-system",
+      "head_sha": "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506",
+      "path": ".github/workflows/operating-system.yml",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub/actions/runs/46096974293"
+    },
+    {
+      "id": 46096974281,
+      "name": "Motion cross-browser",
+      "head_sha": "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506",
+      "path": ".github/workflows/motion-cross-browser.yml",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub/actions/runs/46096974281"
+    },
+    {
+      "id": 46096974254,
+      "name": "verify",
+      "head_sha": "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506",
+      "path": ".github/workflows/verify.yml",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub/actions/runs/46096974254"
+    },
+    {
+      "id": 46096974313,
+      "name": "Security audit",
+      "head_sha": "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506",
+      "path": ".github/workflows/security.yml",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub/actions/runs/46096974313"
+    },
+    {
+      "id": 46096974246,
+      "name": "Dependency audit",
+      "head_sha": "4af91f949bf03a1fe323cbc56dd59ecd3d6b1506",
+      "path": ".github/workflows/dependency-audit.yml",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/faisaljohaimy-ship-it/Global-AI-Engneering-Hub/actions/runs/46096974246"
+    }
+  ],
+  "successful_jobs": 8,
+  "freshness": {
+    "native_maximum_age_seconds": 86400,
+    "native_expiry_enforced_by": "engineering_os/control.py runtime_review",
+    "motion_scope": "Dated reviewed source-bound proof; source changes withdraw counts. It is not a live recheck."
+  },
+  "release_governance": "Adoption source changes require successful exact-head CI and independent review before merge; no deployment authority is granted.",
+  "not_proven": [
+    "Physical Safari/mobile hardware",
+    "WebGPU rendering",
+    "Production FPS or field INP/Web Vitals",
+    "Authenticated sessions or all Playwright APIs",
+    "Automatic project activation or product runtime dependency on this hub"
+  ]
+}
