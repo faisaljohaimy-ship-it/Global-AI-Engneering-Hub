@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "evidence_scope": "Synthetic local execution and source-bound review of published revisions. Runtime claims apply to each named surface.",
+  "reviewed_release": {
+    "tag": "engineering-os-v0.1.3",
+    "commit": "6d6501566b61ea9a01137c93c2811c9c10522943"
+  },
+  "inventory": {
+    "catalog_entries": 123,
+    "approved": 2,
+    "local_skills": 14,
+    "motion_totals": {
+      "indexed": 542,
+      "implemented": 430,
+      "tested": 430,
+      "runtime_verified": 429
+    },
+    "integrations_probed": 22,
+    "integrations_available": 12
+  },
+  "inventory_notes": [
+    "Integrations available counts recorded successful probes and varies by environment.",
+    "Skills in the catalog are discoverable instructions. Native skill invocation requires an actual host session.",
+    "Five model candidates are blocked with no project-specific execution evidence."
+  ],
+  "local_probe_runner": {
+    "schema_version": 1,
+    "scope": "local synthetic fixtures",
+    "runner_sha256": "ecbf9d56e1a433bf79212cdb9c34d25930793e21234b7bc3ebcc9f27c773117a",
+    "checks": {
+      "engineering-sdk": {
+        "state": "TESTED",
+        "details": {
+          "version": "1.0.0",
+          "tools": [
+            "engineering_discover",
+            "engineering_verify"
+          ],
+          "files_verified": 1,
+          "scope": "stdio synthetic project"
+        },
+        "wall_ms": 38.38,
+        "source_sha256": {
+          "sdk/engineering_sdk.py": "235e4dae4d369f9a31756160cc81305cf237b42cf6f36c3fb004ecc7b348c224",
+          "sdk/capabilities.json": "a9a6a4721893416807d8d67a41a5ba893132ee77b7d3c7aa6e83e25d13bce6fc",
+          "catalog/registry.json": "6b23b4aac0202bffdfa459337e02ddc8fa4e083646099445e3e8a86d26164f71",
+          "integrations/PROGRAMS.json": "ef241771303a445c4ae7b407972e185f15ec36ef7fa9add19030b5bb7c5d0133"
+        }
+      },
+      "agent-orchestration": {
+        "state": "TESTED",
+        "details": {
+          "journal_revision": 4,
+          "handover_recovered": true,
+          "scope": "synthetic actor labels and a fresh TaskStore reader"
+        },
+        "wall_ms": 7.11,
+        "source_sha256": {
+          "engineering_os/orchestration.py": "6aee04c94fcfa4f20a0aaf29631f83c5e4009ba8b428dc22c6e2960dbe390335"
+        }
+      },
+      "model-router": {
+        "state": "TESTED",
+        "details": {
+          "decision": "blocked",
+          "candidates_rejected": 5,
+          "scope": "local eligibility decision with absent project evidence"
+        },
+        "wall_ms": 0.27,
+        "source_sha256": {
+          "engineering_os/model_router.py": "cf0d7be8406e1f370fc2a87b6f70412a9e13e4f4b8ce621dda119761c48d5405",
+          "engineering_os/orchestration.py": "6aee04c94fcfa4f20a0aaf29631f83c5e4009ba8b428dc22c6e2960dbe390335",
+          "catalog/models/registry.json": "2057620862db9b6b7249c2cad5758283384fea2e765ef401add9ab7c02a05797"
+        }
+      },
+      "motion-sdk": {
+        "state": "TESTED",
+        "details": {
+          "node_version": "24.22.3",
+          "motion": "os-quantum-b01",
+          "svg_bytes": 2550,
+          "live_instances_after_cleanup": 0,
+          "scope": "Node scene sampling and SVG export"
+        },
+        "wall_ms": 73.8,
+        "source_sha256": {
+          "scripts/verify_motion_capability.mjs": "78e3d82223ac66f24834bd687e5762b28998d8044ce043df614b678179c93663",
+          "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+          "motion-library/expansion/catalog.mjs": "2af27634e1f9416912854b5e6c9cb5740e3a2ee8275989f6ae02dc1f66c31f9c",
+          "motion-library/expansion/definitions.json": "2c61fede11d5199c11e7eae23d4ca6e39256ad9051f94b29317b0c0d5609dbd9",
+          "motion-library/expansion/families.mjs": "753a7d0e81df964ae557dd66ad54a586a9c2db679db1f87f500773b9c24877c1",
+          "motion-library/expansion/systems.mjs": "5e7f36610c28b950d538a38a37810242839b1ab95da21b38e21a0e169d5796aa",
+          "motion-library/expansion/geometry.mjs": "653b44b798500481f49fa853f1458ad8b2941567bed4e4a736ff34e73e9db57b"
+        }
+      },
+      "ripgrep": {
+        "state": "TESTED",
+        "details": {
+          "version": "ripgrep 15.2.0 (rev e89fff89ac)",
+          "matching_lines": 1,
+          "scope": "literal UTF-8 stdin fixture"
+        },
+        "wall_ms": 3.36,
+        "source_sha256": {}
+      }
+    }
+  },
+  "capability_observations": {
+    "headroom": {
+      "version": "0.45.0",
+      "state": "TESTED",
+      "scope": "SDK fallback, protected passthrough and exact retrieval on synthetic data",
+      "receipt_sha256": "1420f701f4906b415e481ec987d2f66fe6ea593dd2bb7a0914dcc7066c350621"
+    },
+    "ast-grep": {
+      "version": "ast-grep 0.51.3",
+      "state": "TESTED",
+      "scope": "one AST call found in a synthetic file"
+    },
+    "pydantic-ai": {
+      "version": "2.77.0",
+      "state": "TESTED",
+      "scope": "local FunctionModel called a typed tool and rejected invalid output"
+    },
+    "inspect-ai": {
+      "version": "0.3.292",
+      "state": "TESTED",
+      "scope": "three synthetic scores and one expected mismatch"
+    },
+    "context7-mcp": {
+      "version": "4.9.1",
+      "state": "TESTED",
+      "scope": "installed stdio server against synthetic documentation, 13 checks; hosted service unverified"
+    },
+    "chrome-devtools-mcp": {
+      "version": "1.14.0",
+      "state": "OPERATIONAL",
+      "scope": "offline install and stdio initialize/tools/list; 31 advertised tool names",
+      "browser_state": "BLOCKED",
+      "browser_reason": "Target closed during list_pages while Chromium sandbox remained enabled"
+    },
+    "blender": {
+      "version": "4.3.2",
+      "state": "TESTED",
+      "scope": "Cycles CPU, 72 synthetic frames"
+    },
+    "ffmpeg": {
+      "version": "7.1.5",
+      "state": "TESTED",
+      "scope": "H.264/AAC encoding and full decoding of the 3-second synthetic sample"
+    },
+    "ffprobe": {
+      "version": "7.1.5",
+      "state": "TESTED",
+      "scope": "verified sample stream metadata and frame count"
+    },
+    "serena-lsp": {
+      "state": "BLOCKED",
+      "reason": "runtime executable unavailable on checked paths"
+    },
+    "context-mode": {
+      "state": "BLOCKED",
+      "reason": "runtime executable unavailable on checked paths"
+    },
+    "promptfoo": {
+      "state": "REVIEWED",
+      "reason": "candidate closure audited; operational and license acceptance pending"
+    },
+    "playwright": {
+      "version": "1.65.1",
+      "state": "TESTED",
+      "scope": "release-pinned Linux browser lab evidence; runtime status tied to source and receipt freshness"
+    },
+    "playwright-mcp": {
+      "state": "DISCOVERED",
+      "reason": "separate reviewed-install gate for alpha driver"
+    },
+    "webgpu": {
+      "state": "BLOCKED",
+      "reason": "current host hardware and native browser rendering not verified"
+    },
+    "remotion-gsap": {
+      "state": "DISCOVERED",
+      "reason": "commercial-license eligibility and native render not verified"
+    },
+    "motion-rive-lottie-react-three-fiber": {
+      "state": "DISCOVERED",
+      "reason": "no current version pinned and independently tested for these optional engines"
+    }
+  },
+  "future_project_fixture": {
+    "status": "PROJECT_VERIFIED",
+    "scope": "Empty synthetic project, selected approved pin",
+    "commands_executed": 10,
+    "strict_files_verified": 20,
+    "offline_files_verified": 20,
+    "existing_project_worktrees_verified": 16,
+    "existing_projects": 8,
+    "candidate_files_per_project": 20
+  },
+  "new_synthetic_media": {
+    "video": {
+      "bytes": 827577,
+      "sha256": "3148ae5a6c93572faf166dded26d962c2860c680f99eef506d1ec5ba8858751b",
+      "codec": "h264",
+      "pixel_format": "yuv420p",
+      "width": 640,
+      "height": 360,
+      "fps": "24/1",
+      "decoded_frames": 72,
+      "distinct_decoded_frame_hashes": 72,
+      "duration_seconds": 3.0
+    },
+    "audio": {
+      "codec": "aac",
+      "sample_rate": "48000",
+      "channels": 1,
+      "origin": "Original synthetic additive sine tones"
+    },
+    "render_seconds": 73.221,
+    "source_script_sha256": "8e8dcca2f27362826bade259343d98a5d847a685221875478db7c34f68ca1e2e",
+    "full_video_audio_decode_passed": true
+  },
+  "resource_scope": {
+    "core_wall_ms_each_fixture": {
+      "engineering-sdk": 38.38,
+      "agent-orchestration": 7.11,
+      "model-router": 0.27,
+      "motion-sdk": 73.8,
+      "ripgrep": 3.36
+    },
+    "render_device": "Cycles CPU",
+    "provider_calls_by_local_fixtures": 0,
+    "billable_provider_cost_measurement": null
+  },
+  "workload_scope": "The separate multi-agent scale experiment was reviewed through author artifacts and bounded local tests.",
+  "reviewed_proposals": [
+    {
+      "number": 16,
+      "commit": "f9b88f3928def5c804a1353a17a5dffca071406c",
+      "draft": true,
+      "merge": "held",
+      "reason": "Native library packaging, contracts, license and CI coverage still need resolution; 34 authored motions excluded from released totals."
+    },
+    {
+      "number": 17,
+      "commit": "be61ded65929cb4d3fc02b36c74893843c552bb9",
+      "draft": true,
+      "merge": "held",
+      "reason": "Protected-input semantics, bounded capture, UTF-8 handling and private storage policy remain unresolved."
+    },
+    {
+      "number": 19,
+      "commit": "04767b896434991fedafabad4234e9d664444273",
+      "draft": true,
+      "merge": "held",
+      "reason": "Installer error propagation, environment verification, isolation and runtime CI coverage remain unresolved."
+    },
+    {
+      "number": 22,
+      "commit": "4c2a8db1467ce76534c6dc83a64fc43571e56ffb",
+      "draft": true,
+      "merge": "held",
+      "reason": "Execution isolation, enforceable stop and budget contracts, and report scope remain unresolved."
+    },
+    {
+      "number": 23,
+      "commit": "eda8783c62e235dcb20a82cdf7328a332c5294d8",
+      "draft": true,
+      "merge": "held",
+      "local_checks": 2,
+      "reason": "A projected input cap alone cannot enforce the live budget or authorize further execution."
+    },
+    {
+      "number": 24,
+      "commit": "b826d81a68d95c511078d27162df34ce7e8598b0",
+      "draft": true,
+      "merge": "held",
+      "local_checks": 18,
+      "reason": "Handover evidence is stale, and different models' cost units are compared as though they were equivalent."
+    },
+    {
+      "number": 25,
+      "commit": "c4e9c85998b95b98a060af78c49904fcb22e3d1b",
+      "draft": false,
+      "merge": "held",
+      "local_checks": 36,
+      "reason": "The offline reasoning, economics, and private memory subset passed the named local tests. Reconcile duplicated factory/memory APIs and review the remainder separately."
+    },
+    {
+      "number": 26,
+      "commit": "d0c0419a3f6d22389ad235bc8b9057fffb8d6fa3",
+      "draft": true,
+      "merge": "held",
+      "local_checks": 42,
+      "local_passed": 41,
+      "local_skipped": 1,
+      "additional_route_checks": 15,
+      "manual_build_checks": 4,
+      "manual_upgrade_checks": 8,
+      "reason": "Planner can mark deployment questions and an unrelated build workspace write-allowed. Native Claude session discovery and execution remain unverified."
+    }
+  ]
+}
