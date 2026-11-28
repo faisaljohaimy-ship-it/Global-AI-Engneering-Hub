@@ -91,7 +91,12 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
    (`detectors.schema_memory`) whose authorizer denies `ATTACH` and `VACUUM` (`VACUUM INTO`
    writes a file), `DETACH`, `load_extension` and every `PRAGMA` except schema introspection,
    `foreign_keys` and `user_version`; the attached-database limit is 0 and extension loading
-   is off. Memory and time are bounded: one string, blob or row at most 1 MB
+   is off. A script runs one statement at a time; the fts3/fts4/fts5/rtree/geopoly modules may
+   prepare their own read-only `PRAGMA 'main'.page_size` / `data_version` (no value, only while
+   a statement that uses one of their tables is running), so such schemas load and their
+   queries are measured; the script itself still cannot state those pragmas (the one residual:
+   the read-only `pragma_page_size('main')` function inside a statement that also uses such a
+   table, which touches no file). Memory and time are bounded: one string, blob or row at most 1 MB
    (`SQLITE_LIMIT_LENGTH`), one statement at most 1 MB (`SQLITE_LIMIT_SQL_LENGTH`), the main
    and temp databases 4096 pages each (temp kept in memory), and each script 2000 progress
    steps of 10000 instructions and 5 seconds. A refused statement or a script past a bound
