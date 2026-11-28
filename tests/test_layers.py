@@ -191,7 +191,12 @@ class VerificationTests(TempCase):
             self.assertIn(source, receipt["sources"])
         self.assertEqual(receipt["tests"][0]["status"], "passed")
         self.assertEqual((receipt["tests"][0]["ran"], receipt["tests"][0]["passed"]), (2, 2))
-        self.assertEqual(receipt["execution"], {"mode": "subprocess", "sandboxed": False, "simulated": False, "model_calls": 0})
+        # SEC-12: the receipt states how the tests ran; the governor sandbox where this host has its full tier.
+        full = layers.governor.isolation_probe()["tier"] == "full"
+        execution = receipt["execution"]
+        self.assertEqual((execution["simulated"], execution["model_calls"], execution["environment"]), (False, 0, "scrubbed"))
+        self.assertEqual((execution["mode"], execution["sandboxed"]), ("governor-sandbox", True) if full else ("subprocess", False))
+        self.assertEqual(receipt["tests"][0]["isolation"]["profile"], "strict" if full else "process-only")
         contracts.validate_receipt(receipt["contract_receipt"])
         self.assertEqual(tree.status("L01")["status"], "VERIFIED")
 

@@ -4,9 +4,13 @@ Static detectors read files and never execute them: broken routes, dead code,
 duplicate components, dependency conflicts, security regressions, SQLite schema and
 query smoke checks (in-memory database, ``EXPLAIN`` only) and media checks.
 Runtime detectors (broken APIs, failed integrations, memory growth, performance)
-execute target code only through :class:`Sandbox`: a child process with a fixed
-driver, a minimal environment, a loopback-only socket guard and timeouts. The guard
-is a Python-level check, not an OS sandbox, so ``run_all`` only runs them when the
+execute target code only through :class:`Sandbox`: a fixed driver started in the
+governor's OS sandbox (``governor.sandbox_run``: own user, mount, pid and network
+namespaces, a private loopback, the target read-only, one writable per-run directory,
+an exact minimal environment, limits). Where the host cannot build that sandbox a
+run is refused; the process-only mode (scrubbed environment and a Python-level
+socket guard, no OS isolation) runs only on an explicit, audited opt-in and every
+result records the isolation actually used. ``run_all`` runs them only when the
 caller passes ``runtime=True`` (``heal`` does so on a disposable copy).
 Every finding is ``{id, key, detector, kind, location, evidence, severity}``;
 evidence never contains a matched secret value.
@@ -14,6 +18,7 @@ SPDX-License-Identifier: MIT
 """
 
 import ast
+import base64
 import contextlib
 import copy
 import html.parser
@@ -23,6 +28,8 @@ import math
 import os
 import pathlib
 import re
+import resource
+import secrets
 import shutil
 import signal
 import socket
@@ -33,6 +40,7 @@ import tempfile
 import time
 import urllib.parse
 
+from . import governor
 from .orchestration import SECRET, sha
 from scripts.security_scan import python_findings, secret_findings
 
@@ -905,6 +913,7 @@ def _loopback(family, address):
 
 def _guard():
     connect, connect_ex, sendto, getaddrinfo = socket.socket.connect, socket.socket.connect_ex, socket.socket.sendto, socket.getaddrinfo
+    sendmsg = socket.socket.sendmsg
 
     def guarded_connect(self, address):
         if not _loopback(self.family, address):
@@ -921,12 +930,18 @@ def _guard():
             raise PermissionError(REFUSED)
         return sendto(self, data, *rest)
 
+    def guarded_sendmsg(self, buffers, *rest):
+        if len(rest) >= 3 and rest[2] is not None and not _loopback(self.family, rest[2]):
+            raise PermissionError(REFUSED)
+        return sendmsg(self, buffers, *rest)
+
     def guarded_getaddrinfo(host, *args, **kwargs):
         if host is not None and not _loopback(socket.AF_INET, (host, 0)):
             raise PermissionError(REFUSED)
         return getaddrinfo(host, *args, **kwargs)
 
     socket.socket.connect, socket.socket.connect_ex, socket.socket.sendto = guarded_connect, guarded_connect_ex, guarded_sendto
+    socket.socket.sendmsg = guarded_sendmsg
     socket.getaddrinfo = guarded_getaddrinfo
 
 
@@ -1097,6 +1112,61 @@ def _serve(request, root):
     runpy.run_path(script, run_name="__main__")
 
 
+REQUEST_LIMIT = 1024 * 1024
+
+
+def _http(port, method, target, body, timeout):
+    import base64, http.client
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
+    try:
+        payload = None if body is None else json.dumps(body).encode("utf-8")
+        connection.request(method, target, body=payload, headers={"Content-Type": "application/json"} if payload else {})
+        response = connection.getresponse()
+        data = response.read(REQUEST_LIMIT + 1)[:REQUEST_LIMIT]
+        return {"status": response.status, "content_type": response.getheader("Content-Type", ""),
+                "body": base64.b64encode(data).decode("ascii")}
+    finally:
+        connection.close()
+
+
+
+def _probe_app(request, root):
+    """Start the app as a child of this driver and send every request to it from here."""
+    import signal, subprocess, time
+    serve = {key: value for key, value in request.items() if key not in ("requests", "driver", "log")}
+    serve["mode"] = "serve"
+    with open(request["log"], "wb") as log:
+        child = subprocess.Popen([sys.executable, "-s", "-B", "-c", request["driver"], json.dumps(serve, sort_keys=True)],
+                                 cwd=root, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    ready, deadline = False, time.monotonic() + request["startup_timeout"]
+    while not ready and time.monotonic() < deadline and child.poll() is None:
+        try:
+            _http(request["port"], "GET", request["ready_path"], None, 1)
+            ready = True
+        except OSError:
+            time.sleep(0.05)
+    responses = []
+    if ready:
+        for row in request["requests"]:
+            try:
+                responses.append(_http(request["port"], row["method"], row["target"], row.get("body"), 5))
+            except OSError as error:
+                responses.append({"error": type(error).__name__})
+    exit_code = child.poll()
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        try:
+            os.killpg(child.pid, sig)
+        except OSError:
+            pass
+        try:
+            child.wait(timeout=5)
+            break
+        except subprocess.TimeoutExpired:
+            continue
+    return {"ready": ready, "app_exit_code": None if ready else child.poll() if exit_code is None else exit_code,
+            "responses": responses}
+
+
 def _main():
     request = json.loads(sys.argv[1])
     root = os.path.realpath(request["root"])
@@ -1106,7 +1176,7 @@ def _main():
     if request["mode"] == "serve":
         _serve(request, root)
         return
-    result = {"tests": _tests, "memory": _memory, "timing": _timing}[request["mode"]](request, root)
+    result = {"tests": _tests, "memory": _memory, "timing": _timing, "probe": _probe_app}[request["mode"]](request, root)
     with open(request["out"], "w", encoding="utf-8") as stream:
         json.dump(result, stream, sort_keys=True)
 
@@ -1149,88 +1219,240 @@ def _stop(process):
         process.wait(timeout=5)
 
 
-class Sandbox:
-    """Run target code in a child process with a fixed driver (never a shell).
+ISOLATION_MODES = ("os", "process-only")
+DEFAULT_ISOLATION = "os"  # a host without the governor's full sandbox refuses runtime runs
+SANDBOX_MEMORY_MB = 4096
+SANDBOX_NOFILE = 1024
+SANDBOX_FILE_MB = 32  # largest file (and captured output) a run may write; beyond it the run crashes
+RUN_MARKER = "GAIE_SANDBOX_RUN"  # process-only mode: marks every process of one run, for the final sweep
 
-    Environment: PATH plus private HOME/TMPDIR, fixed hash seed, no proxies, no
-    user site-packages, no bytecode writes. Sockets may only reach loopback
-    addresses (Python-level guard, not an OS sandbox). Every run has a timeout and
-    its process group is killed when it expires.
+
+def _interpreter():
+    """The interpreter file itself: /etc is hidden in the sandbox, so a link through
+    /etc/alternatives would dangle there. A virtual environment keeps its own launcher."""
+    return sys.executable if sys.prefix != sys.base_prefix else os.path.realpath(sys.executable)
+
+
+def _tail(path, size):
+    """The last ``size`` bytes of a file, without reading the rest of it."""
+    with open(path, "rb") as handle:
+        handle.seek(max(0, os.fstat(handle.fileno()).st_size - size))
+        return handle.read(size)
+
+
+def _output_limit():
+    limit = SANDBOX_FILE_MB * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_FSIZE, (limit, limit))
+
+
+def _sweep(token):
+    """Kill every process that still carries this run's marker, including descendants that
+    started their own session (process-only mode; the OS mode ends its pid namespace)."""
+    needle = f"\0{RUN_MARKER}={token}\0".encode()
+    for _ in range(10):
+        found = []
+        for entry in os.listdir("/proc"):
+            if not entry.isdigit() or int(entry) == os.getpid():
+                continue
+            try:
+                with open(f"/proc/{entry}/environ", "rb") as handle:
+                    if needle in b"\0" + handle.read():
+                        found.append(int(entry))
+            except OSError:
+                continue
+        if not found:
+            return
+        for pid in found:
+            with contextlib.suppress(OSError):
+                os.kill(pid, signal.SIGKILL)
+        time.sleep(0.05)
+
+
+class Sandbox:
+    """Run target code with a fixed driver (never a shell) in the governor's OS sandbox.
+
+    ``isolation="os"`` (the default, ``DEFAULT_ISOLATION``): every run goes through
+    ``governor.sandbox_run`` on its full tier (user, mount, pid and network namespaces;
+    no capabilities; a private loopback; system directories read-only; the target
+    directory read-only; one fresh writable directory per run that holds HOME, TMPDIR
+    and the result; nothing else of the host visible) and its limits. The driver gets
+    exactly ``env()``: PATH, private HOME/TMPDIR, fixed hash seed, no proxies, no user
+    site-packages, no bytecode writes. Inside, the Python socket guard still refuses
+    non-loopback addresses. Where the full tier cannot be built, a run returns
+    ``status: "refused"`` and nothing is executed: there is no silent downgrade.
+
+    ``isolation="process-only"`` is an explicit opt-in for hosts without the sandbox: an
+    ordinary child process with the same scrubbed environment, the Python-level guard
+    and timeouts, but no filesystem, network or pid isolation. Choosing it writes an
+    allow record to the governor audit log in ``scratch`` (``governor-audit.jsonl``);
+    every result carries ``isolation`` with the mode and tier actually used.
     """
 
-    def __init__(self, scratch, *, timeout=60):
+    def __init__(self, scratch, *, timeout=60, isolation=None):
+        mode = DEFAULT_ISOLATION if isolation is None else isolation
+        _need(mode in ISOLATION_MODES, "sandbox isolation: 'os' or 'process-only'")
         self.scratch = pathlib.Path(scratch).resolve()
+        self.scratch.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(self.scratch, 0o700)
         for name in ("home", "tmp", "results"):
             (self.scratch / name).mkdir(parents=True, exist_ok=True, mode=0o700)
         self.timeout = _number(timeout, 1, 900, "sandbox timeout")
         self.counter = 0
+        self.isolation = mode
+        self.tiers = {}
+        self.audit_log = None
+        if mode == "process-only":
+            governor.audit(self.scratch, {"decision": "allow", "engine": "self-healing", "action": "sandbox-process-only",
+                                          "side_effect": "workspace-write",
+                                          "reason": "explicit opt-in: target code runs without OS isolation"})
+            self.audit_log = str(self.scratch / governor.AUDIT_FILE)
 
-    def env(self):
-        return {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(self.scratch / "home"), "TMPDIR": str(self.scratch / "tmp"),
+    def env(self, base=None):
+        base = self.scratch if base is None else pathlib.Path(base)
+        return {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(base / "home"), "TMPDIR": str(base / "tmp"),
                 "PYTHONHASHSEED": "0", "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1", "PYTHONSAFEPATH": "1",
                 "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8", "TZ": "UTC", "NO_PROXY": "*", "no_proxy": "*"}
 
     def _next(self, label):
         self.counter += 1
-        return self.scratch / "results" / f"{self.counter:04d}-{label}"
+        base = self.scratch / "results" / f"{self.counter:04d}-{label}"
+        base.mkdir(mode=0o700)
+        for name in ("home", "tmp"):
+            (base / name).mkdir(mode=0o700)
+        return base
 
     def command(self, request):
-        return [sys.executable, "-s", "-B", "-c", DRIVER, json.dumps(request, sort_keys=True)]
+        return [_interpreter(), "-s", "-B", "-c", DRIVER, json.dumps(request, sort_keys=True)]
+
+    def _record(self, tier, **extra):
+        self.tiers[tier] = self.tiers.get(tier, 0) + 1
+        if self.isolation == "os":
+            row = {"mode": "os", "tier": tier, "launcher": "governor.sandbox_run", "fs_isolated": tier == "governor-full",
+                   "network": "private-loopback" if tier == "governor-full" else "not-run", "environment": "exact-minimal",
+                   "opt_in": False}
+        else:
+            row = {"mode": "process-only", "tier": tier, "launcher": "subprocess", "fs_isolated": False,
+                   "network": "python-guard-only", "environment": "exact-minimal", "opt_in": True,
+                   "audit_log": governor.AUDIT_FILE}
+        row.update(extra)
+        return row
+
+    def summary(self):
+        """The isolation mode of this sandbox and how many runs used each tier."""
+        return {"mode": self.isolation, "tiers": dict(sorted(self.tiers.items())),
+                "os_sandbox": self.isolation == "os" and set(self.tiers) <= {"governor-full"} and bool(self.tiers),
+                "audit_log": self.audit_log}
+
+    def _readable(self):
+        """Interpreter trees outside the system directories (a venv, a tool cache) stay readable."""
+        home = os.path.realpath(os.path.expanduser("~"))
+        found = set()
+        for prefix in (sys.prefix, sys.base_prefix):
+            real = os.path.realpath(prefix)
+            if any(real == root or real.startswith(root + os.sep) for root in governor.SYSTEM_DIRS):
+                continue
+            if home == real or home.startswith(real + os.sep):
+                continue  # never expose the caller's home directory
+            found.add(real)
+        return sorted(found)
+
+    def _execute(self, root, request, base, timeout):
+        """Run the driver once; returns (status, exit_code, log_text, isolation)."""
+        env = self.env(base)
+        if self.isolation == "process-only":
+            log, token = base / "driver.log", secrets.token_hex(16)
+            with log.open("wb") as stream:
+                process = subprocess.Popen(self.command(request), cwd=str(root), env={**env, RUN_MARKER: token},
+                                           stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
+                                           start_new_session=True, preexec_fn=_output_limit)
+                try:
+                    code, status = process.wait(timeout=timeout), "ok"
+                except subprocess.TimeoutExpired:
+                    code, status = None, "timeout"
+                finally:
+                    _stop(process)
+                    _sweep(token)
+            return status, code, _tail(log, 4000).decode("utf-8", "replace"), self._record("process-only")
+        probe = governor.isolation_probe()
+        if probe["tier"] != "full":
+            reason = "the governor's full OS sandbox is not available on this host (tier %s)" % probe["tier"]
+            return "refused", None, reason, self._record("refused", reason=reason)
+        argv = [shutil.which("env", path="/usr/bin:/bin") or "/usr/bin/env", "-i",
+                *(f"{name}={value}" for name, value in sorted(env.items())), *self.command(request)]
+        try:
+            run = governor.sandbox_run(argv, cwd=str(base), timeout=timeout, network=False, loopback=True,
+                                       allowed_paths=[str(base)], read_paths=[str(root), *self._readable()],
+                                       memory_mb=SANDBOX_MEMORY_MB, nofile=SANDBOX_NOFILE, file_mb=SANDBOX_FILE_MB)
+        except governor.GovernorDenied as error:
+            reason = "governor refused the sandbox: %s" % error.reason
+            return "refused", None, reason, self._record("refused", reason=reason)
+        if run["fs_isolated"] is not True or run["network_isolated"] is not True:
+            reason = "the governor did not establish filesystem and network isolation"
+            return "refused", None, reason, self._record("refused", reason=reason)
+        status = "timeout" if run["limit"] in ("timeout", "cpu") else "ok"
+        text = (run["stdout"] + run["stderr"])[-4000:]
+        return status, None if status == "timeout" else run["returncode"], text, self._record("governor-full", limit=run["limit"])
 
     def run(self, root, request, *, timeout=None, label="run"):
-        """Run one driver mode; returns its JSON result plus ``status`` (ok/timeout/crashed)."""
-        base = self._next(label)
-        out, log = base.with_suffix(".json"), base.with_suffix(".log")
+        """Run one driver mode; returns its JSON result plus ``status`` (ok/timeout/crashed/refused)
+        and ``isolation`` (the mode and tier this run actually used)."""
+        return self._run_at(self._next(label), root, request, timeout)
+
+    def _run_at(self, base, root, request, timeout):
+        out = base / "result.json"
         request = {**request, "root": str(pathlib.Path(root).resolve()), "out": str(out)}
-        with log.open("wb") as stream:
-            process = subprocess.Popen(self.command(request), cwd=str(root), env=self.env(), stdin=subprocess.DEVNULL,
-                                       stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
-            try:
-                code = process.wait(timeout=timeout or self.timeout)
-            except subprocess.TimeoutExpired:
-                _stop(process)
-                return {"status": "timeout", "exit_code": None, "log_tail": ""}
-            finally:
-                _stop(process)
-        tail = _redact(log.read_bytes()[-2000:].decode("utf-8", "replace"))
-        if not out.is_file() or out.stat().st_size > MAX_RESULT_BYTES:
-            return {"status": "crashed", "exit_code": code, "log_tail": tail}
+        status, code, text, isolation = self._execute(root, request, base, timeout or self.timeout)
+        if status == "refused":
+            return {"status": "refused", "exit_code": None, "log_tail": "", "reason": text, "isolation": isolation}
+        if status == "timeout":
+            return {"status": "timeout", "exit_code": None, "log_tail": "", "isolation": isolation}
+        tail = _redact(text[-2000:])
+        if not out.is_file() or out.is_symlink() or out.stat().st_size > MAX_RESULT_BYTES:
+            return {"status": "crashed", "exit_code": code, "log_tail": tail, "isolation": isolation}
         try:
             data = json.loads(out.read_text(encoding="utf-8"))
         except (UnicodeError, json.JSONDecodeError):
-            return {"status": "crashed", "exit_code": code, "log_tail": tail}
-        data.update(status="ok", exit_code=code, log_tail=tail)
+            return {"status": "crashed", "exit_code": code, "log_tail": tail, "isolation": isolation}
+        if not isinstance(data, dict):
+            return {"status": "crashed", "exit_code": code, "log_tail": tail, "isolation": isolation}
+        data.update(status="ok", exit_code=code, log_tail=tail, isolation=isolation)
         return data
 
     def run_tests(self, root, start, pattern, *, only=None, coverage=False, timeout=None):
         request = {"mode": "tests", "start": start, "pattern": pattern, "coverage": coverage, "only": None if only is None else sorted(only)}
         return self.run(root, request, timeout=timeout, label="tests")
 
-    @contextlib.contextmanager
-    def app(self, root, script, args, *, ready_path="/", timeout=10):
-        """Start the target app on a free loopback port; yields {port, ready, exit_code, log_tail}."""
+    def http(self, root, script, args, requests, *, ready_path="/", timeout=10):
+        """Start the target app and send ``requests`` ([{method, target, body?}]) to it from inside
+        the same sandbox (its loopback is private, so probing cannot happen from the host).
+        Returns {status, ready, exit_code, log_tail, responses, isolation}; each response is
+        {status, content_type, body: bytes} or {error}."""
         port, base = _free_port(), self._next("app")
-        argv = [arg.replace("{port}", str(port)).replace("{db}", str(base.with_suffix(".db"))) for arg in args]
-        request = {"mode": "serve", "script": script, "argv": argv, "root": str(pathlib.Path(root).resolve()), "out": ""}
-        log = base.with_suffix(".log")
-        with log.open("wb") as stream:
-            process = subprocess.Popen(self.command(request), cwd=str(root), env=self.env(), stdin=subprocess.DEVNULL,
-                                       stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
-            try:
-                ready, deadline = False, time.monotonic() + timeout
-                while not ready and time.monotonic() < deadline and process.poll() is None:
-                    try:
-                        http_call(port, "GET", ready_path, timeout=1)
-                        ready = True
-                    except OSError:
-                        time.sleep(0.05)
-                info = {"port": port, "ready": ready, "exit_code": process.poll(), "log_tail": ""}
-                if not ready:
-                    _stop(process)
-                    info.update(exit_code=process.poll(), log_tail=_redact(log.read_bytes()[-2000:].decode("utf-8", "replace")))
-                yield info
-            finally:
-                _stop(process)
+        argv = [arg.replace("{port}", str(port)).replace("{db}", str(base / "app.db")) for arg in args]
+        log = base / "app.log"
+        request = {"mode": "probe", "script": script, "argv": argv, "port": port, "ready_path": ready_path,
+                   "startup_timeout": timeout, "requests": list(requests), "driver": DRIVER, "log": str(log)}
+        result = self._run_at(base, root, request, min(900, timeout + 6 * len(request["requests"]) + 20))
+        if result["status"] != "ok":
+            return {"status": result["status"], "ready": False, "exit_code": result.get("exit_code"),
+                    "log_tail": result.get("log_tail", ""), "responses": [], "reason": result.get("reason"),
+                    "isolation": result["isolation"]}
+        tail = "" if result.get("ready") else _redact(_tail(log, 2000).decode("utf-8", "replace")) if log.is_file() and not log.is_symlink() else ""
+        responses = []
+        for row in result.get("responses", []):
+            if isinstance(row, dict) and "error" in row:
+                responses.append({"error": str(row["error"])[:80]})
+            elif isinstance(row, dict) and isinstance(row.get("status"), int) and isinstance(row.get("body"), str):
+                try:
+                    body = base64.b64decode(row["body"], validate=True)[:MAX_FILE_BYTES]
+                except ValueError:
+                    responses.append({"error": "BadResponse"})
+                    continue
+                responses.append({"status": row["status"], "content_type": str(row.get("content_type") or ""), "body": body})
+            else:
+                responses.append({"error": "BadResponse"})
+        return {"status": "ok", "ready": result.get("ready") is True, "exit_code": result.get("app_exit_code"),
+                "log_tail": tail, "responses": responses, "isolation": result["isolation"]}
 
 
 @contextlib.contextmanager
@@ -1263,11 +1485,11 @@ def load_contracts(root, rel):
     return data
 
 
-def _probe(port, method, target, expected_status, kind, shape, body=None, exact=None):
-    try:
-        status, content_type, data = http_call(port, method, target, body=body)
-    except OSError as error:
-        return {"error": type(error).__name__}
+def _probe(response, expected_status, kind, shape, exact=None):
+    """Judge one response returned by ``Sandbox.http`` against the expectation."""
+    if "error" in response:
+        return {"error": response["error"]}
+    status, content_type, data = response["status"], response["content_type"], response["body"]
     problems, value = [], None
     if status != expected_status:
         problems.append(f"status:{status}")
@@ -1308,39 +1530,51 @@ def detect_http(root, files=None, manifest=None, *, sandbox=None, only_routes=No
                 probes.append((row["path"], row["path"], None, "any", {}))
     contracts = load_contracts(root, manifest["contracts"]) if manifest.get("contracts") and only_routes is None else None
     api, integration = [], []
-    with _sandbox(sandbox) as box, box.app(root, app["script"], app.get("args", []), ready_path=app.get("ready_path", "/"),
-                                           timeout=app.get("startup_timeout_s", 10)) as server:
-        if not server["ready"]:
-            evidence = {"exit_code": server["exit_code"], "log_tail": server["log_tail"]}
-            failed = finding("broken-apis", "app-start-failed", app["script"], None, app["script"], evidence, "critical")
-            return (_report("broken-apis", "ran", [failed], method="loopback-http"),
-                    _report("integrations", "skipped", reason="app did not start", method="contract-runner"))
-        for path, target, status, kind, shape in probes:
-            result = _probe(server["port"], "GET", target, status if status is not None else 200, kind, shape)
-            if "error" in result:
-                api.append(finding("broken-apis", "api-unreachable", app["script"], None, f"GET {path}", {"route": path, "error": result["error"]}, "high"))
-            elif status is None and result["status"] < 500:
-                continue
-            elif result["status"] >= 500:
-                api.append(finding("broken-apis", "api-error-status", app["script"], None, f"GET {path}", {"route": path, "status": result["status"], "expected_status": status}, "high"))
-            elif result["problems"]:
-                kind_name = "api-status-mismatch" if any(p.startswith("status:") for p in result["problems"]) else "api-shape-mismatch"
-                api.append(finding("broken-apis", kind_name, app["script"], None, f"GET {path}", {"route": path, "status": result["status"], "problems": result["problems"]}, "medium"))
-        for contract in (contracts or {"contracts": []})["contracts"]:
-            for index, row in enumerate(contract["interactions"]):
-                request, response = row["request"], row["response"]
-                result = _probe(server["port"], request["method"], request["path"], response["status"], "json" if "shape" in response or "json" in response else "any",
-                                response.get("shape", {}), body=request.get("body"), exact=response.get("json"))
-                problems = [result["error"]] if "error" in result else result["problems"]
-                if problems:
-                    integration.append(finding("integrations", "contract-failed", manifest["contracts"], None, f"{contract['id']}#{index}",
-                                               {"contract": contract["id"], "consumer": contract["consumer"], "interaction": index,
-                                                "route": request["path"].split("?")[0], "expected_status": response["status"],
-                                                "status": result.get("status"), "problems": problems}, "high"))
+    interactions = [(contract, index, row) for contract in (contracts or {"contracts": []})["contracts"]
+                    for index, row in enumerate(contract["interactions"])]
+    requests = [{"method": "GET", "target": target} for _, target, _, _, _ in probes]
+    requests += [{"method": row["request"]["method"], "target": row["request"]["path"], "body": row["request"].get("body")}
+                 for _, _, row in interactions]
+    with _sandbox(sandbox) as box:
+        server = box.http(root, app["script"], app.get("args", []), requests, ready_path=app.get("ready_path", "/"),
+                          timeout=app.get("startup_timeout_s", 10))
+    if server["status"] == "refused":
+        reason = f"runtime run refused: {server['reason']}"
+        return (_report("broken-apis", "refused", reason=reason, method="loopback-http", extra={"isolation": server["isolation"]}),
+                _report("integrations", "refused", reason=reason, method="contract-runner", extra={"isolation": server["isolation"]}))
+    if not server["ready"]:
+        evidence = {"exit_code": server["exit_code"], "log_tail": server["log_tail"]}
+        failed = finding("broken-apis", "app-start-failed", app["script"], None, app["script"], evidence, "critical")
+        return (_report("broken-apis", "ran", [failed], method="loopback-http", extra={"isolation": server["isolation"]}),
+                _report("integrations", "skipped", reason="app did not start", method="contract-runner"))
+    responses = server["responses"] + [{"error": "NoResponse"}] * (len(requests) - len(server["responses"]))
+    for (path, target, status, kind, shape), response in zip(probes, responses):
+        result = _probe(response, status if status is not None else 200, kind, shape)
+        if "error" in result:
+            api.append(finding("broken-apis", "api-unreachable", app["script"], None, f"GET {path}", {"route": path, "error": result["error"]}, "high"))
+        elif status is None and result["status"] < 500:
+            continue
+        elif result["status"] >= 500:
+            api.append(finding("broken-apis", "api-error-status", app["script"], None, f"GET {path}", {"route": path, "status": result["status"], "expected_status": status}, "high"))
+        elif result["problems"]:
+            kind_name = "api-status-mismatch" if any(p.startswith("status:") for p in result["problems"]) else "api-shape-mismatch"
+            api.append(finding("broken-apis", kind_name, app["script"], None, f"GET {path}", {"route": path, "status": result["status"], "problems": result["problems"]}, "medium"))
+    for (contract, index, row), response in zip(interactions, responses[len(probes):]):
+        request, expected = row["request"], row["response"]
+        result = _probe(response, expected["status"], "json" if "shape" in expected or "json" in expected else "any",
+                        expected.get("shape", {}), exact=expected.get("json"))
+        problems = [result["error"]] if "error" in result else result["problems"]
+        if problems:
+            integration.append(finding("integrations", "contract-failed", manifest["contracts"], None, f"{contract['id']}#{index}",
+                                       {"contract": contract["id"], "consumer": contract["consumer"], "interaction": index,
+                                        "route": request["path"].split("?")[0], "expected_status": expected["status"],
+                                        "status": result.get("status"), "problems": problems}, "high"))
     integration_report = (_report("integrations", "not-configured", reason="no contracts declared", method="contract-runner") if contracts is None
                           else _report("integrations", "ran", integration, method="contract-runner (loopback http)",
-                                       extra={"interactions": sum(len(c["interactions"]) for c in contracts["contracts"])}))
-    return _report("broken-apis", "ran", api, method="loopback-http", extra={"probes": len(probes)}), integration_report
+                                       extra={"interactions": sum(len(c["interactions"]) for c in contracts["contracts"]),
+                                              "isolation": server["isolation"]}))
+    return (_report("broken-apis", "ran", api, method="loopback-http", extra={"probes": len(probes), "isolation": server["isolation"]}),
+            integration_report)
 
 
 def detect_memory(root, manifest=None, *, sandbox=None):
@@ -1349,11 +1583,15 @@ def detect_memory(root, manifest=None, *, sandbox=None):
     checks = manifest.get("memory")
     if not checks:
         return _report("memory", "not-configured", reason="no memory checks declared", method="tracemalloc")
-    out, measured = [], []
+    out, measured, isolation = [], [], None
     with _sandbox(sandbox) as box:
         for row in checks:
             result = box.run(root, {"mode": "memory", "module": row["module"], "function": row["function"], "args": row.get("args", []), "calls": row["calls"]}, label="memory")
             symbol = f"{row['module']}:{row['function']}"
+            isolation = result["isolation"]
+            if result["status"] == "refused":
+                return _report("memory", "refused", reason=f"runtime run refused: {result['reason']}", method="tracemalloc",
+                               extra={"isolation": isolation})
             if result["status"] != "ok":
                 out.append(finding("memory", "memory-check-failed", row["module"].replace(".", "/") + ".py", None, symbol, {"status": result["status"], "log_tail": result.get("log_tail", "")}, "medium"))
                 continue
@@ -1365,7 +1603,7 @@ def detect_memory(root, manifest=None, *, sandbox=None):
                 top = result["top"][0] if result["top"] else [row["module"].replace(".", "/") + ".py", None, growth, 0]
                 out.append(finding("memory", "memory-growth", top[0], top[1], symbol,
                                    {"growth_bytes": growth, "round_deltas": deltas, "calls_per_round": row["calls"], "threshold_bytes": row["threshold_bytes"], "top_sites": result["top"]}, "high"))
-    return _report("memory", "ran", out, method="tracemalloc (measured in a child process)", extra={"measured": measured})
+    return _report("memory", "ran", out, method="tracemalloc (measured in a child process)", extra={"measured": measured, "isolation": isolation})
 
 
 def detect_performance(root, manifest=None, *, sandbox=None):
@@ -1376,7 +1614,7 @@ def detect_performance(root, manifest=None, *, sandbox=None):
         return _report("performance", "not-configured", reason="no performance baseline declared", method="perf_counter")
     data = _obj(_load_json(root, config["baseline"]), {"schema_version", "functions"}, {"note"}, "performance baseline")
     _need(isinstance(data["functions"], dict) and len(data["functions"]) <= 50, "performance baseline: functions")
-    out, measured = [], []
+    out, measured, isolation = [], [], None
     with _sandbox(sandbox) as box:
         for symbol, row in sorted(data["functions"].items()):
             _need(isinstance(symbol, str) and re.fullmatch(r"[A-Za-z_][\w.]*:[A-Za-z_][\w.]*", symbol), "performance: module:function key")
@@ -1388,6 +1626,10 @@ def detect_performance(root, manifest=None, *, sandbox=None):
             result = box.run(root, {"mode": "timing", "module": module, "function": function, "args": row.get("args", []),
                                     "repeats": _int(row.get("repeats", 5), 3, 50, "repeats"), "number": _int(row.get("number", 100), 1, 100000, "number")}, label="timing")
             path = module.replace(".", "/") + ".py"
+            isolation = result["isolation"]
+            if result["status"] == "refused":
+                return _report("performance", "refused", reason=f"runtime run refused: {result['reason']}", method="perf_counter",
+                               extra={"isolation": isolation})
             if result["status"] != "ok":
                 out.append(finding("performance", "performance-check-failed", path, None, symbol, {"status": result["status"], "log_tail": result.get("log_tail", "")}, "medium"))
                 continue
@@ -1396,7 +1638,8 @@ def detect_performance(root, manifest=None, *, sandbox=None):
             if ratio > tolerance:
                 out.append(finding("performance", "performance-regression", path, None, symbol,
                                    {"median_ms": result["median_ms"], "baseline_ms": baseline, "ratio": ratio, "tolerance": tolerance, "samples_ms": result["samples_ms"]}, "medium"))
-    return _report("performance", "ran", out, method="perf_counter median (measured wall clock, not deterministic)", extra={"measured": measured})
+    return _report("performance", "ran", out, method="perf_counter median (measured wall clock, not deterministic)",
+                   extra={"measured": measured, "isolation": isolation})
 
 
 # --------------------------------------------------------------------------- orchestration

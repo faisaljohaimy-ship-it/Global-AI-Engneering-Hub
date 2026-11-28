@@ -9,9 +9,14 @@ closure of `.mjs` tests). A layer is VERIFIED only while all its tests passed in
 sources still match the files on disk: a name, a file or a document is never evidence.
 
 Receipts live in a private state directory outside Git. Their digests detect corruption and
-staleness; they do not authenticate who ran the tests. Tests run as ordinary subprocesses, not
-inside a sandbox. Everything here is deterministic code: no model is called, nothing is
-simulated, and nothing remote is touched. SPDX-License-Identifier: MIT
+staleness; they do not authenticate who ran the tests. Every test and interface probe gets an
+exact minimal environment (PATH, a private HOME and TMPDIR, LANG; nothing else of the caller's)
+and runs in the governor's OS sandbox where this host can build it (the repository read-only,
+one private writable directory per run, no network; see `_run`). A test on the recorded
+exception list, or every test on a host without the sandbox, runs as an ordinary subprocess
+with that environment; each receipt records the profile and tier actually used. Everything
+here is deterministic code: no model is called, nothing is simulated, and nothing remote is
+touched. SPDX-License-Identifier: MIT
 """
 import datetime
 import fnmatch
@@ -30,6 +35,7 @@ import time
 from .contracts import (GATED, LAYER_IDS, SIDE_EFFECTS, ContractError, sha256, side_effect_rank,
                         validate_engines, validate_grant, validate_layers, validate_receipt)
 from .orchestration import CoordinationError, _atomic_write, _read_private, _safe_directory, load_json
+from . import governor
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LAYERS_FILE = "governance/layers.json"
@@ -449,35 +455,170 @@ def _now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _run(argv, *, root, timeout):
-    """Run argv in its own process group with the caller's environment; kill the whole group on timeout."""
-    started = time.monotonic()
-    process = subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL,
-                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+# Sandbox profiles of `_run` (governor.sandbox_run on its full tier):
+#   strict    require_fs_isolation: repository read-only, /etc hidden, socket() denied (seccomp)
+#   loopback  non-strict with a private loopback and /etc hidden, for tests that run a local server
+# A test on PROCESS_ONLY_TESTS runs as a plain subprocess with the same scrubbed environment.
+SANDBOX_MEMORY_MB = 16384  # RLIMIT_AS; V8 reserves far more address space than it uses
+SANDBOX_FILE_MB = 256
+SANDBOX_NOFILE = 1024
+ETC_VISIBLE = ("/etc/ld.so.cache", "/etc/alternatives")
+TOOLS = ("node",)  # tools the hub's tests start by name; their install prefix is mounted read-only
+LOOPBACK_TESTS = frozenset()
+# Measured 2026-11-28 (every layer-bound test file and the wave-2 candidates, strict and loopback):
+# all others pass inside the strict profile. These cannot be measured there, so they run in the
+# scrubbed process-only mode and each receipt names the reason.
+_NESTED = ("builds its own governor sandbox for the code it tests; namespaces cannot be nested inside the layer "
+           "sandbox (inner tier measured plain), so inside it would only take its refusal branches")
+PROCESS_ONLY_TESTS = {
+    "tests/test_p3_cage.py": ("the swarm cage chowns its workspace to uid 65534; the layer sandbox's user namespace maps "
+                              "only the caller, so chown gives EINVAL (frozen file)"),
+    "tests/test_governor.py": "tests the governor sandbox itself and " + _NESTED,
+    "tests/test_workspace_policy.py": "tests the strict workspace supervisor, which " + _NESTED,
+    "tests/test_isolation_enforcement.py": "measures the isolation walls, which " + _NESTED,
+    "tests/test_healing.py": "runs detectors.Sandbox, which " + _NESTED,
+    "tests/test_self_healing_loop.py": "runs heal() through detectors.Sandbox, which " + _NESTED,
+    "tests/test_upgrade_engine.py": "runs upgrade() through detectors.Sandbox, which " + _NESTED,
+}
+
+
+def _python():
+    """The interpreter file itself (/etc is hidden in the sandbox, so a link through
+    /etc/alternatives would dangle); a virtual environment keeps its own launcher."""
+    return sys.executable if sys.prefix != sys.base_prefix else os.path.realpath(sys.executable)
+
+
+def _outside_system(paths):
+    """Real install prefixes outside the system directories (they must be mounted read-only),
+    never the caller's home directory itself or a directory that contains it."""
+    home = os.path.realpath(os.path.expanduser("~"))
+    found = set()
+    for path in paths:
+        real = os.path.realpath(path)
+        if any(real == root or real.startswith(root + os.sep) for root in governor.SYSTEM_DIRS):
+            continue
+        if real in ("/", "/tmp", "/var/tmp") or home == real or home.startswith(real + os.sep):
+            continue
+        if os.path.isdir(real):
+            found.add(real)
+    return sorted(found)
+
+
+def _workspace(scratch, label):
+    """A fresh private directory for one run: the only writable path inside the sandbox."""
+    work = pathlib.Path(tempfile.mkdtemp(prefix=f"{label}-", dir=scratch))
+    for name in ("home", "tmp"):
+        (work / name).mkdir(mode=0o700)
+    return work
+
+
+def _git_metadata(root):
+    """A linked worktree's .git is a pointer: its git directory and the common one must be
+    readable for read-only git commands inside the sandbox (never writable)."""
+    pointer = pathlib.Path(root) / ".git"
     try:
-        output, _ = process.communicate(timeout=timeout)
-        timed_out = False
-    except subprocess.TimeoutExpired:
+        if not pointer.is_file() or pointer.is_symlink():
+            return []
+        text = pointer.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return []
+    if not text.startswith("gitdir:"):
+        return []
+    gitdir = (pathlib.Path(root) / text[len("gitdir:"):].strip()).resolve()
+    found = [gitdir]
+    try:
+        common = (gitdir / "commondir").read_text(encoding="utf-8").strip()
+        found.append((gitdir / common).resolve())
+    except OSError:
+        pass
+    return [str(path) for path in found if path.is_dir()]
+
+
+def _scrubbed_env(work):
+    return {"PATH": os.environ.get("PATH", os.defpath), "HOME": str(work / "home"), "TMPDIR": str(work / "tmp"),
+            "LANG": "C.UTF-8"}
+
+
+def _profile(test):
+    """(profile, reason) for one test file: an explicit exception, a loopback test, or strict."""
+    if test in PROCESS_ONLY_TESTS:
+        return "process-only", PROCESS_ONLY_TESTS[test]
+    return ("loopback" if test in LOOPBACK_TESTS else "strict"), None
+
+
+def _run(argv, *, root, timeout, workspace, profile="strict", reason=None, read=()):
+    """Run argv with an exact minimal environment; kill everything it started on timeout.
+
+    profile "strict"/"loopback" runs it in the governor sandbox (cwd = workspace, the only
+    writable path; root and `read` read-only). Where the full tier is missing it runs as a
+    plain subprocess instead and the returned isolation says so. Returns
+    (returncode, output, elapsed_ms, timed_out, isolation)."""
+    started = time.monotonic()
+    work = pathlib.Path(workspace)
+    env = _scrubbed_env(work)
+    tier = governor.isolation_probe()["tier"]
+    if profile != "process-only" and tier != "full":
+        profile, reason = "process-only", f"governor full sandbox unavailable on this host (tier {tier})"
+    if profile == "process-only":
+        process = subprocess.Popen(argv, cwd=root, env=env, stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
         try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
+            output, _ = process.communicate(timeout=timeout)
+            timed_out = False
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            output, _ = process.communicate()
+            timed_out = True
+        try:
+            os.killpg(process.pid, signal.SIGKILL)  # nothing it started in its group outlives the run
+        except (ProcessLookupError, PermissionError):
             pass
-        output, _ = process.communicate()
-        timed_out = True
+        elapsed = int((time.monotonic() - started) * 1000)
+        isolation = {"profile": "process-only", "sandboxed": False, "tier": tier, "environment": "scrubbed",
+                     "reason": reason}
+        return process.returncode, output.decode("utf-8", "replace"), elapsed, timed_out, isolation
+    # env -i: exactly `env`; -C: the repository root is the working directory, as for
+    # `python3 -m unittest discover` (the sandbox's own cwd must be the writable workspace)
+    command = [shutil.which("env", path="/usr/bin:/bin") or "/usr/bin/env", "-i", "-C", str(root),
+               *(f"{name}={value}" for name, value in sorted(env.items())), *argv]
+    tools = [os.path.dirname(os.path.dirname(os.path.realpath(found))) for found in map(shutil.which, TOOLS) if found]
+    readable = sorted({str(root), *_outside_system([sys.prefix, sys.base_prefix, *read, *tools]), *_git_metadata(root)})
+    if profile == "strict":  # the linker's index and the alternatives links (no secret), for tools such as ffmpeg
+        readable += [path for path in ETC_VISIBLE if os.path.exists(path)]
+
+    isolation = {"profile": profile, "sandboxed": True, "tier": tier, "environment": "scrubbed", "reason": reason}
+    try:
+        run = governor.sandbox_run(command, cwd=str(work), timeout=timeout, allowed_paths=[str(work)], read_paths=readable,
+                                   require_fs_isolation=profile == "strict", loopback=profile == "loopback",
+                                   memory_mb=SANDBOX_MEMORY_MB, file_mb=SANDBOX_FILE_MB, nofile=SANDBOX_NOFILE)
+    except governor.GovernorDenied as exc:  # nothing ran: reported as an error, never as a pass
+        elapsed = int((time.monotonic() - started) * 1000)
+        isolation.update(sandboxed=False, refused=exc.reason)
+        return None, f"governor sandbox refused the run: {exc.reason}", elapsed, False, isolation
     elapsed = int((time.monotonic() - started) * 1000)
-    return process.returncode, output.decode("utf-8", "replace"), elapsed, timed_out
+    if run["fs_isolated"] is not True or run["network_isolated"] is not True:
+        isolation.update(sandboxed=False, refused="isolation-not-established")
+        return None, "governor sandbox did not establish isolation", elapsed, False, isolation
+    isolation["limit"] = run["limit"]
+    return run["returncode"], run["stdout"] + run["stderr"], elapsed, run["limit"] == "timeout", isolation
 
 
 def probe_interfaces(refs, *, root=ROOT, scratch, timeout=120):
     """Resolve 'module:callable' references in a fresh interpreter; report each and the in-tree files imported."""
     root = pathlib.Path(root).resolve()
-    out = pathlib.Path(scratch) / f"probe-{sha256(list(refs))[:16]}.json"
-    code, output, _, timed_out = _run([sys.executable, "-c", _PROBE, str(root), str(out), json.dumps(list(refs))],
-                                      root=root, timeout=timeout)
-    if timed_out or not out.is_file():
+    work = _workspace(scratch, "probe")
+    out = work / f"probe-{sha256(list(refs))[:16]}.json"
+    code, output, _, timed_out, isolation = _run([_python(), "-c", _PROBE, str(root), str(out), json.dumps(list(refs))],
+                                                 root=root, timeout=timeout, workspace=work)
+    if timed_out or not out.is_file() or out.is_symlink():
         reason = "timeout" if timed_out else f"probe exited {code}: {output[-300:]}"
-        return {"interfaces": [{"ref": ref, "ok": False, "file": None, "error": reason} for ref in refs], "files": []}
+        return {"interfaces": [{"ref": ref, "ok": False, "file": None, "error": reason} for ref in refs], "files": [],
+                "isolation": isolation}
     doc = json.loads(out.read_text(encoding="utf-8"))
+    doc["isolation"] = isolation
     for row in doc["interfaces"]:
         row["file"] = _relative(root, row["file"]) if row["file"] else None
         if row["ok"] and row["file"] is None:
@@ -508,31 +649,34 @@ def _mjs_closure(root, test):
 
 
 def _result(path, runner, status, *, reason=None, ran=0, passed=0, failed=0, errors=0, skipped=0,
-            expected_failures=0, duration_ms=0, returncode=None, output=""):
+            expected_failures=0, duration_ms=0, returncode=None, output="", isolation=None):
     row = {"path": path, "runner": runner, "status": status, "ran": ran, "passed": passed, "failed": failed,
            "errors": errors, "skipped": skipped, "expected_failures": expected_failures,
-           "duration_ms": duration_ms, "returncode": returncode, "reason": reason}
+           "duration_ms": duration_ms, "returncode": returncode, "reason": reason, "isolation": isolation}
     row["output_tail"] = output[-OUTPUT_TAIL:] if status in {"failed", "error"} else ""
     return row
 
 
 def _run_python_test(root, test, scratch, timeout):
-    out = pathlib.Path(scratch) / f"test-{sha256(test)[:16]}.json"
+    work = _workspace(scratch, "test")
+    out = work / f"test-{sha256(test)[:16]}.json"
     name = test[len("tests/"):-len(".py")]
-    code, output, elapsed, timed_out = _run(
-        [sys.executable, "-c", _UNITTEST, str(root), str(out), name], root=root, timeout=timeout)
+    profile, why = _profile(test)
+    code, output, elapsed, timed_out, isolation = _run(
+        [_python(), "-c", _UNITTEST, str(root), str(out), name], root=root, timeout=timeout, workspace=work,
+        profile=profile, reason=why)
     if timed_out:
         return _result(test, "python-unittest", "error", reason=f"timeout after {timeout}s", duration_ms=elapsed,
-                       returncode=code, output=output), []
-    if not out.is_file():
+                       returncode=code, output=output, isolation=isolation), []
+    if not out.is_file() or out.is_symlink():
         return _result(test, "python-unittest", "error", reason=f"runner exited {code} without a result",
-                       duration_ms=elapsed, returncode=code, output=output), []
+                       duration_ms=elapsed, returncode=code, output=output, isolation=isolation), []
     doc = json.loads(out.read_text(encoding="utf-8"))
     files = sorted({rel for rel in (_relative(root, name) for name in doc["files"]) if rel})
     bad = doc["failures"] + doc["errors"] + doc["unexpected_successes"]
     counted = dict(ran=doc["ran"], passed=doc["ran"] - bad - doc["skipped"], failed=doc["failures"] + doc["unexpected_successes"],
                    errors=doc["errors"], skipped=doc["skipped"], expected_failures=doc["expected_failures"],
-                   duration_ms=elapsed, returncode=code, output=output)
+                   duration_ms=elapsed, returncode=code, output=output, isolation=isolation)
     if doc["error"]:
         return _result(test, "python-unittest", "error", reason=doc["error"], **counted), files
     if not doc["successful"] or bad:
@@ -551,11 +695,15 @@ def _run_node_test(root, test, scratch, timeout, node):
     files = _mjs_closure(root, test)
     if not node:
         return _result(test, "node-test", "skipped", reason="node is not available on this host"), files
-    code, output, elapsed, timed_out = _run([node, "--test", "--test-reporter=tap", test], root=root, timeout=timeout)
+    real = os.path.realpath(node)
+    profile, why = _profile(test)
+    code, output, elapsed, timed_out, isolation = _run(
+        [real, "--test", "--test-reporter=tap", str(pathlib.Path(root) / test)], root=root, timeout=timeout,
+        workspace=_workspace(scratch, "node"), profile=profile, reason=why, read=[os.path.dirname(os.path.dirname(real))])
     tests, passed, failed = _tap(output, "tests"), _tap(output, "pass"), _tap(output, "fail")
     skipped, cancelled = _tap(output, "skipped") + _tap(output, "todo"), _tap(output, "cancelled")
     counted = dict(ran=tests, passed=passed, failed=failed + cancelled, skipped=skipped, duration_ms=elapsed,
-                   returncode=code, output=output)
+                   returncode=code, output=output, isolation=isolation)
     if timed_out:
         return _result(test, "node-test", "error", reason=f"timeout after {timeout}s", **counted), files
     if code != 0 or failed or cancelled:
@@ -626,7 +774,8 @@ def verify(layer_ids=None, *, state_dir=None, root=ROOT, timeout=TEST_TIMEOUT, n
             else:
                 status = "VERIFIED"
             receipt = _receipt(record, status, reasons, probe["interfaces"], [row for row, _ in runs], sources,
-                               environment, int((time.monotonic() - started) * 1000))
+                               environment, int((time.monotonic() - started) * 1000),
+                               execution=_execution([probe.get("isolation")] + [row.get("isolation") for row, _ in runs]))
             try:
                 _atomic_write(state / f"{record['id']}.json", receipt)
             except (CoordinationError, OSError) as exc:
@@ -636,7 +785,21 @@ def verify(layer_ids=None, *, state_dir=None, root=ROOT, timeout=TEST_TIMEOUT, n
             "state_dir": str(state), "layers": summaries}
 
 
-def _receipt(record, status, reasons, interfaces, tests, sources, environment, duration_ms):
+def _execution(isolations):
+    """How the probe and the tests of one receipt actually ran (profile counts, exceptions, tier)."""
+    ran = [row for row in isolations if row]
+    profiles = {}
+    for row in ran:
+        profiles[row["profile"]] = profiles.get(row["profile"], 0) + 1
+    sandboxed = bool(ran) and all(row["sandboxed"] for row in ran)
+    return {"mode": "governor-sandbox" if sandboxed else "subprocess" if not any(r["sandboxed"] for r in ran) else "mixed",
+            "sandboxed": sandboxed, "simulated": False, "model_calls": 0, "environment": "scrubbed",
+            "tier": governor.isolation_probe()["tier"], "profiles": dict(sorted(profiles.items())),
+            "process_only": sorted({row["reason"] for row in ran if row["profile"] == "process-only" and row["reason"]}),
+            "refused": sorted({row["refused"] for row in ran if row.get("refused")})}
+
+
+def _receipt(record, status, reasons, interfaces, tests, sources, environment, duration_ms, execution=None):
     at = _now()
     source_digest = sha256(sources)
     body = {
@@ -644,7 +807,7 @@ def _receipt(record, status, reasons, interfaces, tests, sources, environment, d
         "status": status, "reasons": reasons, "record_sha256": sha256(record),
         "interfaces": interfaces, "tests": tests, "sources": sources, "source_sha256": source_digest,
         "environment": environment,
-        "execution": {"mode": "subprocess", "sandboxed": False, "simulated": False, "model_calls": 0},
+        "execution": execution or _execution([]),
         "at": at, "duration_ms": duration_ms,
         "contract_receipt": {
             "request_sha256": sha256({"layer": record["id"], "record_sha256": sha256(record), "tests": record["tests"]}),
