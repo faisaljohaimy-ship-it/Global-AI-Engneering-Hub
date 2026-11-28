@@ -319,65 +319,178 @@ def _load_spec(root, manifest):
 
 
 UNSETTLED = ("unparsed", "open-questions", "unsettled")
+# Owner wording that one of the engine's own steps carries out: (request id, area, phrases). A clause naming one is
+# accounted for by that step; the request is met only when the run verifies the outcome (``_Run.verify_requests``).
+ENGINE_REQUESTS = (
+    ("unused-assets", "assets", ("unused assets", "unused images", "unused files", "unreferenced assets", "unreferenced images",
+                                 "unreferenced files", "الأصول المهملة", "الصور المهملة", "الملفات المهملة", "الأصول غير المستخدمة",
+                                 "الصور غير المستخدمة", "الملفات غير المستخدمة")),
+    ("dead-code", "code", ("dead code", "unused code", "unreachable code", "الكود الميت", "الشيفرة الميتة", "الكود غير المستخدم",
+                           "الشيفرة غير المستخدمة")),
+    ("slow-queries", "performance", ("slow queries", "slow query", "unindexed queries", "full table scans", "الاستعلامات البطيئة",
+                                     "الاستعلامات البطيئه")),
+)
+# Function words around what a command names; they never carry a request on their own.
+_FUNCTION_WORDS = frozenset(token for word in (*requirements._GAP, *requirements._HAS, *(
+    "a about all an app application apps are as at be by can could entire every is it its my our platform please project "
+    "service should so system systems that their them this tool up whole will would your").split(), *(
+    "نظام منظومة تطبيق مشروع منصة خدمة أداة كل جميع كامل كاملا بالكامل كله هذا هذه عن").split(),
+    *("ال" + word for word in "نظام منظومة تطبيق مشروع منصة خدمة أداة".split())) for token in requirements._words(word))
+_SPEC_ITEMS = frozenset({"entity", "field", "feature", "role", "locale", "integration", "ai", "database", "product"})
 
 
-def _exclusions(command, spec):
-    """Remove or exclude requests the command states, by the requirements parser's own clause rules.
+def _router_vocabulary():
+    rules = gaie_router.policy()
+    words = [w for key in ("fillers", "coordinators", "clause_breaks") for w in rules[key]]
+    words += [w for group in rules["focus"].values() for w in group]
+    return {t for w in words for t in requirements._words(w)}, gaie_router._operation_words(rules)
 
-    A remove verb counts as a command at the start of a clause, after a coordinator or with و/ف
-    attached ("members can delete their own tasks" removes nothing); a negation ("without",
-    «بدون») counts wherever it appears. Returns the clause text from each such word.
+
+def _known(token, vocabulary):
+    return bool(requirements._variants(token) & vocabulary)
+
+
+def _account(command, spec, names=()):
+    """Clause accounting of a command, by the requirements parser's own clause rules.
+
+    Returns ``{exclusions, changes, requests, unaccounted}``. An exclusion is a remove verb used
+    as a command (at the start of a clause, after a coordinator or with و/ف attached: "members
+    can delete their own tasks" removes nothing) or a negation, with its clause text. A change is
+    any later commanding change verb («عدّل», "modify") whose clause names a specification item.
+    A request is an ``ENGINE_REQUESTS`` phrase; a remove verb in front of one is that request,
+    not an exclusion. ``unaccounted`` lists the clause text of every word that nothing accounts
+    for: not the router's own vocabulary (command verbs, focus, fillers, coordinators), not a
+    function word, not the target's name (the specification's title and slug, ``names``), not a
+    requirements-lexicon phrase (what the specification diff is computed from) and not an engine
+    request. Without a specification the target's name is unknown, so a run of up to three
+    unknown words right after the command verb is taken as that name.
     """
     try:
         index, control = requirements._entries(requirements.load_knowledge(), spec)
         sentences = requirements._analyse(command, index, control)
-    except (requirements.SpecError, OSError, KeyError, ValueError, TypeError):
-        return ["the command (its wording could not be analysed)"]  # fail closed: unknown wording is not "nothing requested"
-    out = []
+        vocabulary, verbs = _router_vocabulary()
+    except (requirements.SpecError, gaie_router.RouteError, OSError, KeyError, ValueError, TypeError):
+        whole = ["the command (its wording could not be analysed)"]  # fail closed: unknown wording is not "nothing requested"
+        return {"exclusions": whole, "changes": [], "requests": [], "unaccounted": whole}
+    title = [(spec or {}).get("title", {}).get(lang, "") for lang in ("en", "ar")] + [(spec or {}).get("slug", "")]
+    vocabulary = vocabulary | _FUNCTION_WORDS | {t for name in (*title, *names) if isinstance(name, str)
+                                                 for t in requirements._words(re.sub(r"[-_.]+", " ", name))}
+
+    def verb(word):
+        bare, joined = gaie_router._conjoined(word)
+        return gaie_router._verb(word, verbs)[0] is not None or (joined and gaie_router._verb(bare, verbs)[0] is not None)
+
+    out = {"exclusions": set(), "changes": set(), "requests": {}, "unaccounted": []}
+    later, named = False, spec is not None  # later: past the router's own command verb; named: the target's name was seen
     for sentence in sentences:
         words, hits = sentence["raw"], sentence["hits"]
+        starts = {h["clause"][1] for h in hits} | {0}
         coordinators = {h["pos"] for h in hits if h["cat"] == "signal:coordinators"}
-        starts = sorted({h["clause"][1] for h in hits})
+        verbs_at = [k for k, word in enumerate(words) if verb(word)]
+        # a segment ends at the next clause, coordinator, control verb or command verb
+        bounds = sorted(starts | coordinators | {h["pos"] for h in hits if h["cat"].startswith("signal:")} | set(verbs_at))
+        covered = [False] * len(words)
         for hit in hits:
+            covered[hit["pos"]:hit["end"]] = [True] * (hit["end"] - hit["pos"])
+        engine = []
+        for rid, area, phrases in ENGINE_REQUESTS:
+            for tokens in (requirements._words(phrase) for phrase in phrases):
+                for first in range(len(words) - len(tokens) + 1):
+                    if all(requirements._variants(words[first + k]) & requirements._variants(t) for k, t in enumerate(tokens)):
+                        engine.append((first, first + len(tokens)))
+                        covered[first:first + len(tokens)] = [True] * len(tokens)
+                        out["requests"].setdefault(rid, {"id": rid, "area": area, "words": " ".join(words[first:first + len(tokens)])})
+
+        def end(start):
+            return min([b for b in bounds if b > start] + [len(words), start + 12])
+
+        first_verb = None
+        if not later and verbs_at:
+            first_verb, later = verbs_at[0], True
+        for hit in sorted(hits, key=lambda h: h["pos"]):
             start = hit["pos"]
-            commanding = hit["cat"] == "signal:remove" and (start == hit["clause"][1] or start - 1 in coordinators or words[start][:1] in "وف")
-            if commanding or hit["cat"] == "signal:negations":
-                end = min([s for s in starts if s > start] + [len(words), start + 12])
-                out.append(" ".join(words[start:end]))
-    return sorted(set(out))
+            commanding = start in starts or start - 1 in coordinators or words[start][:1] in "وف"
+            if hit["cat"] == "signal:remove" and commanding:
+                rest = [k for k in range(start + 1, end(start)) if not _known(words[k], _FUNCTION_WORDS)]
+                if rest and all(any(a <= k < b for a, b in engine) for k in rest):
+                    continue  # "remove unused assets": an engine request, not an exclusion
+            if (hit["cat"] == "signal:remove" and commanding) or hit["cat"] == "signal:negations":
+                out["exclusions"].add(" ".join(words[start:end(start)]))
+            elif hit["cat"] == "signal:change" and commanding and start != first_verb \
+                    and any(h["cat"] in _SPEC_ITEMS and start < h["pos"] < end(start) for h in hits):
+                out["changes"].add(" ".join(words[start:end(start)]))
+        for position, word in enumerate(words):
+            if covered[position] or verb(word) or _known(word, vocabulary):
+                continue
+            if not named:  # no specification: up to three unknown words right after the command verb name the target
+                named, run = True, position
+                while run < end(position) and run - position < 4 and not covered[run] and not verb(words[run]) \
+                        and not _known(words[run], vocabulary) and (run == position or not gaie_router._conjoined(words[run])[1]):
+                    run += 1  # a word with و/ف attached starts the next Arabic clause
+                if first_verb is not None and first_verb < position and run - position <= 3 \
+                        and (run == len(words) or covered[run] or verb(words[run]) or _known(words[run], vocabulary)
+                             or gaie_router._conjoined(words[run])[1] or run == end(position)):
+                    covered[position:run] = [True] * (run - position)
+                    continue
+            stop = end(position)
+            out["unaccounted"].append(" ".join(words[position:stop]))
+            covered[position:stop] = [True] * (stop - position)
+    return {"exclusions": sorted(out["exclusions"]), "changes": sorted(out["changes"]),
+            "requests": [out["requests"][key] for key in sorted(out["requests"])], "unaccounted": out["unaccounted"]}
 
 
-def requested_changes(command, spec):
+def _exclusions(command, spec):
+    """Remove or exclude requests the command states (see ``_account``); returns the clause text from each such word."""
+    return _account(command, spec)["exclusions"]
+
+
+def requested_changes(command, spec, names=()):
     """What the command asks to change in the existing specification (requirements.parse with base= and diff_specs).
 
     ``status`` is ``refused-breaking`` when the change would remove an entity, field, relation,
     feature, role or locale or tighten a field (data or function loss); ``unmet`` lists the
     non-breaking structural additions, which the deterministic generators do not implement.
     A request that is not settled is one of ``UNSETTLED``: ``unparsed`` (the change cannot be
-    applied to the specification), ``open-questions``, or ``unsettled`` (the command asks to
-    remove or exclude something the specification diff does not reflect, e.g. a locale). Its
-    ``unmet`` names what was asked; ``upgrade`` stops before copying anything.
+    applied to the specification), ``open-questions``, or ``unsettled``: a clause that nothing
+    accounts for (``_account``: wording the parser ignored, e.g. "get rid of the Arabic
+    locale"), or a removal, exclusion or change of a specification item that the diff does not
+    reflect. Its ``unmet`` names what was asked; ``upgrade`` stops before copying anything.
+    ``requests`` are the engine's own steps the command asks for (``ENGINE_REQUESTS``); the run
+    verifies them and reports each one it could not carry out as unmet. ``names`` are further
+    words that name the target (the project, the manifest name, the directory).
     """
-    exclusions = _exclusions(command, spec)
-    unsettled = {"status": "unsettled", "exclusions": exclusions, "unmet": [f"remove or exclude: {text}" for text in exclusions],
-                 "detail": "the command asks to remove or exclude something the specification diff does not reflect; "
-                           "nothing is removed without an owner-settled specification change"}
+    account = _account(command, spec, names)
+    exclusions, requests = account["exclusions"], account["requests"]
+
+    def unsettled(removed=False, changed=False):
+        shown = ([] if removed else exclusions) + ([] if changed else account["changes"])  # each names its own words
+        unmet = [f"not accounted for: {text}" for text in account["unaccounted"] if not any(text in other for other in shown)]
+        unmet += [] if removed else [f"remove or exclude: {text}" for text in exclusions]
+        unmet += [] if changed else [f"change: {text}" for text in account["changes"]]
+        return {"status": "unsettled", "exclusions": exclusions, "requests": requests, "unmet": unmet,
+                "detail": "the command has wording that neither the specification diff nor the engine's own steps account for, "
+                          "or asks to remove, exclude or change something the diff does not reflect; nothing is guessed or "
+                          "removed without an owner-settled specification change"}
+
     if spec is None:
-        return unsettled if exclusions else {"status": "no-specification", "unmet": [],
-                                             "detail": "no gaie-spec.json: requested changes cannot be derived; only audit findings drive the plan"}
+        if exclusions or account["unaccounted"] or account["changes"]:
+            return unsettled()
+        return {"status": "no-specification", "unmet": [], "requests": requests,
+                "detail": "no gaie-spec.json: requested changes cannot be derived; only audit findings drive the plan"}
     try:
         target = requirements.parse(command, base=spec)
     except requirements.SpecError as error:
-        return {"status": "unparsed", "errors": error.errors, "exclusions": exclusions,
+        return {"status": "unparsed", "errors": error.errors, "exclusions": exclusions, "requests": requests,
                 "unmet": [f"the request as worded ({'; '.join(error.errors[:3])})"[:300]],
                 "detail": "the requested change cannot be applied to the specification; it is not settled"}
     if target["open_questions"]:
         return {"status": "open-questions", "open_questions": [q["id"] for q in target["open_questions"]], "exclusions": exclusions,
-                "unmet": [f"open question {q['id']}" for q in target["open_questions"]],
+                "requests": requests, "unmet": [f"open question {q['id']}" for q in target["open_questions"]],
                 "detail": "the requested change is not settled; nothing structural is generated"}
     diff = requirements.diff_specs(spec, target)
-    if exclusions and not diff["breaking"] and not diff["summary"]["removed"]:
-        return unsettled
+    removed, changed = bool(diff["summary"]["removed"]), any(diff["summary"][k] for k in ("added", "removed", "changed"))
+    if not diff["breaking"] and (account["unaccounted"] or (exclusions and not removed) or (account["changes"] and not changed)):
+        return unsettled(removed, changed)
     unmet = [f"entity {name}" for name in diff["entities"]["added"]]
     unmet += [f"field {change['name']}.{field}" for change in diff["entities"]["changed"] for field in change["fields"]["added"]]
     unmet += [f"feature {fid}" for fid in diff["features"]["added"]] + [f"role {rid}" for rid in diff["roles"]["added"]]
@@ -385,7 +498,7 @@ def requested_changes(command, spec):
     unmet += [f"integration {iid}" for iid in diff["integrations"]["added"]]
     structural = {key: diff[key] for key in ("entities", "relations", "features", "roles", "integrations")}
     return {"status": "refused-breaking" if diff["breaking"] else "ok", "breaking": diff["breaking"], "summary": diff["summary"],
-            "structural": structural, "spec_sha256": diff["new_sha256"], "unmet": [] if diff["breaking"] else unmet,
+            "structural": structural, "spec_sha256": diff["new_sha256"], "unmet": [] if diff["breaking"] else unmet, "requests": requests,
             "detail": ("breaking changes would lose data or functions; they need an owner-designed migration and approval" if diff["breaking"] else
                        "structural additions are reported as unmet: their application code is outside the deterministic generators" if unmet else
                        "non-structural: the upgrade raises quality against the existing specification")}
@@ -1358,6 +1471,7 @@ class _Run:
         self.patch = self.reverse = ""
         self.changed, self.task_id, self.requested = {}, None, {"unmet": []}
         self.memory, self.memory_report, self.adr = None, {"written": False}, None
+        self.unused, self.entrypoints, self.schemas = [], (), []
         self.run_dir = self.candidate = self.sandbox = None
         self.original = self._snapshot(root)
 
@@ -1530,6 +1644,7 @@ class _Run:
             if not self.audit_only:
                 shutil.rmtree(where, ignore_errors=True)
         self.security_baseline = sorted(f["evidence"]["fingerprint"] for f in detection["findings"] if f["detector"] == "security")
+        self.entrypoints = healing_manifest.get("entrypoints", ())
         self.defects = [f for f in detection["findings"] if healing.RANK[f["severity"]] >= healing.RANK["medium"]]
         templates = sorted(rel for rel in files if rel.endswith((".html", ".htm")) and not _under(rel, tests_dir)
                            and (not self.manifest.get("templates") or any(_under(rel, d) for d in self.manifest["templates"])))
@@ -1876,6 +1991,7 @@ class _Run:
             raise _NotApplicable("no step was applied; nothing to document")
         if preview:
             return {"summary": [{"op": "write", "path": "UPGRADE.md"}]}
+        self.verify_requests()
         current = _text_of(self.read("UPGRADE.md"))
         lines = [f"# Upgrade of {self.project} / تطوير {self.project}\n\n" if current is None else "\n",
                  f"Generated by the GAIE Master Upgrade Engine at {_iso(self.now)} for the command: `{self.route_command}`.\n",
@@ -2108,8 +2224,28 @@ class _Run:
                        f"{None if after is None else hashlib.sha256(after).hexdigest()[:16]}\n")
         return "".join(out)
 
+    def verify_requests(self):
+        """Report as unmet every engine request of the command (``ENGINE_REQUESTS``) the upgraded copy does not satisfy."""
+        tests_dir = self.tests["start"] if self.tests else None
+        for row in self.requested.get("requests") or []:
+            if row["id"] == "unused-assets":
+                left = sorted(proof["asset"] for proof in self.unused if proof["asset"] not in self.backups)
+                problem = left and f"{len(left)} unreferenced asset(s) still in the copy ({', '.join(left[:5])})"
+            elif row["id"] == "dead-code":
+                found = detectors.detect_dead_code(self.candidate, None, tests_dir=tests_dir, entrypoints=self.entrypoints)["findings"]
+                problem = found and (f"{len(found)} dead-code finding(s) remain; the upgrade keeps every function, so dead code "
+                                     "is reported, not deleted")
+            else:
+                files = detectors.list_files(self.candidate)
+                left = [o for o in audit_queries(self.candidate, files, self.schemas, tests_dir) if o["kind"] == "unindexed-filter"]
+                problem = left and f"{len(left)} filtered quer(ies) still scan a whole table"
+            item = f"{row['words']}: {problem}" if problem else None
+            if item and item not in self.requested["unmet"]:
+                self.requested["unmet"].append(item)
+
     # ----- REGRESSION
     def regression(self):
+        self.verify_requests()
         final = self.suite("final") if self.tests else {"status": "not-run", "tests": {}}
         outcomes = final.get("tests", {})
         added = sorted({rel for s in self.steps if s["status"] == "applied" for rel in s["new_tests"]["files"]})
@@ -2289,7 +2425,13 @@ def upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extr
     spec_tests = _test_spec(tests if tests is not None else manifest.get("tests"), root)
     spec_rel, spec = _load_spec(root, manifest)
     extra = _extra_steps(extra_steps)
-    requested = requested_changes(command, spec)
+    names = [name for name in (route["project"], manifest.get("name"), root.name) if name]
+    if route["project"]:
+        try:
+            names += list(gaie_router.projects(environ).get(route["project"], {}).get("aliases") or [])
+        except (gaie_router.RouteError, OSError, ValueError):
+            pass  # the project's own aliases only widen the accepted names; without them the command must name it otherwise
+    requested = requested_changes(command, spec, names)
     _need(route["mode"] == "audit" or requested["status"] != "refused-breaking",
           "Requested change refused: it would remove data or functions (" + ", ".join(
               f"{row['kind']} {row.get('entity', '')}{'.' + row['field'] if row.get('field') else ''}".strip()
@@ -2297,6 +2439,8 @@ def upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extr
     _need(route["mode"] == "audit" or requested["status"] not in UNSETTLED,
           f"Requested change not settled ({requested['status']}: {'; '.join(requested['unmet'])[:400]}): {requested['detail']}. "
           "Nothing was copied or changed; rephrase the command or settle the change with the owner first")
+    asked = {row["area"] for row in requested.get("requests") or []}  # the owner asked for these steps by name
+    route = {**route, "areas": [area for area in AREAS if area in set(route["areas"]) | asked]}
     run = _Run(root, resolved_workdir, route, manifest, spec_tests, spec_rel, spec, policy, now)
     run.route_command, run.target_spec, run.requested = command, spec, requested
     if run.audit_only:

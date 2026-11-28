@@ -26,7 +26,7 @@ verified rollback. It reuses the hub's engines instead of duplicating them.
 |---|---|---|
 | `upgrade(target, *, command, workdir, now=None, tests=None, policy=None, extra_steps=None, environ=None)` | `workspace-write` (a new `workdir/upgrade-*` run directory); none in audit mode | The pipeline below; returns the report. |
 | `route_command(command, *, environ=None, workspace=None)` | none | Router decision plus the engine's refusals; `mode`, `scope`, `focus`, `areas`. |
-| `requested_changes(command, spec)` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions, or not settled (`UNSETTLED`): `unparsed`, `open-questions`, `unsettled` (a remove verb used as a command, or a negation, that the diff does not reflect, e.g. a locale). |
+| `requested_changes(command, spec, names=())` | none | Requirements diff of the command against the spec: `ok`, `refused-breaking`, `unmet` additions, or not settled (`UNSETTLED`): `unparsed`, `open-questions`, `unsettled`. Every word is accounted for (`_account`): the router's own vocabulary, function words, the target's name (spec title and slug, project, manifest name, directory), a requirements-lexicon phrase the diff is computed from, or an engine request (`ENGINE_REQUESTS`: unused assets, dead code, slow queries). Wording nothing accounts for, a remove verb used as a command or a negation the diff does not reflect, and a later change verb on a spec item with an empty diff are `unsettled`; `unmet` names the words. `requests` lists the engine requests. |
 | `data_manifest(path, columns=None, staging=None)` / `data_preserved(before, after_path, staging=None)` | none on the file (read-only, `immutable=1`); with `staging`, a private snapshot there | Per-table row count and SHA-256 over the original columns; problems list. A database with a `-wal`/`-journal` companion is read through `snapshot_database` in `staging`; without it (audit) only the main file is read, `complete` is false and `data_preserved` reports the data as unproven. |
 | `snapshot_database(path, dest, staging)` | writes `dest` and a private `staging` directory it creates | Consistent single-file copy. SQLite never opens the source directory and never sees a journal the engine did not create: the `-journal` is read as bytes first and the copy is refused (`UpgradeError`, before any open) when the journal is hot (an interrupted write transaction) or ends in a super-journal record, because rolling it back would make SQLite delete the file that record names; an empty or zeroed journal (`TRUNCATE`/`PERSIST` residue) holds nothing and is never copied. The main file and a `-wal` whose header and header checksum verify are byte-copied into `staging`; with a `-wal` the copy is opened there and the committed frames are applied, otherwise it is opened `immutable=1`; then the sqlite3 backup API. `dest` keeps the journal mode; `UpgradeError` unless `PRAGMA integrity_check` is `ok` and every table's row count matches the source. |
 | `classify_migration(sql)` / `split_sql(sql)` | none | Statement verdicts; raises `UpgradeError` on any statement that can lose or rewrite data. |
@@ -197,10 +197,21 @@ and malformed steps are refused before anything is created.
   convention and a spec; other frameworks get the audit and the plan, not code. Structural
   additions requested by the command (a new field, entity or feature) are reported as unmet,
   never half-implemented; breaking changes are refused, and so are requests the parser cannot
-  settle or a remove/exclude request it does not reflect (for example removing a locale). The
-  `requested-changes-met` check is true only for an `ok` request (or no specification) with
-  nothing unmet. A remove verb that is not a command ("members can delete their own tasks")
-  is not an exclusion.
+  settle or a remove/exclude request it does not reflect (for example removing a locale). Every
+  word of the command must be accounted for: a clause the parser ignores ("get rid of the
+  Arabic locale", «وامسح اللغة العربية», "rename the tasks entity to jobs") stops the run before
+  anything is copied. The `requested-changes-met` check is true only for an `ok` request (or no
+  specification) with nothing unmet. A remove verb that is not a command ("members can delete
+  their own tasks") is not an exclusion; the permission it states is still not in the diff, so
+  that command is unsettled too. Without a specification the target's name is unknown: up to
+  three words right after the command verb are taken as that name.
+- Engine requests are the engine's own steps named in the command: "remove unused assets"
+  (`assets-backup-unused`), "remove slow queries" (`performance-query-indexes`) and "remove
+  dead code". Their area joins the run's scope. Each is met only when the upgraded copy is
+  verified: no unreferenced asset left, no filtered full-table scan left, no dead-code finding
+  left. The upgrade keeps every function, so existing dead code is reported as unmet, never
+  deleted. Arabic wording with «غير» (for example «غير المستخدمة») is refused by the router as
+  a negation before this check; «المهملة» is accepted.
 - Asset non-use is a static proof over internal references; external links to a served file
   cannot be ruled out (hence the backup); directory listings in code make it unprovable.
 - Data proofs cover SQLite files only; other stores are copied and hashed but not compared

@@ -52,8 +52,10 @@ class RequestedChanges(unittest.TestCase):
                 self.assertEqual((requested["status"], requested["unmet"]), (status, unmet))
 
     def test_a_remove_verb_that_is_not_a_command_is_not_an_exclusion(self):
+        # "delete" here removes nothing, so it is no exclusion. The permission it states ("their own") is not in the
+        # specification diff, so since the re-check's clause accounting the request is unsettled, not "ok".
         requested = engine.requested_changes("Upgrade the task management system so members can delete their own tasks", SPEC)
-        self.assertEqual(requested["status"], "ok")
+        self.assertEqual((requested["status"], requested["unmet"]), ("unsettled", ["not accounted for: own tasks"]))
         self.assertEqual(engine._exclusions("Upgrade the task management system so members can delete their own tasks", SPEC), [])
 
     def test_without_a_specification_a_removal_is_still_not_settled(self):
