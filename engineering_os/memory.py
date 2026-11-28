@@ -76,8 +76,9 @@ CONCEPTS = ({"database", "sql", "schema", "migration", "postgres", "قاعدة",
 EXTRA_CONCEPTS = ({"performance", "slow", "latency", "cache", "index", "throughput", "أداء"},
                   {"security", "auth", "authentication", "permission", "isolation", "أمان"},
                   {"money", "price", "pricing", "discount", "currency", "cents", "total"})
-STOPWORDS = frozenset({"a", "an", "the", "of", "to", "for", "and", "or", "in", "on", "at", "by", "with", "from",
-                       "في", "من", "علي", "الي", "عن", "و"})
+STOPWORDS = frozenset({"a", "an", "the", "of", "to", "for", "and", "or", "in", "on", "at", "by", "with", "from", "is", "was",
+                       "are", "be", "do", "does", "did", "we", "our", "it", "this", "that", "why", "what", "how", "where",
+                       "في", "من", "علي", "الي", "عن", "و", "لماذا", "ما", "هل"})
 # Broader than the task-store pattern: the credential shapes the GAIE factory memory refused (PR #26).
 BROAD_SECRET = re.compile(
     r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|\bgh[pousr]_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}|\bglpat-[A-Za-z0-9_-]{16,}"
@@ -249,7 +250,7 @@ def failure_signature(text):
     """Deterministic failure fingerprint: addresses, digests, directories and numbers are folded."""
     _guard(text, 500, "failure signature", multiline=True)
     text = unicodedata.normalize("NFKC", text).casefold()
-    text = re.sub(r"0x[0-9a-f]+", "0x#", text)
+    text = re.sub(r"0x[0-9a-f]+", "<addr>", text)
     text = re.sub(r"\b[0-9a-f]{8,}\b", "<hex>", text)
     text = re.sub(r"(?:[a-z]:)?(?:[\\/][^\s\\/:'\"]+)+[\\/]([^\s\\/:'\"]+)", r"\1", text)
     text = re.sub(r"\d+", "#", text)
@@ -331,6 +332,7 @@ def _verification(value):
             _relative(relative)
         except MemoryError:
             raise MemoryError("Unsafe source binding") from None
+        _safe_text(relative, 500)
         _digest(digest)
     return value
 
@@ -458,7 +460,7 @@ def _verify_state(state):
         if not isinstance(files, dict) or not files or len(files) > MAX_SYMBOL_FILES:
             raise IntegrityError("Invalid bounded symbol index")
         for relative, entry in files.items():
-            _relative(relative)
+            _safe_text(_relative(relative), 500)
             total += _symbol_file(entry)
     if total > MAX_DEFINITIONS:
         raise IntegrityError("Symbol index exceeds its bound")
@@ -963,7 +965,10 @@ class MemoryStore:
         return self._view(project, use)
 
     def retrieve(self, project, query=None, limit=10, kinds=None, tags=None, include_symbols=True, source_root=None):
-        """Ranked concept retrieval over entries and indexed symbols; without a query, entries newest first."""
+        """Ranked concept retrieval over entries and indexed symbols; without a query, entries newest first.
+
+        Superseded ADRs and task versions stay visible, flagged, at half score (rounded up).
+        """
         if query:
             _safe_text(query, 500)
         if type(limit) is not int or not 1 <= limit <= 50:
@@ -973,6 +978,7 @@ class MemoryStore:
             raise MemoryError("Unknown memory kind")
         tags = None if tags is None else {tag.casefold() for tag in tags}
         wanted, exact = (_folded(query), query.casefold()) if query else (set(), None)
+        wanted = (wanted - STOPWORDS) or wanted
 
         def use(state, rows):
             superseded = {item["target"] for _, row in rows if row["record"]["kind"] in STRUCTURED
@@ -995,9 +1001,10 @@ class MemoryStore:
                     if not score:
                         continue
                 lifecycle = row["lifecycle"]["status"] if row["lifecycle"] else None
+                old = identifier in superseded or lifecycle == "superseded"
                 found.append({"type": "entry", "id": identifier, "seq": row["seq"], "kind": record["kind"], "title": record["title"],
-                              "summary": record["summary"], "tags": list(record["tags"]), "score": score,
-                              "superseded": identifier in superseded or lifecycle == "superseded", "lifecycle": lifecycle,
+                              "summary": record["summary"], "tags": list(record["tags"]), "score": (score + 1) // 2 if old else score,
+                              "superseded": old, "lifecycle": lifecycle,
                               "created": row["created"], "merged_variants": len(row["merged"]),
                               "verification_status": _verification_status(row, source_root) if record["kind"] in VERIFIABLE else None,
                               "evidence_status": _evidence_status(record, source_root)["status"]})
@@ -1065,7 +1072,7 @@ class MemoryStore:
                     "incoming": incoming if direction != "out" else []}
         return self._view(project, use)
 
-    def path(self, project, source, target, max_depth=6, relations=None):
+    def graph_path(self, project, source, target, max_depth=6, relations=None):
         """Shortest undirected path by deterministic BFS; each hop reports the stored edge direction."""
         if type(max_depth) is not int or not 1 <= max_depth <= 20:
             raise MemoryError("Invalid path depth")
@@ -1609,7 +1616,7 @@ _ACTIONS = {
                  "Ranked retrieval over entries and indexed symbols."),
     "graph": ("graph", (), (), "none", _READ, "Project knowledge graph nodes and edges."),
     "neighbours": ("neighbours", ("node",), ("relation", "direction"), "none", _READ, "Typed neighbours of a graph node."),
-    "path": ("path", ("source", "target"), ("max_depth", "relations"), "none", _READ, "Shortest path between two graph nodes."),
+    "path": ("graph_path", ("source", "target"), ("max_depth", "relations"), "none", _READ, "Shortest path between two graph nodes."),
     "adr-add": ("adr_add", ("title", "context", "decision", "consequences"), ("engine", "status", "supersedes", "tags", "symbols"),
                 "state-write", _WRITE, "Record an architecture decision record."),
     "adr-status": ("adr_status", ("adr_id", "status"), (), "state-write", _WRITE, "Accept a proposed ADR."),

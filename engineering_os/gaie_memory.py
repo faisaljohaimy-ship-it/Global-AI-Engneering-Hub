@@ -147,7 +147,8 @@ class Memory:
     def _import_journal(self, store):
         """Verify the PR #26 hash chain and import new journal entries into the engine in one transaction."""
         rows = _journal_rows(self)
-        seen = {provenance["source_sha256"]: entry["id"] for entry in store.entries(self.project) for provenance in entry["provenances"]}
+        seen = {provenance["source_sha256"]: entry["id"] for entry in store.entries(self.project)
+                for provenance in entry["provenances"] + [item["provenance"] for item in entry["merged"]]}
         items, known = [], {}
         for row in rows:
             if row["id"] in seen:
