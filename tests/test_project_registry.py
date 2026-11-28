@@ -261,6 +261,25 @@ class RegistryTests(unittest.TestCase):
                          ("routed", "biltix", "registered-private"))
         self.assertEqual(plan["targets"][0]["repository"], "https://github.com/example-owner/biltix")
 
+    def test_vendored_copy_with_the_registry_beside_the_router(self):
+        engine = self.home.parent / "engine"
+        engine.mkdir()
+        for source, name in (("engineering_os/gaie_router.py", "gaie_router.py"), ("engineering_os/gaie_memory.py", "gaie_memory.py"),
+                             ("engineering_os/project_registry.py", "project_registry.py"),
+                             ("governance/policies/gaie-routes.json", "gaie-routes.json"),
+                             ("projects/registry.json", "projects.json"), ("projects/aliases.json", "aliases.json")):
+            (engine / name).write_bytes((ROOT / source).read_bytes())
+        env = {**os.environ, **self.env}
+        run = lambda *args: subprocess.run([sys.executable, *args], capture_output=True, text=True, env=env, cwd=self.home.parent)
+        done = run(str(engine / "project_registry.py"), "register", "biltix", "--repository",
+                   "https://github.com/example-owner/biltix", "--apply")
+        self.assertEqual(json.loads(done.stdout)["status"], "registered", done.stderr)
+        plan = json.loads(run(str(engine / "gaie_router.py"), "route", "upgrade BILTIX").stdout)
+        self.assertEqual((plan["status"], plan["engine_id"], plan["repository_check"]["status"]),
+                         ("routed", "master-upgrade", "registered-private"))
+        audit = json.loads(run(str(engine / "gaie_router.py"), "route", "افحص سديد").stdout)
+        self.assertEqual(audit["grant_template"]["max_side_effect"], "none")
+
     def test_cli(self):
         env = {**os.environ, **self.env}
         run = lambda *args: subprocess.run([sys.executable, "-m", "engineering_os.project_registry", *args],

@@ -303,10 +303,10 @@ def load(environ=None):
     return _build(public, legacy, catalog, _read_private(environ))
 
 
-def routing_rows(environ=None):
+def routing_rows(environ=None, records=None):
     """Rows in the router's shape. Private details other than repository and folder stay out."""
     rows = {}
-    for key, record in load(environ).items():
+    for key, record in (load(environ) if records is None else records).items():
         rows[key] = {"id": key, "repository": record["repository"], "path": record["path"],
                      "visibility": record["visibility"], "source": record["source"], "slug": record["slug"],
                      "aliases": [*record["aliases"], *record["private_aliases"]], "_keys": record["_keys"],
@@ -349,8 +349,7 @@ def resolve(text, *, environ=None):
     if not isinstance(text, str) or not text.strip() or len(text) > router.MAX_TEXT:
         raise RegistryError("text must be 1-2000 characters")
     records = load(environ)
-    rows = routing_rows(environ)
-    matched, suggestions = router.resolve(router.normalize(text), rows)
+    matched, suggestions = router.resolve(router.normalize(text), routing_rows(environ, records))
     if len(matched) == 1:
         return {"status": "resolved", "project": public_view(records[matched[0]["id"]])}
     if matched:

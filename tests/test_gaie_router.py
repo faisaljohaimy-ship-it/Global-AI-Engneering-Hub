@@ -346,6 +346,7 @@ class ControlPlaneRouteTests(unittest.TestCase):
             self.assertEqual(plan["grant_template"]["engines"], {"master-audit": ["audit"]}, text)
             self.assertFalse(set(plan["permissions"]) & WRITING, text)
             self.assertEqual(plan["execution_scope"]["kind"], "read-only", text)
+            self.assertFalse(plan["execution_scope"]["network"] or plan["execution_scope"]["production"], text)
             self.assertEqual(plan["approvals_required"], [], text)
             self.assertFalse(plan["write_allowed"], text)
             self.assertTrue(plan["read_only"], text)
@@ -377,6 +378,7 @@ class ControlPlaneRouteTests(unittest.TestCase):
                 self.assertEqual(gated, {"external-write", "production"}, text)
                 self.assertTrue(all(step["needs_approval"] for step in plan["approvals_required"]), text)
                 self.assertEqual(plan["grant_template"]["approvals"], [], text)
+                self.assertEqual((plan["execution_scope"]["kind"], plan["execution_scope"]["production"]), ("release-gated", True))
                 self.assertEqual(bool(plan["blockers"]), not registered, text)  # a missing target is reported, never guessed
         self.assertIn("deployment target", self.route("انشر بلتكس")["blockers"][0])
 

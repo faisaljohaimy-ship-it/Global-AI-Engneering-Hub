@@ -455,7 +455,8 @@ def grant_from_template(template, *, grant_id, expires_at):
 def _execution(spec, rules, intent, project_id=None, path=None):
     kind = spec["execution"]
     scope = {"kind": kind, "paths": [_scope_path(rules, project_id, path)], "max_side_effect": spec["max_side_effect"],
-             "default_branch_writes": False, "network": False, "production": spec["max_side_effect"] == "production"}
+             "default_branch_writes": False, "network": _rank(spec["max_side_effect"]) >= _rank("network"),
+             "production": spec["max_side_effect"] == "production"}
     if kind == "read-only":
         scope["writes"] = "none: no file edit, commit, migration, deployment or provider mutation"
     if kind == "repo-branch":
