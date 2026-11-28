@@ -734,5 +734,51 @@ class AgentTeamBlockTests(unittest.TestCase):
                     self.assertNotIn("team", agents)
 
 
+class MasterDocumentPinTests(unittest.TestCase):
+    """A write route names the pinned MASTER document and is blocked when its bytes drifted."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.env = {"GAIE_HOME": str(pathlib.Path(temporary.name) / "gaie")}
+
+    def route(self, text):
+        return router.route(text, environ=self.env)
+
+    def test_route_carries_the_pinned_version_and_digest(self):
+        from engineering_os import master_docs
+        documents = master_docs.load_manifest()["documents"]
+        for text, name in (("ابنِ نظامًا جديدًا لإدارة المشاريع", "MASTER_BUILD"), ("طور سديد", "MASTER_UPGRADE")):
+            plan = self.route(text)
+            self.assertEqual((plan["prompt_version"], plan["prompt_sha256"]),
+                             (documents[name]["version"], documents[name]["sha256"]))
+        audit = self.route("افحص سديد")
+        self.assertEqual((audit["prompt_version"], audit["prompt_sha256"]), (None, None))
+
+    def test_drift_or_a_missing_loader_blocks_the_route(self):
+        from engineering_os import master_docs
+        drift = master_docs.MasterDocsError("MASTER_BUILD is drift at prompts/MASTER_BUILD.md")
+        with mock.patch.object(router._master_docs, "load", side_effect=drift):
+            plan = self.route("ابنِ نظامًا جديدًا لإدارة المشاريع")
+        self.assertEqual((plan["decision"], plan["prompt_sha256"]), ("blocked", None))
+        self.assertTrue(any("MASTER_BUILD is drift" in blocker for blocker in plan["blockers"]))
+        with mock.patch.object(router, "_master_docs", None):
+            plan = self.route("طور سديد")
+        self.assertEqual(plan["decision"], "blocked")
+        self.assertTrue(any("loader is unavailable" in blocker for blocker in plan["blockers"]))
+        with mock.patch.object(router, "_master_docs", None):
+            self.assertEqual(self.route("افحص سديد")["decision"], "ready-for-grant")
+
+    def test_media_pass_and_unpinned_prompt(self):
+        from engineering_os import master_docs
+        upgrade = master_docs.load_manifest()["documents"]["MASTER_UPGRADE"]
+        plan = self.route("طور فيديوهات سديد")
+        self.assertEqual((plan["prompt"], plan["prompt_sha256"]), ("prompts/MASTER_UPGRADE.md", upgrade["sha256"]))
+        with mock.patch.object(router._master_docs, "load_manifest", return_value={"documents": {}}):
+            plan = self.route("طور سديد")
+        self.assertEqual((plan["decision"], plan["prompt_version"]), ("blocked", None))
+        self.assertTrue(any("has no entry in the MASTER manifest" in blocker for blocker in plan["blockers"]))
+
+
 if __name__ == "__main__":
     unittest.main()

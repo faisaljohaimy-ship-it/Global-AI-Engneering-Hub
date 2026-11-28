@@ -392,6 +392,8 @@ def main():
     verify_parser.add_argument("--strict", action="store_true")
     team_parser = commands.add_parser("team", help="Central agent-team policy: standing team, concurrency, staffing")
     team_parser.add_argument("argv", nargs=argparse.REMAINDER)
+    master_parser = commands.add_parser("master", help="Verify, show or pin the MASTER documents")
+    master_parser.add_argument("argv", nargs=argparse.REMAINDER)
     route_parser = commands.add_parser("route")
     route_parser.add_argument("text")
     route_parser.add_argument("--workspace")
@@ -471,6 +473,10 @@ def main():
         from engineering_os import agent_team
 
         sys.exit(agent_team.main(args.argv or ["show"]))
+    elif args.cmd == "master":
+        from engineering_os import master_docs
+
+        sys.exit(master_docs.main(args.argv or ["status"]))
     elif args.cmd == "route":
         try:
             result = gaie_router.route(args.text, workspace_path=args.workspace)

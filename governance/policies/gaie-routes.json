@@ -459,7 +459,7 @@
     ],
     "build": [
       "Confirm no repository already exists for the project before creating one.",
-      "New repositories are private by default; creation needs GitHub permission in this environment."
+      "New repositories are private by default; creating one is a separate external-write step that needs explicit owner approval and a grant for the exact owner and repository, in addition to GitHub access."
     ],
     "upgrade": [
       "Start from the current state; no deletion before proving non-use and preserving recovery.",

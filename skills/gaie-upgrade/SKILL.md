@@ -11,9 +11,17 @@ argument-hint: "[project] [scope]"
    write, require explicit operator approval, a matching target and branch, and a
    host grant limited to its assigned paths. Stop at planning when the
    workspace or the grant is missing.
-3. Read the master prompt and follow its steps in order. Use the first that exists:
-   `prompts/MASTER_UPGRADE.md` (hub checkout), `.engineering/gaie/MASTER_UPGRADE.md`
-   (registered project), `MASTER_UPGRADE.md` beside this file (user-level bootstrap).
+3. Read the master prompt and follow its steps in order. Print it with the loader
+   from the first location that exists, and stop if it reports drift, a missing file
+   or a symlink:
+   - hub checkout: `python3 engineering_os/master_docs.py show MASTER_UPGRADE`
+   - plugin: `python3 "${CLAUDE_PLUGIN_ROOT}/engineering_os/master_docs.py" show MASTER_UPGRADE`
+   - registered project: `python3 .engineering/gaie/master_docs.py show MASTER_UPGRADE`
+   - user-level bootstrap: `python3 ../gaie-master-router/engine/master_docs.py show MASTER_UPGRADE`,
+     relative to this file
+   Only an install without a loader reads the file directly: `prompts/MASTER_UPGRADE.md`,
+   `${CLAUDE_PLUGIN_ROOT}/prompts/MASTER_UPGRADE.md`, `.engineering/gaie/MASTER_UPGRADE.md`
+   or `MASTER_UPGRADE.md` beside this file; then report that its bytes were not verified.
 4. Staff an upgrade route (`intent: upgrade`) with the standing team of
    `governance/policies/agent-team.json` (`agents.team` in the plan;
    `python3 -m engineering_os.agent_team show --intent upgrade` in a hub checkout,

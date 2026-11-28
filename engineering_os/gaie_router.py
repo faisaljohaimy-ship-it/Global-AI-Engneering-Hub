@@ -38,6 +38,14 @@ except ImportError:  # an older vendored router can plan, but cannot authorize w
         _workspace_policy = None
 
 try:
+    from . import master_docs as _master_docs
+except ImportError:  # a vendored router without the loader can plan, but its write routes stay blocked
+    if not __package__ and pathlib.Path(__file__).resolve().with_name("master_docs.py").is_file():
+        import master_docs as _master_docs
+    else:
+        _master_docs = None
+
+try:
     from . import agent_team as _agent_team
 except ImportError:  # vendored: the loader ships beside this file; an older install routes without a team block
     if not __package__ and pathlib.Path(__file__).resolve().with_name("agent_team.py").is_file():
@@ -600,6 +608,23 @@ def _registry_check(row):
         "reachability": "not checked by the registry; the executing agent verifies access in its environment"}
 
 
+def _prompt_pin(prompt):
+    """(version, sha256, blocker) of the pinned MASTER document a route names; blocker is None when current."""
+    if not prompt:
+        return None, None, None
+    if _master_docs is None:
+        return None, None, "The MASTER document loader is unavailable. Open a current engineering pack before editing."
+    try:
+        documents = _master_docs.load_manifest()["documents"]
+        names = [name for name, record in documents.items() if record["path"] == prompt]
+        if not names:
+            return None, None, f"{prompt} has no entry in the MASTER manifest, so its bytes cannot be verified."
+        _, record = _master_docs.load(names[0])
+    except (_master_docs.MasterDocsError, OSError) as error:
+        return None, None, f"MASTER document refused: {error}. Restore the pinned bytes or pin an approved version."
+    return record["version"], record["sha256"], None
+
+
 def _verified_write_scope(intent, path, targets):
     if path is None:
         return None, "No workspace was selected. Provide an isolated workspace with --workspace before editing."
@@ -760,6 +785,9 @@ def route(text, *, environ=None, workspace_path=None):
             entry["workspace_matches"] = verified is not None
         plan_targets.append(entry)
     blockers = [workspace_problem] if workspace_problem else []
+    prompt_version, prompt_sha256, prompt_problem = _prompt_pin(engine["prompt"])
+    if prompt_problem:
+        blockers.append(prompt_problem)
     if intent == "release":
         blockers += [f"{row['id']}: no deployment target is registered in the private registry; it is never guessed."
                      for row in targets if not row.get("deployment_target_registered")]
@@ -773,6 +801,7 @@ def route(text, *, environ=None, workspace_path=None):
         "language": "ar" if _ARABIC.search(text) else "en",
         "intent": intent, "verb": verb, "engine": engine["engine"], "engine_id": spec["engine_id"],
         "skill": engine["skill"], "prompt": engine["prompt"],
+        "prompt_version": prompt_version, "prompt_sha256": prompt_sha256,
         "scope": engine.get("scope") or ("comprehensive" if full else "focused" if focus else "standard"),
         "focus": focus, "prohibited": prohibited, "target_scope": scope, "targets": plan_targets,
         "project": single["id"] if single else None,
