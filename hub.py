@@ -352,6 +352,37 @@ def workspace_run(args):
     sys.exit(0 if result["returncode"] == 0 else 1)
 
 
+def audit_anchor_command(args):
+    """Write (--out) or check (--verify) an anchor of the governor audit log; exits 0 or 1 with one JSON line.
+
+    `governor.verify_audit` alone cannot see records removed from the end of the log or the log removed whole;
+    an anchor kept outside the state directory can (SEC-06)."""
+    from engineering_os import governor, security_audit
+
+    state = os.path.realpath(args.state_dir)
+    try:
+        if args.out:
+            out = os.path.realpath(args.out)
+            if out == state or out.startswith(state.rstrip("/") + "/"):
+                raise security_audit.AuditError("the anchor must be kept outside the state directory")
+            anchor = security_audit.audit_anchor(state)
+            descriptor = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                stream.write(json.dumps(anchor, sort_keys=True) + "\n")
+            print(json.dumps({"status": "anchored", **anchor}))
+        else:
+            descriptor = os.open(args.verify, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+            with os.fdopen(descriptor, "rb") as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise ValueError("the anchor must be a regular file")
+                anchor = json.loads(stream.read(4096), object_pairs_hook=_no_duplicates)
+            print(json.dumps({"status": "intact", "records": security_audit.verify_audit_anchor(state, anchor)}))
+    except (governor.GovernorDenied, security_audit.AuditError, OSError, ValueError) as error:
+        print(json.dumps({"status": "error", "error": str(getattr(error, "reason", "") or error)}))
+        sys.exit(1)
+    sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="cmd", required=True)
@@ -428,7 +459,20 @@ def main():
     invoke_parser.add_argument("--state", required=True, help="private state directory outside Git")
     invoke_parser.add_argument("--task")
     invoke_parser.add_argument("--host", choices=("claude-code", "codex"), default="claude-code")
+    anchor_parser = commands.add_parser("audit-anchor", help="Write or verify an anchor of the governor audit log (SEC-06)")
+    anchor_parser.add_argument("--state-dir", required=True, help="private control-plane state directory")
+    anchor_mode = anchor_parser.add_mutually_exclusive_group(required=True)
+    anchor_mode.add_argument("--out", help="new anchor file; refused inside the state directory")
+    anchor_mode.add_argument("--verify", help="anchor file written earlier with --out")
+    assurance_parser = commands.add_parser("assurance", help="L20 independent review receipts and gate")
+    assurance_parser.add_argument("argv", nargs=argparse.REMAINDER)
     args = parser.parse_args()
+    if args.cmd == "audit-anchor":
+        audit_anchor_command(args)
+    if args.cmd == "assurance":
+        from engineering_os import assurance
+
+        sys.exit(assurance.main(args.argv))
     if args.cmd == "audit":
         result = audit()
     elif args.cmd == "architecture":
@@ -470,15 +514,19 @@ def main():
     elif args.cmd == "update-pin":
         result = update_pin(args.target, args.revision, args.expected, args.apply)
     elif args.cmd == "register":
-        result = hublink.register(
-            args.target,
-            args.revision,
-            args.id,
-            args.repository,
-            args.capability,
-            args.apply,
-            args.remove,
-        )
+        try:
+            result = hublink.register(
+                args.target,
+                args.revision,
+                args.id,
+                args.repository,
+                args.capability,
+                args.apply,
+                args.remove,
+            )
+        except (ValueError, OSError) as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(1)
     elif args.cmd == "team":
         from engineering_os import agent_team
 

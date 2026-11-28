@@ -6,11 +6,17 @@ description: Route an owner's natural-language engineering command, in Arabic or
 Turn the owner's sentence into a verified plan before doing any work.
 
 1. Use the reviewed deterministic router and pass the owner's exact words as a
-   single argument. Supported entry points are `python3 hub.py route` (hub checkout),
-   `python3 .engineering/gaie/gaie_router.py route` (registered project), and
-   `python3 ~/.claude/skills/gaie-master-router/engine/gaie_router.py route`
-   (user-level bootstrap). Pass `--workspace <checkout>` only to validate an
-   identified workspace. Routing is planning.
+   single argument. `${CLAUDE_SKILL_DIR}` is this skill's base directory. Run the
+   first entry point that exists, in this order:
+   - `python3 "${CLAUDE_SKILL_DIR}/engine/gaie_router.py" route` (bootstrap install,
+     project scope `<project>/.claude/skills/...` or user scope `~/.claude/skills/...`);
+   - `python3 "${CLAUDE_SKILL_DIR}/../../hub.py" route` (plugin install: the plugin
+     root is a copy of the hub);
+   - `python3 .engineering/gaie/gaie_router.py route` (project registered with
+     `pack:gaie-factory`);
+   - `python3 hub.py route` (the hub checkout itself only).
+   Pass `--workspace <checkout>` only to validate an identified workspace. Routing is
+   planning.
 2. If the status is `needs-clarification`, relay the reason and ask the owner. Never
    guess a project or repository, and never act on a suggestion the router did not
    select. A project missing from the registries must be registered first (private

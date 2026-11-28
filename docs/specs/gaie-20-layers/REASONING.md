@@ -135,7 +135,11 @@ redact logs first. The conclusion is `leading` (supported, net evidence support 
 score ≥ 0.7, margin ≥ 0.2), `contested` (rivals within 0.2: lists the competing hypotheses
 and asks for discriminating evidence and direct observation of unobserved nodes) or
 `insufficient_evidence`. Hypotheses with strong evidence on both sides are marked
-`conflicting`. Each hypothesis reports `support`, `refutation`, `net_support` (support −
+`conflicting`. Evidence and rule weights and evidence and log reliabilities must be
+positive (a non-positive value is refused). A hypothesis is `unsupported` when its
+evidence carries no weight either way, `conflicting` when support and refutation are both
+>= 1 or exactly equal, `refuted` when refutation exceeds support, and `supported` only when
+support exceeds refutation; only a supported hypothesis can be `leading`. Each hypothesis reports `support`, `refutation`, `net_support` (support −
 refutation, log-odds units) and `structural_score` (prior and structure only) next to its
 `score`. The minimum net support (`MIN_SUPPORT` = 0.3, one fully reliable row of weight 0.1)
 exists because structure alone can reach 0.7 (an observed root at prior 0.5 scores 0.731):
@@ -175,7 +179,9 @@ equal values score 1). Weights must sum to 1. For each criterion, one weight is 
 while the others are rescaled proportionally. Totals are linear in that weight, so the
 exact flip point, the new winner and the full weight vector at the flip are reported. Only
 strict overtakes inside [0, 1] count; a tie reached only at the boundary is not a flip.
-`robust` is false when some flip lies within `robustness_margin`.
+`robust` is false when some flip lies within `robustness_margin`. When the top totals tie,
+`tie` is true, `tied` lists the tied options, `winner` is only the smallest tied id, and
+`robust` is false.
 
 **Routing hook** — `{"step", "registry", "routing", "evidence"}`. A deterministic step
 (any action name) returns `requires_model: false` and must not carry routing metadata. A

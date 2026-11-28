@@ -192,9 +192,9 @@ An abridged audit route:
   own work in the granted paths. Engine actions only plan, test, record memory and
   verify.
 - Vendored copies installed by `scripts/gaie_bootstrap.py` or the `gaie-factory`
-  pack do not yet include `project_registry.py` or `contracts.py`. They fall back to
-  the original loader, which ignores the catalog and the private record fields, and
-  to built-in copies of the contract constants (tested equal).
+  pack (1.1.0) include `project_registry.py`, so they resolve names through the
+  registry, catalog included. They do not include `contracts.py` (nothing vendored
+  imports it as a script) and use built-in copies of the contract constants (tested equal).
 - The secret filter is best-effort pattern matching, shared with `gaie_memory`.
 - The SADEED → `biz-pulse-ar` mapping comes from the hub's existing public registry
   (PR #26). The repository's existence was observed, but its content was not

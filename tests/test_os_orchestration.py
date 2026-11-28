@@ -7,7 +7,7 @@ import tempfile
 import time
 import unittest
 
-from engineering_os.orchestration import CoordinationError, TaskStore, canonical, sha, verify_state, _read_private
+from engineering_os.orchestration import SECRET, CoordinationError, TaskStore, canonical, sha, verify_state, _read_private
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LEAD = {"id": "lead", "engine": "codex", "role": "orchestrator"}
@@ -214,6 +214,21 @@ except CoordinationError:print('blocked')
         key = "gh" + "p_" + "a"*36
         with self.assertRaises(CoordinationError):
             self.create({**self.spec(), "title":key})
+        self.assertEqual(self.store.snapshot()["revision"], 0)
+
+    def test_credential_shapes_touching_arabic_letters_or_underscores_are_refused(self):
+        """`\\b` saw an Arabic letter or "_" as part of the word, so these task texts were stored (review-fixes M2)."""
+        aws = "AK" + "IA" + "IOSFODNN7EXAMPLE"
+        for text in ["و" + aws, aws + "هنا", "aws_" + aws, "رمز" + "gh" + "p_" + "a" * 36,
+                     "مفتاح" + "sk_" + "live_" + "a" * 24, "رمز" + "ey" + "J" + "a" * 12 + "." + "b" * 24 + "." + "c" * 24]:
+            with self.subTest(text=text[:6]):
+                self.assertIsNotNone(SECRET.search(text))
+                with self.assertRaises(CoordinationError):
+                    self.create({**self.spec(), "title": text})
+        for text in ["disk-usage-monitoring-dashboard-panel-view", "risk_live_dashboard_metrics_view_extra",
+                     "X" + aws + "YZ", "Use integer cents"]:
+            with self.subTest(text=text):
+                self.assertIsNone(SECRET.search(text))
         self.assertEqual(self.store.snapshot()["revision"], 0)
 
     def test_private_directory_and_file_guards(self):
