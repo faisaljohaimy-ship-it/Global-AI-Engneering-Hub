@@ -12,7 +12,7 @@ record of how far it got. `tools.json` is the record; the run that backs it is i
 | Playwright MCP | `@playwright/mcp` 0.0.85 | six checks passed through a stdio probe |
 | Chrome DevTools MCP | 1.13.0 | six checks passed through a stdio probe |
 | Inspect AI | 0.3.289 | three cases passed against its mock model, after the owner allowed the tokenizer host |
-| Context7 | `@upstash/context7-mcp` 4.7.0, no lock committed | started once in the session; the service asks for an API key (quota message) |
+| Context7 | remote `https://mcp.context7.com/mcp`; npm `@upstash/context7-mcp` 4.7.0 not used | `resolve-library-id` and `query-docs` returned documentation through `integrations/context7/probe.py` with the owner's key as an environment network secret (`docs/evidence/gaie-20-layers/context7.json`) |
 
 Run it again:
 
@@ -22,8 +22,10 @@ activation/activate.sh all          # installs under ~/.gaie-tools/activation, r
 
 Limits of this evidence:
 
-- Context7's lock is not in this folder. `scripts/security_scan.py dependencies` accepts at most eight npm locks and the
-  repository already has eight with this branch. `tools.json` records the package version and checksum instead.
+- Context7 has no lock in this folder and needs none. `scripts/security_scan.py dependencies` accepts at most eight npm
+  locks and the repository has eight. Context7 is used as a remote MCP endpoint (`.mcp.json`,
+  `integrations/context7/README.md`), so nothing is installed and the scan limit is unchanged. `tools.json` keeps the
+  npm package record as measured, with a `remote` field for the route in use.
 
 - Everything ran in one Linux cloud session, with scripted, mock or echo models. Nothing
   here called a real model provider.

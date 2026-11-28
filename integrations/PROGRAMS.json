@@ -177,6 +177,14 @@
       "codex_connection": "unverified",
       "claude_code_connection": "unverified",
       "cost_review": "required"
+    },
+    {
+      "name": "Context7",
+      "url": "https://context7.com",
+      "status": "available",
+      "codex_connection": "unverified",
+      "claude_code_connection": "verified-remote-mcp-2026-11-28",
+      "cost_review": "free-tier-only"
     }
   ]
 }

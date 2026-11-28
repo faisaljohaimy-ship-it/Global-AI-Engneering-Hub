@@ -326,7 +326,7 @@ Responsibilities:
 - **Tools:** `python3`
 - **Skills:** `skills/engineering-sdk/SKILL.md`
 - **Agents:** `control-plane-integration-engineer`, `claude-code-integration-engineer`
-- **Tests:** `tests/test_sdk.py`, `tests/test_os_control.py`, `tests/test_engine_motion_link.py`
+- **Tests:** `tests/test_sdk.py`, `tests/test_os_control.py`, `tests/test_engine_motion_link.py`, `tests/test_context7_integration.py`
 - **Scenarios:** none bound
 - **Evidence boundary:** Local MCP/CLI implemented; other protocols remain per-adapter candidates
 - **Evidence status:** VERIFIED — 3/3 test files, 33 test cases passed; 7 sources bound (`source_sha256` 74c0d949ded965e1…).
