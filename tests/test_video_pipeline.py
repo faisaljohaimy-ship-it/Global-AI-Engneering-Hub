@@ -664,5 +664,58 @@ class OutputDirectoryTests(unittest.TestCase):
             self.assertFalse(security_audit.probe_video_output_dir(pathlib.Path(temp)))
 
 
+class EditionTests(unittest.TestCase):
+    """Edition 2 (digital shows) is edition 1 plus reviewed patches; edition 1 stays byte-identical."""
+
+    def test_the_cinematic_compositor_is_unchanged_and_the_show_compositor_is_derived_from_it(self):
+        manifest = json.loads(EVIDENCE.read_text("utf-8"))
+        first, second = vp.renderer_digests(), vp.renderer_digests(2)
+        for key in ("compositor_html_sha256", "compositor_js_sha256", "renderer_js_sha256"):
+            self.assertEqual(first[key], manifest["renderer"][key], key)
+            self.assertEqual(second[key], first[key], key)
+        self.assertNotIn("edition", first)
+        self.assertEqual(second["edition"], 2)
+        self.assertNotEqual(second["show_compositor_js_sha256"], first["compositor_js_sha256"])
+        self.assertNotIn("digital-shows", vp._COMPOSITOR_JS + vp._RENDERER_JS)
+        self.assertIn("/packages/digital-shows/kit.mjs", vp._SHOW_COMPOSITOR_JS)
+        self.assertIn("@font-face", vp._SHOW_COMPOSITOR_JS)
+        self.assertIn("document.fonts.ready", vp._SHOW_COMPOSITOR_JS)
+        self.assertIn("'.ttf': 'font/ttf'", vp._SHOW_RENDERER_JS)
+
+    def test_a_patch_whose_anchor_moved_is_refused_instead_of_silently_skipped(self):
+        with self.assertRaises(AssertionError):
+            vp._derive("abc", (("x", "y", 1),))
+        with self.assertRaises(AssertionError):
+            vp._derive("aa", (("a", "b", 1),))
+        self.assertEqual(vp._derive("aa", (("a", "b", 2),)), "bb")
+
+    def test_a_storyboard_without_a_theme_keeps_the_first_edition(self):
+        sb = vp.validate_storyboard(vp.SAMPLE_STORYBOARD)
+        plan = vp.build_plan(sb)
+        self.assertNotIn("edition", plan)
+        self.assertNotIn("theme", sb)
+        self.assertEqual({line["lang"] for block in plan["text_blocks"] for line in block["lines"]}, {"ar", "en"})
+        self.assertTrue(all("family" not in line for block in plan["text_blocks"] for line in block["lines"]))
+        with tempfile.TemporaryDirectory() as temp:
+            _, job = vp._job(pathlib.Path(temp), "render", plan=plan)
+            self.assertEqual(job["allowed_prefixes"], list(vp.ALLOWED_PREFIXES))
+            self.assertNotIn("font_faces", job)
+            self.assertEqual((pathlib.Path(temp) / "compositor.mjs").read_text("utf-8"), vp._COMPOSITOR_JS)
+
+    def test_the_flite_voiceover_form_still_validates_next_to_the_external_one(self):
+        sb = copy.deepcopy(vp.SAMPLE_STORYBOARD)
+        self.assertEqual(vp.validate_storyboard(sb)["audio"]["voiceover"], {"language": "en", "voice": "slt"})
+        sb["audio"]["voiceover"] = {"language": "en", "provider": "external", "voice_ref": "clip-set-0001", "license": "Test licence text."}
+        voice = vp.validate_storyboard(sb)["audio"]["voiceover"]
+        self.assertEqual((voice["lead_ms"], voice["tail_ms"]), (350, 450))
+        with self.assertRaisesRegex(vp.VoiceoverError, "voiceover_dir"):
+            vp.render(sb, "/nonexistent-gaie-output", name="x")
+        self.assertFalse(pathlib.Path("/nonexistent-gaie-output").exists())
+        with self.assertRaisesRegex(vp.VoiceoverError, "no external voiceover"):
+            vp.render(vp.SAMPLE_STORYBOARD, "/nonexistent-gaie-output", name="x", voiceover_dir="/tmp")
+        with self.assertRaisesRegex(vp.VoiceoverError, "music_license"):
+            vp.render(vp.SAMPLE_STORYBOARD, "/nonexistent-gaie-output", name="x", music_file="/tmp/x.mp3")
+
+
 if __name__ == "__main__":
     unittest.main()
