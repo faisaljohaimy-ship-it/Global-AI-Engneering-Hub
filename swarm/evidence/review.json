@@ -1,0 +1,109 @@
+{
+ "kind": "four reviewers started by the host's workflow tool, each told to refute the report",
+ "agents": 4,
+ "peak_concurrent_agents": 2,
+ "wall_seconds": 57.1,
+ "models": [
+  "haiku",
+  "sonnet"
+ ],
+ "tokens": {
+  "input_total": 3319350,
+  "output": 14584,
+  "cache_read": 2451194,
+  "cache_write": 868128
+ },
+ "model_replies": 14,
+ "tool_calls": 14,
+ "findings": 12,
+ "by_severity": {
+  "low": 8,
+  "medium": 4
+ },
+ "detail": [
+  {
+   "file": "swarm/README.md",
+   "severity": "low",
+   "claim": "Speedup for the 20-agent row is 2.29, and the prose says speedup is measured against stage one's 4.65 seconds a task.",
+   "problem": "Recomputing with the stated basis gives 4.65 x 20 / 40.49 = 2.297, which rounds to 2.30, not 2.29. The table value matches evidence/ladder.json (speedup_against_one_agent = 2.29), which is consistent with the unrounded stage-one figure 23.23/5 = 4.646, not the 4.65 the prose cites. The other speedups (1.07, 2.28) agree under either basis. Low severity: a rounding-basis mismatch, not a wrong measurement.",
+   "action": "README now names the unrounded basis: 23.23 seconds for five tasks."
+  },
+  {
+   "file": "swarm/capabilities.json",
+   "severity": "medium",
+   "claim": "C046 has status USED with invoke \"scripts/bootstrap.sh\"",
+   "problem": "The named file does not exist under  (checked with os.path.exists on scripts/bootstrap.sh). A USED status claims a working invoke path that is absent from the repository, so the registry overstates this capability.",
+   "action": "The registry now names the real path; three entries that live in PR #16 say so; a test checks every path."
+  },
+  {
+   "file": "swarm/state/ENGINEERING_HANDOVER.md",
+   "severity": "medium",
+   "claim": "The hub now has two Headroom integrations: tools/headroom_context.py on main and hr in the context-optimization skill. 'Both were run here.' It also says the first handles JSON with stronger isolation and returns logs an",
+   "problem": "The evidence only records the `hr` helper. evidence/configurations-agents.json shows D with helpers {\"hr\": 2, \"script\": 3} and A with {\"script\": 2}. Nothing in swarm/evidence or swarm/state records a run of tools/headroom_context.py, and nothing supports the behavioural comparison between the two integrations.",
+   "action": "Added evidence/headroom-two-integrations.json from a fresh run of both tools on the same three samples."
+  },
+  {
+   "file": "swarm/state/BLOCKERS.md",
+   "severity": "medium",
+   "claim": "Blockers cite specific host and network limits. The workflow tool allows two agents at once on a four-core machine. The host shows no subscription allowance. Context7 and a tokenizer download are refused by the network p",
+   "problem": "None of these is recorded in evidence/ or state/. The only related text is summary.json: 'Not a measure of subscription allowance', and configurations-trace.json: 'tokens from the legacy Claude tokenizer bundled with litellm, a proxy'. There is no refusal log, no core count, no workflow-tool limit and no record of the agent-definition load failure. These are stated as observed facts.",
+   "action": "Added evidence/host-limits.json with how each limit was observed, and this review's measured concurrency."
+  },
+  {
+   "file": "swarm/README.md",
+   "severity": "low",
+   "claim": "Everything was run in one cloud session (4 cores, 15.7 GB).",
+   "problem": "The evidence has no core count and no total-memory figure. RESOURCE_METRICS.json has only 'least_memory_available_mb' (15117 to 15280) and load averages. '4 cores, 15.7 GB' is not supported by any file under swarm/evidence or swarm/state.",
+   "action": "Cores and memory are recorded in evidence/host-limits.json."
+  },
+  {
+   "file": "swarm/state/ENGINEERING_HANDOVER.md",
+   "severity": "low",
+   "claim": "Tasks end in `review`: the store wants three independent approvals and only the testing one exists.",
+   "problem": "The state files give only the tasks' 'review' state (ladder.json ownership task_states {\"review\": 5}) and TASK_STATE.json 'tasks_awaiting_two_more_reviews: 40'. The three-approval requirement and 'only the testing one exists' are not shown by any evidence file. The same ownership block also shows 'approved: 5', which is left unexplained.",
+   "action": "The handover now cites the rule in engineering_os/orchestration.py and explains the approval count."
+  },
+  {
+   "file": "swarm/README.md",
+   "severity": "low",
+   "claim": "Every new agent started with 222,067 tokens of context before reading its task, and the host wrote about 182,023 of them to the cache again for each agent.",
+   "problem": "tool-audit.json and summary.json give 222,067 as the MEDIAN first-request context (min 221,822, max 222,192) and 182,023 as 'cache_written_per_agent_tokens_median'. The README states the median as a value that applies to every agent. The 'fixed cost, not the task, is what the tokens went on' conclusion is a stronger causal claim than the per-agent medians show. The README itself says the split was not measured.",
+   "action": "README now gives the median and range and shows the arithmetic behind the conclusion."
+  },
+  {
+   "file": "swarm/state/BLOCKERS.md",
+   "severity": "low",
+   "claim": "Twenty one-task agents cost 16 million input tokens; at that rate a hundred would be about 80 million, a projection and not a measurement.",
+   "problem": "The 16,031,441 figure is supported and the projection is labelled. However, the blocker is stated as a 25/50/75/100-agent cost implication without noting that per-agent input was not constant across stages: 837,241 per task at 5 agents, 812,863 at 10 and 801,572 at 20. The same row's 'Who can remove it' cause (one repository, few connectors) is the owner's hypothesis. The README only says 'likely reason; the split wa",
+   "action": "The blocker now names the rate used for the projection and calls the cause likely."
+  },
+  {
+   "file": "swarm/bench.py",
+   "severity": "medium",
+   "claim": "Agent-written code is executed only after the workload.inspect import check has run",
+   "problem": "bench.check() runs the agent's worktree tests directly, and bench.py never imports or calls workload.inspect. Whatever the agent wrote in inv/ or tests/ runs unchecked: `subprocess.run([sys.executable, \"-B\", \"-m\", \"unittest\", \"discover\", \"-s\", \"tests\"], cwd=worktree, capture_output=True, text=True, timeout=120)`. There is no `-I` flag and no sandbox, and the child inherits the full parent environment.",
+   "action": "bench.check now refuses a worktree whose tests changed, screens every changed file, and runs with no inherited environment and no network."
+  },
+  {
+   "file": "swarm/workload.py",
+   "severity": "low",
+   "claim": "workload.inspect screens agent code before it runs",
+   "problem": "It is a deny-list that only matches direct calls by bare name. `FORBIDDEN_CALLS = {\"eval\", \"exec\", \"open\", \"__import__\", \"compile\", \"input\", \"print\", \"globals\", \"locals\"}`, and the check is `isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS`. Names such as getattr, vars, breakpoint and type are not listed, and attribute-based escapes like `().__class__.__mro__` are not examined. Code that passes ins",
+   "action": "The screen now also refuses double-underscore attribute access, says it is not a sandbox, and the run is isolated."
+  },
+  {
+   "file": "swarm/bench.py",
+   "severity": "low",
+   "claim": "All writes stay under SWARM_HOME, a temp folder or the folder given on the command line",
+   "problem": "bench.py main() writes outside the folder passed on the command line, into its parent directory: `secret = root.parent / (root.name + \".truth.json\")` followed by `secret.write_text(json.dumps(made))`. If DIR is directly under the repo or a shared folder, the ground-truth file lands beside it. bench.py also does not use SWARM_HOME at all, and it reads PATH entries from `~/.gaie-tools/bin`.",
+   "action": "By design, so the agent cannot read the answers; the docstring now says so."
+  },
+  {
+   "file": "swarm/ladder.py",
+   "severity": "low",
+   "claim": "Process control is limited to processes the script started",
+   "problem": "finish() terminates a process group using a PID read back from a state file: `os.killpg(run[\"sampler\"], signal.SIGTERM)`. The PID was saved by prep() in `runs/<stage>.json`. If finish runs much later, or the file is stale or edited, the PID may belong to an unrelated process group. Only ProcessLookupError and PermissionError are caught.",
+   "action": "ladder.py now checks that the process is still its sampler before stopping it."
+  }
+ ]
+}

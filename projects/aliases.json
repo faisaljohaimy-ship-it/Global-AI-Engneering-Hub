@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "notes": "Public-safe project identifiers only: id, Arabic/English names, aliases and the repository status. For a project not listed in projects/registry.json the repository identity, a folder inside a repository, the approved hub revision, capability manifest, project skills, authorized integrations, deployment target, database target, release history and checkpoints belong in the private registry ($GAIE_HOME/projects.json, written only by `python3 -m engineering_os.project_registry register ... --apply`), never here. `aliases` keeps its original shape and names registered public projects only.",
+  "aliases": {
+    "biz-pulse-ar": ["سديد", "sadeed", "biz pulse", "biz-pulse-ar"],
+    "wow-bus": ["wow bus", "wow-bus", "واو باص"],
+    "n8n-docs": ["n8n docs", "n8n-docs"]
+  },
+  "catalog": [
+    {
+      "id": "biz-pulse-ar",
+      "names": {"en": "SADEED", "ar": "سديد"},
+      "aliases": [],
+      "repository_status": "public-registry",
+      "observed": {"exists": true, "visibility": "public", "date": "2026-11-28", "method": "read-only GitHub repository listing"}
+    },
+    {
+      "id": "wow-bus",
+      "names": {"en": "Wow Bus", "ar": "واو باص"},
+      "aliases": [],
+      "repository_status": "public-registry",
+      "observed": {"exists": true, "visibility": "public", "date": "2026-11-28", "method": "read-only GitHub repository listing"}
+    },
+    {
+      "id": "n8n-docs",
+      "names": {"en": "n8n docs", "ar": "توثيق n8n"},
+      "aliases": [],
+      "repository_status": "public-registry",
+      "observed": {"exists": true, "visibility": "public", "date": "2026-11-28", "method": "read-only GitHub repository listing"}
+    },
+    {
+      "id": "biltix",
+      "names": {"en": "BILTIX", "ar": "بلتكس"},
+      "aliases": ["بيلتكس"],
+      "repository_status": "unverified",
+      "note": "More than one possible location exists; the owner registers the exact repository privately. It is never guessed."
+    },
+    {
+      "id": "faisal-aljuhaimy-portfolio",
+      "names": {"en": "Faisal Aljuhaimy Portfolio", "ar": "فيصل الجهيمي بورتفوليو"},
+      "aliases": ["بورتفوليو فيصل الجهيمي", "بورتفوليو", "faisal al-juhaimy portfolio", "faisal al juhaimy portfolio", "portfolio"],
+      "repository_status": "unverified",
+      "note": "Repository, folder and deployment details are private; register them in the private registry."
+    },
+    {
+      "id": "kpi",
+      "names": {"en": "KPI", "ar": "مؤشرات الأداء"},
+      "aliases": ["kpis", "مؤشرات الأداء الرئيسية"],
+      "repository_status": "unverified",
+      "note": "Repository not confirmed; register it privately before any write."
+    },
+    {
+      "id": "security-lab",
+      "names": {"en": "Security Lab", "ar": "المختبر الأمني"},
+      "aliases": ["مختبر الأمن"],
+      "repository_status": "unverified",
+      "note": "Repository not confirmed; register it privately before any write."
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motion SDK verification harness</title>
+<style>body { margin: 0; background: #000; } .stage { width: 320px; height: 180px; }</style>
+</head>
+<body>
+<script type="module">
+  import { createMotion, MotionError } from '../core/api.mjs';
+  import { createVirtualClock } from '../core/clock.mjs';
+  import { analyze, changedFraction } from '../core/surface.mjs';
+
+  const instances = new Map();
+  const frames = new Map();
+  // Only the stage being drawn is laid out, always at the page origin: vector content
+  // rasterises a few pixels differently at other page offsets, which would look like a change.
+  const show = (key) => {
+    for (const [name, entry] of instances) entry.stage.style.display = name === key ? 'block' : 'none';
+  };
+  const status = (entry) => ({
+    state: entry.instance.state, progress: entry.instance.progress, time: entry.instance.time,
+    framesDrawn: entry.instance.info().framesDrawn, pending: entry.clock ? entry.clock.pending : null,
+  });
+
+  window.h = {
+    /** Motions are loaded straight from their files, so a new one can be checked before the registry is rebuilt. */
+    async load(id) {
+      const [module, ...slug] = id.split('-');
+      return (await import(`../motions/${module}/${slug.join('-')}.mjs`)).default;
+    },
+    async create(key, id, options = {}) {
+      const stage = document.createElement('div');
+      stage.className = 'stage';
+      stage.id = 'stage-' + key;
+      stage.style.width = (options.width ?? 320) + 'px';
+      stage.style.height = (options.height ?? 180) + 'px';
+      if (options.direction) stage.dir = options.direction;
+      document.body.append(stage);
+      const clock = options.virtual ? createVirtualClock() : undefined;
+      const { virtual, ...rest } = options;
+      const instance = await createMotion(await window.h.load(id), { container: stage, width: 320, height: 180, pixelRatio: 1, quality: 'high', ...rest, clock });
+      instances.set(key, { instance, clock, stage });
+      show(key);
+      const d = instance.definition;
+      return { ...instance.info(), definition: { kind: d.kind, still: d.still, rtl: d.rtl, params: d.params, camera: d.camera, duration: d.duration, text: d.text ?? null, interactive: d.interactive ?? null } };
+    },
+    /** Draw a frame and keep its pixels under `label`. Returns the facts, or { mode: 'screenshot' }. */
+    async frame(key, at, label) {
+      show(key);
+      const { instance } = instances.get(key);
+      instance.render(at);
+      await instance.settled();
+      const snapshot = instance.capture();
+      if (!snapshot) return { mode: 'screenshot' };
+      const { data, ...facts } = snapshot;
+      frames.set(label, data.slice());
+      return { mode: 'pixels', ...facts };
+    },
+    async png(label, base64) {
+      const image = new Image();
+      image.src = 'data:image/png;base64,' + base64;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      [canvas.width, canvas.height] = [image.width, image.height];
+      const g = canvas.getContext('2d', { willReadFrequently: true });
+      g.drawImage(image, 0, 0);
+      const data = g.getImageData(0, 0, canvas.width, canvas.height).data;
+      frames.set(label, data);
+      return { mode: 'screenshot', ...analyze({ width: canvas.width, height: canvas.height, data }) };
+    },
+    diff: (a, b) => changedFraction(frames.get(a), frames.get(b)),
+    /** Start a motion's checks from nothing: no instances, no stages, no kept frames. */
+    reset() {
+      for (const key of [...instances.keys()]) window.h.drop(key);
+      frames.clear();
+    },
+    /** Destroy an instance and remove its stage; live WebGL contexts are a limited resource. */
+    drop(key) {
+      const entry = instances.get(key);
+      if (!entry) return;
+      entry.instance.destroy();
+      entry.stage.remove();
+      instances.delete(key);
+    },
+    call(key, method, ...args) {
+      const entry = instances.get(key);
+      entry.instance[method](...args);
+      return status(entry);
+    },
+    advance(key, ms) {
+      const entry = instances.get(key);
+      entry.clock.advance(ms);
+      return status(entry);
+    },
+    status: (key) => status(instances.get(key)),
+    /** Live input, then a frame: used to prove that an interactive motion reacts. */
+    input(key, values) {
+      instances.get(key).instance.input(values);
+      return status(instances.get(key));
+    },
+    /** Bytes of JavaScript heap in use, after a collection when the browser allows one. Null elsewhere. */
+    heap() {
+      if (typeof window.gc === 'function') window.gc();
+      return performance.memory ? performance.memory.usedJSHeapSize : null;
+    },
+    info: (key) => instances.get(key).instance.info(),
+    async optimize(key, options) {
+      return instances.get(key).instance.optimize(options);
+    },
+    benchmark: (key, options) => instances.get(key).instance.benchmark(options),
+    async exportFrames(key, options) {
+      const result = await instances.get(key).instance.export(options);
+      return result.supported ? { supported: true, sizes: result.frames.map((blob) => blob.size), width: result.width, height: result.height } : result;
+    },
+    destroy(key) {
+      const entry = instances.get(key);
+      entry.instance.destroy();
+      let refuses = false;
+      try {
+        entry.instance.render({ progress: 0.5 });
+      } catch (error) {
+        refuses = error instanceof MotionError;
+      }
+      const result = { children: entry.stage.childElementCount, refuses, pending: entry.clock ? entry.clock.pending : 0 };
+      entry.stage.remove();
+      instances.delete(key);
+      return result;
+    },
+  };
+</script>
+</body>
+</html>

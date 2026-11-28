@@ -1,0 +1,98 @@
+{
+  "schema": "gaie.domain/1",
+  "id": "crm",
+  "version": 1,
+  "title": {"ar": "نظام إدارة علاقات العملاء", "en": "Customer Relationship Management System"},
+  "summary": {"ar": "سجل العملاء ومسار الصفقات حسب المرحلة وأنشطة المتابعة ومسؤولية مندوبي المبيعات.",
+              "en": "Customer records, a staged deal pipeline, follow-up activities and sales-rep ownership."},
+  "keywords": {"ar": ["إدارة علاقات العملاء", "علاقات العملاء", "علاقات عملاء", "مسار المبيعات", "متابعة العملاء", "crm"],
+               "en": ["crm", "customer relationship management", "customer relationship", "sales pipeline", "customer management"]},
+  "product_type": "web-app",
+  "primary": "Deal",
+  "rationale": {
+    "ar": "العميل والصفقة والنشاط هي الحد الأدنى الذي يجيب عن: من هو العميل، ما الفرصة وفي أي مرحلة، وما آخر تواصل؛ المندوب كيان مستقل لأن ملكية الصفقة تحدد صلاحية التعديل.",
+    "en": "Customer, Deal and Activity are the minimum that answers who the customer is, which opportunity is at which stage, and what the last contact was. SalesRep is its own entity because deal ownership decides who may edit a deal."
+  },
+  "roles": [
+    {"id": "admin", "label": {"ar": "مدير النظام", "en": "Administrator"}, "permissions": ["*"]},
+    {"id": "sales-manager", "label": {"ar": "مدير المبيعات", "en": "Sales manager"}, "permissions": ["read", "write", "delete", "export"]},
+    {"id": "sales-rep", "label": {"ar": "مندوب مبيعات", "en": "Sales rep"}, "permissions": ["read", "write:own"]}
+  ],
+  "entities": [
+    {"name": "Customer", "label": {"ar": "عميل", "en": "Customer"}, "plural": "customers", "portable": true,
+     "synonyms": {"ar": ["عميل", "عملاء", "زبون", "زبائن"], "en": ["customer", "client"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 200, "label": {"ar": "الاسم", "en": "Name"}},
+       {"name": "email", "type": "email", "required": false, "max": 254, "unique": true, "label": {"ar": "البريد الإلكتروني", "en": "Email"}},
+       {"name": "phone", "type": "text", "required": false, "max": 32, "label": {"ar": "الهاتف", "en": "Phone"}},
+       {"name": "company", "type": "text", "required": false, "max": 200, "label": {"ar": "الشركة", "en": "Company"},
+        "keywords": {"ar": ["شركة", "جهة"], "en": ["company", "organization"]}},
+       {"name": "status", "type": "enum", "values": ["lead", "prospect", "customer", "inactive"], "default": "lead", "required": true,
+        "label": {"ar": "الحالة", "en": "Status"}}]},
+    {"name": "Deal", "label": {"ar": "صفقة", "en": "Deal"}, "plural": "deals",
+     "synonyms": {"ar": ["صفقة", "صفقات", "فرصة بيع", "فرص بيع", "فرص بيعية"], "en": ["deal", "opportunity"]},
+     "fields": [
+       {"name": "title", "type": "text", "required": true, "max": 200, "label": {"ar": "العنوان", "en": "Title"}},
+       {"name": "value", "type": "number", "required": true, "min": 0, "label": {"ar": "القيمة", "en": "Value"},
+        "keywords": {"ar": ["قيمة صفقة"], "en": ["deal value"]}},
+       {"name": "stage", "type": "enum", "values": ["new", "qualified", "proposal", "won", "lost"], "default": "new", "required": true,
+        "label": {"ar": "المرحلة", "en": "Stage"}, "keywords": {"ar": ["مرحلة بيع", "مراحل بيع"], "en": ["stage", "pipeline stage"]}},
+       {"name": "expected_close", "type": "date", "required": false, "label": {"ar": "تاريخ الإغلاق المتوقع", "en": "Expected close"}},
+       {"name": "lost_reason", "type": "text", "required": false, "max": 500, "label": {"ar": "سبب الخسارة", "en": "Lost reason"}}]},
+    {"name": "Activity", "label": {"ar": "نشاط", "en": "Activity"}, "plural": "activities",
+     "synonyms": {"ar": ["نشاط", "أنشطة", "متابعة", "متابعات", "مكالمة", "مكالمات", "اجتماع", "اجتماعات"], "en": ["activity", "follow up", "call", "meeting"]},
+     "fields": [
+       {"name": "kind", "type": "enum", "values": ["call", "email", "meeting", "note"], "required": true, "label": {"ar": "النوع", "en": "Kind"}},
+       {"name": "subject", "type": "text", "required": true, "max": 200, "label": {"ar": "الموضوع", "en": "Subject"}},
+       {"name": "happened_at", "type": "datetime", "required": true, "label": {"ar": "وقت النشاط", "en": "Happened at"}}]},
+    {"name": "SalesRep", "label": {"ar": "مندوب مبيعات", "en": "Sales rep"}, "plural": "sales-reps",
+     "synonyms": {"ar": ["مندوب", "مندوبين", "مندوب مبيعات", "مندوبي مبيعات"], "en": ["sales rep", "sales representative", "salesperson"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 120, "label": {"ar": "الاسم", "en": "Name"}},
+       {"name": "email", "type": "email", "required": true, "max": 254, "unique": true, "label": {"ar": "البريد الإلكتروني", "en": "Email"}}]}
+  ],
+  "relations": [
+    {"from": "Deal", "to": "Customer", "kind": "many-to-one", "required": true, "field": "customer"},
+    {"from": "Deal", "to": "SalesRep", "kind": "many-to-one", "required": false, "field": "owner"},
+    {"from": "Activity", "to": "Customer", "kind": "many-to-one", "required": true, "field": "customer"},
+    {"from": "Activity", "to": "Deal", "kind": "many-to-one", "required": false, "field": "deal"}
+  ],
+  "features": [
+    {"id": "deal-pipeline", "requires": ["Deal"],
+     "title": {"ar": "مسار الصفقات حسب المرحلة", "en": "Deal pipeline by stage"},
+     "acceptance": [
+       {"en": "PATCH /api/deals/{id} with stage=won returns 200 and the updated record",
+        "ar": "نقل الصفقة إلى مرحلة الفوز يعيد 200 والصفقة المحدثة"},
+       {"en": "PATCH /api/deals/{id} with stage=lost and no lost_reason returns 400",
+        "ar": "تعليم الصفقة خاسرة بدون سبب الخسارة يعيد 400"},
+       {"en": "GET /api/deals?stage=won returns 200 and only deals with stage won",
+        "ar": "تصفية الصفقات بمرحلة الفوز تعيد 200 وتلك الصفقات فقط"},
+       {"en": "GET /api/reports/pipeline returns 200 and the count and total value of deals per stage",
+        "ar": "تقرير المسار يعيد 200 وعدد الصفقات ومجموع قيمها لكل مرحلة"}]},
+    {"id": "customer-timeline", "requires": ["Customer", "Activity"],
+     "title": {"ar": "سجل تواصل العميل", "en": "Customer activity timeline"},
+     "acceptance": [
+       {"en": "POST /api/activities with a customer_id that does not exist returns 400",
+        "ar": "تسجيل نشاط لعميل غير موجود يعيد 400"},
+       {"en": "GET /api/customers/{id}/activities returns 200 and only that customer's activities ordered by happened_at descending",
+        "ar": "عرض أنشطة العميل يعيد 200 وأنشطته فقط من الأحدث إلى الأقدم"}]},
+    {"id": "customer-search", "requires": ["Customer"],
+     "title": {"ar": "البحث عن العملاء", "en": "Customer search"},
+     "acceptance": [
+       {"en": "GET /api/customers?q=alpha returns 200 and only customers whose name, email or company contains alpha",
+        "ar": "البحث عن alpha في العملاء يعيد 200 والعملاء المطابقين في الاسم أو البريد أو الشركة فقط"}]},
+    {"id": "deal-ownership", "requires": ["Deal", "SalesRep"],
+     "title": {"ar": "ملكية الصفقات للمندوبين", "en": "Deal ownership by sales reps"},
+     "acceptance": [
+       {"en": "PATCH /api/deals/{id} as sales-rep who is not the owner returns 403",
+        "ar": "تعديل صفقة من مندوب ليس مالكها يعيد 403"},
+       {"en": "GET /api/deals?owner_id={rep_id} returns 200 and only deals owned by that sales rep",
+        "ar": "تصفية الصفقات حسب المندوب تعيد 200 وصفقاته فقط"}]}
+  ],
+  "nfr": {
+    "security": ["customer personal data visible only to signed-in staff"],
+    "performance": [],
+    "accessibility": [],
+    "i18n": ["currency shown with ISO code"]
+  }
+}

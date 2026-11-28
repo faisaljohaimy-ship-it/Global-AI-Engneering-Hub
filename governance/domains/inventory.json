@@ -1,0 +1,108 @@
+{
+  "schema": "gaie.domain/1",
+  "id": "inventory",
+  "version": 1,
+  "title": {"ar": "نظام إدارة المخزون", "en": "Inventory Management System"},
+  "summary": {"ar": "تعريف الأصناف والمستودعات وتسجيل حركات الوارد والصادر ومعرفة الرصيد وتنبيهات إعادة الطلب.",
+              "en": "Products and warehouses, stock in/out movements, stock on hand and reorder alerts."},
+  "keywords": {"ar": ["إدارة مخزون", "مخزون", "مخازن", "مستودع", "مستودعات", "جرد", "إدارة مستودعات"],
+               "en": ["inventory", "stock control", "stock management", "warehouse management", "stock keeping", "warehouse"]},
+  "product_type": "web-app",
+  "primary": "Product",
+  "rationale": {
+    "ar": "الرصيد لا يُخزَّن حقلًا قابلًا للتعديل بل يُحسب من حركات المخزون (وارد − صادر) لكل مستودع، فيبقى سجل الحركات مصدر الحقيقة الوحيد ويمكن تدقيقه؛ أوامر الشراء كيان اختياري يُفعَّل عند ذكرها.",
+    "en": "Stock on hand is never an editable field: it is computed from stock movements (in minus out) per warehouse, so the movement ledger is the single auditable source of truth. Purchase orders are optional and activated when the command mentions them."
+  },
+  "roles": [
+    {"id": "admin", "label": {"ar": "مدير النظام", "en": "Administrator"}, "permissions": ["*"]},
+    {"id": "storekeeper", "label": {"ar": "أمين المستودع", "en": "Storekeeper"}, "permissions": ["read", "write"]},
+    {"id": "viewer", "label": {"ar": "مشاهد", "en": "Viewer"}, "permissions": ["read"]}
+  ],
+  "entities": [
+    {"name": "Product", "label": {"ar": "صنف", "en": "Product"}, "plural": "products",
+     "synonyms": {"ar": ["منتج", "منتجات", "صنف", "أصناف", "سلعة", "سلع", "بضاعة", "بضائع"], "en": ["product", "item"]},
+     "fields": [
+       {"name": "sku", "type": "text", "required": true, "max": 64, "unique": true, "label": {"ar": "رمز الصنف", "en": "SKU"},
+        "keywords": {"ar": ["رمز صنف", "باركود"], "en": ["sku", "barcode"]}},
+       {"name": "name", "type": "text", "required": true, "max": 200, "label": {"ar": "اسم الصنف", "en": "Name"}},
+       {"name": "unit", "type": "enum", "values": ["piece", "box", "kg", "liter"], "default": "piece", "required": true,
+        "label": {"ar": "وحدة القياس", "en": "Unit"}, "keywords": {"ar": ["وحدة قياس"], "en": ["unit of measure"]}},
+       {"name": "reorder_level", "type": "int", "required": true, "min": 0, "default": 0,
+        "label": {"ar": "حد إعادة الطلب", "en": "Reorder level"}, "keywords": {"ar": ["حد إعادة طلب", "حد أدنى"], "en": ["reorder level", "minimum stock"]}},
+       {"name": "price", "type": "number", "required": false, "min": 0, "label": {"ar": "السعر", "en": "Price"}}]},
+    {"name": "Warehouse", "label": {"ar": "مستودع", "en": "Warehouse"}, "plural": "warehouses",
+     "synonyms": {"ar": ["مستودع", "مستودعات", "مخزن", "مخازن"], "en": ["warehouse", "storeroom"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 120, "unique": true, "label": {"ar": "اسم المستودع", "en": "Name"}},
+       {"name": "location", "type": "text", "required": false, "max": 200, "label": {"ar": "الموقع", "en": "Location"}}]},
+    {"name": "StockMovement", "label": {"ar": "حركة مخزون", "en": "Stock movement"}, "plural": "stock-movements",
+     "synonyms": {"ar": ["حركة مخزون", "حركات مخزون", "وارد", "صادر", "صرف", "استلام"], "en": ["stock movement", "movement", "goods receipt"]},
+     "fields": [
+       {"name": "kind", "type": "enum", "values": ["in", "out", "adjust"], "required": true, "label": {"ar": "نوع الحركة", "en": "Kind"}},
+       {"name": "quantity", "type": "int", "required": true, "min": 1, "label": {"ar": "الكمية", "en": "Quantity"}},
+       {"name": "moved_at", "type": "datetime", "required": true, "label": {"ar": "وقت الحركة", "en": "Moved at"}},
+       {"name": "note", "type": "text", "required": false, "max": 500, "label": {"ar": "ملاحظة", "en": "Note"}}]},
+    {"name": "Supplier", "label": {"ar": "مورد", "en": "Supplier"}, "plural": "suppliers", "portable": true,
+     "synonyms": {"ar": ["مورد", "موردين", "موردون"], "en": ["supplier", "vendor"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 200, "label": {"ar": "اسم المورد", "en": "Name"}},
+       {"name": "email", "type": "email", "required": false, "max": 254, "label": {"ar": "البريد الإلكتروني", "en": "Email"}},
+       {"name": "phone", "type": "text", "required": false, "max": 32, "label": {"ar": "الهاتف", "en": "Phone"}}]},
+    {"name": "PurchaseOrder", "label": {"ar": "أمر شراء", "en": "Purchase order"}, "plural": "purchase-orders", "optional": true,
+     "synonyms": {"ar": ["أمر شراء", "أوامر شراء", "طلب شراء", "طلبات شراء"], "en": ["purchase order", "purchase orders"]},
+     "fields": [
+       {"name": "quantity", "type": "int", "required": true, "min": 1, "label": {"ar": "الكمية", "en": "Quantity"}},
+       {"name": "status", "type": "enum", "values": ["draft", "ordered", "received", "cancelled"], "default": "draft", "required": true,
+        "label": {"ar": "الحالة", "en": "Status"}},
+       {"name": "expected_date", "type": "date", "required": false, "label": {"ar": "تاريخ التوريد المتوقع", "en": "Expected date"}}]}
+  ],
+  "relations": [
+    {"from": "StockMovement", "to": "Product", "kind": "many-to-one", "required": true, "field": "product"},
+    {"from": "StockMovement", "to": "Warehouse", "kind": "many-to-one", "required": true, "field": "warehouse"},
+    {"from": "Product", "to": "Supplier", "kind": "many-to-one", "required": false, "field": "supplier"},
+    {"from": "PurchaseOrder", "to": "Product", "kind": "many-to-one", "required": true, "field": "product"},
+    {"from": "PurchaseOrder", "to": "Supplier", "kind": "many-to-one", "required": true, "field": "supplier"},
+    {"from": "PurchaseOrder", "to": "Warehouse", "kind": "many-to-one", "required": true, "field": "warehouse"}
+  ],
+  "features": [
+    {"id": "stock-movements", "requires": ["StockMovement", "Product", "Warehouse"],
+     "title": {"ar": "تسجيل حركات الوارد والصادر", "en": "Record stock in and out"},
+     "acceptance": [
+       {"en": "POST /api/stock-movements with kind=in and quantity=10 returns 201 and stock on hand increases by 10",
+        "ar": "تسجيل وارد بكمية 10 يعيد 201 ويزيد الرصيد 10"},
+       {"en": "POST /api/stock-movements with kind=out and a quantity above the stock on hand returns 409",
+        "ar": "صرف كمية أكبر من الرصيد المتاح يعيد 409"},
+       {"en": "POST /api/stock-movements with quantity=0 returns 400",
+        "ar": "تسجيل حركة بكمية صفر يعيد 400"}]},
+    {"id": "stock-on-hand", "requires": ["Product", "StockMovement", "Warehouse"],
+     "title": {"ar": "رصيد المخزون لكل مستودع", "en": "Stock on hand per warehouse"},
+     "acceptance": [
+       {"en": "GET /api/products/{id}/stock returns 200 and on_hand per warehouse equal to the sum of in minus out movements",
+        "ar": "رصيد الصنف يعيد 200 والرصيد لكل مستودع يساوي مجموع الوارد ناقص الصادر"},
+       {"en": "PATCH /api/products/{id} with on_hand=5 returns 400",
+        "ar": "تعديل الرصيد مباشرة دون حركة يعيد 400"}]},
+    {"id": "low-stock", "requires": ["Product", "StockMovement"],
+     "title": {"ar": "تنبيه إعادة الطلب", "en": "Low-stock alert"},
+     "acceptance": [
+       {"en": "GET /api/products?low_stock=true returns 200 and only products whose stock on hand is at or below reorder_level",
+        "ar": "عرض الأصناف تحت حد إعادة الطلب يعيد 200 وتلك الأصناف فقط"}]},
+    {"id": "supplier-products", "requires": ["Supplier", "Product"],
+     "title": {"ar": "أصناف كل مورد", "en": "Products per supplier"},
+     "acceptance": [
+       {"en": "GET /api/suppliers/{id}/products returns 200 and only that supplier's products",
+        "ar": "عرض أصناف المورد يعيد 200 وأصناف ذلك المورد فقط"}]},
+    {"id": "receive-purchase-orders", "requires": ["PurchaseOrder", "StockMovement", "Product", "Warehouse"],
+     "title": {"ar": "استلام أوامر الشراء", "en": "Receive purchase orders"},
+     "acceptance": [
+       {"en": "PATCH /api/purchase-orders/{id} with status=received returns 200 and stock on hand increases by the ordered quantity",
+        "ar": "استلام أمر الشراء يعيد 200 ويزيد الرصيد بالكمية المطلوبة"},
+       {"en": "PATCH /api/purchase-orders/{id} with status=received for an order already received returns 409",
+        "ar": "استلام أمر شراء مستلم مسبقًا يعيد 409"}]}
+  ],
+  "nfr": {
+    "security": ["stock movements are append-only; corrections are new adjust movements"],
+    "performance": ["stock on hand for 10,000 products computed in < 500 ms locally"],
+    "accessibility": [],
+    "i18n": ["quantities shown with Western digits in both locales"]
+  }
+}

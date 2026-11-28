@@ -1,0 +1,37 @@
+{
+ "registered_roles": 100,
+ "simulated_agents": 100,
+ "queued_agents": 0,
+ "actual_ai_agents_started": 38,
+ "peak_concurrent_ai_agents": 20,
+ "completed_agents": 38,
+ "failed_agents": 0,
+ "stages_run": [
+  "s01",
+  "s05",
+  "s10",
+  "s20"
+ ],
+ "stages_not_run": [
+  "s25",
+  "s50",
+  "s75",
+  "s100"
+ ],
+ "roles_run_by_real_agents": {
+  "T02-A06 Library engineer": 36,
+  "T02-A08 Bug-fix engineer": 2
+ },
+ "roles_never_run": 98,
+ "models": {
+  "ladder": [
+   "haiku"
+  ],
+  "benchmark": [
+   "sonnet"
+  ]
+ },
+ "review_agents_started": 4,
+ "all_real_agents_started": 43,
+ "minimal_worker_agents_started": 1
+}

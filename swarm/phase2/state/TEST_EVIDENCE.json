@@ -1,0 +1,187 @@
+{
+ "stages": [
+  {
+   "stage": "c1",
+   "tasks": 1,
+   "verified": 1,
+   "withheld_tests_passed": 14,
+   "withheld_tests": 14,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "c2",
+   "tasks": 5,
+   "verified": 5,
+   "withheld_tests_passed": 69,
+   "withheld_tests": 69,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "c3",
+   "tasks": 5,
+   "verified": 5,
+   "withheld_tests_passed": 72,
+   "withheld_tests": 72,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "s10",
+   "tasks": 10,
+   "verified": 10,
+   "withheld_tests_passed": 141,
+   "withheld_tests": 141,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "s20",
+   "tasks": 20,
+   "verified": 20,
+   "withheld_tests_passed": 282,
+   "withheld_tests": 282,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "s25",
+   "tasks": 25,
+   "verified": 25,
+   "withheld_tests_passed": 351,
+   "withheld_tests": 351,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "s50",
+   "tasks": 50,
+   "verified": 50,
+   "withheld_tests_passed": 705,
+   "withheld_tests": 705,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "s75",
+   "tasks": 75,
+   "verified": 75,
+   "withheld_tests_passed": 1056,
+   "withheld_tests": 1056,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "s100",
+   "tasks": 100,
+   "verified": 100,
+   "withheld_tests_passed": 1410,
+   "withheld_tests": 1410,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "g10",
+   "tasks": 10,
+   "verified": 10,
+   "withheld_tests_passed": 141,
+   "withheld_tests": 141,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "m1",
+   "tasks": 1,
+   "verified": 1,
+   "withheld_tests_passed": 12,
+   "withheld_tests": 12,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "m10h",
+   "tasks": 10,
+   "verified": 10,
+   "withheld_tests_passed": 164,
+   "withheld_tests": 164,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "m10s",
+   "tasks": 10,
+   "verified": 10,
+   "withheld_tests_passed": 186,
+   "withheld_tests": 186,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "m25",
+   "tasks": 25,
+   "verified": 25,
+   "withheld_tests_passed": 432,
+   "withheld_tests": 432,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "m50",
+   "tasks": 50,
+   "verified": 50,
+   "withheld_tests_passed": 886,
+   "withheld_tests": 886,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "l1",
+   "tasks": 1,
+   "verified": 1,
+   "withheld_tests_passed": 5,
+   "withheld_tests": 5,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "l5r",
+   "tasks": 5,
+   "verified": 3,
+   "withheld_tests_passed": 23,
+   "withheld_tests": 25,
+   "security_findings": 0,
+   "not_verified": [
+    "L-0012",
+    "L-0014"
+   ]
+  },
+  {
+   "stage": "l5l",
+   "tasks": 5,
+   "verified": 5,
+   "withheld_tests_passed": 25,
+   "withheld_tests": 25,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "l10",
+   "tasks": 10,
+   "verified": 10,
+   "withheld_tests_passed": 50,
+   "withheld_tests": 50,
+   "security_findings": 0,
+   "not_verified": []
+  },
+  {
+   "stage": "l25",
+   "tasks": 25,
+   "verified": 25,
+   "withheld_tests_passed": 125,
+   "withheld_tests": 125,
+   "security_findings": 0,
+   "not_verified": []
+  }
+ ]
+}
