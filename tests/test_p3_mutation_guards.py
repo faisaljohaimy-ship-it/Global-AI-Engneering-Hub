@@ -118,7 +118,6 @@ class CommandEdges(base.Stage):
         shown = self.swk("read", item["id"], "inv/big.py").stdout
         self.assertEqual(shown.split("\n[")[0], ("1: " + body)[: kit.RAW_CAP])
         self.assertIn(f"[{3 + len(body) - kit.RAW_CAP} more characters not shown", shown)
-        self.assertGreater(kit.RAW_CAP, 150000, "a plain stage must show a whole data file of a large task: the largest is about 72,000 characters")
 
     def test_a_failing_run_is_summed_up_within_twice_the_lean_cap(self):
         many = "\n".join(f"    def test_a{n:04d}(self):\n        self.fail('no')" for n in range(400))

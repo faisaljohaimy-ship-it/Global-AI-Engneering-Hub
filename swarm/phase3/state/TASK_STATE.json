@@ -1,0 +1,18 @@
+{
+ "store": "engineering_os.orchestration.TaskStore, in a private folder outside Git",
+ "submitted": 3,
+ "approved": 1,
+ "rejected": 2,
+ "failed": 0,
+ "task_states": {
+  "blocked": 2,
+  "review": 1
+ },
+ "revision": 12,
+ "checkpoint": {
+  "revision": 12,
+  "state_sha256": "8bbd86b6d73f11d2ac38eb8627cac5f1e9e14caea80cdf4c9729fdf06cda3f05",
+  "restored_sha256": "8bbd86b6d73f11d2ac38eb8627cac5f1e9e14caea80cdf4c9729fdf06cda3f05",
+  "restore_matches": true
+ }
+}

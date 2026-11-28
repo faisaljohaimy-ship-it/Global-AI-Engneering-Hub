@@ -72,7 +72,9 @@ class TheCarriedOverTotal(unittest.TestCase):
         self.assertEqual(carried["parts"]["third_phase_development_agents"], lanes)
         self.assertEqual(carried["parts"]["allowance_for_probe_agents_of_the_team_sessions"], stage3.PROBE_ALLOWANCE * len(teams))
         self.assertEqual(set(carried["parts"]), {"first_phase", "second_phase_trial_in_the_authoring_session", "second_phase_stages", "third_phase_development_agents",
-                                                 "allowance_for_probe_agents_of_the_team_sessions"})
+                                                 "allowance_for_probe_agents_of_the_team_sessions", "earlier_attempts_of_this_run"})
+        attempts = [json.loads(path.read_text()) for path in sorted((P3 / "evidence").glob("run-*.json"))]
+        self.assertEqual(carried["parts"]["earlier_attempts_of_this_run"], sum(s["agent_tokens"]["input_total"] for document in attempts for s in document["stages"] if not s.get("skipped")))
         self.assertEqual(carried["total"], sum(carried["parts"].values()))
         # the first phase's figure already holds its own review agents, and the second phase's stages do not hold the first phase's
         full = json.loads((ROOT / "swarm" / "evidence" / "summary.json").read_text())

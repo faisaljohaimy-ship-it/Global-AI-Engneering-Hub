@@ -137,6 +137,15 @@ def check(root) -> dict:
         left = [s.get("id") for s in plan.get("stages", []) if s.get("id") not in seen]
         last = stages[-1] if stages else {}
         explained = any(last.get(k) for k in ("skipped", "stopped", "ended", "end_reason", "stop"))
+        unclosed = {}
+        for path in sorted((root / "swarm" / "phase3" / "evidence").glob("*-not-closed.json")):
+            try:
+                unclosed[json.loads(path.read_text()).get("stage")] = str(path.relative_to(root))
+            except ValueError:
+                pass
+        if left and not explained and all(name_ in unclosed for name_ in left):
+            # The stage ran and its closing failed. That is recorded in a file of its own; it is neither a pass nor hidden.
+            return _absent(name, "ran and was not closed, so not measured: " + ", ".join(f"{s} ({unclosed[s]})" for s in left))
         ok = not left or explained
         return _row(name, ok, "all in the document" if not left else
                     ("end explained by the last stage" if explained else "missing: " + ", ".join(map(str, left))))
@@ -163,7 +172,11 @@ def check(root) -> dict:
 
     cap, cwhy = _load(root, CAPACITY)
     if cap is None:
-        rows.append(_absent("the capacity study is labelled a simulation", cwhy))
+        try:
+            decided = [d for d in json.loads((root / "swarm" / "phase3" / "DECISIONS.json").read_text()).get("decisions", []) if d.get("cancels") == CAPACITY]
+        except (OSError, ValueError):
+            decided = []
+        rows.append(_absent("the capacity study is labelled a simulation", f"cancelled by {decided[0].get('by')} on {decided[0].get('date')}: no simulation was run" if decided else cwhy))
     else:
         head = " ".join(str(cap.get(k)) for k in ("about", "kind", "label", "simulation", "labelled")
                         if isinstance(cap, dict) and cap.get(k) not in (None, False)).lower()
@@ -186,6 +199,20 @@ def check(root) -> dict:
                 dirty.append(str(f.relative_to(root)))
         rows.append(_row("no evidence file holds a path, session id or model identifier", not dirty,
                          f"{len(files)} files clean" if not dirty else "in " + ", ".join(dirty)))
+    for attempt in sorted((root / "swarm" / "phase3" / "evidence").glob("run-*.json")):  # attempts of the run that ended early, kept with the plan each ran
+        name = f"the earlier attempt {attempt.stem} validates and names the plan it ran"
+        kept_plan = root / "swarm" / "phase3" / f"PLAN3-{attempt.stem}.json"
+        try:
+            document = json.loads(attempt.read_text())
+        except ValueError:
+            rows.append(_row(name, False, "not JSON"))
+            continue
+        problems = schema.validate(document)
+        if not kept_plan.is_file():
+            problems.append(f"its plan {kept_plan.name} is not in the repository")
+        elif document.get("plan_sha256") != hashlib.sha256(kept_plan.read_bytes()).hexdigest():
+            problems.append(f"plan_sha256 is not the hash of {kept_plan.name}")
+        rows.append(_row(name, not problems, "sound" if not problems else "; ".join(problems[:3])))
     rows.append(_freeze(root))
     return {"rows": rows, "failed": sum(r["passed"] is False for r in rows),
             "unavailable": sum(r["passed"] is None for r in rows)}

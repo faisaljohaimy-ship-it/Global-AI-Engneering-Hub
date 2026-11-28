@@ -3,7 +3,7 @@ name: swarm-large
 description: Worker of the swarm experiment for one large task. Give it one task id, such as L-0031, and nothing else. For the controlled experiment only.
 tools: Bash
 model: sonnet
-maxTurns: 30
+maxTurns: 40
 hooks:
   PreToolUse:
     - matcher: "Bash"

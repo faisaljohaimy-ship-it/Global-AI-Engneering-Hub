@@ -14,6 +14,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
+sys.path.insert(0, str(HERE))
+import accounting  # noqa: E402
 FILES = {
     "summary": "swarm/evidence/summary.json", "ladder": "swarm/evidence/ladder.json",
     "limits": "swarm/evidence/host-limits.json", "second": "swarm/phase2/evidence/stages.json",
@@ -93,6 +95,10 @@ def phases(root):
         out += [na(FILES["ladder"]) + " (first phase ladder)", ""]
     out += table(["phase", "agents registered", "real agents started", "most at once", "tasks", "tasks verified by withheld tests", "input tokens"], rows)
     out += ["", "Registered counts, tasks and verified tasks are summed over the stages that ran; a cell says `not recorded` where the file has no such field."]
+    for path in sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("*-not-closed.json")):
+        doc = load(root, str(path.relative_to(root))) or {}
+        out += ["", f"The third phase's row holds the stages the scripts closed. Stage {doc.get('stage')} ran "
+                    f"{num((doc.get('reported_by_the_orchestrating_session') or {}).get('agents_started'))} more agents and is not in that row, because it was not closed: see section 11."]
     return out
 
 
@@ -115,7 +121,12 @@ def kinds(root):
     if cap:
         rows.append(["simulated agents (a simulation, never added to a real agent)", sim_agents(cap), FILES["capacity"]])
     else:
-        rows.append(["simulated agents", na(FILES["capacity"]), "-"])
+        decided = [d for d in (load(root, "swarm/phase3/DECISIONS.json") or {}).get("decisions", []) if d.get("cancels") == FILES["capacity"]]
+        rows.append(["simulated agents", "0: the simulation was cancelled by the owner and never run" if decided else na(FILES["capacity"]), "swarm/phase3/DECISIONS.json" if decided else "-"])
+    for path in sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("*-not-closed.json")):
+        doc = load(root, str(path.relative_to(root))) or {}
+        said = doc.get("reported_by_the_orchestrating_session", {})
+        rows.append([f"real agents of stage {doc.get('stage')}, which ran and was not closed (reported, not measured by the scripts)", num(said.get("agents_started")), str(path.relative_to(root))])
     return out + table(["kind", "count", "from"], rows)
 
 
@@ -189,6 +200,11 @@ def capacity_section(root):
     cap = load(root, FILES["capacity"])
     out = ["## 6. Simulation, not a measurement", ""]
     if not cap:
+        decided = [d for d in (load(root, "swarm/phase3/DECISIONS.json") or {}).get("decisions", []) if d.get("cancels") == FILES["capacity"]]
+        if decided:
+            return out + [f"Not run, by decision of {decided[0].get('by')} on {decided[0].get('date')}: {decided[0].get('what')}",
+                          "", "No agent in this report is a simulated agent of that study. What was measured about the coordinator's own parts at 100,000 tasks, with no agent, "
+                              "is in `swarm/phase3/evidence/coordinator-scale.json`."]
         return out + [na(FILES["capacity"])]
     out += [f"Every figure below is from `{FILES['capacity']}`, a simulation; no real agent produced it.", ""]
     rows = cap_rows(cap)
@@ -234,6 +250,8 @@ def counted_section(root):
     if ra.get("note"):
         out += ["", ra["note"]]
     out += ["", f"Counted at the last stage: {num(f.get('input_tokens_counted'))} of a limit of {num(f.get('cap', caps.get('cumulative_input_tokens')))}."]
+    out += ["", "### Each kind of user apart, and the sum", "", "The owner asked for orchestrators, agents and reviewers to be counted apart and for the sum of all of them. "
+            "From `swarm/phase3/accounting.py`, which reads the evidence files:", ""] + accounting.render(accounting.build(Path(root)))
     return out
 
 
@@ -257,10 +275,62 @@ def missing_section(root):
     return out
 
 
+def unclosed_section(root):
+    """A stage whose agents ran and whose closing failed: what was reported about it, kept apart from what the scripts measured."""
+    found = sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("*-not-closed.json"))
+    out = ["## 11. A stage that ran and was not closed", ""]
+    if not found:
+        return out + ["none: every stage that ran was closed by the scripts"]
+    for path in found:
+        rel = str(path.relative_to(root))
+        doc = load(root, rel) or {}
+        said = doc.get("reported_by_the_orchestrating_session", {})
+        queue = said.get("queue_before_closing", {})
+        out += [f"Stage {doc.get('stage')} (`{rel}`): {doc.get('state')}.", "",
+                "Reported by the orchestrating session in words, not measured by the scripts:", ""]
+        out += table(["item", "reported"], [["agents started", num(said.get("agents_started"))], ["agents that returned", num(said.get("agents_that_returned"))],
+                                            ["messages", num(said.get("messages"))], ["Agent calls in one message", num(said.get("agent_calls_per_message"))],
+                                            ["tasks handed in with their examples passing", num(queue.get("handed_in"))],
+                                            ["tasks claimed and not handed in", num(queue.get("claimed_and_not_handed_in"))], ["tasks left waiting", num(queue.get("waiting"))]])
+        out += ["", "Not measured for this stage: " + "; ".join(doc.get("not_measured", [])) + ".", "", str(doc.get("why_it_was_not_closed", "")), "",
+                str(doc.get("about_the_queue_figures", "")), ""]
+    return out
+
+
+def attempts_section(root):
+    """Attempts of the gated run that ended early. Their evidence and their plan are kept beside the final run's."""
+    out = ["## 10. Earlier attempts of the gated run", ""]
+    found = sorted((Path(root) / "swarm" / "phase3" / "evidence").glob("run-*.json"))
+    if not found:
+        return out + ["none: no file `swarm/phase3/evidence/run-*.json` is in the repository"]
+    for path in found:
+        rel = str(path.relative_to(root))
+        doc = load(root, rel) or {}
+        plan_rel = f"swarm/phase3/PLAN3-{path.stem}.json"
+        plan = load(root, plan_rel) or {}
+        stages = ran(doc)
+        rows = []
+        for s in stages:
+            gate_of = s.get("security_gate")
+            rows.append([s.get("label"), s.get("kind"), num(s.get("actual_agents")), f"{num(s.get('verified_tasks'))} of {num(s.get('tasks'))}" if s.get("kind") == "task" else "-",
+                         ("passed" if gate_of.get("passed") else "not passed") if gate_of else "-", num(input_of(s))])
+        out += [f"`{rel}`, run by the plan `{plan_rel}`:", ""] + table(["stage", "kind", "real agents", "tasks verified", "security gate", "input tokens"], rows)
+        last = stages[-1] if stages else {}
+        least = (plan.get("stops") or {}).get("min_verified_rate_to_continue")
+        if last.get("kind") == "task" and least is not None and isinstance(last.get("verified_success_rate"), (int, float)) and last["verified_success_rate"] < least:
+            out += ["", f"It ended after stage {last.get('label')}: {last['verified_success_rate']}% of that stage's tasks verified, and its plan ends a run under {least}%."]
+        planned = [s.get("id") for s in plan.get("stages", [])]
+        left = [name for name in planned if name not in {s.get("label") for s in doc.get("stages", [])}]
+        if left:
+            out += ["", "Stages of its plan that never started: " + ", ".join(left) + "."]
+        out.append("")
+    return out
+
+
 def build(root=ROOT):
     parts = [["# Final report of the swarm experiment", "", "Made only from the evidence files named in each section. No figure here was measured by this script."],
              phases(root), kinds(root), gate(root), ledger_section(root), ladder_section(root), capacity_section(root),
-             limits_section(root), counted_section(root), missing_section(root)]
+             limits_section(root), counted_section(root), missing_section(root), attempts_section(root), unclosed_section(root)]
     return "\n\n".join("\n".join(p) for p in parts) + "\n"
 
 

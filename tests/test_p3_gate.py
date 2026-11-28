@@ -229,10 +229,45 @@ class LedgerTests(unittest.TestCase):
             self.assertEqual(ledger.build([path])["by_tool"], {"Bash": 1})
 
 
+class LeaseTests(unittest.TestCase):
+    def test_a_stage_that_outlasts_its_leases_is_still_closed_and_says_how_many_ran_out(self):
+        """The stage of 1,000 agents took about 36 minutes; its tasks' leases in the hub's store lasted 30. Closing the stage ended
+        with an error on the first one, after every agent had run, and the stage was left open with no evidence."""
+        sys.path.insert(0, str(ROOT / "swarm"))
+        import scheduler
+        from engineering_os.orchestration import TaskStore
+        with tempfile.TemporaryDirectory() as folder:
+            state = pathlib.Path(folder) / "state"
+            leases = scheduler.own(state, "q9", ["S-0001", "S-0002", "S-0003"])
+            self.assertEqual(len(leases), 3)
+            store = TaskStore(state)
+            first = next(t for t in store.tasks() if t["id"] == "q9-s-0001")
+            self.assertGreaterEqual(first["lease"]["expires_at"] - store.clock(), 3500, "the longest lease the store gives")
+            rows = [{"id": "S-0001", "written": True, "verified": True, "sha256": "a" * 64}, {"id": "S-0002", "written": False, "verified": False, "sha256": None},
+                    {"id": "S-0003", "written": True, "verified": False, "sha256": "b" * 64}]
+            real = TaskStore.__init__
+
+            def late(self, state_dir, clock=None):  # the same store, two hours later
+                real(self, state_dir, clock=lambda: __import__("time").time() + 7200)
+
+            TaskStore.__init__ = late
+            try:
+                counts = scheduler.submit(state, "q9", {"rows": rows})
+            finally:
+                TaskStore.__init__ = real
+            self.assertEqual({k: counts[k] for k in ("submitted", "approved", "rejected", "failed", "lease_ran_out")},
+                             {"submitted": 0, "approved": 0, "rejected": 0, "failed": 0, "lease_ran_out": 3})
+            in_time = scheduler.submit(state, "q9", {"rows": rows})
+            self.assertEqual({k: in_time[k] for k in ("submitted", "approved", "rejected", "failed", "lease_ran_out")},
+                             {"submitted": 2, "approved": 1, "rejected": 1, "failed": 1, "lease_ran_out": 0})
+
+
 class RawReachTests(unittest.TestCase):
-    def test_in_a_plain_stage_the_whole_events_file_reaches_the_worker(self):
-        """L-0012 and L-0014 failed in the second phase: the third failed record of each lay past the 60,000th character of a one-line
-        file, and the plain-commands stage cut its output there. These are the same five projects."""
+    def test_in_a_plain_stage_a_search_shows_every_failed_record_of_a_one_line_file_and_little_else(self):
+        """L-0012 and L-0014 failed in the second phase. The events file is one line of about 72,000 characters. A search returned the
+        whole line, the stage cut it at 60,000, and the third failed record of each task lay past the cut. When the cut was raised, in the
+        first attempt of this run, three workers were shown three million characters and two still failed. A search now shows each match
+        of a long line with the text around it. These are the second phase's own five projects."""
         with tempfile.TemporaryDirectory() as folder:
             home = pathlib.Path(folder)
             out = home / "p2" / "work" / "l5r"
@@ -240,16 +275,41 @@ class RawReachTests(unittest.TestCase):
             (home / "p2" / "current").write_text("l5r")
             made = tasks.make(out, "large", 11, 5, "raw", 20261129)
             env = {"PATH": os.environ["PATH"], "SWARM_HOME": str(home), "HOME": str(home), "HR_TOOL_HOME": str(home / "none")}
+            swk = lambda *verb: subprocess.run([sys.executable, "-I", str(P2 / "kit.py"), *verb], capture_output=True, text=True, env=env).stdout  # noqa: E731
             past_the_old_cut = 0
             for item in made:
                 events = (out / item["id"] / "data" / "events.json").read_text()
-                for verb in (["grep", item["id"], "failed", "data/events.json"], ["read", item["id"], "data/events.json"]):
-                    shown = subprocess.run([sys.executable, "-I", str(P2 / "kit.py"), *verb], capture_output=True, text=True, env=env).stdout
-                    self.assertNotIn("more characters not shown", shown, item["id"])
-                    for number in item["truth"]["failed_event_ids"]:
-                        self.assertIn(f'"id": {number},', shown, f"{item['id']}: record {number} is not shown by {verb[0]}")
-                        past_the_old_cut += events.index(f'"id": {number},') > 60000 and verb[0] == "grep"
+                self.assertGreater(len(events), 60000)
+                shown = swk("grep", item["id"], "failed", "data/events.json")
+                self.assertLess(len(shown), 1500, item["id"])
+                self.assertEqual(shown.count("data/events.json:1:at "), len(item["truth"]["failed_event_ids"]), item["id"])
+                self.assertNotIn("not shown", shown)
+                for number in item["truth"]["failed_event_ids"]:
+                    self.assertIn(f'{{"id": {number}, ', shown, f"{item['id']}: record {number} is not in the search's answer")
+                    past_the_old_cut += events.index(f'"id": {number},') > 60000
+                whole = swk("read", item["id"], "data/events.json")
+                self.assertIn("more characters not shown", whole, "a whole file is still cut, and says so")
+                self.assertLess(len(whole), 61000)
             self.assertEqual(past_the_old_cut, 3, "three records of these projects lay past the old cut: one each in L-0012, L-0013 and L-0014")
+
+    def test_a_long_line_is_shown_match_by_match_and_a_short_line_whole(self):
+        with tempfile.TemporaryDirectory() as folder:
+            home = pathlib.Path(folder)
+            out = home / "p2" / "work" / "t"
+            out.mkdir(parents=True)
+            (home / "p2" / "current").write_text("t")
+            item = tasks.make(out, "large", 1, 1, "raw", 7)[0]
+            data = out / item["id"] / "data" / "long.txt"
+            data.write_text("short needle line\n" + "x" * 500 + "needle" + "y" * 500 + "\n" + "needle " * 200 + "\n")
+            env = {"PATH": os.environ["PATH"], "SWARM_HOME": str(home), "HOME": str(home), "HR_TOOL_HOME": str(home / "none")}
+            shown = subprocess.run([sys.executable, "-I", str(P2 / "kit.py"), "grep", item["id"], "needle", "data/long.txt"], capture_output=True, text=True, env=env).stdout
+            lines = shown.splitlines()
+            self.assertEqual(lines[0], "data/long.txt:1:short needle line")
+            self.assertEqual(lines[1], "data/long.txt:2:at 500: ..." + "x" * 80 + "needle" + "y" * 80 + "...")
+            self.assertEqual(sum(line.startswith("data/long.txt:3:at ") for line in lines), 60)
+            self.assertIn("data/long.txt:3: 140 more matches on this line are not shown; narrow the search", lines)
+            empty = subprocess.run([sys.executable, "-I", str(P2 / "kit.py"), "grep", item["id"], "z*", "data/long.txt"], capture_output=True, text=True, env=env)
+            self.assertEqual(empty.returncode, 0, "a pattern that matches nothing at every place ends")
 
 
 SMALL_PLAN = {
@@ -421,10 +481,14 @@ class RunTests(unittest.TestCase):
 
     def test_a_worker_given_a_task_by_id_that_acts_on_anothers_task_ends_the_run(self):
         plan = json.loads(json.dumps(SMALL_PLAN))
-        plan["stages"][1] = {"id": "t2", "kind": "task", "size": "small", "agents": 2, "tasks": 2, "first": 1, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"}
+        plan["stages"][1] = {"id": "t2", "kind": "task", "size": "small", "agents": 2, "tasks": 2, "first": 1, "seed": 99, "agent_type": "swarm-light", "model": "haiku", "effort": "low",
+                             "delivery": "id"}
         (self.home / "plan.json").write_text(json.dumps(plan))
         self.assertIn("PASSED", self.pass_the_gate().stdout)
         self.stage3("prep")
+        made = (self.home / "swarm" / "p3" / "work" / "t2" / "S-0001" / "TASK.md").read_text()
+        self.assertEqual(made, tasks.small(1, 99)["text"], "a stage that names a seed gets the tasks of that seed, so an earlier stage's own tasks can be run again")
+        self.assertNotEqual(made, tasks.small(1, plan["seed"])["text"])
         self.agent("swarm-light", "S-0001", [("Bash", {"command": "swk show S-0001"}), ("Bash", {"command": "swk show S-0002"})])
         self.agent("swarm-light", "S-0002", [("Bash", {"command": "swk show S-0002"})])
         last = self.stage3("finish").stdout.rstrip().splitlines()[-1]

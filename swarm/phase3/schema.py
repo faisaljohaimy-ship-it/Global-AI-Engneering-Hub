@@ -80,7 +80,7 @@ def _stage(i: int, stage) -> list[str]:
         if _is(stage.get("actual_agents"), int) and stage["peak_concurrent_agents"] > stage["actual_agents"]:
             out.append(f"{where}: peak_concurrent_agents exceeds actual_agents")
         share = round(100 * stage["verified_tasks"] / stage["tasks"], 2) if stage["tasks"] else 0.0
-        if abs(stage["verified_success_rate"] - share) > 0.01:
+        if abs(stage["verified_success_rate"] - share) > 0.051:  # the rate is written to one decimal place: 1 of 3 is 33.3
             out.append(f"{where}: verified_success_rate is not the share of verified tasks")
     return out
 
