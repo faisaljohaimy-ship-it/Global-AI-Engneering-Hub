@@ -70,14 +70,15 @@
     },
     {
       "control": "environment reduced to PATH/HOME/TMPDIR, loopback-only socket guard, timeouts, process-group kill; fix: run the driver through governor.sandbox_run (owner: self-healing)",
-      "evidence": "docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
+      "evidence": "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a caller variable); docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
+      "host_dependent": true,
       "id": "SEC-07",
       "kind": "registered",
       "location": "engineering_os/detectors.py:Sandbox",
       "rule": "untrusted-code-outside-sandbox",
       "severity": "medium",
       "status": "open",
-      "title": "Self-healing runs target repository code through detectors.Sandbox, a Python-level guard without the governor's OS sandbox: files the user can read stay readable"
+      "title": "Self-healing runs target repository code through detectors.Sandbox, a Python-level guard without the governor's OS sandbox: files the user can read stay readable and writable"
     },
     {
       "control": "fix: resolve and check before mkdir, create with mode 0o700 (owner: cinematic)",
@@ -91,33 +92,33 @@
       "title": "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository"
     },
     {
-      "control": "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope refuses configs with includes, URL rewrites, filters or core.hooksPath",
+      "control": "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope refuses configs with includes, URL rewrites, filters or core.hooksPath. Open while a promisor remote's upload-pack or core.sshCommand still runs during a lazy fetch (pr30-isolation F1; fix: protocol.allow=never and refuse extensions.*, remote.*.promisor/uploadpack, core.sshCommand)",
       "evidence": "tests/test_security_enterprise.py::WorkspaceGitTests",
       "id": "SEC-09",
       "kind": "registered",
       "location": "engineering_os/workspace_policy.py:_git",
       "rule": "git-untrusted-checkout",
       "severity": "low",
-      "status": "fixed",
-      "title": "Router workspace probe ran git in a workspace without the hardening flags"
+      "status": "open",
+      "title": "The workspace check behind `route --workspace` runs Git in a worktree an agent may have prepared: it must never run a program the checkout's config names (fsmonitor, index hook, a partial clone's promisor upload-pack or ssh command) or follow inherited GIT_* variables"
     },
     {
-      "control": "O_NOFOLLOW, 0600 on create, 0700 directories; fix: reuse orchestration._open_private (owner: memory)",
-      "evidence": "probe_legacy_journal",
+      "control": "standard library only: O_NOFOLLOW|O_NONBLOCK open, then fstat of the descriptor: regular file, caller-owned, one link, no group/other bits; GAIE_HOME caller-owned and not writable by others, memory directories caller-owned 0700; reads and appends alike; an existing journal that fails is refused with the fix command, never repaired",
+      "evidence": "tests/test_gaie_memory_journal.py",
       "id": "SEC-10",
       "kind": "registered",
       "location": "engineering_os/gaie_memory.py:_journal_add",
       "rule": "private-state-permissions",
       "severity": "low",
-      "status": "open",
-      "title": "Frozen gaie_memory journal is appended without an owner, mode or hard-link check"
+      "status": "fixed",
+      "title": "Frozen gaie_memory journal was appended without an owner, mode or hard-link check"
     },
     {
-      "control": "safe_path requires a regular file",
+      "control": "verify reads manifest files through read_audit_file: directory descriptors with O_NOFOLLOW, a regular file with one link, opened O_NONBLOCK|O_NOFOLLOW and rechecked by fstat; the probe runs verify itself with a timeout",
       "evidence": "tests/test_security_enterprise.py::GitCheckoutTests.test_fifo_capability_file_is_refused_without_blocking",
       "id": "SEC-11",
       "kind": "registered",
-      "location": "sdk/engineering_sdk.py:safe_path",
+      "location": "sdk/engineering_sdk.py:read_audit_file",
       "rule": "unbounded-input",
       "severity": "low",
       "status": "fixed",
@@ -125,7 +126,8 @@
     },
     {
       "control": "the tests are the hub's own; an agent that can write tests/ and holds layers.verify gets code execution with the owner's environment. fix: governor.sandbox_run like quality-assurance.run-tests (owner: layers)",
-      "evidence": "probe_layers_environment",
+      "evidence": "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and looks for a caller variable)",
+      "host_dependent": true,
       "id": "SEC-12",
       "kind": "registered",
       "location": "engineering_os/layers.py:_run",
@@ -168,9 +170,33 @@
       "title": "Oversized payloads are refused before authorization"
     },
     {
+      "control": "environment reduced to PATH/HOME/TMPDIR/LANG (no caller variables), private temporary HOME, the hub on no path, timeouts; not enforced: filesystem and network isolation, and the timeout kills the direct child only. The code under test is generated from the hub's own template. fix: governor.sandbox_run (owner: build engine)",
+      "evidence": "probe_build_suites (a planted manage.py test reads a marker outside the application and writes outside it)",
+      "host_dependent": true,
+      "id": "SEC-16",
+      "kind": "registered",
+      "location": "engineering_os/build_engine.py:run_suites",
+      "rule": "untrusted-code-outside-sandbox",
+      "severity": "low",
+      "status": "open",
+      "title": "The build engine runs the generated application's own tests (python3 -I manage.py test, node tests/e2e/ui.e2e.mjs) without the governor's OS sandbox: files the user can read stay readable and writable"
+    },
+    {
+      "control": "fixed argument lists (no shell), timeouts, a Playwright route that aborts requests leaving the page's origin; not enforced: environment scrub, filesystem and network isolation. fix: env= with a minimal environment and governor.sandbox_run (owner: cinematic; video_pipeline.py is reserved for the earlier session)",
+      "evidence": "probe_video_children (stand-in node and ffmpeg programs record whether a caller variable reached _run, _node and both children of _render_frames)",
+      "host_dependent": true,
+      "id": "SEC-17",
+      "kind": "registered",
+      "location": "engineering_os/video_pipeline.py:_run",
+      "rule": "untrusted-code-outside-sandbox",
+      "severity": "low",
+      "status": "open",
+      "title": "The video pipeline starts ffmpeg, ffprobe and the node renderer with the caller's whole environment and without the governor's OS sandbox"
+    },
+    {
       "function": "security_governor",
       "id": "authority-from-payload:engineering_os/adapters.py:782",
-      "justification": "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
+      "justification": "validate-grant and check evaluate a grant given as data (dry run): governor.check is pure (no audit write, no state, no subprocess), takes the action spec from the registry, never from the payload, and approval_token=None so a gated side effect is always refused; the result is marked dry_run and nothing consumes it as authority; the control plane authorizes from its own grant argument (SEC-13)",
       "kind": "static",
       "location": "engineering_os/adapters.py:782",
       "rule": "authority-from-payload",
@@ -181,7 +207,7 @@
     {
       "function": "security_governor",
       "id": "authority-from-payload:engineering_os/adapters.py:797",
-      "justification": "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
+      "justification": "validate-grant and check evaluate a grant given as data (dry run): governor.check is pure (no audit write, no state, no subprocess), takes the action spec from the registry, never from the payload, and approval_token=None so a gated side effect is always refused; the result is marked dry_run and nothing consumes it as authority; the control plane authorizes from its own grant argument (SEC-13)",
       "kind": "static",
       "location": "engineering_os/adapters.py:797",
       "rule": "authority-from-payload",
@@ -192,7 +218,7 @@
     {
       "function": "_git",
       "id": "git-dynamic-subcommand:hublink.py:29",
-      "justification": "runs only in the hub's own checkout (ROOT), never in a target repository",
+      "justification": "runs only in the hub's own checkout (ROOT), never in a target repository, with fixed subcommands: rev-parse, cat-file -e, merge-base --is-ancestor, show <revision>:<path> (no --textconv) and ls-tree",
       "kind": "static",
       "location": "hublink.py:29",
       "rule": "git-dynamic-subcommand",
@@ -203,7 +229,7 @@
     {
       "function": "git",
       "id": "git-dynamic-subcommand:scripts/security_scan.py:181",
-      "justification": "reads the hub's own index (ls-files, diff --cached --name-only, cat-file): none refreshes the index or runs filters",
+      "justification": "every caller (index) passes fixed plumbing subcommands: ls-files --stage, diff --cached --name-only, cat-file -s and cat-file blob; none reads the work tree, refreshes the index or runs fsmonitor, filters, textconv or hooks. The root is the hub (default) or one the owner names with --root",
       "kind": "static",
       "location": "scripts/security_scan.py:181",
       "rule": "git-dynamic-subcommand",
@@ -212,19 +238,9 @@
       "title": "a Git helper takes its subcommand from the caller and is not hardened"
     },
     {
-      "function": "_write_files",
-      "id": "private-mode:engineering_os/build_engine.py:1425",
-      "kind": "static",
-      "location": "engineering_os/build_engine.py:1425",
-      "rule": "private-mode",
-      "severity": "medium",
-      "status": "open",
-      "title": "engine state created with mode 0o755 (group/other bits set)"
-    },
-    {
       "function": "_sandbox_init",
       "id": "private-mode:engineering_os/governor.py:819",
-      "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
+      "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
       "location": "engineering_os/governor.py:819",
       "rule": "private-mode",
@@ -235,7 +251,7 @@
     {
       "function": "_sandbox_init",
       "id": "private-mode:engineering_os/governor.py:837",
-      "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
+      "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
       "location": "engineering_os/governor.py:837",
       "rule": "private-mode",
@@ -248,6 +264,7 @@
   "model_calls": 0,
   "network": false,
   "probes_run": true,
+  "sandbox_tier": "full",
   "schema_version": 1,
   "scope": {
     "registered": "probes run against the modules imported from this checkout",
@@ -259,15 +276,15 @@
       "critical": 0,
       "high": 4,
       "info": 3,
-      "low": 7,
-      "medium": 8
+      "low": 9,
+      "medium": 7
     },
     "by_status": {
       "accepted": 6,
       "fixed": 7,
       "held": 4,
       "mitigated": 1,
-      "open": 4
+      "open": 5
     },
     "open_critical_or_high": []
   },

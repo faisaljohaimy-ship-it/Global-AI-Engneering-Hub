@@ -25,6 +25,7 @@ Standard library only. SPDX-License-Identifier: MIT.
 import argparse
 import ast
 import contextlib
+import datetime
 import json
 import os
 import pathlib
@@ -253,13 +254,20 @@ def static_findings(files):
 # Static hits reviewed and accepted, by (path, rule, enclosing function), with the reason.
 ACCEPTED = {
     ("scripts/security_scan.py", "git-dynamic-subcommand", "git"):
-        "reads the hub's own index (ls-files, diff --cached --name-only, cat-file): none refreshes the index or runs filters",
+        "every caller (index) passes fixed plumbing subcommands: ls-files --stage, diff --cached --name-only, cat-file "
+        "-s and cat-file blob; none reads the work tree, refreshes the index or runs fsmonitor, filters, textconv or "
+        "hooks. The root is the hub (default) or one the owner names with --root",
     ("hublink.py", "git-dynamic-subcommand", "_git"):
-        "runs only in the hub's own checkout (ROOT), never in a target repository",
+        "runs only in the hub's own checkout (ROOT), never in a target repository, with fixed subcommands: rev-parse, "
+        "cat-file -e, merge-base --is-ancestor, show <revision>:<path> (no --textconv) and ls-tree",
     ("engineering_os/adapters.py", "authority-from-payload", "security_governor"):
-        "validate-grant and check evaluate a grant given as data (dry run); the result authorizes nothing",
+        "validate-grant and check evaluate a grant given as data (dry run): governor.check is pure (no audit write, no "
+        "state, no subprocess), takes the action spec from the registry, never from the payload, and approval_token=None "
+        "so a gated side effect is always refused; the result is marked dry_run and nothing consumes it as authority; "
+        "the control plane authorizes from its own grant argument (SEC-13)",
     ("engineering_os/governor.py", "private-mode", "_sandbox_init"):
-        "device nodes and bind-mount targets inside the sandbox's private tmpfs root, not state files",
+        "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with "
+        "private propagation, read-only after pivot_root), not state files",
 }
 
 
@@ -457,16 +465,42 @@ def probe_registry_home(base):
     return (home / project_registry.PRIVATE_FILE).exists()
 
 
+PROBE_WAIT_SECONDS = 10
+
+
 def probe_sdk_fifo(base):
-    """True when a manifest-named FIFO is accepted (its read would block the verification forever)."""
+    """True when sdk.verify blocks on a FIFO named in the capability manifest, or accepts it. The checksum in the
+    manifest is that of empty data, so a verify that reads the FIFO succeeds instead of failing later on a mismatch
+    (pr30-merge-quality F2: verify reads through read_audit_file, not safe_path)."""
+    import hashlib
+    import threading
     sdk = _sdk()
     (base / ".engineering").mkdir()
-    os.mkfifo(base / ".engineering" / "pipe")
-    try:
-        sdk.safe_path(base, ".engineering/pipe")
-    except ValueError:
-        return False
-    return True
+    pipe = base / ".engineering" / "pipe"
+    os.mkfifo(pipe)
+    (base / ".engineering/capabilities.json").write_text(json.dumps({
+        "schema_version": 1, "hub_revision": "a" * 40, "production_runtime_dependency": False, "budget_additional_sar": 0,
+        "capabilities": [{"id": "probe", "files": [{"path": ".engineering/pipe", "sha256": hashlib.sha256(b"").hexdigest()}]}]}))
+    outcome = {}
+
+    def verify():
+        try:
+            outcome["result"] = sdk.verify(base)
+        except ValueError:
+            outcome["refused"] = True
+        except Exception as error:  # noqa: BLE001 - handed back to the caller below
+            outcome["error"] = error
+    thread = threading.Thread(target=verify, daemon=True)
+    thread.start()
+    thread.join(PROBE_WAIT_SECONDS)
+    if thread.is_alive():  # blocked on the FIFO: release it with a writer that closes at once
+        with contextlib.suppress(OSError):
+            os.close(os.open(pipe, os.O_WRONLY | os.O_NONBLOCK))
+        thread.join(PROBE_WAIT_SECONDS)
+        return True
+    if "error" in outcome:
+        raise outcome["error"]
+    return not outcome.get("refused")
 
 
 def probe_memory_checkpoint(base):
@@ -506,15 +540,152 @@ def _source(relative):
     return path.read_text(encoding="utf-8") if path.is_file() and not path.is_symlink() else ""
 
 
+class ProbeInconclusive(AuditError):
+    """The planted code neither ran nor was refused, so the probe measured nothing (its finding reads open)."""
+
+
+PARENT_ONLY = "GAIE_PROBE_PARENT_ONLY"
+ESCAPE_TEST = """import os, unittest
+
+
+class Probe(unittest.TestCase):
+    def test_probe(self):
+        seen = ["probe-ran"]
+        if os.environ.get({env!r}):
+            seen.append("parent-environment")
+        try:
+            with open({marker!r}, encoding="utf-8") as handle:
+                seen.append("read-outside:" + handle.read().strip())
+        except OSError:
+            pass
+        try:
+            with open({escape!r}, "w", encoding="utf-8") as handle:
+                handle.write("escaped")
+            seen.append("write-outside")
+        except OSError:
+            pass
+        print(" ".join(seen), flush=True)
+        self.fail(" ".join(seen))
+"""
+
+
+@contextlib.contextmanager
+def _escape_fixture(base):
+    """A repository whose only test reports what it reached outside its workspace, with the caller's environment
+    holding a variable the test must not see: yields (repository, check(output) -> True when anything escaped)."""
+    outside, repository = base / "outside", base / "repository"
+    outside.mkdir(mode=0o700)
+    (repository / "tests").mkdir(parents=True, mode=0o700)
+    marker, escape = outside / "marker.txt", outside / "escaped.txt"
+    marker.write_text("outside-marker\n", encoding="utf-8")
+    (repository / "tests" / "test_probe.py").write_text(
+        ESCAPE_TEST.format(env=PARENT_ONLY, marker=str(marker), escape=str(escape)), encoding="utf-8")
+
+    def escaped(output):
+        output = output or ""
+        if escape.exists() or "read-outside" in output or "parent-environment" in output:
+            return True
+        if "probe-ran" not in output:
+            raise ProbeInconclusive("the planted test left no trace")
+        return False
+    previous = os.environ.get(PARENT_ONLY)
+    os.environ[PARENT_ONLY] = "1"
+    try:
+        yield repository, escaped
+    finally:
+        if previous is None:
+            os.environ.pop(PARENT_ONLY, None)
+        else:
+            os.environ[PARENT_ONLY] = previous
+
+
 def probe_healing_sandbox(base):
-    """True while detectors.Sandbox runs target code without the governor's OS sandbox."""
-    return "sandbox_run" not in _source("engineering_os/detectors.py")
+    """True when a target repository's test, run by detectors.Sandbox, reads a file outside its copy, writes outside
+    it or sees a variable of the caller's environment (SEC-07). A refusal to run (DetectorError or PermissionError,
+    as on a host without the governor's sandbox) is not exploitable; a run that leaves no trace is inconclusive."""
+    from . import detectors
+    with _escape_fixture(base) as (repository, escaped):
+        try:
+            result = detectors.Sandbox(base / "scratch", timeout=120).run_tests(repository, "tests", "test_*.py")
+        except (detectors.DetectorError, PermissionError):
+            return False
+        return escaped(result.get("log_tail"))
 
 
 def probe_layers_environment(base):
-    """True while layers.verify runs repository tests outside the governor sandbox with the caller's environment."""
-    text = _source("engineering_os/layers.py")
-    return "sandbox_run" not in text and "env=" not in text.split("def _run(", 1)[-1].split("\ndef ", 1)[0]
+    """True when a repository test run by layers.verify (its _run_python_test) reads a file outside the repository,
+    writes outside it or sees a variable of the caller's environment (SEC-12). A refusal (LayerError or
+    PermissionError) is not exploitable; a run that leaves no trace is inconclusive."""
+    from . import layers
+    with _escape_fixture(base) as (repository, escaped):
+        scratch = base / "scratch"
+        scratch.mkdir(mode=0o700)
+        try:
+            row, _ = layers._run_python_test(repository, "tests/test_probe.py", scratch, 120)
+        except (layers.LayerError, PermissionError):
+            return False
+        return escaped(row.get("output_tail", "") + " " + str(row.get("reason") or ""))
+
+
+MANAGE_PROBE = """import sys, unittest
+sys.path.insert(0, "tests")
+import test_probe
+unittest.main(module=test_probe, argv=["manage.py"])
+"""
+
+
+def probe_build_suites(base):
+    """True when the generated application's own tests, started by build_engine.run_suites, read a file outside the
+    application, write outside it or see a variable of the caller's environment (SEC-16)."""
+    from . import build_engine
+    with _escape_fixture(base) as (repository, escaped):
+        (repository / "manage.py").write_text(MANAGE_PROBE, encoding="utf-8")
+        python = build_engine.run_suites(repository, e2e=False, timeout=120)["python"]
+        return escaped(str(python.get("error") or ""))
+
+
+CHILD_STUB = """#!{python}
+import json, os, pathlib, sys
+name = pathlib.Path(sys.argv[0]).name
+pathlib.Path({seen!r}, name + "-" + str(os.getpid())).write_text(os.environ.get({env!r}, "absent"))
+if name == "node":
+    job = json.loads(pathlib.Path(sys.argv[3]).read_text("utf-8"))
+    result = "result-render.json" if sys.argv[2] == "render" else job["result_path"]
+    pathlib.Path(result).write_text(json.dumps({{"frames": []}}))
+elif sys.argv[1:] == ["--encode"]:
+    sys.stdin.buffer.read()
+"""
+
+
+def probe_video_children(base):
+    """True when a child the video pipeline starts (_run for ffmpeg/ffprobe, _node for the browser renderer,
+    _render_frames for renderer and encoder) sees a variable of the caller's environment (SEC-17). Stand-in
+    programs named node and ffmpeg record what they received; no real renderer or encoder runs."""
+    from . import video_pipeline
+    bin_dir, seen, work = base / "bin", base / "seen", base / "work"
+    for directory in (bin_dir, seen, work):
+        directory.mkdir(mode=0o700)
+    for name in ("node", "ffmpeg"):
+        (bin_dir / name).write_text(CHILD_STUB.format(python=sys.executable, seen=str(seen), env=PARENT_ONLY), encoding="utf-8")
+        os.chmod(bin_dir / name, 0o700)
+    job = work / "job.json"
+    job.write_text(json.dumps({"edition": 1, "result_path": str(work / "result.json")}), encoding="utf-8")
+    previous_path, previous = os.environ.get("PATH", ""), os.environ.get(PARENT_ONLY)
+    os.environ.update({"PATH": f"{bin_dir}{os.pathsep}{previous_path}", PARENT_ONLY: "1"})
+    try:
+        video_pipeline._run([str(bin_dir / "ffmpeg")], timeout=60)
+        video_pipeline._node(work, "probe", job, timeout=60)
+        video_pipeline._render_frames(work, job, [str(bin_dir / "ffmpeg"), "--encode"], frames=0, timeout=60)
+    finally:
+        os.environ["PATH"] = previous_path
+        if previous is None:
+            os.environ.pop(PARENT_ONLY, None)
+        else:
+            os.environ[PARENT_ONLY] = previous
+    records = [path.read_text() for path in seen.iterdir()]
+    if len(records) < 4:
+        raise ProbeInconclusive("not every stand-in child ran")
+    return any(record != "absent" for record in records)
 
 
 def probe_video_output_dir(base):
@@ -529,9 +700,26 @@ def probe_video_output_dir(base):
 
 
 def probe_legacy_journal(base):
-    """True while the frozen gaie_memory journal is appended without an owner/mode/link check."""
-    text = _source("engineering_os/gaie_memory.py")
-    return "os.open(memory.journal" in text and "st_nlink" not in text
+    """True when the portable gaie_memory journal is appended through a hard link to another file, or while it is
+    open to other users. Both journals are planted in caller-owned mode 0700 directories (SEC-10)."""
+    from . import gaie_memory
+    moment = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    written = []
+    for case in ("hard-link", "open-mode"):
+        memory = gaie_memory.Memory("probe", {"GAIE_HOME": str(base / case)})
+        for directory in (memory.home, memory.root.parent, memory.root):
+            directory.mkdir(mode=0o700)
+        planted = base / f"{case}.txt"
+        planted.write_bytes(b"")
+        os.chmod(planted, 0o600 if case == "hard-link" else 0o644)
+        if case == "hard-link":
+            os.link(planted, memory.journal)
+        else:
+            planted = planted.rename(memory.journal)
+        with contextlib.suppress(gaie_memory.MemoryError_):
+            gaie_memory._journal_add(memory, "lesson", "Probe", "Probe entry.", [], [], [], moment)
+        written.append(planted.stat().st_size > 0)
+    return any(written)
 
 
 def linked_worktree(base, *, repository="https://github.com/example/probe.git", branch="claude/probe"):
@@ -555,13 +743,43 @@ def linked_worktree(base, *, repository="https://github.com/example/probe.git", 
     return {"canonical": canonical_root, "worktree": worktree}
 
 
+def promisor_program_runs(base, vector):
+    """True when `route --workspace` runs a program a partial clone's config names (pr30-isolation F1).
+
+    The checkout declares a promisor remote whose upload-pack (vector "uploadpack") or whose ssh command (vector
+    "sshcommand") is a program, and origin/main names an object that is absent, as in a partial clone; resolving it
+    makes Git fetch lazily from the promisor. Whether the workspace is accepted does not matter: the program must
+    never run."""
+    from . import gaie_router
+    base.mkdir(mode=0o700)
+    checkout = linked_worktree(base)
+    canonical, marker = checkout["canonical"], base / "ran"
+    settings = [("core.repositoryFormatVersion", "1")]
+    if vector == "uploadpack":
+        other = base / "promisor.git"
+        _run_git(base, "init", "--bare", "-q", str(other))
+        settings += [("extensions.partialClone", "lazy"), ("remote.lazy.url", str(other)), ("remote.lazy.promisor", "true"),
+                     ("remote.lazy.uploadpack", f"touch {marker}; git-upload-pack")]
+    else:
+        settings += [("remote.origin.url", "ssh://git@github.com/example/probe.git"), ("extensions.partialClone", "origin"),
+                     ("remote.origin.promisor", "true"), ("core.sshCommand", f"touch {marker}; false")]
+    for key, value in settings:
+        _run_git(canonical, "config", key, value)
+    (canonical / ".git/refs/remotes/origin/main").write_text("1" * 40 + "\n")  # an object the clone never fetched
+    gaie_router._verified_write_scope("upgrade", checkout["worktree"], [{"slug": "example/probe", "path": None}])
+    return marker.exists()
+
+
 def probe_router_workspace(base):
-    """True when the workspace check behind `route --workspace` runs a program the checkout configures
-    (fsmonitor, index hook), follows an inherited GIT_* variable, or the router launches Git itself."""
-    from . import gaie_router, workspace_policy
+    """True when `route --workspace` runs a program the checkout configures (fsmonitor, index hook), follows an
+    inherited GIT_* variable, or verifies nothing. Driven through the router's own path (_verified_write_scope),
+    so Git the router starts itself under any name is measured too (pr30-merge-quality F1)."""
+    from . import gaie_router
     if hasattr(gaie_router, "subprocess") or hasattr(gaie_router, "workspace"):
-        return True  # the router must leave every Git call to the reviewed validator
+        return True  # also refused by name: the router must leave every Git call to the reviewed validator
     base = pathlib.Path(base).resolve()
+    if any(promisor_program_runs(base / name, vector) for name, vector in (("lazy", "uploadpack"), ("ssh", "sshcommand"))):
+        return True
     checkout = linked_worktree(base)
     marker, trace = base / "ran", base / "trace"
     _run_git(checkout["canonical"], "config", "core.fsmonitor", f"touch {marker}; false")
@@ -573,15 +791,14 @@ def probe_router_workspace(base):
     inherited = os.environ.get("GIT_TRACE")
     os.environ["GIT_TRACE"] = str(trace)  # a Git child that inherits GIT_* writes its trace here
     try:
-        workspace_policy.validate_workspace(checkout["worktree"], intent="upgrade", expected_repository="example/probe")
-    except workspace_policy.WorkspacePolicyError:
-        return True  # the check stopped before `git status`, so it proved nothing
+        scope, _ = gaie_router._verified_write_scope("upgrade", checkout["worktree"],
+                                                     [{"slug": "example/probe", "path": None}])
     finally:
         if inherited is None:
             os.environ.pop("GIT_TRACE", None)
         else:
             os.environ["GIT_TRACE"] = inherited
-    return marker.exists() or trace.exists()
+    return scope is None or marker.exists() or trace.exists()  # no scope: the check stopped early and proved nothing
 
 
 def probe_injection(base):
@@ -593,11 +810,20 @@ def probe_injection(base):
     try:
         cp.invoke("reasoning", "root-causes", smuggled, grant={**grant, "engines": {"memory": ["put"]}},
                   ctx={"state_dir": str(state)})
-    except PermissionError:
-        return False
-    except cp.ControlPlaneError:
-        return False
+    except cp.EngineFailure:
+        return True  # authorized and started: only the engine itself turned the payload down
+    except (PermissionError, cp.ControlPlaneError):
+        return _audit_allowed(state)
     return True
+
+
+def _audit_allowed(state):
+    """True when the governor audit log in `state` records any allow decision."""
+    from . import governor
+    path = state / governor.AUDIT_FILE
+    if not path.is_file():
+        return False
+    return any(json.loads(line).get("decision") == "allow" for line in path.read_text(encoding="utf-8").splitlines() if line)
 
 
 # id, severity, title, location, rule, status when the probe finds the weakness / does not, probe, evidence, control
@@ -632,33 +858,42 @@ FINDINGS = (
      "tests/test_security_enterprise.py::AnchorTests",
      "security_audit.audit_anchor / verify_audit_anchor; the owner must keep the anchor outside the state directory"),
     ("SEC-07", "medium", "Self-healing runs target repository code through detectors.Sandbox, a Python-level guard "
-     "without the governor's OS sandbox: files the user can read stay readable",
-     "engineering_os/detectors.py:Sandbox", "untrusted-code-outside-sandbox", ("open", "held"), probe_healing_sandbox,
-     "docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
+     "without the governor's OS sandbox: files the user can read stay readable and writable",
+     "engineering_os/detectors.py:Sandbox", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_healing_sandbox,
+     "probe_healing_sandbox (a planted target test reads a marker outside its copy, writes outside it and looks for a "
+     "caller variable); docs/specs/gaie-20-layers/SELF_HEALING.md (limits)",
      "environment reduced to PATH/HOME/TMPDIR, loopback-only socket guard, timeouts, process-group kill; "
      "fix: run the driver through governor.sandbox_run (owner: self-healing)"),
     ("SEC-08", "low", "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository",
      "engineering_os/video_pipeline.py:_outside_repository", "private-state-permissions", ("open", "held"),
      probe_video_output_dir, "probe_video_output_dir",
      "fix: resolve and check before mkdir, create with mode 0o700 (owner: cinematic)"),
-    ("SEC-09", "low", "Router workspace probe ran git in a workspace without the hardening flags",
+    ("SEC-09", "low", "The workspace check behind `route --workspace` runs Git in a worktree an agent may have prepared: "
+     "it must never run a program the checkout's config names (fsmonitor, index hook, a partial clone's promisor "
+     "upload-pack or ssh command) or follow inherited GIT_* variables",
      "engineering_os/workspace_policy.py:_git", "git-untrusted-checkout", ("open", "fixed"), probe_router_workspace,
      "tests/test_security_enterprise.py::WorkspaceGitTests",
      "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or "
      "global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope "
-     "refuses configs with includes, URL rewrites, filters or core.hooksPath"),
-    ("SEC-10", "low", "Frozen gaie_memory journal is appended without an owner, mode or hard-link check",
-     "engineering_os/gaie_memory.py:_journal_add", "private-state-permissions", ("open", "held"), probe_legacy_journal,
-     "probe_legacy_journal",
-     "O_NOFOLLOW, 0600 on create, 0700 directories; fix: reuse orchestration._open_private (owner: memory)"),
+     "refuses configs with includes, URL rewrites, filters or core.hooksPath. Open while a promisor remote's "
+     "upload-pack or core.sshCommand still runs during a lazy fetch (pr30-isolation F1; fix: protocol.allow=never "
+     "and refuse extensions.*, remote.*.promisor/uploadpack, core.sshCommand)"),
+    ("SEC-10", "low", "Frozen gaie_memory journal was appended without an owner, mode or hard-link check",
+     "engineering_os/gaie_memory.py:_journal_add", "private-state-permissions", ("open", "fixed"), probe_legacy_journal,
+     "tests/test_gaie_memory_journal.py",
+     "standard library only: O_NOFOLLOW|O_NONBLOCK open, then fstat of the descriptor: regular file, caller-owned, one "
+     "link, no group/other bits; GAIE_HOME caller-owned and not writable by others, memory directories caller-owned "
+     "0700; reads and appends alike; an existing journal that fails is refused with the fix command, never repaired"),
     ("SEC-11", "low", "SDK verify accepted a manifest-named FIFO or device and would block on it",
-     "sdk/engineering_sdk.py:safe_path", "unbounded-input", ("open", "fixed"), probe_sdk_fifo,
+     "sdk/engineering_sdk.py:read_audit_file", "unbounded-input", ("open", "fixed"), probe_sdk_fifo,
      "tests/test_security_enterprise.py::GitCheckoutTests.test_fifo_capability_file_is_refused_without_blocking",
-     "safe_path requires a regular file"),
+     "verify reads manifest files through read_audit_file: directory descriptors with O_NOFOLLOW, a regular file "
+     "with one link, opened O_NONBLOCK|O_NOFOLLOW and rechecked by fstat; the probe runs verify itself with a timeout"),
     ("SEC-12", "medium", "layers.verify declares exec:sandbox and secrets:none but runs repository tests outside the "
      "governor sandbox with the caller's whole environment",
-     "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", "held"), probe_layers_environment,
-     "probe_layers_environment",
+     "engineering_os/layers.py:_run", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_layers_environment,
+     "probe_layers_environment (a planted repository test reads a marker outside the repository, writes outside it and "
+     "looks for a caller variable)",
      "the tests are the hub's own; an agent that can write tests/ and holds layers.verify gets code execution "
      "with the owner's environment. fix: governor.sandbox_run like quality-assurance.run-tests (owner: layers)"),
     ("SEC-13", "info", "Payload text is data: an approval token, grant or instruction inside a payload grants nothing",
@@ -672,7 +907,26 @@ FINDINGS = (
     ("SEC-15", "info", "Oversized payloads are refused before authorization", "engineering_os/control_plane.py:invoke",
      "unbounded-input", ("open", "held"), probe_payload_bound, "tests/test_security_enterprise.py::PayloadSecretTests",
      "1 MiB canonical payload bound, 16 MiB result bound; governor scan bound 8 MiB, depth 64"),
+    ("SEC-16", "low", "The build engine runs the generated application's own tests (python3 -I manage.py test, node "
+     "tests/e2e/ui.e2e.mjs) without the governor's OS sandbox: files the user can read stay readable and writable",
+     "engineering_os/build_engine.py:run_suites", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_build_suites,
+     "probe_build_suites (a planted manage.py test reads a marker outside the application and writes outside it)",
+     "environment reduced to PATH/HOME/TMPDIR/LANG (no caller variables), private temporary HOME, the hub on no "
+     "path, timeouts; not enforced: filesystem and network isolation, and the timeout kills the direct child only. "
+     "The code under test is generated from the hub's own template. fix: governor.sandbox_run (owner: build engine)"),
+    ("SEC-17", "low", "The video pipeline starts ffmpeg, ffprobe and the node renderer with the caller's whole "
+     "environment and without the governor's OS sandbox",
+     "engineering_os/video_pipeline.py:_run", "untrusted-code-outside-sandbox", ("open", "fixed"), probe_video_children,
+     "probe_video_children (stand-in node and ffmpeg programs record whether a caller variable reached _run, _node "
+     "and both children of _render_frames)",
+     "fixed argument lists (no shell), timeouts, a Playwright route that aborts requests leaving the page's origin; "
+     "not enforced: environment scrub, filesystem and network isolation. fix: env= with a minimal environment and "
+     "governor.sandbox_run (owner: cinematic; video_pipeline.py is reserved for the earlier session)"),
 )
+
+# Probes whose result depends on the governor sandbox tier this host provides: their committed status is a
+# measurement on the host recorded in the report (sandbox_tier), and another host may measure otherwise.
+HOST_DEPENDENT = frozenset({"SEC-07", "SEC-12", "SEC-16", "SEC-17"})
 
 
 def registered_findings():
@@ -686,6 +940,8 @@ def registered_findings():
                 exploitable, error = True, type(failure).__name__
         row = {"id": identifier, "rule": rule, "severity": severity, "status": weak if exploitable else strong,
                "location": location, "title": title, "kind": "registered", "evidence": evidence, "control": control}
+        if identifier in HOST_DEPENDENT:
+            row["host_dependent"] = True
         if error:
             row["probe_error"] = error
         rows.append(row)
@@ -694,19 +950,29 @@ def registered_findings():
 
 # ---------------------------------------------------------------- report
 
+def _sandbox_tier():
+    """The governor sandbox tier measured on this host ("full" or "plain"); "unknown" when it cannot be measured."""
+    try:
+        from . import governor
+        return governor.isolation_probe()["tier"]
+    except Exception:  # noqa: BLE001 - an unmeasurable tier is reported as such, never as full
+        return "unknown"
+
+
 def run(root=ROOT, *, probes=True):
     """The audit report: registered findings (measured) and static findings of the tracked tree."""
     root = pathlib.Path(root).resolve()
     static = static_findings(tracked_files(root))
     registered = registered_findings() if probes else []
     findings = registered + static
+    tier = _sandbox_tier() if probes else None
     summary = {"by_status": {name: sum(1 for f in findings if f["status"] == name) for name in STATUSES},
                "by_severity": {name: sum(1 for f in findings if f["severity"] == name) for name in SEVERITIES},
                "open_critical_or_high": sorted(f["id"] for f in findings if f["status"] == "open"
                                                and f["severity"] in ("critical", "high"))}
     return {"schema_version": SCHEMA_VERSION, "tool": "engineering_os.security_audit", "layer": "L09",
             "command": "python3 -m engineering_os.security_audit", "deterministic": True, "network": False,
-            "model_calls": 0, "simulated": False, "probes_run": probes,
+            "model_calls": 0, "simulated": False, "probes_run": probes, "sandbox_tier": tier,
             "scope": {"static": "tracked files; Python rules exclude " + ", ".join(STATIC_SCOPE_EXCLUDED),
                       "registered": "probes run against the modules imported from this checkout"},
             "summary": summary, "findings": findings}
