@@ -124,7 +124,10 @@ reporting to the owner.
 
 - It routes the owner's Arabic or English command through `gaie_router`: an audit command
   («افحص», `audit`) reads only and writes nothing; build, release, deploy, production, media
-  scope and network are refused, as are breaking requested changes (field or entity removal).
+  scope and network are refused, as are breaking requested changes (field or entity removal),
+  questions, and read-only or no-change wording next to an operation. The route is a plan
+  and grants nothing. A command that names a registered project is accepted only on that
+  project's verified isolated worktree (rule 1).
 - It works only in a copy under `workdir` (outside the target and outside every Git
   repository): baseline tests, data checksums and asset hashes first; then audit
   (`gaie_inventory`, `detectors`, spec checks), an ordered plan (`reasoning`), and one gated,
@@ -132,5 +135,6 @@ reporting to the owner.
   its new tests failed before and pass after, every table keeps its rows, and nothing is
   deleted without proof of non-use and a verified backup; otherwise it is rolled back.
 - Deliver its `upgraded/` copy, `upgrade.patch`, `rollback.patch` and `rollback/` through the
-  isolated branch of Step 7; never apply them to production. Report `unmet_requests`,
+  isolated branch of Step 7. Applying the patch to that worktree is a write and needs the
+  approval and host grant of rule 1; never apply it to production. Report `unmet_requests`,
   `rejected` steps and the `limits` field plainly; `requires_human_review` is always true.
