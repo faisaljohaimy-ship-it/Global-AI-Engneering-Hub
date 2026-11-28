@@ -526,14 +526,17 @@ def expected_tests(model, locales):
 
 _EN = lambda *words: re.compile(r"\b(?:" + "|".join(words) + r")\b", re.I)  # noqa: E731
 OPS = {
-    "create": (_EN("post", "create", "creates", "add", "adds", "201", "new", "insert"),
+    "create": (_EN("post", "create", "creates", "created", "creating", "add", "adds", "added", "201", "new", "insert"),
                ("إنشاء", "انشاء", "إضافة", "اضافة", "أنشئ", "ينشئ", "يضيف", "جديد")),
-    "list": (_EN("list", "lists", "listing", "browse", "index", "view", "views", "shows", "show", "display", "displays"),
+    "list": (_EN("list", "lists", "listed", "listing", "browse", "index", "view", "views", "shows", "show", "display",
+                 "displays"),
              ("قائمة", "عرض", "يعرض", "استعراض", "تظهر", "يظهر")),
     "get": (_EN("detail", "details", "retrieve", "retrieves", "fetch", "fetches", "one record"), ("تفاصيل",)),
-    "update": (_EN("put", "patch", "update", "updates", "edit", "edits", "modify", "modifies", "rename", "change", "changes"),
+    "update": (_EN("put", "patch", "update", "updates", "updated", "updating", "edit", "edits", "edited", "editing",
+                   "modify", "modifies", "rename", "change", "changes"),
                ("تعديل", "تحديث", "يعدل", "يحدث")),
-    "delete": (_EN("delete", "deletes", "remove", "removes", "204"), ("حذف", "إزالة", "ازالة", "يحذف")),
+    "delete": (_EN("delete", "deletes", "deleted", "deleting", "remove", "removes", "removed", "removing", "204"),
+               ("حذف", "إزالة", "ازالة", "يحذف")),
     "validation": (re.compile(r"\b(?:400|invalid|validat\w*|reject\w*|required field\w*|field errors?)\b", re.I),
                    ("غير صالح", "التحقق", "مرفوض", "تحقق")),
     "not_found": (re.compile(r"\b(?:404|not found|missing record)\b", re.I), ("غير موجود",)),
