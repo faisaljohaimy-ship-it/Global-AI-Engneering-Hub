@@ -10,9 +10,9 @@
   "phase2_output_tokens": 3000000
  },
  "figures": {
-  "input_tokens_counted": 58165233,
+  "input_tokens_counted": 58619050,
   "cap": 150000000,
-  "agents_started_in_phase_2": 314,
+  "agents_started_in_phase_2": 324,
   "projected_for_stage": null
  },
  "stages": [
@@ -1414,6 +1414,119 @@
     "headroom_views": 0
    },
    "per_verified_task_cost_units": 34954,
+   "guard_enforced": false,
+   "index_cross_check": null
+  },
+  {
+   "label": "m10s",
+   "actual_agents": 10,
+   "peak_concurrent_agents": 10,
+   "tasks": 10,
+   "verified_tasks": 10,
+   "verified_success_rate": 100.0,
+   "hidden_tests_passed": 186,
+   "hidden_tests_total": 186,
+   "security_findings": 0,
+   "files_outside_contract": 0,
+   "mean_solution_lines": 69.9,
+   "agents_replying_done": 10,
+   "agents_with_limit_error": 0,
+   "wall_seconds": 10.63,
+   "sum_of_agent_seconds": 92.17,
+   "effective_concurrency": 8.67,
+   "tasks_per_minute": 56.43,
+   "models": [
+    "sonnet"
+   ],
+   "agent_tokens": {
+    "input_uncached": 60,
+    "cache_write": 203863,
+    "cache_read": 249894,
+    "input_total": 453817,
+    "output": 9463,
+    "total": 463280
+   },
+   "cache_read_share": 0.5506,
+   "model_roundtrips": 30,
+   "tool_calls": 30,
+   "repeated_file_reads": 0,
+   "tool_output_chars": 23402,
+   "per_verified_task": {
+    "input_total": 45382,
+    "output": 946,
+    "roundtrips": 3.0,
+    "agent_seconds": 9.22
+   },
+   "helper_calls": {},
+   "speedup_against_one_agent": 8.43,
+   "parallel_efficiency": 0.843,
+   "orchestrator_tokens": {
+    "input_uncached": 3,
+    "cache_write": 9069,
+    "cache_read": 871557,
+    "input_total": 880629,
+    "output": 2099,
+    "roundtrips": 2
+   },
+   "orchestrator_share_of_all_tokens": 0.656,
+   "machine": {
+    "samples": 29,
+    "peak_load_1m": 0.14,
+    "least_memory_available_mb": 15311,
+    "peak_host_process_rss_mb": 523,
+    "host_process_cpu_seconds": 3.0
+   },
+   "kind": "task",
+   "size": "medium",
+   "agent_type": "swarm-light",
+   "model": "sonnet",
+   "effort": "low",
+   "mode": null,
+   "delivery": "id",
+   "registered_agents": 10,
+   "started": "2026-11-28T04:07:14.869725Z",
+   "finished": "2026-11-28T04:07:43.625473Z",
+   "first_request_context": {
+    "median": 5466,
+    "least": 5466,
+    "most": 5466
+   },
+   "first_request_read_from_cache": 0.0,
+   "cache_written": {
+    "five_minutes": 203863,
+    "one_hour": 0,
+    "lifetime_not_reported": 0
+   },
+   "cost_units": 327193,
+   "swk_calls": 20,
+   "refused_calls": 0,
+   "foreign_calls": 0,
+   "other_tool_calls": 0,
+   "agent_types_in_records": [
+    "swarm-light"
+   ],
+   "replies_per_agent": {
+    "median": 3.0,
+    "most": 3
+   },
+   "ownership": {
+    "submitted": 10,
+    "approved": 10,
+    "rejected": 0,
+    "failed": 0,
+    "task_states": {
+     "review": 322
+    },
+    "revision": 1288
+   },
+   "not_verified": [],
+   "worker_command": {
+    "hand_ins": 10,
+    "calls": 20,
+    "characters_printed": 22802,
+    "headroom_views": 0
+   },
+   "per_verified_task_cost_units": 32719,
    "guard_enforced": false,
    "index_cross_check": null
   }
