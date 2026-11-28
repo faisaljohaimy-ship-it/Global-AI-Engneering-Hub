@@ -78,6 +78,8 @@ def _repo_id(value):
     Only ASCII letters are folded, so a non-ASCII owner or name cannot fold into a registered one.
     A URL authority with ? # \\ whitespace, a control character or a second @ is refused (recheck-release-2 N2):
     Git and libcurl end the authority at ? and #, so the host they contact is not the one after the @.
+    A host or port with a % is refused (recheck-release-2 N3): libcurl and Git's own ssh:// and git:// parser
+    decode it, so github%2ecom reaches github.com and "not GitHub" cannot be assumed.
     """
     if not isinstance(value, str):
         return None
@@ -88,6 +90,9 @@ def _repo_id(value):
     if authority and "://" in authority[0] and URL_AUTHORITY_DELIMITERS.search(authority[0].partition("://")[2]):
         raise WorkspacePolicyError("A remote URL whose authority holds ?, #, a backslash, whitespace or a second @ "
                                    "is split differently by Git and libcurl, so its host is ambiguous; refused.")
+    if authority and "%" in authority[0].split("://", 1)[-1].rpartition("@")[2]:
+        raise WorkspacePolicyError("A percent-encoded remote host or port is decoded by Git and libcurl and can name "
+                                   "GitHub, so it cannot be ruled out as a registered project; refused.")
     remote = REMOTE.fullmatch(value)
     if remote is None:
         match = REPO.fullmatch(value)
