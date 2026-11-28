@@ -18,6 +18,11 @@ import unittest
 from engineering_os import healing
 from engineering_os.healing import _diff, _insert_handler, _lines, _source_lines, apply_patch, heal
 
+try:  # SEC-07: explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:  # imported from the tests directory (discover -s tests, layers.verify)
+    from _target_code_mode import opt_in_without_full_tier as setUpModule
+
 CASES = {
     "form feed page break": ("import os\n\x0c\ndef f():\n    return 1\n", "import os\n\x0c\ndef f():\n    return 0\n"),
     "form feed inside the changed line": ("a = 1\nb = '\x0c'\nc = 3\n", "a = 1\nb = '\x0c!'\nc = 3\n"),

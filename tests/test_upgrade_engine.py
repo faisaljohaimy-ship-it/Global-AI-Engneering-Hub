@@ -25,6 +25,11 @@ from engineering_os import contracts, healing, upgrade_engine as engine
 from engineering_os.memory import MemoryStore
 from engineering_os.upgrade_engine import UpgradeError, upgrade
 
+try:  # SEC-07: explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:  # imported from the tests directory (discover -s tests, layers.verify)
+    from _target_code_mode import opt_in_without_full_tier as setUpModule
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "upgrade" / "taskapp"
 NOW = 1_800_000_000
@@ -674,20 +679,6 @@ class Units(unittest.TestCase):
             self.assertFalse(workdir.exists())
             with self.assertRaises(UpgradeError):
                 engine.engine("deploy", payload)
-
-
-# Added for SEC-07 (sec-isolation): the default detectors.Sandbox isolation refuses on a host without
-# the governor's full sandbox. Such a host (a GitHub runner without user namespaces) opts this module
-# into the audited process-only mode explicitly; GAIE_REQUIRE_FULL_SANDBOX=1 fails instead.
-def setUpModule():
-    from engineering_os import detectors, governor
-    if governor.isolation_probe()["tier"] == "full":
-        return
-    if os.environ.get("GAIE_REQUIRE_FULL_SANDBOX") == "1":
-        raise AssertionError("GAIE_REQUIRE_FULL_SANDBOX=1 but the governor's full sandbox tier is missing")
-    patcher = mock.patch.object(detectors, "DEFAULT_ISOLATION", "process-only")
-    patcher.start()
-    unittest.addModuleCleanup(patcher.stop)
 
 
 if __name__ == "__main__":

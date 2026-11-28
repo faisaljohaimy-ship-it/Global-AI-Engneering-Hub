@@ -20,6 +20,11 @@ from unittest import mock
 from engineering_os import healing
 from engineering_os.healing import heal, introduced, verify_receipts
 
+try:  # SEC-07: explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:  # imported from the tests directory (discover -s tests, layers.verify)
+    from _target_code_mode import opt_in_without_full_tier as setUpModule
+
 TESTS = {"start": "tests", "pattern": "test_*.py"}
 NOW = 1_800_000_000
 POLICY = {"max_iterations": 2, "test_timeout_s": 60}

@@ -22,6 +22,11 @@ from engineering_os import healing
 from engineering_os.healing import HealingError, apply_patch, heal, safe_destination, verify_receipts
 from engineering_os.orchestration import sha
 
+try:  # SEC-07: explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier
+except ImportError:  # imported from the tests directory (discover -s tests, layers.verify)
+    from _target_code_mode import opt_in_without_full_tier
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "healing" / "webapp"
 TESTS = {"start": "suite", "pattern": "case_*.py"}
@@ -481,13 +486,7 @@ def setUpModule():
     a GitHub runner without user namespaces) this module opts into the audited process-only mode
     explicitly, so the loop is still proven there; OSSandboxTests proves that without the opt-in such
     a host refuses. With GAIE_REQUIRE_FULL_SANDBOX=1 a missing full tier fails instead."""
-    if governor.isolation_probe()["tier"] == "full":
-        return
-    if os.environ.get("GAIE_REQUIRE_FULL_SANDBOX") == "1":
-        raise AssertionError("GAIE_REQUIRE_FULL_SANDBOX=1 but the governor's full sandbox tier is missing")
-    patcher = mock.patch.object(detectors, "DEFAULT_ISOLATION", "process-only")
-    patcher.start()
-    unittest.addModuleCleanup(patcher.stop)
+    opt_in_without_full_tier()  # tests/_target_code_mode.py, shared by every module that runs target code
 
 
 class OSSandboxTests(unittest.TestCase):

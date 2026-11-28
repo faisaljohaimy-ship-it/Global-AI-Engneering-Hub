@@ -22,6 +22,11 @@ from unittest import mock
 
 from engineering_os import adapters, contracts, control_plane as cp
 
+try:  # SEC-07: explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:  # imported from the tests directory (discover -s tests, layers.verify)
+    from _target_code_mode import opt_in_without_full_tier as setUpModule
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 NOW = "2026-11-28T06:36:23Z"
 GOVERNOR = cp.governor is not None

@@ -3,7 +3,6 @@
 import copy
 import hashlib
 import json
-import os
 import pathlib
 import shutil
 import sqlite3
@@ -13,11 +12,15 @@ import textwrap
 import time
 import unittest
 import zlib
-from unittest import mock
 
 from engineering_os import detectors, healing
 from engineering_os.healing import HealingError, analyze, artifact_digest, verify_repair
 from engineering_os.orchestration import sha
+
+try:  # SEC-07: explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:  # imported from the tests directory (discover -s tests, layers.verify)
+    from _target_code_mode import opt_in_without_full_tier as setUpModule
 
 FIXTURE = pathlib.Path(__file__).resolve().parent / "fixtures" / "healing" / "webapp"
 
@@ -738,20 +741,6 @@ class RepairPrimitiveTests(unittest.TestCase):
         self.assertFalse(healing.verify_receipts([]))
         self.assertFalse(healing.verify_receipts([dict(first, stage="DEPLOY")]))
         self.assertFalse(healing.verify_receipts([first, dict(second, status="forged")]))
-
-
-# Added for SEC-07 (sec-isolation): the default detectors.Sandbox isolation refuses on a host without
-# the governor's full sandbox. Such a host (a GitHub runner without user namespaces) opts this module
-# into the audited process-only mode explicitly; GAIE_REQUIRE_FULL_SANDBOX=1 fails instead.
-def setUpModule():
-    from engineering_os import detectors, governor
-    if governor.isolation_probe()["tier"] == "full":
-        return
-    if os.environ.get("GAIE_REQUIRE_FULL_SANDBOX") == "1":
-        raise AssertionError("GAIE_REQUIRE_FULL_SANDBOX=1 but the governor's full sandbox tier is missing")
-    patcher = mock.patch.object(detectors, "DEFAULT_ISOLATION", "process-only")
-    patcher.start()
-    unittest.addModuleCleanup(patcher.stop)
 
 
 if __name__ == "__main__":
