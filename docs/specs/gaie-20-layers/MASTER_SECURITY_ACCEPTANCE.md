@@ -44,7 +44,12 @@ A trusted operator separately approves and dispatches a scoped write.
   fsmonitor, untracked cache, lazy fetch or any transport except a push's own
   https or local destination, and refuses a repository whose config names a
   program, filter, include, URL rewrite, promisor, credential helper or HTTP
-  setting (`tests/test_isolation_fixes_planted_git.py`).
+  setting (`tests/test_isolation_fixes_planted_git.py`). That check fails
+  closed: each Git directory is located by its own `rev-parse` call and taken
+  whole (a path may hold a newline), any unexpected answer is refused, and so
+  is a repository with submodules (a gitlink or `.gitmodules` in the index, a
+  `.gitmodules` file, a `modules/` directory), whose own configs `status` and
+  `add` would read (recheck item 3, `tests/test_isolation_fixes_build_git.py`).
 - Strict mode hides `/etc` and everything outside the system directories, so
   the governor resolves the requested program on the host and executes its
   real file (argv[0] unchanged); an `/etc/alternatives` link therefore cannot

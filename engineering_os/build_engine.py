@@ -1420,7 +1420,10 @@ def _git(cwd, *args, moment=None, env=None, check=True):
     (GIT_ALLOW_PROTOCOL overrides any protocol.* setting). Before any command but init, a repository
     whose config names a program, filter, include, URL rewrite, promisor, credential helper or HTTP
     setting is refused: a sandboxed child may have planted it (pr30-isolation F2), and `status` or
-    `add` would run a clean filter on the host even with the flags above.
+    `add` would run a clean filter on the host even with the flags above. The check fails closed: the
+    Git directories are located one path per call (a path may hold a newline), anything unexpected
+    is refused, and so is a repository with submodules, whose own configs `status` and `add` would
+    read (recheck item 3).
     """
     from .workspace_policy import DENIED_CONFIG
     destination = next((arg for arg in args[1:] if not arg.startswith("-")), "") if args[:1] == ("push",) else ""
@@ -1431,11 +1434,26 @@ def _git(cwd, *args, moment=None, env=None, check=True):
     base = {**(env or _git_env(moment)), "GIT_NO_LAZY_FETCH": "1"}
     if args[:1] != ("init",):
         offline = {**base, "GIT_ALLOW_PROTOCOL": ""}
-        located = subprocess.run([*flags, "rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"],
-                                 capture_output=True, text=True, env=offline, timeout=120)
-        places = located.stdout.splitlines() if located.returncode == 0 else []
-        for config in ([pathlib.Path(places[1]) / "config", pathlib.Path(places[0]) / "config.worktree"]
-                       if len(places) == 2 else []):
+
+        def refuse(why):
+            return BuildError(f"git refused: {why}")
+
+        def ask(*query):
+            try:
+                done = subprocess.run([*flags, *query], capture_output=True, text=True, env=offline, timeout=120)
+            except UnicodeError:
+                return None
+            return done.stdout if done.returncode == 0 else None
+
+        def one_path(*query):  # the whole output is one path and its newline, never split into lines
+            out = ask(*query)
+            if not out or not out.endswith("\n") or "\0" in out or not out.startswith("/") or not os.path.isdir(out[:-1]):
+                raise refuse("the repository's Git directories could not be located exactly")
+            return pathlib.Path(out[:-1])
+
+        git_dir = one_path("rev-parse", "--path-format=absolute", "--git-dir")
+        common = one_path("rev-parse", "--path-format=absolute", "--git-common-dir")
+        for config in (common / "config", git_dir / "config.worktree"):
             if not os.path.lexists(config):
                 continue
             listed = subprocess.run([*flags, "config", "--file", str(config), "--no-includes", "--name-only", "--null",
@@ -1445,6 +1463,18 @@ def _git(cwd, *args, moment=None, env=None, check=True):
                                                                                  name, re.DOTALL) for name in names):
                 raise BuildError("git refused: the repository config names programs, filters, credentials or "
                                  "transports that the engine never sets")
+        bare = ask("rev-parse", "--is-bare-repository")
+        if bare not in ("true\n", "false\n"):
+            raise refuse("the repository's layout could not be read")
+        if os.path.lexists(git_dir / "modules") or os.path.lexists(common / "modules"):
+            raise refuse("a repository with submodules is not handled by the engine")
+        if bare == "false\n":
+            top = one_path("rev-parse", "--path-format=absolute", "--show-toplevel")
+            staged = ask("ls-files", "--stage", "-z")  # the index only: nothing is refreshed and no filter runs
+            entries = [entry.split("\t", 1) for entry in staged.split("\0") if entry] if staged is not None else None
+            if (entries is None or any(len(entry) != 2 for entry in entries) or os.path.lexists(top / ".gitmodules")
+                    or any(head.startswith("160000 ") or path == ".gitmodules" for head, path in entries)):
+                raise refuse("a repository with submodules is not handled by the engine")
     command = [*flags, *args]
     result = subprocess.run(command, capture_output=True, text=True, env={**base, "GIT_ALLOW_PROTOCOL": allowed},
                             timeout=120)
