@@ -17,5 +17,5 @@ native host/MCP activation, exact token/billing savings or production authority.
 
 Before a large task, and whenever a command prints a lot or code must be explored, read
 `skills/ultra-context-optimization/SKILL.md`: which tool to use for which kind of content,
-symbol queries, and a command wrapper that keeps originals retrievable. It complements the
-Headroom capability above and does not replace it.
+symbol queries, and a command wrapper that keeps originals retrievable. That wrapper is a
+front end to the Headroom capability above: one store, one pinned version, one boundary.

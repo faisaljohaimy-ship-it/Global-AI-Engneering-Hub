@@ -11,6 +11,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HUB="$(cd "$HERE/../.." && pwd)"
 TOOLS="${GAIE_TOOLS:-$HOME/.gaie-tools}"
 NODE24_VERSION="v24.22.3"
 NODE24_SHA256="4f2b175a6d53a5c617a80dba2676238a0688cef28c6da4eba35c7d844e66fcfb"  # linux-x64 tar.xz
@@ -23,8 +24,8 @@ launcher() {  # name, command line
   chmod 755 "$TOOLS/bin/$1"
 }
 
-python_tool() {  # name
-  local name="$1" lock="$HERE/locks/$1.lock" home="$TOOLS/$1" want
+python_tool() {  # name, lock file, Python version, "wheels" to refuse anything that must be built
+  local name="$1" lock="$2" version="$3" wheels="${4:-}" home="$TOOLS/$1" want
   want="$(sha256sum "$lock" | cut -d' ' -f1)"
   if [ -x "$home/venv/bin/python" ] && [ "$(cat "$home/.lock-sha256" 2>/dev/null)" = "$want" ]; then
     echo "$name: already installed from this lock"
@@ -33,11 +34,17 @@ python_tool() {  # name
   mkdir -p "$home"
   rm -rf "$home/venv"
   if command -v uv > /dev/null; then
-    uv venv -q --python 3.13 "$home/venv" 2> /dev/null || uv venv -q "$home/venv"
-    uv pip install -q --python "$home/venv/bin/python" --require-hashes -r "$lock"
+    if [ -n "$wheels" ]; then
+      uv venv -q --python "$version" "$home/venv"
+      uv pip install -q --python "$home/venv/bin/python" --require-hashes --only-binary :all: -r "$lock"
+    else
+      uv venv -q --python "$version" "$home/venv" 2> /dev/null || uv venv -q "$home/venv"
+      uv pip install -q --python "$home/venv/bin/python" --require-hashes -r "$lock"
+    fi
   else
-    python3 -m venv "$home/venv"
-    "$home/venv/bin/pip" install -q --require-hashes -r "$lock"
+    "python$version" -m venv "$home/venv"
+    "$home/venv/bin/python" -m pip --isolated install -q --disable-pip-version-check \
+      ${wheels:+--only-binary=:all: --no-compile} --require-hashes -r "$lock"
   fi
   echo "$want" > "$home/.lock-sha256"
   echo "$name: installed"
@@ -70,12 +77,18 @@ npm_tool() {  # name, extra PATH entry or empty
 install() {
   case "$1" in
     headroom)
-      python_tool headroom
+      # One Headroom for the whole hub: its reviewed lock, and the tool that owns the store
+      # and the boundary. This skill brings no second copy of either.
+      if [ ! -f "$HUB/integrations/headroom/requirements.lock" ] || [ ! -f "$HUB/tools/headroom_context.py" ]; then
+        echo "headroom: the hub's reviewed lock and tool are not beside this skill; run this from a hub checkout" >&2
+        exit 1
+      fi
+      python_tool headroom "$HUB/integrations/headroom/requirements.lock" 3.12 wheels
       launcher hr "python3 '$HERE/scripts/hr.py'"
       launcher ast-grep "'$TOOLS/headroom/venv/bin/ast-grep'"
       ;;
     serena)
-      python_tool serena
+      python_tool serena "$HERE/locks/serena.lock" 3.13
       SERENA_HOME="$TOOLS/serena/home" SERENA_USAGE_REPORTING=false \
         "$TOOLS/serena/venv/bin/serena" download-ls-dependencies python typescript > /dev/null 2>&1 \
         || echo "serena: language servers will be fetched on first use" >&2

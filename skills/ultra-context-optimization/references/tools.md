@@ -11,7 +11,7 @@ there, not only in a test.
 
 | Tool | Pinned version | Licence | Reviewed | Installed | Tested | Usable in the host | Actually used | Blocked or limited by |
 |---|---|---|---|---|---|---|---|---|
-| Headroom (`headroom-ai`) | 0.44.0 | Apache-2.0 | yes | yes | yes | yes, in-process through `hr` | yes | proxy, wrap and MCP modes deliberately not used |
+| Headroom (`headroom-ai`) | 0.45.0 | Apache-2.0 | yes | yes | yes | yes, through the hub's tool and `hr` | yes | proxy, wrap and MCP modes deliberately not used |
 | ast-grep (`ast-grep-cli`) | 0.51.2 | MIT | yes | yes, with Headroom's lock | yes | yes | yes | none |
 | Serena (`serena-agent`) | 2.1.0 | GPL-3.0-or-later | yes | yes | yes, Python and JavaScript | yes, one question per run through `sym` | yes | cannot be attached to a running session as a server |
 | Repomix | 1.19.0 | MIT | yes | yes | yes | yes | no | none |
@@ -24,32 +24,43 @@ there, not only in a test.
 
 Versions were chosen with a fourteen-day wait: each lock was resolved with
 `--exclude-newer 2026-11-14`, so no package in a Python lock was published after that
-date. Newer releases existed (Headroom 0.45.0 from 2026-11-22, Context Mode 2.2.4 from
-2026-11-25) and were left for a later review.
+date. Context Mode 2.2.4 from 2026-11-25 existed and was left for a later review.
+Headroom is the exception to the wait: the hub has one Headroom, pinned by its own reviewed
+lock at 0.45.0, which was published on 2026-11-22. This skill uses that one and brings no
+second, older copy.
 
 ## Headroom
 
 - Source: `https://github.com/headroomlabs-ai/headroom`; PyPI `headroom-ai`. The PyPI
   project links to that repository. A different package named `headroom` also exists on
   PyPI and is not this tool.
-- Installed from `locks/headroom.lock`: 68 packages with hashes. PyPI's advisory data
-  lists no known vulnerability for any of the 68 at the pinned versions
-  (`evidence/headroom-lock-audit.json`). OSV could not be reached for a second opinion.
-- Used as a library inside its own Python environment. `hr` calls `headroom.compress()`
-  for JSON and the `LogCompressor`, `SearchCompressor` and `DiffCompressor` transforms
-  for logs, search results and patches.
+- One integration for the whole hub. The hub's tool, `tools/headroom_context.py`, owns the
+  private store of originals, the pinned version and the boundary the SDK runs behind.
+  `hr` is a command-line front end to it and keeps nothing of its own.
+- Installed from the hub's reviewed lock, `integrations/headroom/requirements.lock`: 68
+  wheels for CPython 3.12 on Linux x86_64, each with its hash. The provenance, licence and
+  advisory review of that closure is the hub's and is recorded in
+  `integrations/headroom/README.md`. `scripts/bootstrap.sh headroom` installs exactly that
+  file and refuses anything that would have to be built.
+- A view is made in two steps. The hub tool is asked first: it returns a result only when
+  the SDK reports it lossless, a round trip gives the original back, and the identifiers,
+  paths and counts of the original are all still in it. When it has none, `hr` runs the
+  SDK's transform for that kind of output: `compress()` for JSON, `LogCompressor`,
+  `SearchCompressor` and `DiffCompressor` for logs, search results and patches. Those
+  views are not verified lossless and their header says so.
+- The boundary is the hub worker's, entered through its own code before any SDK import: a
+  kernel filter that refuses IP sockets, no new privileges, limits on CPU time, memory and
+  file size, an environment with no credentials, no proxy settings and no home folder, and
+  private scratch folders. `hr` adds an empty network namespace on top where the kernel
+  allows one, and sets `HEADROOM_UPDATE_CHECK=0` beside the hub's offline settings.
+- What the hub tool refuses is not stored by `hr` either: JSON with credential fields, and
+  anything over 2 MiB. Such output is shown as a plain head and tail with a note.
 - What the package can also do, and is not used here: a local proxy that sits between
   the agent and the model provider, wrappers that reroute agent traffic, durable
-  installs, an MCP server, a telemetry beacon and an update check. The worker sets
-  `HEADROOM_OFFLINE=1`, `HEADROOM_TELEMETRY=off`, `HEADROOM_UPDATE_CHECK=0` and
-  `DO_NOT_TRACK=1`, and runs under `unshare -n` when the kernel permits, so it has no
-  network at all.
-- Measured limit: through `compress()` alone, only JSON was shortened. Logs, search
-  results, prose and code came back unchanged until the dedicated transforms were called
-  directly. Its model-based text compressor needs a download from HuggingFace and was not
-  used.
-- Headroom keeps its own small state folder in `~/.headroom`. The retrievable original
-  that `hr` promises is `hr`'s own store, not that folder.
+  installs, an MCP server, a telemetry beacon and an update check.
+- Measured limit: the hub tool's lossless path shortened two of four JSON samples and no
+  log or search output. The transforms did the rest. The SDK's model-based text
+  compressor needs a download from HuggingFace and was not used.
 
 ## Serena
 
