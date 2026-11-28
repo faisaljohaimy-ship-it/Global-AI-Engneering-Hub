@@ -107,6 +107,19 @@ class SubThresholdFindingTests(unittest.TestCase):
         self.assertIn("below the medium rejection threshold", rows[0]["reason"])
         self.assertEqual({row["status"] for row in self.result["defects"] if row["type"] == "test"}, {"repaired"})
 
+    def test_section_3_documents_the_recheck_the_validate_checks_and_the_ledger(self):
+        """recheck-w2-heal (d): SELF_HEALING.md section 3 names what the loop now checks and reports."""
+        text = (pathlib.Path(__file__).resolve().parents[1] / "docs" / "specs" / "gaie-20-layers" / "SELF_HEALING.md").read_text(encoding="utf-8")
+        loop = text[text.index("## 3. The governed loop"):text.index("## 4. Guarantees")]
+        for name in ("no_new_findings", "detectors_rechecked", "targeted_findings_resolved"):
+            self.assertIn(name, self.result["validation"]["checks"])
+            self.assertIn(f"`{name}`", loop)
+        for word in ("`new-finding`", "`detector-not-rechecked`", "re-checked by every", "`introduced`", "`introduced_findings`",
+                     "`blocking`", "form feed"):
+            self.assertIn(word, loop)
+        statuses = {row["status"] for row in self.result["defects"]}
+        self.assertTrue(statuses <= {"repaired", "resolved-indirectly", "unrepaired", "introduced"})
+
 
 class IntroducedThresholdTests(unittest.TestCase):
     @staticmethod
