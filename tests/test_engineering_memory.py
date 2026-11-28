@@ -154,6 +154,27 @@ class EngineeringMemoryTests(unittest.TestCase):
         with self.assertRaises(MemoryError):
             MemoryStore(self.root / 'fresh').restore(checkpoint)
 
+    def test_project_bound_checkpoint_validates_exact_snapshot_and_restore_bytes(self):
+        self.store.put(self.record())
+        checkpoint = self.store.directory / 'single-project.json'
+        expected = self.store.checkpoint(checkpoint, project='demo')
+        restored = MemoryStore(self.root / 'restored')
+        with self.assertRaises(MemoryError):
+            restored.restore(checkpoint, project='foreign')
+        self.assertEqual(restored.snapshot()['revision'], 0)
+        self.assertEqual(restored.restore(checkpoint, project='demo'), expected)
+
+        self.store.put(self.record(project='foreign'))
+        mixed = self.store.directory / 'mixed-project.json'
+        with self.assertRaises(MemoryError):
+            self.store.checkpoint(mixed, project='demo')
+        self.assertFalse(mixed.exists())
+        self.store.checkpoint(mixed)
+        empty = MemoryStore(self.root / 'empty')
+        with self.assertRaises(MemoryError):
+            empty.restore(mixed, project='demo')
+        self.assertEqual(empty.snapshot()['records'], {})
+
     def test_tampering_and_rehashed_invalid_schema_refused(self):
         self.store.put(self.record())
         state = self.store.snapshot()

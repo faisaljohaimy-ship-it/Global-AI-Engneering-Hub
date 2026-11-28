@@ -178,6 +178,11 @@ def _terms(text):
     return set(re.findall(r"[^\W_]+", text.casefold(), flags=re.UNICODE))
 
 
+def _require_project(state, project):
+    if project is not None and any(row["record"]["project"] != project for row in state["records"].values()):
+        raise MemoryError("Checkpoint must contain only the startup-bound project")
+
+
 class MemoryStore:
     """A user-owned, locked local JSON store outside Git; not an access-control service."""
 
@@ -355,23 +360,31 @@ class MemoryStore:
             return {"id": identifier, "verification_status": "source-matches-recorded-test", "revision": state["revision"],
                     "limitation": "Supplied test receipt; no test process or provider invoked by memory."}
 
-    def checkpoint(self, destination):
+    def checkpoint(self, destination, *, project=None):
+        """Publish an exclusive backup of one checked state snapshot."""
+        if project is not None:
+            _slug(project)
         destination = pathlib.Path(destination).absolute()
         _safe_directory(destination.parent)
         if destination.exists() or destination.is_symlink():
             raise MemoryError("Checkpoint already exists")
         state = self.snapshot()
+        _require_project(state, project)
         value = {"schema_version": 1, "state": state, "state_sha256": sha(state)}
         _atomic_write(destination, value, exclusive=True)
         return {"state_sha256": value["state_sha256"], "revision": state["revision"]}
 
-    def restore(self, checkpoint):
+    def restore(self, checkpoint, *, project=None):
+        """Restore checked bytes into an empty store, optionally bound to a project."""
+        if project is not None:
+            _slug(project)
         checkpoint = pathlib.Path(checkpoint).absolute()
         _safe_directory(checkpoint.parent)
         value = _read_private(checkpoint)
         if not isinstance(value, dict) or set(value) != {"schema_version", "state", "state_sha256"} or type(value["schema_version"]) is not int or value["schema_version"] != 1 or value["state_sha256"] != sha(value["state"]):
             raise MemoryError("Invalid checkpoint checksum/schema")
         _verify_state(value["state"])
+        _require_project(value["state"], project)
         with self._locked():
             if self._load()["revision"]:
                 raise MemoryError("Restore requires an empty store")
