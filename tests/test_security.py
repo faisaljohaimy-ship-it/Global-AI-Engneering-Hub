@@ -41,11 +41,22 @@ class SecurityTests(unittest.TestCase):
             self.assertNotIn("pull_request_target", workflow, path)
 
     def test_browser_verifier_dependency_is_exact_and_integrity_locked(self):
-        package = (ROOT / "motion-library/verify/package.json").read_text()
-        lock = (ROOT / "motion-library/verify/package-lock.json").read_text()
-        self.assertIn('"playwright": "1.63.0"', package)
-        self.assertIn('"version": "1.63.0"', lock)
-        self.assertGreaterEqual(lock.count('"integrity": "sha512-'), 2)
+        import json
+        policy = json.loads((ROOT / 'catalog/capabilities/playwright.json').read_text())
+        row = next(r for r in json.loads((ROOT / 'catalog/registry.json').read_text()) if r['id'] == 'microsoft/playwright')
+        self.assertEqual(row['status'], 'approved')
+        self.assertEqual(row['revision'], policy['revision'])
+        self.assertRegex(policy['revision'], r'^[a-f0-9]{40}$')
+        self.assertRegex(policy['version'], r'^\d+\.\d+\.\d+$')
+        for scope in ('verify', 'chromium-stack', 'quality'):
+            package = json.loads((ROOT / f'motion-library/{scope}/package.json').read_text())
+            lock = json.loads((ROOT / f'motion-library/{scope}/package-lock.json').read_text())
+            self.assertEqual(package['devDependencies']['playwright'], policy['version'])
+            for name in ('playwright', 'playwright-core'):
+                entry = lock['packages']['node_modules/' + name]
+                self.assertEqual(entry['version'], policy['version'])
+                self.assertEqual(entry['integrity'], policy['npm_integrities'][name])
+                self.assertEqual(entry['license'], 'Apache-2.0')
 
     def test_no_tracked_environment_or_key_files(self):
         files = set(
