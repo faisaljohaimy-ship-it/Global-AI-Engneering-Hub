@@ -1,0 +1,30 @@
+{
+ "about": "What the session-wide gate saw. Counts and field names only.",
+ "calls_seen": 3,
+ "calls_with_an_agent_type": 2,
+ "host_reports_the_agent_type": true,
+ "agent_types_seen": [
+  "swarm-probe"
+ ],
+ "refused": 1,
+ "by_caller_tool_and_verdict": {
+  "no agent type reported / Bash / pass": 1,
+  "swarm-probe / Bash / allow": 1,
+  "swarm-probe / Bash / refuse": 1
+ },
+ "fields_the_host_sends": [
+  "agent_id",
+  "agent_type",
+  "cwd",
+  "effort",
+  "hook_event_name",
+  "permission_mode",
+  "prompt_id",
+  "scratchpad_dir",
+  "session_id",
+  "tool_input",
+  "tool_name",
+  "tool_use_id",
+  "transcript_path"
+ ]
+}

@@ -1,0 +1,567 @@
+{
+ "about": "Development agents of the third phase: each built one part of the system in its own worktree. They are not agents of the measured experiment. Counts, times and tool names from the host's records; no record content.",
+ "kind": "development agents",
+ "lanes": [
+  {
+   "lane": "A1",
+   "group": "architecture",
+   "title": "Evidence schema and validator",
+   "files_changed": [
+    "swarm/phase3/schema.py",
+    "tests/test_p3_schema.py"
+   ],
+   "lines_added": 177,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 6,
+   "state": "joined",
+   "agent": {
+    "replies": 5,
+    "tool_calls": 5,
+    "seconds": 35.34,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 134640,
+    "output_tokens": 5252,
+    "cost_units": 79972,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "A2",
+   "group": "architecture",
+   "title": "A registry of 1,000 agent places",
+   "files_changed": [
+    "swarm/phase3/registry.json",
+    "swarm/phase3/registry.py",
+    "tests/test_p3_registry.py"
+   ],
+   "lines_added": 10348,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 6,
+   "state": "joined",
+   "agent": {
+    "replies": 5,
+    "tool_calls": 6,
+    "seconds": 28.33,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 116899,
+    "output_tokens": 3359,
+    "cost_units": 62200,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "A3",
+   "group": "architecture",
+   "title": "Resume from the repository's evidence",
+   "files_changed": [
+    "swarm/phase3/resume.py",
+    "tests/test_p3_resume.py"
+   ],
+   "lines_added": 185,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 8,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 7,
+    "seconds": 40.72,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 152971,
+    "output_tokens": 5611,
+    "cost_units": 81577,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "C1",
+   "group": "context",
+   "title": "Report on prompt-cache sharing between workers",
+   "files_changed": [
+    "swarm/phase3/cache_report.py",
+    "tests/test_p3_cache_report.py"
+   ],
+   "lines_added": 204,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 5,
+   "state": "joined",
+   "agent": {
+    "replies": 4,
+    "tool_calls": 5,
+    "seconds": 29.98,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 93716,
+    "output_tokens": 4175,
+    "cost_units": 64411,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "C2",
+   "group": "context",
+   "title": "Static size of what a worker starts with",
+   "files_changed": [
+    "swarm/phase3/context_budget.py",
+    "tests/test_p3_context_budget.py"
+   ],
+   "lines_added": 202,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 6,
+   "state": "joined",
+   "agent": {
+    "replies": 4,
+    "tool_calls": 5,
+    "seconds": 28.49,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 93001,
+    "output_tokens": 4093,
+    "cost_units": 65579,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "C3",
+   "group": "context",
+   "title": "Scripted trace of the worker command on large tasks",
+   "files_changed": [
+    "swarm/phase3/trace.py",
+    "tests/test_p3_trace.py"
+   ],
+   "lines_added": 160,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 1,
+   "state": "joined",
+   "agent": {
+    "replies": 11,
+    "tool_calls": 12,
+    "seconds": 74.48,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 362561,
+    "output_tokens": 7468,
+    "cost_units": 121009,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "C4",
+   "group": "context",
+   "title": "Compact task text for a worker's second and later tasks",
+   "files_changed": [
+    "swarm/phase3/compact.py",
+    "tests/test_p3_compact.py"
+   ],
+   "lines_added": 95,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 4,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 7,
+    "seconds": 25.43,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 147162,
+    "output_tokens": 2750,
+    "cost_units": 62655,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "E1",
+   "group": "engine",
+   "title": "Queue leases, reclaim, and proof under load",
+   "files_changed": [
+    "swarm/phase3/taskqueue.py",
+    "tests/test_p3_taskqueue.py"
+   ],
+   "lines_added": 234,
+   "lines_removed": 13,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 11,
+   "state": "joined",
+   "agent": {
+    "replies": 4,
+    "tool_calls": 5,
+    "seconds": 66.62,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 96169,
+    "output_tokens": 7407,
+    "cost_units": 86125,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "E2",
+   "group": "engine",
+   "title": "Choose the next wave from what the last one measured",
+   "files_changed": [
+    "swarm/phase3/adaptive.py",
+    "tests/test_p3_adaptive.py"
+   ],
+   "lines_added": 201,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 13,
+   "state": "joined",
+   "agent": {
+    "replies": 4,
+    "tool_calls": 4,
+    "seconds": 37.05,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 96620,
+    "output_tokens": 5492,
+    "cost_units": 72917,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "E3",
+   "group": "engine",
+   "title": "Simulate 1,000 workers on a queue",
+   "files_changed": [
+    "swarm/phase3/simulate.py",
+    "tests/test_p3_simulate.py"
+   ],
+   "lines_added": 165,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 6,
+   "state": "joined",
+   "agent": {
+    "replies": 3,
+    "tool_calls": 4,
+    "seconds": 27.46,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 64105,
+    "output_tokens": 3914,
+    "cost_units": 59830,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "E4",
+   "group": "engine",
+   "title": "The queue worker's command and its definition",
+   "files_changed": [
+    ".claude/agents/swarm-queue.md",
+    "swarm/phase3/kit3.py",
+    "tests/test_p3_kit3.py"
+   ],
+   "lines_added": 228,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 5,
+   "state": "joined",
+   "agent": {
+    "replies": 5,
+    "tool_calls": 6,
+    "seconds": 37.89,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 143928,
+    "output_tokens": 5087,
+    "cost_units": 85733,
+    "refused_calls": 1,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "P1",
+   "group": "scale",
+   "title": "Load test of the worker command with scripted workers",
+   "files_changed": [
+    "swarm/phase3/loadtest.py",
+    "tests/test_p3_loadtest.py"
+   ],
+   "lines_added": 166,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 1,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 7,
+    "seconds": 157.92,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 157423,
+    "output_tokens": 4302,
+    "cost_units": 75440,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "P2",
+   "group": "scale",
+   "title": "How many workers really ran at once, second by second",
+   "files_changed": [
+    "swarm/phase3/timeline.py",
+    "tests/test_p3_timeline.py"
+   ],
+   "lines_added": 212,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 4,
+   "state": "joined",
+   "agent": {
+    "replies": 4,
+    "tool_calls": 4,
+    "seconds": 33.99,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 94108,
+    "output_tokens": 4704,
+    "cost_units": 67459,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "P3",
+   "group": "scale",
+   "title": "Speed-up, efficiency and the balance point from the evidence",
+   "files_changed": [
+    "swarm/phase3/stats.py",
+    "tests/test_p3_stats.py"
+   ],
+   "lines_added": 186,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 5,
+   "state": "joined",
+   "agent": {
+    "replies": 5,
+    "tool_calls": 6,
+    "seconds": 33.65,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 131436,
+    "output_tokens": 5108,
+    "cost_units": 79443,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "S1",
+   "group": "security",
+   "title": "Attack the gate and the worker command, and close what opens",
+   "files_changed": [
+    "swarm/phase2/guard.py",
+    "swarm/phase2/kit.py",
+    "tests/test_p3_gate_fuzz.py"
+   ],
+   "lines_added": 347,
+   "lines_removed": 9,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 13,
+   "state": "joined",
+   "agent": {
+    "replies": 11,
+    "tool_calls": 13,
+    "seconds": 304.43,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 475386,
+    "output_tokens": 16279,
+    "cost_units": 195040,
+    "refused_calls": 0,
+    "final_reply": "DONE.",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "S2",
+   "group": "security",
+   "title": "A cage for running a thousand workers' code",
+   "files_changed": [
+    "swarm/phase3/cage.py",
+    "tests/test_p3_cage.py"
+   ],
+   "lines_added": 298,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 9,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 5,
+    "seconds": 93.31,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 161958,
+    "output_tokens": 8981,
+    "cost_units": 100942,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "Q1",
+   "group": "quality",
+   "title": "Do the second phase's tests notice a broken gate or command?",
+   "files_changed": [
+    "swarm/phase3/mutate.py",
+    "tests/test_p3_mutation_guards.py"
+   ],
+   "lines_added": 303,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 12,
+   "state": "joined",
+   "agent": {
+    "replies": 13,
+    "tool_calls": 15,
+    "seconds": 739.13,
+    "model": "sonnet",
+    "first_request_context": 9056,
+    "input_tokens": 492542,
+    "output_tokens": 13101,
+    "cost_units": 174894,
+    "refused_calls": 0,
+    "final_reply": "DONE.",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "Q2",
+   "group": "quality",
+   "title": "Properties the medium reference solutions must keep",
+   "files_changed": [
+    "swarm/phase3/properties.py",
+    "tests/test_p3_reference_properties.py"
+   ],
+   "lines_added": 331,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 8,
+   "state": "joined",
+   "agent": {
+    "replies": 10,
+    "tool_calls": 11,
+    "seconds": 96.99,
+    "model": "sonnet",
+    "first_request_context": 9056,
+    "input_tokens": 380479,
+    "output_tokens": 9868,
+    "cost_units": 142582,
+    "refused_calls": 0,
+    "final_reply": "DONE.",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "G1",
+   "group": "integration",
+   "title": "Receipts and a handover page for the other engine",
+   "files_changed": [
+    "swarm/phase3/HANDOVER.md",
+    "swarm/phase3/handover.py",
+    "tests/test_p3_handover.py"
+   ],
+   "lines_added": 264,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 4,
+   "state": "joined",
+   "agent": {
+    "replies": 6,
+    "tool_calls": 6,
+    "seconds": 36.2,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 158916,
+    "output_tokens": 4944,
+    "cost_units": 79165,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  },
+  {
+   "lane": "D1",
+   "group": "economics",
+   "title": "What a task, a feature and a system change cost",
+   "files_changed": [
+    "swarm/phase3/economics.py",
+    "tests/test_p3_economics.py"
+   ],
+   "lines_added": 236,
+   "lines_removed": 0,
+   "left_uncommitted": 0,
+   "tests_of_its_own": 8,
+   "state": "joined",
+   "agent": {
+    "replies": 11,
+    "tool_calls": 13,
+    "seconds": 49.82,
+    "model": "sonnet",
+    "first_request_context": 9055,
+    "input_tokens": 342179,
+    "output_tokens": 6660,
+    "cost_units": 115144,
+    "refused_calls": 0,
+    "final_reply": "DONE:",
+    "met_a_limit": false
+   }
+  }
+ ],
+ "totals": {
+  "lanes": 20,
+  "agents_started": 20,
+  "ran_at_once": 20,
+  "wall_seconds": 739.2,
+  "joined": 20,
+  "input_tokens": 3896199,
+  "output_tokens": 128555,
+  "cost_units": 1872117,
+  "agents_that_met_a_limit": 0,
+  "lines_added_joined": 14542,
+  "tests_added_joined": 135
+ },
+ "suite_after_joining": {
+  "tests": 402,
+  "passed": true
+ }
+}
