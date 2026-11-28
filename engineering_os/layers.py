@@ -10,7 +10,7 @@ sources still match the files on disk: a name, a file or a document is never evi
 
 Receipts live in a private state directory outside Git. Their digests detect corruption and
 staleness; they do not authenticate who ran the tests. Every test and interface probe gets an
-exact minimal environment (PATH, a private HOME and TMPDIR, LANG; nothing else of the caller's)
+exact minimal environment (PATH, a private HOME, TMPDIR, LANG; nothing else of the caller's)
 and runs in the governor's OS sandbox where this host can build it (the repository read-only,
 one private writable directory per run, no network; see `_run`). A test on the recorded
 exception list, or every test on a host without the sandbox, runs as an ordinary subprocess
@@ -560,6 +560,9 @@ def _run(argv, *, root, timeout, workspace, profile="strict", reason=None, read=
     if profile != "process-only" and tier != "full":
         profile, reason = "process-only", f"governor full sandbox unavailable on this host (tier {tier})"
     if profile == "process-only":
+        # the host's temp directory, as before: a test may drop to another uid (the swarm cage
+        # chowns its workspace to 65534), which cannot traverse the private per-run directory
+        env["TMPDIR"] = tempfile.gettempdir()
         process = subprocess.Popen(argv, cwd=root, env=env, stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
         try:
