@@ -80,22 +80,29 @@ EXTRA_CONCEPTS = ({"performance", "slow", "latency", "cache", "index", "throughp
 STOPWORDS = frozenset({"a", "an", "the", "of", "to", "for", "and", "or", "in", "on", "at", "by", "with", "from", "is", "was",
                        "are", "be", "do", "does", "did", "we", "our", "it", "this", "that", "why", "what", "how", "where",
                        "في", "من", "علي", "الي", "عن", "و", "لماذا", "ما", "هل"})
+# Token edges are ASCII-aware: `\b` treats an Arabic letter, a digit or "_" as part of the word, so
+# "وAKIA…" (the conjunction wa- attached to a key) or "aws_AKIA…" slipped past it.
+_L, _R = r"(?<![A-Za-z0-9])", r"(?![A-Za-z0-9])"
+# Arabic labels for a password, a secret number or an access key or code, followed by ":" or "=".
+_ARABIC_SECRET_LABEL = (r"(?:كلمة (?:ال)?(?:مرور|سر)|(?:ال)?رقم (?:ال)?سري|رمز (?:ال)?(?:مرور|دخول|وصول|تحقق)"
+                        r"|مفتاح (?:ال)?(?:api|واجهة|وصول|سري|خاص))\s*[:=]\s*\S{4,}")
 # Broader than the task-store pattern: the credential shapes the GAIE factory memory refused (PR #26).
 BROAD_SECRET = re.compile(
-    r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|\bgh[pousr]_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}|\bglpat-[A-Za-z0-9_-]{16,}"
-    r"|\bnpm_[A-Za-z0-9]{20,}|\bwhsec_[A-Za-z0-9]{16,}|\bsbp_[A-Za-z0-9]{20,}|\bya29\.[A-Za-z0-9_-]{16,}"
-    r"|\bsk-(?:proj-|ant-|svcacct-|admin-)?[A-Za-z0-9_-]{24,}|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\bAIza[A-Za-z0-9_-]{35}\b"
-    r"|\bsb_secret_[A-Za-z0-9_-]{20,}|\bxox[baprs]-[A-Za-z0-9-]{10,}|\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{20,}"
-    r"|\bsk_[a-f0-9]{48}\b|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}"
-    r"|\b(?:Bearer|Basic)\s+[A-Za-z0-9_./+=-]{12,}|://[^\s/@]+:[^\s@]+@|hooks\.slack\.com/services/"
+    rf"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|{_L}gh[pousr]_[A-Za-z0-9]{{20,}}|{_L}github_pat_[A-Za-z0-9_]{{20,}}"
+    rf"|{_L}glpat-[A-Za-z0-9_-]{{16,}}|{_L}npm_[A-Za-z0-9]{{20,}}|{_L}whsec_[A-Za-z0-9]{{16,}}|{_L}sbp_[A-Za-z0-9]{{20,}}"
+    rf"|{_L}ya29\.[A-Za-z0-9_-]{{16,}}|{_L}sk-(?:proj-|ant-|svcacct-|admin-)?[A-Za-z0-9_-]{{24,}}"
+    rf"|{_L}(?:AKIA|ASIA)[0-9A-Z]{{16}}{_R}|{_L}AIza[A-Za-z0-9_-]{{35}}{_R}|{_L}sb_secret_[A-Za-z0-9_-]{{20,}}"
+    rf"|{_L}xox[baprs]-[A-Za-z0-9-]{{10,}}|{_L}(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{{20,}}|{_L}sk_[a-f0-9]{{48}}{_R}"
+    rf"|{_L}eyJ[A-Za-z0-9_-]{{10,}}\.[A-Za-z0-9_-]{{20,}}\.[A-Za-z0-9_-]{{20,}}"
+    rf"|{_L}(?:Bearer|Basic)\s+[A-Za-z0-9_./+=-]{{12,}}|://[^\s/@]+:[^\s@]+@|hooks\.slack\.com/services/"
     r"|(?:password|passwd|pwd|secret|api[\s_-]?key|token|private[\s_-]?key|access[\s_-]?key|role[\s_-]?key|credential)\w*"
-    r"[\"']?\s*(?:[:=]|\bis\b)\s*[\"']?\S{4,}", re.I)
+    rf"[\"']?\s*(?:[:=]|{_L}is{_R})\s*[\"']?\S{{4,}}|{_ARABIC_SECRET_LABEL}", re.I)
 SPLIT_SECRET = re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|sk-(?:proj-|ant-)[A-Za-z0-9_-]{24,}"
                           r"|xox[baprs]-[A-Za-z0-9-]{20,}|-----BEGIN(?:[A-Z]+)?PRIVATEKEY")
 # Explicit markers only, so ordinary prose about "private" state stays storable.
 PRIVATE_MARKER = re.compile(
-    r"(?i:<\s*/?\s*(?:private|confidential)\s*>|\[\s*(?:private|confidential)\s*\]|\bgaie:private\b|\w*private_marker\b)"
-    r"|\b(?:CONFIDENTIAL|PROPRIETARY)\b|\bDO NOT (?:SHARE|COMMIT|PUBLISH|DISTRIBUTE)\b|\b(?:INTERNAL|CLIENT)[ _-]ONLY\b"
+    rf"(?i:<\s*/?\s*(?:private|confidential)\s*>|\[\s*(?:private|confidential)\s*\]|{_L}gaie:private{_R}|\w*private_marker{_R})"
+    rf"|{_L}(?:CONFIDENTIAL|PROPRIETARY){_R}|{_L}DO NOT (?:SHARE|COMMIT|PUBLISH|DISTRIBUTE){_R}|{_L}(?:INTERNAL|CLIENT)[ _-]ONLY{_R}"
     r"|سري للغاية|للاستخدام الداخلي فقط|خاص وسري")
 _BAD_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Co", "Zl", "Zp"})
 _DEFINITION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
@@ -755,8 +762,10 @@ class MemoryStore:
             self._load()
 
     @classmethod
-    def for_project(cls, root, project, create=True):
-        """Open root/<project>/ as an isolated store; the path is derived from the slug, never supplied."""
+    def for_project(cls, root, project, create=True, *, read_only=False):
+        """Open root/<project>/ as an isolated store; the path is derived from the slug, never supplied.
+
+        read_only opens it without creating a directory, a lock or a migrated journal."""
         _slug(project)
         base = pathlib.Path(root).absolute()
         if ".." in base.parts:
@@ -764,10 +773,16 @@ class MemoryStore:
         target = base / project
         if target.is_symlink() or (target.exists() and not target.is_dir()):
             raise IsolationError("Project memory directory must be a real directory")
-        if not create and not target.is_dir():
+        if (read_only or not create) and not target.is_dir():
             raise MissingMemory("No private memory recorded for this project")
-        _safe_directory(base)
-        store = cls(target, project=project, create=create)
+        if read_only:
+            info = base.stat()
+            if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+                raise CoordinationError("State directory must be user-owned mode 0700")
+            store = cls(target, project=project, read_only=True)
+        else:
+            _safe_directory(base)
+            store = cls(target, project=project, create=create)
         if os.path.realpath(store.directory) != os.path.join(os.path.realpath(base), project):
             raise IsolationError("Project memory escaped its root")
         return store
@@ -1644,6 +1659,17 @@ class MemoryStore:
 
 # ---------------------------------------------------------------- engine contract (CONTRACTS.md section 2)
 
+class _NeverWritten(MemoryStore):
+    """A project memory that was never written, read as an empty store; nothing on disk is opened."""
+
+    def __init__(self, project):  # super().__init__ would open a directory
+        _slug(project)
+        self.project, self._read_only, self._cache, self.directory, self.path = project, True, None, None, None
+
+    def _load(self):
+        return _empty(self.project)
+
+
 _READ, _WRITE = ["read:state", "secrets:none"], ["read:state", "write:state", "secrets:none"]
 _ACTIONS = {
     # action: (method, required payload keys, optional payload keys, side effect, permissions, summary)
@@ -1698,7 +1724,13 @@ def invoke(action, payload, ctx):
     if "project" not in payload or not set(required) <= keys or keys - set(required) - set(optional):
         raise MemoryError("Payload fields do not match the action")
     project = payload["project"]
-    store = MemoryStore.for_project(ctx["state_dir"], project, create=side_effect != "none")
+    if side_effect == "none":  # read actions never create a directory, a lock or a migrated journal
+        try:
+            store = MemoryStore.for_project(ctx["state_dir"], project, read_only=True)
+        except MissingMemory:
+            store = _NeverWritten(project)
+    else:
+        store = MemoryStore.for_project(ctx["state_dir"], project)
     arguments = {_RENAMED.get(key, key): payload[key] for key in keys}
     if action in _SOURCE_ROOT:
         if action in {"verify", "index"} and not ctx.get("source_root"):
@@ -1713,7 +1745,12 @@ def invoke(action, payload, ctx):
         return store.put(payload["record"])
     if action in {"checkpoint", "restore"}:
         return getattr(store, method)(**arguments)
-    result = getattr(store, method)(project, **arguments)
+    try:
+        result = getattr(store, method)(project, **arguments)
+    except MissingMemory:  # a read-only store directory without a journal yet
+        if side_effect != "none":
+            raise
+        result = getattr(_NeverWritten(project), method)(project, **arguments)
     return result if isinstance(result, dict) else {"items": result}
 
 

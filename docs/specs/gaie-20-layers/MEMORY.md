@@ -88,7 +88,10 @@ state_sha256}`, written exclusively (never overwritten) into a private directory
 4. Checkpoints carry their project. Restoring one into another project, or a
    multi-project checkpoint into a project store, is refused.
 5. Read-only use (`create=False`, the facade's reads, `invoke` read actions) never
-   creates a directory or file for an unknown project (`MissingMemory`).
+   creates a directory or file for an unknown project (`MissingMemory`). `invoke` read
+   actions (every action whose side effect is `none`) open the store with
+   `for_project(..., read_only=True)`: no lock file, no migration of a schema-1
+   `memory.json`, and a project that was never written answers as an empty store.
 6. The legacy `MemoryStore(state_dir)` (used by `engineering_os.intelligence`) is still
    a multi-project store that filters by project in code; new callers use
    `for_project`, which is what the facade and `invoke` always do.
@@ -130,11 +133,25 @@ status checkpoint restore`.
 The previous session ends with: `task` (done/remaining), any `adr`, then
 `checkpoint --to <private dir>/<task>.json`, and records the printed
 `checkpoint_sha256` in its hand-off (e.g. `/home/user/gaie-state/checkpoints/<id>.json`).
-The new session:
+The new session runs the commands below from the project checkout. Pick `M` by where
+`gaie_memory.py` is; every form opens the same store, `$GAIE_HOME/memory/$P`:
+
+- **From the hub** (works from any directory, the project checkout included):
+  `M="python3 /path/to/hub/engineering_os/gaie_memory.py --project $P"`. The module form
+  `python3 -m engineering_os.gaie_memory` works only with the hub root as the current
+  directory or `PYTHONPATH=/path/to/hub`; from a project checkout it fails with
+  `ModuleNotFoundError: No module named 'engineering_os'`.
+- **From an installed project** (the vendored copy):
+  `M="python3 .engineering/gaie/gaie_memory.py --project $P"` (gaie-factory pack) or
+  `M="python3 .claude/skills/gaie-master-router/engine/gaie_memory.py --project $P"`
+  (`scripts/gaie_bootstrap.py`). These copies run the commands below only when
+  `memory.py`, `orchestration.py` and `security_scan.py` sit beside them (section 7);
+  until the pack and the bootstrap vendor them, they answer
+  `this command needs the unified engine` and the hub form above is the one to use.
 
 ```bash
 P=my-project                     # the project slug
-M="python3 -m engineering_os.gaie_memory --project $P"
+M="python3 /path/to/hub/engineering_os/gaie_memory.py --project $P"   # the hub form (see above)
 # 1. Same machine: the store is already in $GAIE_HOME/memory/$P; skip to 2.
 #    New machine or fresh GAIE_HOME: restore, authenticated by the hash from the hand-off.
 $M restore --from /private/dir/task.json --sha256 <checkpoint_sha256>
@@ -193,8 +210,10 @@ the old repository paths, and a deliberate control read is detected.
   (`ENGINE`) and in `catalog/packs.json` (`gaie-factory.files`, as `memory.py`,
   `orchestration.py`, `security_scan.py`); then the portable journal can be removed.
 - The control plane reaches memory only through `engineering_os/adapters.py`
-  (`memory_store`, `record_checkpoint`, `memory`, `memory_health`; the `memory` record in
-  `governance/engines.json`: put, search, graph, index, checkpoint, restore, verify). That
+  (`memory_store`, `memory`, `memory_health`; the `memory` record in
+  `governance/engines.json`: put, search, graph, index, checkpoint, restore, verify). A task
+  ID in `ctx` writes no memory and no checkpoint; a checkpoint is written only by the
+  explicit `checkpoint` action under a state-write grant. That
   adapter opens the multi-project `MemoryStore(<state>/memory)` (isolation rule 6) and
   detects an existing store by the engine's own file names. `memory.invoke` /
   `memory.ENGINE_RECORD` offer the wider, always project-isolated action set (adr-add,

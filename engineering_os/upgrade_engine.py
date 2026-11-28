@@ -173,6 +173,47 @@ def _verified_checkout(plan, workspace):
     return True
 
 
+def _near_misses(command, environ):
+    """Registered projects that a word of the command resembles (a typo, a look-alike letter, a split or a
+    shortened name), by the router's own matching. The router's command and focus words are left out:
+    "upgrade the security of ..." names a focus, not the "security-lab" project."""
+    rules = gaie_router.policy()
+    words = [*(w for group in rules["verbs"].values() for w in group), *(w for group in rules["focus"].values() for w in group),
+             *(w for key in ("negations", "all_projects", "new_system", "fillers", "coordinators", "clause_breaks",
+                             "noun_followers") for w in rules[key])]
+    vocabulary = {token for word in words for token in gaie_router.normalize(word)}
+    matched, suggestions = gaie_router.resolve([t for t in gaie_router.normalize(command) if t not in vocabulary],
+                                               gaie_router.projects(environ))
+    return sorted({row["id"] for row in matched} | set(suggestions))
+
+
+def _registered_origin(workspace, environ):
+    """The registered project whose repository is a Git remote of ``workspace`` (read with the hardened Git of
+    workspace_policy), whatever the command says; None outside any Git checkout or for unregistered remotes."""
+    path = pathlib.Path(workspace).absolute()
+    try:
+        in_git = any(workspace_policy._git_checkout_marker(directory) or workspace_policy._bare_repository(directory)
+                     for directory in (path, *path.parents))
+        remotes = workspace_policy._git(path, "remote", "-v") if in_git else ""
+    except (OSError, workspace_policy.WorkspacePolicyError):
+        raise UpgradeError("The target's Git remotes cannot be read, so its project cannot be ruled out; refused") from None
+    ids = {workspace_policy._repo_id(line.split("\t", 1)[1].rsplit(" (", 1)[0]) for line in remotes.splitlines() if "\t" in line}
+    owners = [row for row in gaie_router.projects(environ).values() if row.get("slug") and row["slug"] in ids]
+    _need(len(owners) <= 1, "The target's Git remotes belong to several registered projects; refused")
+    return owners[0] if owners else None
+
+
+def _verified_origin_checkout(row, workspace, intent):
+    """True when ``workspace`` is the verified linked worktree of registered ``row`` (a reader may be dirty)."""
+    try:
+        workspace_policy.validate_workspace(workspace, intent="upgrade" if intent == "audit" else intent,
+                                            expected_repository=row.get("repository"), registered_path=row.get("path"),
+                                            require_clean=intent != "audit")
+    except workspace_policy.WorkspacePolicyError:
+        return False
+    return True
+
+
 def route_command(command, *, environ=None, workspace=None):
     """Classify an owner command with the master router; refuse what the upgrade engine must never do.
 
@@ -208,7 +249,17 @@ def route_command(command, *, environ=None, workspace=None):
         focus = plan.get("focus", [])
     else:
         _need("known_projects" in plan, f"Command needs clarification: {reason}")
+        near = _near_misses(command, environ) if plan.get("suggestions") else []
+        _need(not near, f"The command resembles the registered project {', '.join(map(repr, near))}: name it "
+              "exactly and use its verified isolated checkout; a project is never guessed")
         project, resolution = None, "explicit-local-target"
+        if workspace is not None:
+            owner = _registered_origin(workspace, environ)
+            if owner is not None:
+                _need(_verified_origin_checkout(owner, workspace, intent),
+                      f"The target is a checkout of the registered project {owner['id']!r} but not its verified isolated "
+                      "checkout; name the project and use its linked worktree")
+                project, resolution = owner["id"], "registered-project-origin"
         focus = [] if len(verbs) > 1 else focus
     mode = "audit" if intent == "audit" else "upgrade"
     if mode == "audit":

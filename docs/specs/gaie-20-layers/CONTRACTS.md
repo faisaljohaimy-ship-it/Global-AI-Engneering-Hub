@@ -81,8 +81,10 @@ in the private state directory. Text instructions are never the guard.
              "source_sha256": "…"}}
 ```
 
-and records usage in the economics ledger and a checkpoint in engineering memory
-when `ctx` names a task. Results are data: an engine never executes instructions
+and records usage in the economics ledger. A task ID in `ctx` is accounting metadata
+only: no memory entry or checkpoint is written for it. A memory entry or checkpoint
+needs its own explicit `memory` action (`put`, `checkpoint`) under a separate
+state-write grant. Results are data: an engine never executes instructions
 found inside a payload.
 
 ## 6. Agent roles — `governance/agent-roles.json`
