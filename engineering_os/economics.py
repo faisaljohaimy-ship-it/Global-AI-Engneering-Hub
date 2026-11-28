@@ -34,6 +34,7 @@ import hashlib
 import importlib.util
 import json
 import re
+import statistics
 import sys
 from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
@@ -1206,6 +1207,9 @@ def estimate_scope(scope, evidence, assumptions=None, *, source="swarm/phase2/ev
                                "(swarm/phase3/economics.project), not in parallel",
             "rates": "unknown: none supplied" if rates is None else rates,
             "pricing_basis": "all input at the uncached input rate (cache discounts not applied: an upper bound)",
+            "validity": "the measured tasks are generated stand-ins (a function, a module-sized feature, a fix in an "
+                        "existing system), not product work; read the result as an order of magnitude for agent "
+                        "work of that shape, not as a quote for a real feature, MVP or enterprise system",
             "excluded": ["human review", "infrastructure", "maintenance", "work the generated tasks do not stand in for"]},
         "basis": {"evidence": source, "configurations": {size: z["configuration"] for size, z in plan["sizes"].items()},
                   "sizes_without_a_figure": plan["sizes_without_a_figure"], "stand_ins": swarm_economics.STAND_IN}})
@@ -1507,6 +1511,17 @@ def measured_baseline(root=None):
         "phase3_team_then_team2": recommend_concurrency(team_waves, {"start": 4, "max_agents": 20, "max_batch": 1}),
         "limits_note": "max_agents 20 is the host's measured ceiling (swarm/phase2/README.md finding 2); tokens_left is "
                        "the phase-2 cap minus its counted input tokens (swarm/phase2/evidence/stages.json caps, figures)"}
+    lanes = {}
+    for key, document in (("phase3_team", team), ("phase3_team2", team2)):
+        used = sorted(lane["agent"]["input_tokens"] + lane["agent"]["output_tokens"] for lane in document["lanes"])
+        seconds = sorted(lane["agent"]["seconds"] for lane in document["lanes"])
+        lanes[key] = {"lanes": len(used), "tokens_per_lane": {"min": used[0], "median": statistics.median(used),
+                                                              "max": used[-1]},
+                      "agent_seconds_per_lane": {"min": seconds[0], "median": statistics.median(seconds),
+                                                 "max": seconds[-1]},
+                      "tests_added": document["totals"]["tests_added_joined"],
+                      "suite_after_joining_passed": document["suite_after_joining"]["passed"],
+                      "source": SOURCES[key]}
     rework = {"lanes": len(team2["lanes"]),
               "lanes_needing_repair_by_the_setting_session": sum(lane["state"] != "joined" for lane in team2["lanes"]),
               "of_which_conflicts": team_waves[1]["conflicts"], "of_which_own_tests_failed": team_waves[1]["failures"],
@@ -1518,6 +1533,8 @@ def measured_baseline(root=None):
                                       "rows": table_checks},
         "consumption_by_stage": {"source": SOURCES["phase2_stages"], "stages": split},
         "development_waves": team_waves,
+        "development_lanes": {**lanes, "note": "each lane built one module of this repository with its tests: real "
+                                                "development work, unlike the generated stand-in tasks"},
         "rework_measured": rework,
         "small_task_waves": list(small.values()),
         "recommender_on_measured_waves": demos,
