@@ -49,7 +49,7 @@ contains a matched secret value. Each detector report carries `status`
 | memory | `tracemalloc` in a child process: 4 rounds of N calls; leak only if total growth ≥ threshold and every round grew (**measured**) | `memory-growth`, `memory-check-failed` |
 | performance | median per-call `perf_counter` time vs stored baseline × tolerance (**measured, noisy**) | `performance-regression`, `performance-check-failed` |
 | security | `eval`/`exec`, `shell=True`/`os.system` (reuses `scripts/security_scan.py`), unsafe loaders, credential look-alikes (reused scanner), disabled TLS (`verify=False`, `CERT_NONE`, `_create_unverified_context`, `check_hostname=False`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `rejectUnauthorized: false`, `curl -k`); fingerprints compared to a baseline (`known`/`new`) | `dynamic-code-execution`, `shell-execution`, `unsafe-deserialization`, `insecure-temp-file`, `hard-coded-secret`, `tls-verification-disabled` |
-| database | declared schema into an in-memory SQLite DB, `EXPLAIN` every SQL literal (never executed), `PRAGMA quick_check` on DB files opened read-only | `schema-error`, `query-error`, `database-integrity` |
+| database | declared schema into an in-memory SQLite DB, `EXPLAIN` every SQL literal (never executed), `PRAGMA quick_check` on DB files opened read-only; a `query-error` is identified by file + whitespace-normalised statement + error class (symbol `sql:<16 hex>`), never by its line | `schema-error`, `query-error`, `database-integrity` |
 | media | magic-byte signatures always; decoding with `ffprobe` when installed, otherwise `status: partial` with the reason (never a silent pass) | `media-signature-mismatch`, `broken-media` |
 
 `Sandbox` runs target code with `python -s -B -c <fixed driver> <json>` (never a shell)

@@ -778,6 +778,16 @@ def _bindings(query):
     return (None,) * max([stripped.count("?")] + numbered)
 
 
+def sql_fingerprint(query, error):
+    """Line-independent identity of a failing SQL literal: whitespace-normalised statement + error class.
+
+    The query-error finding's symbol (and so its ``key``) is built from it together with the
+    file, so moving an unrelated broken literal never reads as a new defect, while a different
+    statement, or the same one failing with a different error class, does."""
+    statement = " ".join(query.split()).rstrip(";").rstrip()
+    return sha({"statement": statement, "error_class": type(error).__name__})[:16]
+
+
 def explain_query(root, schemas, query):
     """EXPLAIN one query against the declared schema in a fresh in-memory database; None or the error text."""
     memory = sqlite3.connect(":memory:")
@@ -826,8 +836,9 @@ def detect_database(root, files=None, manifest=None, *, tests_dir=None, extra_qu
                 try:
                     memory.execute("EXPLAIN " + query, _bindings(query))
                 except (sqlite3.Error, ValueError) as error:
-                    out.append(finding("database", "query-error", rel, line, f"sql@{line}",
-                                       {"error": _redact(str(error), 200), "query_sha256": sha(query)}, "high"))
+                    out.append(finding("database", "query-error", rel, line, f"sql:{sql_fingerprint(query, error)}",
+                                       {"error": _redact(str(error), 200), "error_class": type(error).__name__,
+                                        "query_sha256": sha(query)}, "high"))
     finally:
         memory.close()
     for rel in databases:
