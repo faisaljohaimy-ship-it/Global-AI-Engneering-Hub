@@ -65,7 +65,7 @@ def main() -> int:
         intact = None
         if facts.get("ref"):
             back, meta = hr.load(facts["ref"])
-            intact = back == text and hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest() == meta["sha256"]
+            intact = back == text and hashlib.sha256(text.encode("utf-8", "replace")).hexdigest() == meta["sha256"]
             if not intact:
                 failures.append(f"{sample.name}: the stored original differs")
         if lost and facts.get("appended", 0) < hr.KEEP_CAP:
@@ -73,7 +73,7 @@ def main() -> int:
         rows.append({"sample": sample.name, "chars": len(text), "view_chars": len(body),
                      "error_lines": len(hr.must_keep(text)), "error_lines_missing": len(lost),
                      "error_lines_appended": facts.get("appended", 0), "original_intact": intact,
-                     "kind": facts.get("kind"), "via": facts.get("via"), "wall_seconds": wall, "headroom_seconds": facts.get("seconds")})
+                     "kind": facts.get("kind"), "via": facts.get("via"), "lossless": facts.get("lossless"), "stored": facts.get("stored"), "wall_seconds": wall, "headroom_seconds": facts.get("seconds")})
         texts.append(text)
         views.append(body)
     counts = hr.count_tokens(texts + views)
@@ -87,7 +87,7 @@ def main() -> int:
     checks = {}
     first = next((r for r in rows if r["original_intact"]), None)
     # One session cannot read another session's store.
-    ref = next(p.stem for p in (Path(store) / "measure-a").glob("*.raw"))
+    ref = hr.journal("measure-a")[0]["ref"]
     other = subprocess.run([sys.executable, str(HERE / "hr.py"), "get", ref, "--head", "1"], capture_output=True, text=True,
                            env={**os.environ, "HR_SESSION": "measure-b"})
     checks["session_isolation"] = other.returncode != 0 and "no stored output" in (other.stderr + other.stdout)
@@ -130,7 +130,8 @@ def main() -> int:
     total["chars_saved_percent"] = round(100 * (1 - total["view_chars"] / total["chars"]), 1)
     evidence = {"measured": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "token_counter": "legacy Claude tokenizer bundled with litellm; a proxy, not the current models' count" if counts else None,
-                "worker": " ".join(hr.worker_command() or ["none"]).replace(str(hr.TOOL_HOME), "TOOLS/headroom").replace(str(HERE), "scripts"),
+                "worker": " ".join(hr.worker_command() or ["none"]).replace(str(hr.TOOL_HOME), "TOOLS/headroom").replace(str(HERE), "scripts").replace(str(hr.hub_tool().parent), "HUB/tools"),
+                "sdk_version": hr.hub_module().VERSION, "boundary": hr.BOUNDARY, "store": "the hub tool's (tools/headroom_context.py)",
                 "samples": rows, "total": total, "checks": checks, "failures": failures}
     evidence_path.write_text(json.dumps(evidence, indent=1) + "\n", encoding="utf-8")
     for row in rows:

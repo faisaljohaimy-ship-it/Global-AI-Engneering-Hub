@@ -35,3 +35,18 @@ requires renewed provenance, license, advisory and operational tests; discovery
 does not authorize installation or automatic approval. CI installs the exact
 reviewed closure and executes real SDK positive/fallback and vendored invocation
 tests inside the existing mandatory verification job, without model credentials.
+
+`requirements.txt` is a generated, byte-identical monitoring mirror of
+`requirements.lock`. Dependabot reads this standard filename directly; the
+canonical lock remains the installation authority. Do not edit or install from
+the mirror independently. A proposal changing the mirror alone fails the closure
+test and is not an approved dependency update. After reviewing and regenerating
+the canonical lock with its artifact hashes, regenerate the mirror with:
+
+```sh
+cp integrations/headroom/requirements.lock integrations/headroom/requirements.txt
+```
+
+Review both files together and rerun the closure and real SDK tests before
+adoption. The weekly Tuesday monitor does not install into Hub or product runtimes;
+Dependabot may resolve/install packages inside its own isolated updater.

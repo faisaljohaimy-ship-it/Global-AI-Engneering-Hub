@@ -26,7 +26,7 @@ project requires: every mandatory test, review and security rule still applies.
 ## Set up
 
 ```bash
-skills/ultra-context-optimization/scripts/bootstrap.sh            # Headroom only
+skills/ultra-context-optimization/scripts/bootstrap.sh            # Headroom, from the hub's reviewed lock
 skills/ultra-context-optimization/scripts/bootstrap.sh serena     # add symbol queries
 export PATH="$HOME/.gaie-tools/bin:$PATH"
 python3 skills/ultra-context-optimization/scripts/detect_env.py   # what this machine supports
@@ -39,7 +39,7 @@ Tools install into `~/.gaie-tools`, outside every repository, from the lock file
 
 | Content | Use | Why |
 |---|---|---|
-| JSON from a command or file | `hr run -- CMD` or `hr put FILE` | Headroom turns arrays into a lossless table |
+| JSON from a command or file | `hr run -- CMD` or `hr put FILE` | the hub's Headroom tool gives a verified lossless table when it can |
 | Test and build output | `hr run -- CMD` | Headroom's log transform keeps failures and the summary |
 | A large set of search hits | the host's search tool with a limit; else `hr run -- rg ...` | grouped by file |
 | A patch | `hr run -- git diff ...` | Headroom's diff transform |
@@ -110,8 +110,10 @@ memory, customer data or the `~/.gaie-store` contents.
 
 - No tool here changes where model requests go or how the account signs in. Headroom's
   `proxy`, `wrap`, `init`, `install` and `deploy` commands are not used.
-- The Headroom worker runs with telemetry off, offline mode on, and with no network at
-  all where the kernel allows it.
+- The hub has one Headroom integration, and `hr` is its front end. The SDK runs only
+  behind the hub tool's kernel boundary, which refuses IP sockets, with telemetry off and
+  offline mode on. Originals live in that tool's private store; what it refuses to take,
+  such as JSON with credential fields, is not stored.
 - Private code is not sent to outside services. Context7 receives library names and
   topics only.
 - Versions are pinned and hash-checked. No floating version, no unreviewed install script.
