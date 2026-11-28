@@ -19,6 +19,8 @@ WORKFLOWS = {
 # Workflows that run on a push to main without gating a release, each mapped to the reason.
 # tests/test_release_provenance.py requires every push-triggered workflow to be in WORKFLOWS or here.
 NOT_RELEASE_GATING = {}
+# The only tag shape release.yml accepts; docs/specs/gaie-20-layers/RELEASE_CHECKLIST.md quotes it.
+TAG_PATTERN = r'engineering-os-v[0-9]+\.[0-9]+\.[0-9]+'
 
 
 def approved_runs(document, commit, repository, now=None):
@@ -82,7 +84,7 @@ def main():
     parser.add_argument('--repository',required=True)
     parser.add_argument('--output',required=True,type=pathlib.Path)
     args=parser.parse_args()
-    if not re.fullmatch(r'engineering-os-v[0-9]+\.[0-9]+\.[0-9]+',args.tag):raise ValueError('Invalid engineering tag')
+    if not re.fullmatch(TAG_PATTERN,args.tag):raise ValueError('Invalid engineering tag')
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',args.repository):raise ValueError('Invalid repository')
     commit=subprocess.check_output(['git','rev-parse','--verify',f'refs/tags/{args.tag}^{{commit}}'],text=True,timeout=20).strip()
     if not re.fullmatch('[a-f0-9]{40}',commit):raise ValueError('Invalid commit')

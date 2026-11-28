@@ -5,7 +5,7 @@ import re
 import tempfile
 import unittest
 import datetime
-from scripts.verify_release import NOT_RELEASE_GATING, WORKFLOWS, approved_runs, approved_jobs
+from scripts.verify_release import NOT_RELEASE_GATING, TAG_PATTERN, WORKFLOWS, approved_runs, approved_jobs
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MATRIX_VALUE = re.compile(r'\$\{\{\s*matrix\.([A-Za-z0-9_-]+)\s*\}\}')
@@ -262,6 +262,33 @@ class ReleaseGatingWorkflowTests(unittest.TestCase):
             self.assertEqual(ungated_push_workflows(root), [])
             (root / '.github/workflows/imposter.yml').write_text('on:\n  push:\n    branches: [main]\njobs:\n  a:\n    runs-on: x\n')
             self.assertEqual(ungated_push_workflows(root), ['.github/workflows/imposter.yml'])
+
+
+class ReleaseChecklistTests(unittest.TestCase):
+    CHECKLIST = ROOT / 'docs/specs/gaie-20-layers/RELEASE_CHECKLIST.md'
+
+    def test_only_engineering_os_semantic_version_tags_are_accepted(self):
+        for tag in ('engineering-os-v0.2.0', 'engineering-os-v1.0.0', 'engineering-os-v10.20.30'):
+            self.assertTrue(re.fullmatch(TAG_PATTERN, tag), tag)
+        for tag in ('engineering-os-v1.0.0-rc.1', 'v1.0.0', 'engineering-sdk-v1.0.1', 'engineering-os-v1.0',
+                    'engineering-os-v1.0.0 ', 'engineering-os-vX.Y.Z'):
+            self.assertIsNone(re.fullmatch(TAG_PATTERN, tag), tag)
+
+    def test_checklist_quotes_the_tag_shape_and_lists_exactly_the_required_jobs(self):
+        text = self.CHECKLIST.read_text(encoding='utf-8')
+        self.assertIn(f'`{TAG_PATTERN}`', text)
+        self.assertIn('recorded, tag pending', text)
+        self.assertIn('merge_method=merge', text)
+        self.assertNotIn('--squash', text)
+        rows = [line.strip() for line in text.splitlines() if line.strip().startswith('| `.github/workflows/')]
+        listed = {}
+        for row in rows:
+            cells = row.split('|')
+            listed[cells[1].strip().strip('`')] = re.findall(r'`([^`]+)`', cells[2])
+        self.assertEqual(len(rows), len(WORKFLOWS))
+        self.assertEqual(set(listed), set(WORKFLOWS))
+        for path, jobs in listed.items():
+            self.assertEqual(sorted(jobs), sorted(WORKFLOWS[path]), path)
 
 
 if __name__=='__main__':unittest.main()
