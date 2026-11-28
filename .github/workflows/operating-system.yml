@@ -34,6 +34,10 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/test_motion_expansion.mjs tests/test_universal_motion_sdk.mjs tests/test_chromium_stack_options.mjs
+      - name: Verify the native engine motions, their registry and orchestrator without a browser
+        run: |
+          set -euo pipefail
+          node --test tests/test_native_motions_digital.mjs packages/motion-engines/test/core.test.mjs packages/motion-engines/test/orchestrator.test.mjs packages/motion-engines/test/registry.test.mjs
 
   chromium:
     name: fresh Chromium and Motion Studio runtime evidence
