@@ -254,7 +254,7 @@ class SignInHardeningTests(GeneratedApp):
             auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or original(*args, **kwargs)
             for who in ("real@example.invalid", "nobody@example.invalid"):
                 del calls[:]
-                code = status("POST", "/api/login", {"email": who, "password": "wrong-password-123"}, role=None)
+                code = status("POST", "/api/login", {"email": who, "password": "wrong-" + password}, role=None)
                 result[who] = [code, list(calls)]
             auth.hash_password = original
             result["iterations"] = iterations
