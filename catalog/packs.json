@@ -82,8 +82,8 @@
       "limits": "Selective development tool only; no proxy, wrapper, MCP registration, authentication changes, live model session, production runtime dependency or measured billing savings."
     },
     "gaie-factory": {
-      "summary": "GAIE software factory for a project: bilingual master router, build/upgrade/audit/cinematic/release skills, master prompts, private project memory and read-only inventory.",
-      "version": "1.0.0",
+      "summary": "GAIE software factory for a project: bilingual master router with the project registry, build/upgrade/audit/cinematic/release skills, master prompts, the unified private project memory engine and read-only inventory.",
+      "version": "1.1.0",
       "skills": [
         "gaie-master-router",
         "gaie-build",
@@ -97,6 +97,10 @@
         "engineering_os/workspace_policy.py": ".engineering/gaie/workspace_policy.py",
         "engineering_os/gaie_memory.py": ".engineering/gaie/gaie_memory.py",
         "engineering_os/gaie_inventory.py": ".engineering/gaie/gaie_inventory.py",
+        "engineering_os/project_registry.py": ".engineering/gaie/project_registry.py",
+        "engineering_os/memory.py": ".engineering/gaie/memory.py",
+        "engineering_os/orchestration.py": ".engineering/gaie/orchestration.py",
+        "scripts/security_scan.py": ".engineering/gaie/security_scan.py",
         "governance/policies/gaie-routes.json": ".engineering/gaie/gaie-routes.json",
         "projects/registry.json": ".engineering/gaie/projects.json",
         "projects/aliases.json": ".engineering/gaie/aliases.json",
