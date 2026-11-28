@@ -29,6 +29,10 @@ export default defineMotion({
   module: 'camera',
   name: { en: 'Cinematic Dolly In', ar: 'اقتراب الكاميرا السينمائي' },   // en exactly as in tools/brief.json
   summary: { en: 'One or two sentences saying what is seen.', ar: 'الوصف نفسه بالعربية.' },
+  meaning: {                        // required for every motion added after 2026-11-28 (owner direction)
+    en: 'One sentence saying what it stands for in a digital service.',
+    ar: 'جملةٌ واحدة تقول ما يمثّله في خدمةٍ رقمية.',
+  },
   engine: 'canvas2d',               // canvas2d | webgl2-glsl | webgl2-points | dom | svg | webgpu-wgsl | composition
   kind: 'oneshot',                  // 'oneshot' runs once from 0 to 1; 'loop' runs for ever
   duration: 2400,                   // ms: the length of a oneshot, or of one cycle of a loop
@@ -56,7 +60,11 @@ export default defineMotion({
 });
 ```
 
-`defineMotion` rejects anything that does not fit. Write the Arabic as a native speaker
+`defineMotion` rejects anything that does not fit. `meaning` is checked by
+`tools/build_registry.mjs` (exactly `en` and `ar`, one sentence each, Arabic script in `ar`) and
+copied into `registry.json`: a motion must say what it means digitally (a data pipeline, an
+identity check, an approval gate, a cloud migration ...). A purely decorative motion is not added.
+No official logos, emblems, flags or maps. Write the Arabic as a native speaker
 would say it, not word for word; technical product names may stay in Latin letters.
 
 ## What `setup(ctx)` receives
