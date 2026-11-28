@@ -111,3 +111,26 @@ measured performance, security posture, costs incurred (expected: none), remaini
 limitations, and the next recommended steps. Save decisions, proven patterns,
 failures and fixes to project memory; propose reusable knowledge for the hub only
 after review and with private details removed.
+
+## Engine (deterministic implementation, layer L16)
+
+`engineering_os/build_engine.py` carries out phases B–D and G for systems that
+`templates/app-stdlib` can build (web-app, Python standard library, SQLite); see
+`docs/specs/gaie-20-layers/BUILD_ENGINE.md`.
+
+1. Get a ready specification: `spec = engineering_os.requirements.parse(owner_text)`;
+   resolve open questions with `requirements.refine` — never guess an answer.
+2. `python3 -m engineering_os.build_engine plan --spec spec.json` shows the entities,
+   tests, executable vs unmapped acceptance criteria and open items before anything is
+   written. An unmapped criterion means the template cannot prove it: change the
+   criterion with the owner or extend the template with a tested form.
+3. `build_engine.build(spec, out_dir=<$GAIE_HOME/workspace/slug>, hub_revision=<reviewed
+   main SHA>)` refuses duplicates (route to MASTER_UPGRADE), generates the independent
+   application, commits it as its own Git repository, runs its unit, API, acceptance and
+   Playwright tests, and writes factory receipts. Report `ok` only when the factory
+   evaluation is `delivery_review_ready`; quote the coverage matrix, not a summary.
+4. The private GitHub repository is an external write: the engine only writes
+   `.gaie/repository-request.json`. Ask the owner for approval; push with
+   `build_engine.publish(...)` and the approval token. Never create placeholders.
+5. Hand over the open items the engine lists (repository, license, deployment target,
+   identity) — the engine never decides them.
