@@ -489,7 +489,7 @@ SANDBOX_MEMORY_MB = 16384  # RLIMIT_AS; V8 reserves far more address space than 
 SANDBOX_FILE_MB = 256
 SANDBOX_NOFILE = 1024
 ETC_VISIBLE = ("/etc/ld.so.cache", "/etc/alternatives")
-TOOLS = ("node",)  # tools the hub's tests start by name; their install prefix is mounted read-only
+TOOLS = ("node",)  # tools the hub's tests start by name; their bin directory is mounted read-only
 LOOPBACK_TESTS = frozenset()
 # Measured 2026-11-28 (every layer-bound test file and the wave-2 candidates, strict and loopback):
 # all others pass inside the strict profile. These cannot be measured there, so they run in the
@@ -544,9 +544,38 @@ def _python():
     return sys.executable if sys.prefix != sys.base_prefix else os.path.realpath(sys.executable)
 
 
+def _trusted_dir(real):
+    """True when the real directory `real` may be shown read-only to a sandboxed test: outside every home
+    directory, and neither it nor a directory above it can be changed by a non-root user. The governor's
+    own rule for program mounts (governor._trusted_source) where this checkout has it; else the same rule
+    in short (the caller's home, /root and /home; owner root and no group/other write bit up to /)."""
+    check = getattr(governor, "_trusted_source", None)
+    if check is not None:
+        try:
+            check(real)
+            return True
+        except governor.GovernorDenied:
+            return False
+    homes = {os.path.realpath(os.path.expanduser("~")), "/root", "/home"}
+    if any(real == home or real.startswith(home + os.sep) for home in homes if home != "/"):
+        return False
+    current = real
+    while True:
+        try:
+            info = os.lstat(current)
+        except OSError:
+            return False
+        if info.st_uid != 0 or info.st_mode & 0o022:
+            return False
+        if current == os.sep:
+            return True
+        current = os.path.dirname(current)
+
+
 def _outside_system(paths):
-    """Real install prefixes outside the system directories (they must be mounted read-only),
-    never the caller's home directory itself or a directory that contains it."""
+    """Real directories outside the system directories that must be mounted read-only (a tool's bin
+    directory, a virtual environment's tree), never the caller's home directory itself or a directory
+    that contains it, and only where `_trusted_dir` accepts them (recheck-isolation-2 item 4)."""
     home = os.path.realpath(os.path.expanduser("~"))
     found = set()
     for path in paths:
@@ -555,7 +584,7 @@ def _outside_system(paths):
             continue
         if real in ("/", "/tmp", "/var/tmp") or home == real or home.startswith(real + os.sep):
             continue
-        if os.path.isdir(real):
+        if os.path.isdir(real) and _trusted_dir(real):
             found.add(real)
     return sorted(found)
 
@@ -708,8 +737,13 @@ def _run(argv, *, root, timeout, workspace, profile="strict", reason=None, read=
     # `python3 -m unittest discover` (the sandbox's own cwd must be the writable workspace)
     command = [shutil.which("env", path="/usr/bin:/bin") or "/usr/bin/env", "-i", "-C", str(root),
                *(f"{name}={value}" for name, value in sorted(env.items())), *argv]
-    tools = [os.path.dirname(os.path.dirname(os.path.realpath(found))) for found in map(shutil.which, TOOLS) if found]
-    readable = sorted({str(root), *_outside_system([sys.prefix, sys.base_prefix, *read, *tools]), *_git_metadata(root)})
+    # No whole install prefix (recheck-isolation-2 item 4): the governor mounts the hub's interpreter itself
+    # (in strict runs only its bin directory, standard library and linked libraries); a tool the tests start
+    # by name contributes its bin directory only, and a virtual environment (the launcher _python names) its
+    # own tree; each only from a place no non-root user can change and outside every home directory.
+    tools = [os.path.dirname(os.path.realpath(found)) for found in map(shutil.which, TOOLS) if found]
+    venv = [sys.prefix] if sys.prefix != sys.base_prefix else []
+    readable = sorted({str(root), *_outside_system([*venv, *read, *tools]), *_git_metadata(root)})
     if profile == "strict":  # the linker's index and the alternatives links (no secret), for tools such as ffmpeg
         readable += [path for path in ETC_VISIBLE if os.path.exists(path)]
 
@@ -835,7 +869,7 @@ def _run_node_test(root, test, scratch, timeout, node):
         profile, why = "strict", "process-only exceptions apply to Python test files only"
     code, output, elapsed, timed_out, isolation = _run(
         [real, "--test", "--test-reporter=tap", str(pathlib.Path(root) / test)], root=root, timeout=timeout,
-        workspace=_workspace(scratch, "node"), profile=profile, reason=why, read=[os.path.dirname(os.path.dirname(real))])
+        workspace=_workspace(scratch, "node"), profile=profile, reason=why, read=[os.path.dirname(real)])
     tests, passed, failed = _tap(output, "tests"), _tap(output, "pass"), _tap(output, "fail")
     skipped, cancelled = _tap(output, "skipped") + _tap(output, "todo"), _tap(output, "cancelled")
     counted = dict(ran=tests, passed=passed, failed=failed + cancelled, skipped=skipped, duration_ms=elapsed,
