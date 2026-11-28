@@ -55,6 +55,7 @@ HOME = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm")) / "p3"
 BIN = Path(os.environ.get("SWARM_BIN", "/usr/local/bin"))
 PLAN_FILE = Path(os.environ.get("SWARM_PLAN3", HERE / "PLAN3.json"))  # the tests point this at a small plan
 ROOT = HERE.parents[1]
+PROJECTION_MARGIN = 1.25  # a stage starts only if its projection with a quarter added still fits under the limit; the factor is an estimate
 PROBE_ALLOWANCE = 47977  # two probe agents ran in the team's session and are in no evidence file; this is what the same probe used in the second phase
 SECOND_PHASE_DECIDE, SECOND_PHASE_CARD, SECOND_PHASE_SAVE = stage.decide, stage.card, stage.save
 
@@ -73,7 +74,12 @@ def carried_over() -> dict:
     apart = sum((s.get("orchestrator_tokens") or {}).get("input_total", 0) for s in json.loads(second.read_text())["stages"]) if second.exists() else 0
     return {"total": sum(parts.values()), "parts": parts,
             "reported_apart": {"orchestrator_of_the_second_phase_run": apart,
-                               "note": "The limit has counted the input tokens of the experiment's agents since the first phase. What the orchestrating sessions read is measured per stage and reported beside it, not inside it."}}
+                               "development_agents_in_the_total": {path.name: json.loads(path.read_text())["totals"]["input_tokens"] for path in teams},
+                               "note": "The limit has counted the input tokens of the experiment's agents since the first phase. Not in the total: what the orchestrating sessions "
+                                       "read. Only the second phase's run has that figure, given here; the orchestrating sessions of the first phase, of the trial, of the two team "
+                                       "sessions and of this run are not in the total, and this run's is measured per stage beside its agents. The authoring session is in no figure. "
+                                       "The allowance for the team sessions' probe agents is a copy of the second phase's probe stage, an estimate. The development agents of the first "
+                                       "round and the development agents of the second round are in the total, from team.json and team2.json. An input token is counted each time it is read, cache reads included."}}
 
 
 def save(stages: list[dict]) -> None:
@@ -103,6 +109,19 @@ def decide(stages: list[dict], spec: dict | None) -> tuple[list[str], list[str],
                 end.append(f"the gate did not see every call of {last['label']}")
     if spec is not None and spec["kind"] == "task" and not any((s.get("security_gate") or {}).get("passed") for s in ran):
         end.append("no stage may start before the security gate has passed")
+    others = sum((s.get("other_agents_during_the_stage") or {}).get("input_tokens", 0) for s in ran)
+    figures["input_tokens_counted"] += others  # an agent of another type that ran during a stage is nobody's worker, and its tokens still count
+    cap = figures["cap"]
+    if figures["input_tokens_counted"] > cap:
+        end.append(f"the limit is passed: {figures['input_tokens_counted']} of {cap} input tokens")
+    if spec is not None and not skip and not end:
+        projected = figures.get("projected_for_stage")
+        if not projected:  # nothing alike was measured, or it measured zero: assume the plan's margin instead of nothing
+            projected = stage.PLAN["stops"]["margin_without_projection"]
+        if figures["input_tokens_counted"] + projected * PROJECTION_MARGIN > cap:
+            skip.append(f"its projected {projected} input tokens, with a margin of {PROJECTION_MARGIN}, would pass the limit ({figures['input_tokens_counted']} of {cap} counted)")
+    if last is not None and last.get("registered_agents") and last.get("actual_agents", 0) < last["registered_agents"]:
+        notes.append(f"{last['label']}: {last['registered_agents'] - last['actual_agents']} of {last['registered_agents']} agents left no record with a reply")
     return end, skip, notes, figures
 
 
@@ -178,7 +197,8 @@ def configure() -> dict:
 def setup() -> int:
     for folder in ("work", "state", "samples", "runs"):
         (HOME / folder).mkdir(parents=True, exist_ok=True)
-    os.chmod(HOME / "state", 0o700)
+    for private in (HOME, HOME / "state", HOME / "work", HOME / "runs"):
+        os.chmod(private, 0o700)  # tasks, withheld tests, tickets and the gate's record: their owner only
     for name, text in (("swk", f"#!/bin/sh\nSWARM_HOME='{HOME.parent}' exec python3 -I '{HERE / 'kit3.py'}' \"$@\"\n"),
                        ("swk-guard", f"#!/bin/sh\nexec python3 -I '{HERE.parent / 'phase2' / 'guard.py'}' \"$@\"\n"),
                        ("swk-hook", hook.wrapper(f"SWARM_HOME='{HOME.parent}'"))):
@@ -213,6 +233,7 @@ def prep() -> int:
         if spec["kind"] == "task" and spec.get("delivery") == "queue":
             run = json.loads((HOME / "runs" / f"{spec['id']}.json").read_text())
             taskqueue.create(HOME / "work" / spec["id"], run["tasks"], spec["batch"])
+            (HOME / "work" / spec["id"] / ".queue" / "max_workers").write_text(str(spec["agents"]))  # no more workers than the stage has agents
         if spec["kind"] == "task" and handin is not None:
             handin.protect(HOME / "work" / spec["id"])  # the withheld tests lie beside the tasks: only the owner reads them
     return done
@@ -230,19 +251,40 @@ def prompt_of(path: Path) -> str:
     return ""
 
 
+def named_call(probe: dict, row: dict) -> bool:
+    """Is this the call the probe was told to make? A probe of type swarm-probe runs its prompt as a command; swarm-probe-wide is
+    told READ PATH or WRITE PATH; swarm-probe-open is told to reach for a tool that is not a shell."""
+    prompt = probe["prompt"].strip()
+    if probe["agent_type"] == "swarm-probe-wide":
+        verb, _, path = prompt.partition(" ")
+        return row["tool"] == {"READ": "Read", "WRITE": "Write"}.get(verb) and row.get("asked") == path.strip()
+    if probe["agent_type"] == "swarm-probe-open":
+        return row["tool"] != "Bash" and row["class"] != "hand-back" and not row.get("hand_back")
+    return row["tool"] == "Bash" and isinstance(row.get("asked"), str) and " ".join(row["asked"].split()) == " ".join(prompt.split())
+
+
 def judge_gate(spec: dict, new: list[Path], book: dict) -> dict:
-    """Did every forbidden thing get refused, did the allowed thing run, and did the gate see every call?"""
+    """Did every forbidden thing get refused by the gate itself, did the allowed thing run, and did the gate see every call?
+    A probe holds only on the call it was told to make: another call that happened to be refused proves nothing, and neither
+    does a refusal by the host, which never asked the gate."""
     rows, why = [], []
     for probe in spec["probes"]:
         mine = [path for path in new if ledger.agent_type(path) == probe["agent_type"] and prompt_of(path) == probe["prompt"]]
-        made = [row for path in mine for row in ledger.calls(path)]
+        made = [row for path in mine for row in ledger.asked(path)]
         count = lambda *kinds: sum(row["class"] in kinds for row in made)  # noqa: E731
-        refused, outside, inside = count("refused by the gate", "refused by the host"), count(*ledger.RAN), count("worker command")
-        held = bool(mine) and outside == 0 and (refused >= 1 if probe["expect"] == "refuse" else inside >= 1)
+        named = [row for row in made if named_call(probe, row)]
+        by_gate = sum(row["class"] == "refused by the gate" for row in named)
+        outside, inside = count(*ledger.RAN) + sum(bool(row.get("may_have_run_outside")) for row in made), sum(row["class"] == "worker command" for row in named)
+        if probe["expect"] == "refuse":
+            held = bool(mine) and bool(named) and by_gate == len(named) and outside == 0
+        else:
+            held = bool(mine) and inside >= 1 and outside == 0
         rows.append({"what": probe["what"], "agent_type": probe["agent_type"], "must_be": "refused" if probe["expect"] == "refuse" else "let through", "agents": len(mine),
-                     "calls_refused": refused, "of_them_by_the_gate": count("refused by the gate"), "calls_outside_the_contract_that_ran": outside, "worker_commands_that_ran": inside, "held": held})
+                     "times_it_made_the_call_it_was_told": len(named), "of_them_refused_by_the_gate": by_gate, "calls_refused": count("refused by the gate", "refused by the host"),
+                     "of_them_by_the_gate": count("refused by the gate"), "calls_outside_the_contract_that_ran": outside, "worker_commands_that_ran": count("worker command"), "held": held})
         if not held:
-            why.append(f"an agent told to {probe['what']} was " + ("not started or not found" if not mine else "not refused" if probe["expect"] == "refuse" else "not let through"))
+            why.append(f"an agent told to {probe['what']} " + ("was not started or not found" if not mine else "never made that call" if not named else
+                                                               "was not refused by the gate" if probe["expect"] == "refuse" else "was not let through"))
     if not book["clean"]:
         why.append("a call outside the contract ran")
     if not book["gate"]["reconciled"]:
@@ -263,22 +305,45 @@ def finish(carried: dict) -> int:
             row["task"] = run["tasks"][0]
         return row
 
-    measure.read = tagged
+    types = {probe["agent_type"] for probe in spec["probes"]} if spec.get("gate") else {spec["agent_type"]}
+    every_record = stage.records
+
+    def of_the_stage(folder):
+        """A stage's agents are the records of its own agent types. An agent of another type that ran meanwhile is not a worker of the
+        stage, whatever its prompt says; it is counted beside the stage further down."""
+        return [path for path in every_record(folder) if path.name in run["before"] or ledger.agent_type(path) in types]
+
+    measure.read, stage.records = tagged, of_the_stage
     shown = io.StringIO()
     try:
         with contextlib.redirect_stdout(shown):
             done = stage.finish()
     finally:
-        measure.read = read
+        measure.read, stage.records = read, every_record
     stages = stage.load()
     last = next(s for s in stages if s["label"] == ident)
     _, folder = stage.locate()
     new = [path for path in stage.records(folder) if path.name not in run["before"]]
-    types = {probe["agent_type"] for probe in spec["probes"]} if spec.get("gate") else {spec["agent_type"]}
     mine = [path for path in new if ledger.agent_type(path) in types]
+    strays = [read(path) for path in new if ledger.agent_type(path) not in types]
+    last["other_agents_during_the_stage"] = {"agents": len(strays), "input_tokens": sum(row["input_total"] for row in strays), "output_tokens": sum(row["output"] for row in strays),
+                                             "note": "Agents of another type that began while the stage was open. They are not its workers; their tokens count against the limit."}
+    last["agents_that_wrote_no_reply"] = sum(1 for path in mine if not read(path)["roundtrips"])
     seen = [line for line in ledger.gate_log(HOME / "hook.jsonl", measure.moment(run["start"])) if line.get("agent") in types]
     book = ledger.build(mine, seen)
     book["agents_of_other_types_started_during_the_stage"] = len(new) - len(mine)
+    if spec["kind"] == "task" and spec.get("delivery") != "queue":
+        # A task given by its id has no ticket. So the records are read for it: a worker's commands may name its own task only.
+        crossed = 0
+        for path in mine:
+            own = prompt_of(path).strip()
+            for row in ledger.asked(path):
+                words = row["asked"].split() if row["tool"] == "Bash" and isinstance(row.get("asked"), str) else []
+                crossed += len(words) >= 3 and words[0] == "swk" and words[2] in run["tasks"] and words[2] != own and row["class"] == "worker command"
+        book["worker_commands_on_another_workers_task"] = crossed
+        if crossed:
+            book["calls_outside_the_contract_that_ran"]["worker command on another worker's task: Bash"] = crossed
+            book["clean"] = False
     last["ledger"] = book
     if spec.get("gate"):
         last["security_gate"] = judge_gate(spec, new, book)

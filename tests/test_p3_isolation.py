@@ -29,11 +29,13 @@ def swk(home, *argv, stdin=""):
     return done.returncode, done.stdout + done.stderr
 
 
-def make_stage(home, name, size, first, count, queue=True):
+def make_stage(home, name, size, first, count, queue=None):
+    """A stage as the run lays it out: small and medium tasks are drawn from a queue, large tasks are given by id and have none.
+    A stage with a queue runs `next` and `submit` only."""
     stage = Path(home) / "p3" / "work" / name
     stage.mkdir(parents=True)
     items = tasks.make(stage, size, first, count)
-    if queue:
+    if size != "large" if queue is None else queue:
         taskqueue.create(stage, [t["id"] for t in items], 2)
     return stage, items
 
@@ -45,6 +47,8 @@ def open_stage(home, name):
 def snapshot(root):
     state = {}
     for path in sorted(Path(root).rglob("*")):
+        if path.name == ".queue" or (path.name == "refused" and path.parent.name == ".queue"):
+            continue  # the queue's own note of a refused hand-in (a time and a task id, written on purpose) and the folder it changes
         info = path.lstat()
         state[str(path)] = (info.st_mode, info.st_size, info.st_mtime_ns)
     return state
@@ -68,15 +72,17 @@ class Base(unittest.TestCase):
         self.home = Path(self.tmp.name) / "home"
         self.home.mkdir()
 
-    def single(self):
-        """One stage s1 with two large tasks and two medium ones."""
+    def single(self, queue=False):
+        """One stage s1 with two large tasks and two medium ones, given by id as the run gives large tasks: every verb runs there.
+        With a queue the stage runs `next` and `submit` only."""
         stage = self.home / "p3" / "work" / "s1"
         stage.mkdir(parents=True)
         self.large = tasks.make(stage, "large", 1, 2)
         self.medium = tasks.make(stage, "medium", 3, 2)
         self.items = self.large + self.medium
         self.ids = [t["id"] for t in self.items]
-        taskqueue.create(stage, self.ids, 2)
+        if queue:
+            taskqueue.create(stage, self.ids, 2)
         open_stage(self.home, "s1")
         self.stage = stage
         return stage
@@ -98,8 +104,9 @@ class StageToStage(Base):
             for text in texts:
                 self.assertNotIn(text[:60], out)
         self.assertEqual(before, snapshot(self.home), "a refused call changed something")
-        for t in items_b:  # its own tasks still work
-            self.assertEqual(swk(self.home, "show", t["id"])[0], 0)
+        code, out = swk(self.home, "next")  # its own tasks are still handed out
+        self.assertEqual(code, 0, out)
+        self.assertIn(re.search(r"[SMLX]-\d{4}", out).group(0), {t["id"] for t in items_b})
 
     def test_the_queue_of_the_open_stage_hands_out_only_its_own_tasks(self):
         _, items_a = make_stage(self.home, "a", "medium", 1, 3)
@@ -258,8 +265,6 @@ class HandIn(Base):
         self.assertEqual(code, 2, out)
         self.assertTrue((self.stage / ident / "solution.py").is_dir())
 
-    # kit.submit writes solution.py through a link that already lies in the task folder (swarm/phase2/kit.py, submit)
-    @unittest.expectedFailure
     def test_a_solution_that_is_a_symbolic_link_is_not_written_through(self):
         self.single()
         ident = self.medium[0]["id"]
@@ -269,8 +274,6 @@ class HandIn(Base):
         swk(self.home, "submit", ident, stdin=self.medium[0]["reference"])
         self.assertEqual(victim.read_text(), "KEEP\n")
 
-    # kit.answer writes ANSWER.json through a link that already lies in the task folder (swarm/phase2/kit.py, answer)
-    @unittest.expectedFailure
     def test_an_answer_that_is_a_symbolic_link_is_not_written_through(self):
         self.single()
         ident = self.large[0]["id"]
@@ -317,17 +320,15 @@ class HandIn(Base):
 
 
 class Modes(Base):
-    # tasks.make and taskqueue.create make the withheld, state and queue folders with the default mode (swarm/phase2/tasks.py make, swarm/phase3/taskqueue.py create)
-    @unittest.expectedFailure
     def test_the_private_state_folders_are_not_readable_by_others(self):
         old = os.umask(0o022)
         self.addCleanup(os.umask, old)
-        self.single()
+        self.single(queue=True)
         loose = [str(p.relative_to(self.home)) for p in (self.stage / ".hidden", self.stage / ".kit", self.stage / ".queue") if p.stat().st_mode & 0o077]
         self.assertEqual(loose, [])
 
     def test_a_refused_call_never_loosens_a_mode(self):
-        self.single()
+        self.single(queue=True)
         for p in (self.stage / ".hidden", self.stage / ".kit", self.stage / ".queue"):
             p.chmod(0o700)
         for verb in (("show", "../x"), ("read", self.large[0]["id"], ".hidden"), ("next", "wa")):
@@ -367,7 +368,7 @@ class NoMixing(Base):
                 self.assertNotIn(line, text, ident)
 
     def test_next_gives_each_worker_its_own_task_text_only(self):
-        self.single()
+        self.single(queue=True)
         own = {t["id"]: (self.stage / t["id"] / "TASK.md").read_text() for t in self.items}
         got = {}
         for worker in ("wa", "wb", "wc", "wd"):

@@ -36,9 +36,9 @@ agents started and finished, 20 at a time.
    `swarm-probe-open` must be among the agent types you can start. If they are not, stop and say so in your last message.
 
 2. Set up, and read what it prints. `worker_command`, `session_gate_installed`,
-   `session_gate_set_for_every_tool`, `gate_holds_in_self_test` and `session_record_found`
-   must all be true; if one is not, stop. From this step on the gate judges every tool
-   call of every agent you start.
+   `session_gate_set_for_every_tool`, `gate_holds_in_self_test`, `worker_code_is_caged`
+   and `session_record_found` must all be true; if one is not, stop and report what it
+   printed. From this step on the gate judges every tool call of every agent you start.
 
        python3 swarm/phase3/stage3.py setup
 

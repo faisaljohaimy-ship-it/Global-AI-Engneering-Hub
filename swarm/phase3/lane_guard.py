@@ -37,7 +37,8 @@ DENIED = re.compile(
     r"|(?:~|\$HOME|\$\{HOME\}|/root|/home/\w+)/\.(?:claude|gaie-swarm|ssh|config|netrc|git-credentials)\b")
 
 
-WRITES_A_FILE = re.compile(r"^\s*cat\b[^\n]*<<-?\s*(['\"]?)([A-Za-z_]+)\1[^\n]*$")
+WRITES_A_FILE = re.compile(r"^\s*cat\s*>>?\s*[\w./@%+=:,~-]+\s*<<-?\s*(['\"]?)([A-Za-z_]+)\1\s*$"
+                           r"|^\s*cat\s*<<-?\s*(['\"]?)([A-Za-z_]+)\3\s*>>?\s*[\w./@%+=:,~-]+\s*$")
 
 
 def visible(command: str) -> str:
@@ -51,7 +52,7 @@ def visible(command: str) -> str:
         kept.append(line)
         opened = WRITES_A_FILE.match(line)
         if opened:
-            closing = opened.group(2)
+            closing = opened.group(2) or opened.group(4)
     return "\n".join(kept)
 
 
@@ -67,6 +68,9 @@ def allowed(call: dict) -> tuple[bool, str]:
     if tool in ("Read", "Grep", "Glob"):
         lanes = os.environ.get("SWARM_LANES")
         target = given.get("file_path") if tool == "Read" else given.get("path")
+        pattern = given.get("pattern")
+        if tool == "Glob" and (not isinstance(pattern, str) or pattern.startswith(("/", "~")) or ".." in pattern.split("/")):
+            return False, "a search pattern stays inside the repository"
         if target is None and tool != "Read":
             return True, ""  # a search with no folder named starts in the repository
         if not lanes or not isinstance(target, str):

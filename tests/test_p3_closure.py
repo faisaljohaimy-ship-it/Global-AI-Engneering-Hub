@@ -89,7 +89,7 @@ class Closure(unittest.TestCase):
     def test_leaks_in_evidence(self):
         name = "no evidence file holds a path, session id or model identifier"
         self.assertTrue(rows(self.root)[name]["passed"])
-        for leak in ("/home/someone/x", "session_0123", "claude-sonnet-5-5"):
+        for leak in ("/home/someone/x", "session_0123", "claude-0-0"):
             with self.subTest(leak):
                 f = self.root / "swarm/phase3/evidence/other.json"
                 f.write_text(json.dumps({"x": leak}))

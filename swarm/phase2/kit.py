@@ -77,8 +77,26 @@ def emit(state: Path, verb: str, text: str, view: bool = False) -> None:
     kit["calls"][verb] = kit["calls"].get(verb, 0) + 1
     kit["chars_out"] += len(text)
     kit["views"] += int(view)
-    state.write_text(json.dumps(kit, ensure_ascii=False))
+    keep(state, kit)
     sys.stdout.write(text if text.endswith("\n") else text + "\n")
+
+
+def keep(state: Path, kit: dict) -> None:
+    """Replace the task's state file whole, readable by its owner only. A reader never sees it half written."""
+    scratch = state.with_name(f".{state.name}.{os.getpid()}")
+    descriptor = os.open(scratch, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(kit, ensure_ascii=False))
+    os.replace(scratch, state)
+
+
+def write_plain(path: Path, text: str) -> None:
+    """Write a worker's file in its task folder. A link lying at that name is refused, never written through."""
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise Refused("that name is not a plain file here")
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(text)
 
 
 def inside(folder: Path, name: str) -> Path:
@@ -153,11 +171,13 @@ def submit(ident: str) -> None:
     source = read_input(40000)
     if len(source) > 40000:
         raise Refused("the file is too long")
+    if (folder / "solution.py").is_symlink():
+        raise Refused("that name is not a plain file here")
     kit["attempts"] += 1
-    state.write_text(json.dumps(kit, ensure_ascii=False))
+    keep(state, kit)
     left = ATTEMPTS - kit["attempts"]
     again = f"Attempt {kit['attempts']} of {ATTEMPTS}: correct it and hand it in again." if left else "No attempts are left. Reply FAILED."
-    (folder / "solution.py").write_text(source, encoding="utf-8")
+    write_plain(folder / "solution.py", source)
     findings = workload.inspect(source)
     if findings:
         emit(state, "submit", f"Not run: {'; '.join(findings[:3])}. Only Python that keeps the task's rules is run. {again}")
@@ -291,14 +311,17 @@ def answer(ident: str) -> None:
     need_large(state)
     try:
         given = json.loads(read_input(20000))
-    except ValueError:
+    except (ValueError, RecursionError):
         raise Refused("that is not JSON") from None
     if not isinstance(given, dict) or sorted(given) != sorted(FACTS):
         raise Refused(f"give one object with exactly these keys: {', '.join(FACTS)}")
     for key in ("direct_callers", "failed_event_ids"):  # the order of a list is not part of the answer
-        if isinstance(given[key], list):
+        if isinstance(given[key], list) and all(isinstance(item, (str, int)) and not isinstance(item, bool) for item in given[key]):
             given[key] = sorted(given[key], key=lambda item: (str(type(item)), item))
-    (folder / "ANSWER.json").write_text(json.dumps(given))
+    for key in ("direct_callers", "failed_event_ids"):
+        if isinstance(given[key], list) and not all(isinstance(item, (str, int)) and not isinstance(item, bool) for item in given[key]):
+            raise Refused(f"{key} is a list of names or numbers")
+    write_plain(folder / "ANSWER.json", json.dumps(given))
     emit(state, "answer", "The answer is recorded. If swk test reports no failure, reply DONE.")
 
 
@@ -321,7 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     except Refused as problem:
         print(f"swk: refused: {problem}")
         return 2
-    except (OSError, ValueError, KeyError) as problem:
+    except Exception as problem:  # noqa: BLE001 - a worker is never shown a traceback: it holds paths of this machine
         print(f"swk: refused: {type(problem).__name__}")
         return 2
     return 0

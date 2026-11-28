@@ -100,8 +100,7 @@ class KitHolds(Stage):
 
 
 class WorkerFaults(Stage):
-    # kit3.submit / kit.locate: any worker may act on any task id; nothing ties a caller to the task it claimed
-    @unittest.expectedFailure
+    # closed since the review. It was: kit3.submit / kit.locate: any worker may act on any task id; nothing ties a caller to the task it claimed
     def test_a_worker_cannot_use_a_task_it_does_not_hold(self):
         ids = self.make("small", 2)
         taskqueue.create(self.stage, ids, 1)
@@ -109,22 +108,28 @@ class WorkerFaults(Stage):
         self.swk("submit", ids[0], stdin="x = 1\n")  # w2 cannot say who it is: it names w1's task
         self.assertEqual(self.state(ids[0])["attempts"], 0)
 
-    # kit3.next_task / taskqueue.claim: a worker name is any string the caller types, so one worker can fill another's batch
-    @unittest.expectedFailure
+    # closed since the review. It was: a worker name is any string the caller types, so one worker could fill another's batch or take a new
+    # place with every new name. Now the gate (hook.py) lets each agent the host names draw a first task once, and never under a name it
+    # chose; a later draw needs the ticket of that worker's last task; and the queue has no more places than the stage has agents.
     def test_a_worker_cannot_fill_another_workers_batch(self):
+        import hook
+        named = {"agent_type": "swarm-queue", "agent_id": "attacker", "tool_name": "Bash", "tool_input": {"command": "swk next victim"}}
+        self.assertEqual(hook.decide(named)[0], "refuse")
         ids = self.make("small", 3)
         taskqueue.create(self.stage, ids, 1)
-        self.swk("next", "victim")  # an attacker takes the victim's whole batch
-        code, out = self.swk("next", "victim")  # the victim asks for its first task
-        self.assertIn("S-", out)
+        code, out = self.swk("next")  # the victim draws under a name nobody else knows
+        victim = out.splitlines()[0].split()[1]
+        self.assertEqual(self.swk("next", victim)[0], 2, "the victim's name without the ticket of its task draws nothing")
+        self.assertEqual(self.swk("next", victim, "00000000")[0], 2)
 
-    # kit3.next_task: one caller changes its name to take more than the batch
-    @unittest.expectedFailure
     def test_a_worker_cannot_beat_the_batch_with_a_new_name(self):
         ids = self.make("small", 4)
         taskqueue.create(self.stage, ids, 1)
-        taken = [self.swk("next", f"n{n}")[1] for n in range(3)]
-        self.assertEqual(sum("worker n" in t for t in taken), 1)
+        (self.stage / ".queue" / "max_workers").write_text("2")  # the stage has two agents
+        taken = [self.swk("next") for _ in range(4)]
+        self.assertEqual([code for code, _ in taken], [0, 0, 2, 2])
+        self.assertIn("every place in this stage is taken", taken[2][1])
+        self.assertEqual(taskqueue.status(self.stage)["waiting"], 2)
 
     def test_a_slow_regular_expression_is_stopped(self):
         # holds: the regular-expression engine lets the SIGALRM handler run, so a catastrophic pattern on a worker-made line is refused after the limit
@@ -137,8 +142,7 @@ class WorkerFaults(Stage):
         self.assertEqual(done.returncode, 2)
         self.assertIn("took too long", done.stdout)
 
-    # kit.setline + kit.test: a changed module runs as the same user in the task folder, so ../.hidden/ID.json (the truth) can be printed
-    @unittest.expectedFailure
+    # closed since the review. It was: kit.setline + kit.test: a changed module runs as the same user in the task folder, so ../.hidden/ID.json (the truth) can be printed
     def test_a_changed_module_cannot_print_the_withheld_truth(self):
         (ident,) = self.make("large", 1)
         truth = json.loads((self.stage / ".hidden" / f"{ident}.json").read_text())["truth"]["fixed_function"]
@@ -148,23 +152,20 @@ class WorkerFaults(Stage):
         code, out = self.swk("test", ident)
         self.assertNotIn(truth, out)
 
-    # kit.answer: nested JSON raises RecursionError, which kit.main does not catch: a traceback instead of a refusal
-    @unittest.expectedFailure
+    # closed since the review. It was: kit.answer: nested JSON raises RecursionError, which kit.main does not catch: a traceback instead of a refusal
     def test_deeply_nested_answer_is_refused(self):
         (ident,) = self.make("large", 1)
         code, _ = self.swk("answer", ident, stdin="[" * 19000)
         self.assertEqual(code, 2)
 
-    # kit.answer: sorting a list of objects raises TypeError, which kit.main does not catch
-    @unittest.expectedFailure
+    # closed since the review. It was: kit.answer: sorting a list of objects raises TypeError, which kit.main does not catch
     def test_unsortable_answer_is_refused(self):
         (ident,) = self.make("large", 1)
         given = {"fixed_function": "f", "direct_callers": [{"a": 1}, {"a": 2}], "failed_event_ids": [], "build_error_code": "x"}
         code, _ = self.swk("answer", ident, stdin=json.dumps(given))
         self.assertEqual(code, 2)
 
-    # kit.emit: the counters are written in place (read, change, truncate, write), so a reader or a second writer sees a torn or lost record
-    @unittest.expectedFailure
+    # closed since the review. It was: kit.emit: the counters are written in place (read, change, truncate, write), so a reader or a second writer sees a torn or lost record
     def test_state_is_replaced_not_rewritten_in_place(self):
         (ident,) = self.make("large", 1)
         state, written = self.stage / ".kit" / f"{ident}.json", []
@@ -173,13 +174,15 @@ class WorkerFaults(Stage):
             self.swk("show", ident)
         self.assertNotIn(state, written)
 
-    # taskqueue.claim: a crash between the rename and the write leaves a claim with no lease, and reclaim skips it for ever
-    @unittest.expectedFailure
+    # closed since the review. It was: taskqueue.claim: a crash between the rename and the write leaves a claim with no lease, and reclaim skips it for ever
     def test_a_claim_without_a_lease_is_reclaimed(self):
         taskqueue.create(self.stage, ["S-0001"], 1)
         root = self.stage / ".queue"
         os.rename(root / "waiting" / "S-0001", root / "claimed" / "S-0001")
+        self.assertEqual(taskqueue.reclaim(self.stage), [], "a claim taken a moment ago may still be writing its lease")
+        os.utime(root / "claimed" / "S-0001", (1, 1))  # the worker was killed long ago: the file's own time is all there is
         self.assertEqual(taskqueue.reclaim(self.stage, now=10**9), ["S-0001"])
+        self.assertTrue((root / "waiting" / "S-0001").exists())
 
 
 CASES_DENIED = ["curl http://x", "sudo id", "git push", "git -C /x push origin", "git -c a=b fetch", "env", "printenv", "cat /proc/self/environ", "echo hi; wget x",
@@ -201,8 +204,7 @@ class LaneGuard(unittest.TestCase):
                                       ("Grep", {"pattern": "x", "path": "/root"}, False)]:
                 self.assertEqual(lane_guard.allowed({"tool_name": tool, "tool_input": given})[0], want, (tool, given))
 
-    # lane_guard.visible: a `cat <<EOF | sh` here-document is hidden as if it were file content, so what it runs is never judged
-    @unittest.expectedFailure
+    # closed since the review. It was: lane_guard.visible: a `cat <<EOF | sh` here-document is hidden as if it were file content, so what it runs is never judged
     def test_a_here_document_piped_to_a_shell_is_judged(self):
         self.assertFalse(self.bash("cat <<'EOF' | sh\ncurl http://x\nEOF"))
 
@@ -231,8 +233,7 @@ class LaneGuard(unittest.TestCase):
             self.assertFalse(self.bash("echo x > /etc/motd"))
             self.assertFalse(self.bash("tee /usr/local/x < /dev/null"))
 
-    # lane_guard.allowed (Glob): with no path, an absolute pattern lists any folder
-    @unittest.expectedFailure
+    # closed since the review. It was: lane_guard.allowed (Glob): with no path, an absolute pattern lists any folder
     def test_glob_pattern_cannot_leave_the_repository(self):
         with tempfile.TemporaryDirectory() as lanes, mock.patch.dict(os.environ, {"SWARM_LANES": lanes}):
             self.assertFalse(lane_guard.allowed({"tool_name": "Glob", "tool_input": {"pattern": "/root/.ssh/*"}})[0])

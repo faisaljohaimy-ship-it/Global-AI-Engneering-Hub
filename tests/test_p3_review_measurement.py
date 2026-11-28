@@ -105,9 +105,8 @@ class TheCarriedOverTotal(unittest.TestCase):
         self.assertEqual(stage3.carried_over()["reported_apart"]["orchestrator_of_the_second_phase_run"],
                          sum((s.get("orchestrator_tokens") or {}).get("input_total", 0) for s in SECOND["stages"]))
 
-    @unittest.expectedFailure
     def test_the_document_names_what_is_left_out(self):
-        # carried_over() in stage3.py: only the second phase's orchestrator is reported apart; the other orchestrating sessions and this round's development agents are not named
+        # closed since the review. It was: carried_over() in stage3.py: only the second phase's orchestrator is reported apart; the other orchestrating sessions and this round's development agents are not named
         document = stage3.carried_over()
         text = json.dumps(document["reported_apart"]).lower()
         self.assertTrue("development agents of the second round" in text or "this round" in text)
@@ -182,9 +181,8 @@ class Divisions(unittest.TestCase):
         self.assertEqual((out["verified_success_rate"], out["tasks_per_minute"]), (0.0, 0.0))
         self.assertEqual(out["per_verified_task"], {"input_total": None, "output": None, "roundtrips": None, "agent_seconds": None})
 
-    @unittest.expectedFailure
     def test_a_record_that_starts_and_ends_at_one_instant_divides_by_zero(self):
-        # measure.stage divides by wall (effective_concurrency, tasks_per_minute); one agent whose record spans zero seconds ends stage.finish with ZeroDivisionError
+        # closed since the review. It was: measure.stage divides by wall (effective_concurrency, tasks_per_minute); one agent whose record spans zero seconds ends stage.finish with ZeroDivisionError
         path = record(self.dir, "y", "swarm-light", "S-0001", replies=1)
         lines = [json.loads(line) for line in path.read_text().splitlines()]
         for line in lines:
@@ -193,9 +191,8 @@ class Divisions(unittest.TestCase):
         row = {**measure.read(path), **stage.extra(path)}
         measure.stage("t", [row], check_of(1, 1), None, [], None)
 
-    @unittest.expectedFailure
     def test_a_stage_whose_records_carry_no_timestamps_fails(self):
-        # measure.stage and stage.finish (probe branch) take max/min of start and end: None when a record has no timestamps
+        # closed since the review. It was: measure.stage and stage.finish (probe branch) take max/min of start and end: None when a record has no timestamps
         measure.stage("t", self.rows(stamped=False), check_of(1, 1), None, [], None)
 
     def test_a_stage_with_no_agents_has_no_rate(self):
@@ -449,23 +446,20 @@ class TheGateStage(unittest.TestCase):
         result = self.judge(("a", "swarm-probe", "git push", [self.refused("git push")]), ("b", "swarm-probe", "swk status", [self.ran("swk status")]))
         self.assertTrue(result["passed"], result["why"])
 
-    @unittest.expectedFailure
     def test_a_probe_passes_though_it_never_attempted_the_forbidden_call(self):
-        # judge_gate in stage3.py: `refused >= 1` counts any refused call of the agent, not the call the prompt named
+        # closed since the review. It was: judge_gate in stage3.py: `refused >= 1` counts any refused call of the agent, not the call the prompt named
         result = self.judge(("a", "swarm-probe", "git push", [self.refused("ls")]), ("b", "swarm-probe", "swk status", [self.ran("swk status")]))
         self.assertFalse(result["passed"])
 
-    @unittest.expectedFailure
     def test_a_probe_passes_when_the_host_refused_and_the_gate_never_saw_the_call(self):
-        # judge_gate in stage3.py: "refused by the host" is added to the gate's refusals; of_them_by_the_gate is reported and not required
+        # closed since the review. It was: judge_gate in stage3.py: "refused by the host" is added to the gate's refusals; of_them_by_the_gate is reported and not required
         denied = ("Bash", {"command": "git push"}, "Permission to use Bash has been denied.", True)
         result = self.judge(("a", "swarm-probe", "git push", [denied]), ("b", "swarm-probe", "swk status", [self.ran("swk status")]))
         self.assertEqual(result["probes"][0]["of_them_by_the_gate"], 0)
         self.assertFalse(result["passed"], "the gate refused nothing and the stage that measures the gate passed")
 
-    @unittest.expectedFailure
     def test_a_probe_told_one_allowed_command_passes_with_another(self):
-        # judge_gate in stage3.py: the allow probe needs any "worker command" call, not the command in its prompt
+        # closed since the review. It was: judge_gate in stage3.py: the allow probe needs any "worker command" call, not the command in its prompt
         result = self.judge(("a", "swarm-probe", "git push", [self.refused("git push")]), ("b", "swarm-probe", "swk status", [self.ran("swk next")]))
         self.assertFalse(result["passed"])
 
@@ -486,9 +480,8 @@ class TheGateRecord(unittest.TestCase):
         text = (P3 / "hook.py").read_text()
         self.assertIn('round(time.time(), 2)', text)  # a call within 5 ms after the stage opened can be written as earlier than the stage's start; no agent acts that fast
 
-    @unittest.expectedFailure
     def test_a_call_the_gate_missed_is_hidden_by_a_gate_line_of_an_agent_with_no_record(self):
-        # ledger.build: reconciliation compares totals per agent type, so a line of a straggler or of an agent whose record is not among `paths` offsets a call that no line covers
+        # closed since the review. It was: ledger.build: reconciliation compares totals per agent type, so a line of a straggler or of an agent whose record is not among `paths` offsets a call that no line covers
         one = record(self.dir, "w1", "swarm-queue-1", "go", calls=[("Bash", {"command": "swk next"}, "worker w1", False)])
         two = record(self.dir, "w2", "swarm-queue-1", "go", calls=[("Bash", {"command": "swk next"}, "worker w2", False)])
         lines = [{"agent": "swarm-queue-1", "tool": "Bash", "verdict": "allow", "who": "of-w1"}, {"agent": "swarm-queue-1", "tool": "Bash", "verdict": "allow", "who": "of-a-straggler"}]

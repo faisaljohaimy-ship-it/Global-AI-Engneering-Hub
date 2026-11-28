@@ -89,7 +89,8 @@ def queue_size(count: int, scratch: Path, budget: float) -> dict:
 
 
 def gate_figures(scratch: Path) -> dict:
-    call = {"agent_type": "swarm-queue-1", "agent_id": "a1", "tool_name": "Bash", "tool_input": {"command": "swk next"}}
+    # `swk status` and not `swk next`: the gate lets one agent draw a first task once, so the same call 200 times would be refused 199 times
+    call = {"agent_type": "swarm-queue-1", "agent_id": "a1", "tool_name": "Bash", "tool_input": {"command": "swk status"}}
     began = time.perf_counter()
     n = 20000
     for _ in range(n):

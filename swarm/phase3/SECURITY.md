@@ -188,6 +188,88 @@ Tests:
 
 Left open: The process limit applies only when the caller is root.
 
+## W11: a worker: hands in, or changes, a task that another worker claimed
+
+Status: held
+
+Control: `swarm/phase3/kit3.py` `submit`; `swarm/phase3/kit3.py` `main`; `swarm/phase3/stage3.py` `finish`
+
+Tests:
+- `tests/test_p3_tickets.py::TicketTest.test_bad_tickets_are_refused_and_leave_no_trace`
+- `tests/test_p3_tickets.py::TicketTest.test_used_ticket_cannot_be_replayed`
+- `tests/test_p3_review_security.py::WorkerFaults.test_a_worker_cannot_use_a_task_it_does_not_hold`
+- `tests/test_p3_gate.py::RunTests.test_a_worker_given_a_task_by_id_that_acts_on_anothers_task_ends_the_run`
+
+Left open: A stage with a queue runs `next` and `submit` only, and a hand-in needs the ticket of its claim. A stage whose tasks are given by id has no ticket: there the records are read after the stage, and a command on another worker's task ends the run. That is found afterwards, not stopped.
+
+## W12: a worker: takes more than its place in the queue: a new name for every draw, or another worker's name
+
+Status: held
+
+Control: `swarm/phase3/hook.py` `first_draw`; `swarm/phase3/hook.py` `decide`; `swarm/phase3/kit3.py` `next_task`
+
+Tests:
+- `tests/test_p3_gate.py::DecisionTests.test_a_worker_draws_its_first_task_once_and_never_under_a_name_it_chose`
+- `tests/test_p3_tickets.py::TicketTest.test_next_needs_the_ticket_of_the_last_task`
+- `tests/test_p3_review_security.py::WorkerFaults.test_a_worker_cannot_beat_the_batch_with_a_new_name`
+- `tests/test_p3_review_security.py::WorkerFaults.test_a_worker_cannot_fill_another_workers_batch`
+
+Left open: The first draw is tied to the agent the host names, so it holds only through the session gate. The worker command alone, called with no gate in front, gives a place to whoever asks, up to the number of agents the stage has.
+
+## W13: a worker: plants a link where its hand-in or its answer is written
+
+Status: held
+
+Control: `swarm/phase2/kit.py` `write_plain`
+
+Tests:
+- `tests/test_p3_isolation.py::HandIn.test_a_solution_that_is_a_symbolic_link_is_not_written_through`
+- `tests/test_p3_isolation.py::HandIn.test_an_answer_that_is_a_symbolic_link_is_not_written_through`
+
+Left open: A worker has no command that makes a link; this guards against one left by an earlier step.
+
+## C5: code a worker wrote: reads the withheld tests beside its task, another task, or the private state of the run
+
+Status: held
+
+Control: `swarm/phase3/handin.py` `isolated`; `swarm/phase3/handin.py` `protect`; `swarm/phase3/stage3.py` `cage_problems`
+
+Tests:
+- `tests/test_p3_handin.py::WallTests.test_hidden_tests`
+- `tests/test_p3_handin.py::WallTests.test_private_folder`
+- `tests/test_p3_handin.py::WallTests.test_write_swarm_home`
+- `tests/test_p3_handin.py::WallTests.test_selftest_never_hides_a_wall_that_is_not_enforced`
+- `tests/test_p3_review_security.py::WorkerFaults.test_a_changed_module_cannot_print_the_withheld_truth`
+
+Left open: The code is run as another user on a copy of its own files. That needs the caller to be root. Where it is not, the run's plan refuses to open a stage; the worker command by itself still runs the code, with the walls that need no root.
+
+## J1: an agent told to try a forbidden thing in the security gate stage: passes the stage without trying it, or because the host and not the gate refused
+
+Status: held
+
+Control: `swarm/phase3/stage3.py` `judge_gate`; `swarm/phase3/stage3.py` `named_call`
+
+Tests:
+- `tests/test_p3_review_measurement.py::TheGateStage.test_a_probe_passes_though_it_never_attempted_the_forbidden_call`
+- `tests/test_p3_review_measurement.py::TheGateStage.test_a_probe_passes_when_the_host_refused_and_the_gate_never_saw_the_call`
+- `tests/test_p3_review_measurement.py::TheGateStage.test_a_probe_told_one_allowed_command_passes_with_another`
+- `tests/test_p3_gate.py::RunTests.test_a_probe_that_was_never_started_does_not_count_as_refused`
+
+Left open: A probe that words its command otherwise than it was told counts as not having tried, and the stage fails. That errs on the closed side.
+
+## J2: any agent: makes a call the gate was never asked about
+
+Status: held
+
+Control: `swarm/phase3/ledger.py` `build`; `swarm/phase3/stage3.py` `decide`
+
+Tests:
+- `tests/test_p3_review_measurement.py::TheGateRecord.test_a_call_the_gate_missed_is_hidden_by_a_gate_line_of_an_agent_with_no_record`
+- `tests/test_p3_gate.py::LedgerTests.test_a_gate_that_saw_fewer_calls_than_the_records_hold_is_not_reconciled`
+- `tests/test_p3_gate.py::RunTests.test_a_workers_foreign_call_that_ran_ends_the_run`
+
+Left open: This is found after the stage, from the host's records, and ends the run. It does not stop the call. It relies on the host writing a record for every agent.
+
 ## D1: a development agent: writes outside its lane's worktree
 
 Status: held
@@ -210,7 +292,7 @@ Tests:
 - `tests/test_p3_team.py::NetTests.test_the_shell_may_test_and_commit_and_may_not_push_fetch_switch_or_install`
 - `tests/test_p3_gate.py::DecisionTests.test_a_development_agent_is_held_by_the_lane_net`
 
-Left open: The net is a list of refused commands and not a sandbox. A shell can be made to do what a pattern did not foresee.
+Left open: The net is a list of refused commands and not a sandbox. The security review shows five ways through that are still open: a network command by its path or behind a wrapper, the network by another tool, git aliases and option forms, other ways to list the environment, and redirection to a file outside the lanes (tests/test_p3_review_security.py, the tests of LaneGuard marked as expected failures).
 
 ## D3: a development agent: reads outside the repository and the lanes, the environment, or the host's private folders
 

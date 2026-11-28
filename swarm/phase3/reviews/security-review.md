@@ -76,3 +76,19 @@ Smallest fix: for Glob refuse a pattern that is absolute or holds `..`.
 - A real race between two processes on `emit` or `claim` (the claim batch check has a window between `_net` and the append, so two simultaneous `swk next` of one name can exceed the batch by one; reasoned, not run).
 - `workload.inspect` and `tasks.run_suite` (the screen and the run of a submitted solution, which also runs as the same user: F1 applies to it if the screen can be bypassed); the Headroom front end in `kit.test`; timing differences that might tell a worker about the hidden suite (the replies do not depend on the hidden data in anything read, but no timing was measured); disk or memory use by a worker that writes many files (only `solution.py`, one line per `setline` and `ANSWER.json` can be written by the verbs).
 - Behaviour after the hand-in tickets arrive: F2 and F3 are written for the code as it is.
+
+## What was done about each finding
+
+Added by the session that set the review, after it. The review above is left as it was written.
+
+| Finding | State | Where | Proof |
+|---|---|---|---|
+| F1 withheld answer readable through `setline` and `test` | closed | `kit3.main` runs worker-written code through `handin.isolated`: another user, a copy of the task folder only. `tasks.make` and `taskqueue.create` make `.hidden`, `.kit` and `.queue` for their owner only. The run's plan refuses to open a stage where the cage cannot be had. | `test_a_changed_module_cannot_print_the_withheld_truth`, `tests/test_p3_handin.py` |
+| F2 any worker can act on any task | closed where there is a queue; found afterwards where there is none | A stage with a queue runs `next` and `submit` only, and a hand-in needs the ticket of its claim. In a stage given by id, `stage3.finish` reads the records: a command on another worker's task ends the run. | `test_a_worker_cannot_use_a_task_it_does_not_hold`, `tests/test_p3_tickets.py`, `RunTests.test_a_worker_given_a_task_by_id_that_acts_on_anothers_task_ends_the_run` |
+| F3 worker names not authenticated | closed through the gate | `hook.py` lets each agent the host names draw a first task once and never under a name it chose; a later draw needs the ticket of the worker's last task; the queue has as many places as the stage has agents. | `test_a_worker_draws_its_first_task_once_and_never_under_a_name_it_chose`, `test_a_worker_cannot_beat_the_batch_with_a_new_name`, `test_a_worker_cannot_fill_another_workers_batch` |
+| F4 tracebacks from `answer` | closed | `kit.main` and `kit3.main` answer every fault with `refused` and its kind; list items of an answer must be names or numbers. | `test_deeply_nested_answer_is_refused`, `test_unsortable_answer_is_refused` |
+| F5 state rewritten in place | closed | `kit.keep` writes a file beside the state and replaces it whole. No lock: two calls on one task can still lose a count, and tickets now keep a second caller away. | `test_state_is_replaced_not_rewritten_in_place` |
+| F6 a claim with no lease is never reclaimed | closed | `taskqueue._made` takes the file's own time when no lease is written. | `test_a_claim_without_a_lease_is_reclaimed` |
+| F7 a here-document piped to a shell is hidden | closed | `lane_guard.WRITES_A_FILE` hides a body only when `cat` writes it to a named file and nothing else is on the line. | `test_a_here_document_piped_to_a_shell_is_judged` |
+| F8 the net names words, not effects | open, by nature | Five proofs stay marked as expected failures. The net is a list of refused commands. Development agents are not the experiment's workers, and their work is joined only after a check of the paths they changed. | `LaneGuard`, five expected failures |
+| F9 Glob with an absolute pattern | closed | `lane_guard.allowed` refuses a pattern that is absolute or holds `..`. | `test_glob_pattern_cannot_leave_the_repository` |

@@ -28,6 +28,7 @@ Counts and tool names only. No command text and no content is kept.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -46,7 +47,7 @@ NO_RESULT = "no result recorded"
 UNKNOWN = "type not recorded"
 
 
-def scan(path: Path) -> tuple[list[dict], dict]:
+def scan(path: Path, with_asked: bool = False) -> tuple[list[dict], dict]:
     """The rows of a record and what was odd about it: lines that are not JSON, results with no call, call ids seen twice."""
     asked, came_back = [], {}
     odd = {"unreadable_lines": 0, "results_without_a_call": 0, "repeated_call_ids": 0, "repeated_result_ids": 0}
@@ -74,7 +75,7 @@ def scan(path: Path) -> tuple[list[dict], dict]:
                 if block.get("id") is not None and any(block.get("id") == seen["id"] for seen in asked):  # one reply may be written on several lines
                     odd["repeated_call_ids"] += 1
                 else:
-                    asked.append({"id": block.get("id"), "name": str(block.get("name")), "command": given.get("command")})
+                    asked.append({"id": block.get("id"), "name": str(block.get("name")), "command": given.get("command"), "path": given.get("file_path")})
             elif block.get("type") == "tool_result":
                 inner = block.get("content")
                 if isinstance(inner, str):
@@ -111,12 +112,27 @@ def scan(path: Path) -> tuple[list[dict], dict]:
             kind = "other tool"
         rows.append({"tool": name, "class": kind})
     odd["results_without_a_call"] = sum(1 for key in came_back if all(key != call["id"] for call in asked))
+    if with_asked:  # one row was made for each call, in order
+        for row, call in zip(rows, asked, strict=True):
+            row["asked"] = call["command"] if call["name"] == "Bash" else call["path"]
     return rows, odd
 
 
 def calls(path: Path) -> list[dict]:
     """One row per tool call of a record: the tool's name and its class."""
     return scan(path)[0]
+
+
+def asked(path: Path) -> list[dict]:
+    """The rows of `calls`, each with what it asked for: a shell call's command, a file tool's path. For a judge that must know
+    whether an agent tried the one thing it was told to try. It is compared in memory and never written anywhere."""
+    return scan(path, with_asked=True)[0]
+
+
+def who(path: Path) -> str:
+    """The short hash the gate writes for the agent this record belongs to: the record's file is named after the agent's id."""
+    name = Path(path).stem
+    return hashlib.sha256((name[6:] if name.startswith("agent-") else name).encode("utf-8", "replace")).hexdigest()[:10]
 
 
 def agent_type(path: Path) -> str | None:
@@ -134,6 +150,7 @@ def build(paths: list[Path], gate_lines: list[dict] | None = None) -> dict:
     ran: dict[str, int] = {}
     odd_total = {"unreadable_lines": 0, "results_without_a_call": 0, "repeated_call_ids": 0, "repeated_result_ids": 0}
     empty = unknown = 0
+    by_agent: dict[str, int] = {}
     for path in paths:
         recorded = agent_type(path)
         kind = recorded or UNKNOWN
@@ -142,11 +159,13 @@ def build(paths: list[Path], gate_lines: list[dict] | None = None) -> dict:
         empty += not rows
         for name, count in odd.items():
             odd_total[name] += count
+        by_agent.setdefault(who(path), 0)
         for row in rows:
             by_class[row["class"]] = by_class.get(row["class"], 0) + 1
             by_tool[row["tool"]] = by_tool.get(row["tool"], 0) + 1
             if row["class"] != "hand-back" and not row.get("hand_back") and row["class"] != "refused by the host":  # the host answers these itself, before any gate is asked
                 by_type[kind] = by_type.get(kind, 0) + 1
+                by_agent[who(path)] += 1
             if row["class"] in RAN or row.get("may_have_run_outside"):
                 key = f"{row['class']}: {row['tool']}"
                 ran[key] = ran.get(key, 0) + 1
@@ -155,6 +174,7 @@ def build(paths: list[Path], gate_lines: list[dict] | None = None) -> dict:
               "clean": not ran, "agents_with_type_not_recorded": unknown, "empty_records": empty, **odd_total}
     if gate_lines is not None:
         seen: dict[str, int] = {}
+        seen_by_agent: dict[str, int] = {}
         unusable = 0
         for line in gate_lines:
             if not isinstance(line, dict):
@@ -164,8 +184,20 @@ def build(paths: list[Path], gate_lines: list[dict] | None = None) -> dict:
                 continue
             if line.get("tool") not in HAND_BACK:
                 seen[line["agent"]] = seen.get(line["agent"], 0) + 1
-        missed = {kind: count - seen.get(kind, 0) for kind, count in by_type.items() if count > seen.get(kind, 0)}
+                if isinstance(line.get("who"), str):
+                    seen_by_agent[line["who"]] = seen_by_agent.get(line["who"], 0) + 1
+        # Agent by agent: the gate's hash of an agent's id against the hash of the record's name. Then a line of one agent cannot stand in
+        # for a call of another. Lines that name no agent at all (a record made by another gate) can only be compared by totals per agent type.
+        per_agent = bool(seen_by_agent)  # this gate writes a hash for every agent; only a record made by another gate has none
+        if per_agent:
+            short = {name: count - seen_by_agent.get(name, 0) for name, count in by_agent.items() if count > seen_by_agent.get(name, 0)}
+            missed = {"agents": len(short), "calls": sum(short.values())} if short else {}
+        else:
+            missed = {kind: count - seen.get(kind, 0) for kind, count in by_type.items() if count > seen.get(kind, 0)}
+        strangers = {name: count for name, count in seen_by_agent.items() if name not in by_agent} if per_agent else {}
         result["gate"] = {"calls_the_gate_saw_by_agent_type": dict(sorted(seen.items())), "calls_in_records_the_gate_did_not_see": missed,
+                          "compared_by": "agent" if per_agent else "agent type" if by_type or seen else "nothing to compare",
+                          "agents_the_gate_saw_that_have_no_record_here": len(strangers), "their_calls": sum(strangers.values()),
                           "refused_by_the_gate_in_its_own_record": sum(isinstance(line, dict) and line.get("verdict") == "refuse" for line in gate_lines),
                           "gate_lines_unusable": unusable, "reconciled": not missed}
     return result

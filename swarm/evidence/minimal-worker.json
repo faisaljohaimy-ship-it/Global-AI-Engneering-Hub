@@ -5,7 +5,7 @@
   "Write",
   "Bash"
  ],
- "model": "claude-haiku-5-5",
+ "model": "haiku",
  "verified": true,
  "hidden_tests": "14/14",
  "first_request_context_tokens": 127620,

@@ -37,3 +37,11 @@ Tested black-box in `tests/test_p3_isolation.py`: the worker's command `swarm/ph
 - A task folder that is itself a link (replaced by the host) is followed by `show`; the test only records that it answers. A worker cannot make it.
 - Not tested: who may hand in whose task; a worker running as another user.
 - Timing: the file runs in about 21 seconds here (each call starts a new interpreter); that is a measurement of one run on this machine.
+
+## What was done about each finding
+
+Added by the session that set the review, after it.
+
+- Faults 1 and 2 (a hand-in or an answer written through a link): closed. `kit.write_plain` refuses a name that is a link or not a plain file, and opens without following links.
+- Fault 3 (`.hidden`, `.kit` and `.queue` readable by others): closed. `tasks.make` and `taskqueue.create` make them for their owner only, and `stage3.setup` closes the run's own folder.
+- Since this review a stage with a queue runs `next` and `submit` only, and a hand-in there needs a ticket. The tests of this file now lay a stage out as the run does: large tasks given by id with every verb, small and medium tasks in a queue. The queue's note of a refused hand-in (`.queue/refused`, a time and a task id) is left out of the comparison of the folder before and after a refused call, because it is written on purpose.

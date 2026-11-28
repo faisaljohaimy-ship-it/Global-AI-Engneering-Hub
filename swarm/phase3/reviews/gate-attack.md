@@ -46,3 +46,11 @@ change (it fails with the original `hook.py` too); it is outside this lane's fil
 - Whether a symbolic link or a folder sits in the path above `SWARM_HOME/p3` was not tested; only the record file is
   protected.
 - The record is private and not signed: whoever can write to `SWARM_HOME` can alter it.
+
+## What was done about each finding
+
+Added by the session that set the review, after it.
+
+- The test of the run that failed in the lane's session (`test_no_stage_is_opened_when_the_installed_gate_is_gone`) found a gate installed for the whole machine by the team's own setup. The run's tests now leave such folders out of their path.
+- A call that carries neither agent field still passes as the orchestrator: the gate cannot tell. What catches it is the ledger: the gate is compared with the host's records agent by agent, and a call in a record that the gate did not judge as that agent's ends the run (`ledger.build`).
+- Since this review the gate also lets each agent draw a first task from a queue once, and refuses a draw under a name with no ticket (`hook.first_draw`).

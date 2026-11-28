@@ -34,6 +34,13 @@ try:
     import compact
 except ImportError:  # another lane's module; the full text is the fallback
     compact = None
+try:
+    import handin  # the cage code a worker wrote is run in
+except ImportError:
+    handin = None
+
+QUEUE_VERBS = ("next", "submit", "status")  # all a worker of a stage with a queue needs: nothing else runs there
+RUNS_CODE = ("submit", "test")
 
 TICKET = re.compile(r"[0-9a-f]{8}")
 NONE_LEFT = "No more tasks for you. Reply DONE."
@@ -102,8 +109,12 @@ def next_task(args: list[str]) -> None:
         ticket = args[1] if len(args) == 2 else ""
         if not (_matches(_tickets(stage) / held[-1], ticket) or _matches(_tickets(stage) / (held[-1] + ".spent"), ticket)):
             raise kit.Refused(f"give the ticket of your last task: swk next {worker} TICKET")
-    elif len(args) == 2:
-        raise kit.Refused("a worker's first draw takes no ticket")
+    else:
+        if len(args) == 2:
+            raise kit.Refused("a worker's first draw takes no ticket")
+        places = stage / ".queue" / "max_workers"  # written when the stage is opened: as many workers as the stage has agents
+        if places.exists() and len(os.listdir(stage / ".queue" / "workers")) >= int(places.read_text()):
+            raise kit.Refused("every place in this stage is taken")
     ident = taskqueue.claim(stage, worker)
     if ident is None:
         print(NONE_LEFT)
@@ -152,13 +163,25 @@ def submit(args: list[str]) -> None:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     kit.HOME = home()
+    if argv and argv[0] in RUNS_CODE:
+        if handin is None:
+            print("swk: refused: code cannot be run safely here")
+            return 2
+        handin.install()
+    try:
+        queued = bool(argv) and argv[0] != "status" and (kit.stage() / ".queue").is_dir()
+    except Exception:  # noqa: BLE001 - no open stage: the verb itself says so below
+        queued = False
+    if queued and argv[0] not in QUEUE_VERBS:
+        print("swk: refused: this stage runs next and submit only")
+        return 2
     if argv and argv[0] in ("next", "submit"):
         try:
             (next_task if argv[0] == "next" else submit)(argv[1:])
         except kit.Refused as problem:
             print(f"swk: refused: {problem}")
             return 2
-        except (OSError, ValueError, KeyError) as problem:
+        except Exception as problem:  # noqa: BLE001 - a worker is never shown a traceback
             print(f"swk: refused: {type(problem).__name__}")
             return 2
         return 0

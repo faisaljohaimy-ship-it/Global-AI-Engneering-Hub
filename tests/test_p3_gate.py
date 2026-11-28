@@ -116,7 +116,7 @@ class DecisionTests(unittest.TestCase):
             program.write_text(hook.wrapper(f"SWARM_HOME='{home / 'state'}'"))
             program.chmod(0o755)
             env = {"PATH": os.environ["PATH"]}
-            allowed, orchestrator = json.dumps(shell("swarm-queue-1", "swk next")), json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}})
+            allowed, orchestrator = json.dumps(shell("swarm-queue-1", "swk status")), json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}})
             run = lambda text, *more: subprocess.run([str(program), *more], input=text, capture_output=True, text=True, env=env)  # noqa: E731
             self.assertEqual(run(allowed).returncode, 0)
             crashed = run(allowed, "fault")
@@ -135,6 +135,29 @@ class DecisionTests(unittest.TestCase):
             self.assertIn("not recorded does not run", unrecorded.stderr)
             self.assertEqual(run(orchestrator).returncode, 0, "the orchestrator is not confined by this gate, and must be able to repair it")
             self.assertEqual(run(json.dumps(shell("swarm-queue-1", "id"))).returncode, 2)
+
+    def test_a_worker_draws_its_first_task_once_and_never_under_a_name_it_chose(self):
+        """The queue gives a place to whoever asks with `swk next`. The host says who is asking, so the gate lets each agent ask once."""
+        self.assertEqual(hook.decide(shell("swarm-queue", "swk next w1a2b3"))[0], "refuse", "a name and no ticket")
+        self.assertEqual(hook.decide(shell("swarm-queue", "swk next w1a2b3 0a1b2c3d"))[0], "allow", "a name and the ticket of its last task")
+        with tempfile.TemporaryDirectory() as folder:
+            home = pathlib.Path(folder)
+            program = home / "swk-hook"
+            program.write_text(hook.wrapper(f"SWARM_HOME='{home / 'state'}'"))
+            program.chmod(0o755)
+            run = lambda call, **more: subprocess.run([str(program)], input=json.dumps(call), capture_output=True, text=True, env={"PATH": os.environ["PATH"], **more})  # noqa: E731
+            self.assertEqual(run(shell("swarm-queue", "swk next", ident="one"), SWK_HOOK_DRY="1").returncode, 0, "the self-test takes no place")
+            self.assertEqual(run(shell("swarm-queue", "swk next", ident="one")).returncode, 0)
+            again = run(shell("swarm-queue", "swk next", ident="one"))
+            self.assertEqual(again.returncode, 2)
+            self.assertIn("exact line your hand-in printed", again.stderr)
+            self.assertEqual(run(shell("swarm-queue", "swk next\n", ident="one")).returncode, 2)
+            self.assertEqual(run(shell("swarm-queue", "swk next", ident="two")).returncode, 0, "another agent has its own first draw")
+            self.assertEqual(run(shell("swarm-queue", "swk next w1a2b3 0a1b2c3d", ident="one")).returncode, 0)
+            self.assertEqual(run({"tool_name": "Bash", "tool_input": {"command": "swk next"}}).returncode, 0, "the orchestrator is not a worker")
+            lines = [json.loads(line) for line in (home / "state" / "p3" / "hook.jsonl").read_text().splitlines()]
+            self.assertEqual([line["verdict"] for line in lines], ["allow", "refuse", "refuse", "allow", "allow", "pass"])
+            self.assertEqual(len(list((home / "state" / "p3" / "drawn").iterdir())), 2)
 
     def test_the_settings_entry_covers_every_tool_and_does_nothing_until_the_gate_is_installed(self):
         entry = json.loads((ROOT / ".claude" / "settings.json").read_text())["hooks"]["PreToolUse"][0]
@@ -255,7 +278,8 @@ class RunTests(unittest.TestCase):
             (self.home / name).mkdir()
         (self.home / "main.jsonl").write_text("")
         (self.home / "plan.json").write_text(json.dumps(SMALL_PLAN))
-        self.env = {"PATH": f"{self.home / 'bin'}:{os.environ['PATH']}", "HOME": str(self.home), "SWARM_HOME": str(self.home / "swarm"), "SWARM_BIN": str(self.home / "bin"),
+        elsewhere = [folder for folder in os.environ["PATH"].split(":") if folder and not (pathlib.Path(folder) / "swk-hook").exists() and not (pathlib.Path(folder) / "swk").exists()]
+        self.env = {"PATH": ":".join([str(self.home / "bin"), *elsewhere]), "HOME": str(self.home), "SWARM_HOME": str(self.home / "swarm"), "SWARM_BIN": str(self.home / "bin"),
                     "SWARM_MAIN_RECORD": str(self.home / "main.jsonl"), "SWARM_RECORDS": str(self.home / "records"), "SWARM_REPORT_DIR": str(self.home / "public"),
                     "SWARM_PLAN3": str(self.home / "plan.json"), "HR_TOOL_HOME": str(self.home / "none")}
         self.addCleanup(lambda: subprocess.run(["pkill", "-f", str(self.home / "swarm")], capture_output=True))
@@ -378,6 +402,56 @@ class RunTests(unittest.TestCase):
         self.assertIn("calls outside a worker's contract ran in q4", last)
         work = json.loads((self.home / "public" / "evidence" / "stages.json").read_text())["stages"][1]
         self.assertFalse(work["guard_enforced"], "a stage where a foreign call ran is not a stage where the gate held")
+
+    def test_an_agent_of_another_type_is_not_a_worker_of_the_stage_and_its_tokens_still_count(self):
+        self.assertIn("PASSED", self.pass_the_gate().stdout)
+        self.stage3("prep")
+        write_record(self.home / "records", "stray", "general-purpose", "go", [("Read", {"file_path": "README.md"}, "text", False)])
+        write_record(self.home / "records", "silent", "swarm-queue-1", "go", [])  # started, and stopped before it did anything
+        done = self.stage3("finish")
+        work = json.loads((self.home / "public" / "evidence" / "stages.json").read_text())["stages"][1]
+        self.assertEqual(work["other_agents_during_the_stage"]["agents"], 1)
+        self.assertEqual(work["other_agents_during_the_stage"]["input_tokens"], 2 * 5510)
+        self.assertEqual(work["ledger"]["by_tool"], {}, "the other agent's call is not in the stage's ledger")
+        self.assertEqual(work["ledger"]["agents_of_other_types_started_during_the_stage"], 1)
+        document = json.loads((self.home / "public" / "evidence" / "stages.json").read_text())
+        counted = document["counted_before_this_run"]["total"] + sum(s["agent_tokens"]["input_total"] for s in document["stages"]) + 2 * 5510
+        self.assertEqual(document["figures"]["input_tokens_counted"], counted)
+        self.assertIn("left no record with a reply", done.stdout + done.stderr + json.dumps(document))
+
+    def test_a_worker_given_a_task_by_id_that_acts_on_anothers_task_ends_the_run(self):
+        plan = json.loads(json.dumps(SMALL_PLAN))
+        plan["stages"][1] = {"id": "t2", "kind": "task", "size": "small", "agents": 2, "tasks": 2, "first": 1, "agent_type": "swarm-light", "model": "haiku", "effort": "low", "delivery": "id"}
+        (self.home / "plan.json").write_text(json.dumps(plan))
+        self.assertIn("PASSED", self.pass_the_gate().stdout)
+        self.stage3("prep")
+        self.agent("swarm-light", "S-0001", [("Bash", {"command": "swk show S-0001"}), ("Bash", {"command": "swk show S-0002"})])
+        self.agent("swarm-light", "S-0002", [("Bash", {"command": "swk show S-0002"})])
+        last = self.stage3("finish").stdout.rstrip().splitlines()[-1]
+        self.assertTrue(last.startswith("END - "), last)
+        self.assertIn("worker command on another worker's task", last)
+
+    def test_the_projection_carries_a_margin_and_zero_is_not_a_projection(self):
+        sys.path.insert(0, str(P3))
+        import stage
+        import stage3
+        plan = json.loads(json.dumps(SMALL_PLAN))
+        spec = plan["stages"][1]
+        gate = {"label": "g0", "kind": "probe", "agent_tokens": {"input_total": 0, "output": 0}, "actual_agents": 3, "security_gate": {"passed": True, "why": []}}
+        alike = {"label": "q0", "kind": "task", "size": "medium", "agent_type": "swarm-queue-1", "model": "haiku", "actual_agents": 4, "registered_agents": 4, "verified_success_rate": 100.0,
+                 "security_findings": 0, "wall_seconds": 5, "peak_concurrent_agents": 4, "agent_tokens": {"input_total": 4000, "output": 1}, "tasks": 4, "verified_tasks": 4}
+        old = stage.PLAN
+        try:
+            for spent_left, per_agent, skipped in ((4000, 1000, True), (4999, 1000, True), (5000, 1000, False), (6_249_999, 0, True), (6_250_000, 0, False)):
+                plan["caps"]["spent_before_phase2"] = plan["caps"]["cumulative_input_tokens"] - spent_left - 4 * per_agent
+                stage.PLAN = plan
+                row = {**alike, "agent_tokens": {"input_total": 4 * per_agent, "output": 1}}
+                end, skip, _, figures = stage3.decide([gate, row], spec)
+                self.assertEqual((bool(skip), end), (skipped, []), (spent_left, per_agent, skip))
+            plan["caps"]["spent_before_phase2"] = plan["caps"]["cumulative_input_tokens"] + 1
+            self.assertIn("the limit is passed", " ".join(stage3.decide([gate], None)[0]))
+        finally:
+            stage.PLAN = old
 
     def test_no_stage_is_opened_when_the_installed_gate_is_gone(self):
         self.assertEqual(self.stage3("setup").returncode, 0)

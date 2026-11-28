@@ -19,7 +19,7 @@
    "effective_concurrency": 1.0,
    "tasks_per_minute": 12.91,
    "models": [
-    "claude-haiku-5-5"
+    "haiku"
    ],
    "agent_tokens": {
     "input_uncached": 6,
@@ -92,7 +92,7 @@
    "effective_concurrency": 3.77,
    "tasks_per_minute": 13.75,
    "models": [
-    "claude-haiku-5-5"
+    "haiku"
    ],
    "agent_tokens": {
     "input_uncached": 36,
@@ -169,7 +169,7 @@
    "effective_concurrency": 7.08,
    "tasks_per_minute": 29.46,
    "models": [
-    "claude-haiku-5-5"
+    "haiku"
    ],
    "agent_tokens": {
     "input_uncached": 70,
@@ -246,7 +246,7 @@
    "effective_concurrency": 14.39,
    "tasks_per_minute": 29.64,
    "models": [
-    "claude-haiku-5-5"
+    "haiku"
    ],
    "agent_tokens": {
     "input_uncached": 138,
@@ -351,7 +351,7 @@
      "score": 5,
      "out_of": 5
     },
-    "model": "claude-sonnet-5-5",
+    "model": "sonnet",
     "seconds": 20.37,
     "roundtrips": 8,
     "input_uncached": 16,
@@ -389,7 +389,7 @@
      "score": 5,
      "out_of": 5
     },
-    "model": "claude-sonnet-5-5",
+    "model": "sonnet",
     "seconds": 17.36,
     "roundtrips": 7,
     "input_uncached": 14,

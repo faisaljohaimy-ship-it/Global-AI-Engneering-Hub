@@ -19,6 +19,7 @@ import argparse
 import ast
 import hashlib
 import json
+import os
 import random
 import subprocess
 import sys
@@ -592,6 +593,7 @@ def make(out: Path, size: str, first: int, count: int, mode: str = "lean", seed:
     """Write COUNT tasks of one size. `extra` adds ready-made tasks, which the tests use."""
     for name in (".hidden", ".kit"):
         (out / name).mkdir(parents=True, exist_ok=True)
+        os.chmod(out / name, 0o700)  # the withheld tests and the worker state: their owner only
     made = list(extra or [])
     for number in range(first, first + count):
         made.append(small(number, seed) if size == "small" else medium(number, seed) if size == "medium" else large(number, seed, out, mode))

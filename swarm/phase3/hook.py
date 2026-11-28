@@ -15,7 +15,9 @@ who is calling, and what it does not know it refuses:
 - the host's own hand-back of an agent's answer: let through for every agent;
 - a worker of the experiment (agent types swarm-light*, swarm-queue*, swarm-large,
   swarm-probe*): a shell call must pass the worker gate (guard.allowed), one swk command
-  of a fixed shape; every other tool is refused, whatever the worker's definition lists;
+  of a fixed shape; every other tool is refused, whatever the worker's definition lists.
+  A worker draws its first task from a queue once (`swk next` alone, once for each agent
+  the host names) and never under a name it chose, so it cannot take a second place;
 - a development agent (swarm-dev): the lane net (lane_guard.allowed);
 - any other agent, of any type this gate does not know: every call refused;
 - a call this gate cannot read, a fault in the gate itself, or an agent's call that
@@ -52,6 +54,8 @@ TYPE_FIELDS = ("agent_type", "agentType", "subagent_type")
 ID_FIELDS = ("agent_id", "agentId")
 HAND_BACK = ("SubagentHandback", "StructuredOutput")
 REFUSAL = f"{guard.MARK}: refused."
+NAMED_FIRST_DRAW = re.compile(r"swk next \S+")  # a name and no ticket: a worker never needs it
+FIRST_DRAW = "swk next"
 
 
 def caller(call: dict) -> tuple[str | None, str | None]:
@@ -83,12 +87,27 @@ def decide(call: dict) -> tuple[str, str]:
             return "refuse", f"{REFUSAL} A worker has a shell and nothing else."
         command = call["tool_input"].get("command") if isinstance(call.get("tool_input"), dict) else None
         if isinstance(command, str) and len(command) <= MOST and "\0" not in command and guard.allowed(command):
+            if NAMED_FIRST_DRAW.fullmatch(command.strip("\n")):
+                return "refuse", f"{REFUSAL} Draw your first task with `swk next` alone; a later one with the exact line your hand-in printed."
             return "allow", ""
         return "refuse", f"{REFUSAL} Only the swk commands named in your instructions and your task run here, one per call."
     if kind == "swarm-dev":
         ok, why = lane_guard.allowed(call)
         return ("allow", "") if ok else ("refuse", f"{lane_guard.MARK}: refused: {why}.")
     return "refuse", f"{REFUSAL} In a session of this experiment only its own agent types may use tools."
+
+
+def first_draw(call: dict) -> bool:
+    """True unless this agent has drawn a first task before. The host says who is calling, so a worker cannot take a second
+    place in the queue by asking as if it were new. One empty file per agent, made in one step."""
+    _, ident = caller(call)
+    marker = LOG.parent / "drawn" / hashlib.sha256(str(ident).encode("utf-8", "replace")).hexdigest()[:20]
+    try:
+        marker.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        os.close(os.open(marker, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600))
+        return True
+    except FileExistsError:
+        return False
 
 
 def _plain(value, fallback="(unreadable)") -> str:
@@ -210,10 +229,15 @@ def main() -> int:
         if not isinstance(call, dict):
             raise ValueError("not a call")
         verdict, why = decide(call)
+        dry = os.environ.get("SWK_HOOK_DRY") == "1"
+        kind, _ = caller(call)
+        if verdict == "allow" and not dry and isinstance(kind, str) and WORKER.fullmatch(kind) and call.get("tool_name") == "Bash" \
+                and call["tool_input"]["command"].strip("\n") == FIRST_DRAW and not first_draw(call):
+            verdict, why = "refuse", f"{REFUSAL} You have drawn your first task. For another one use the exact line your hand-in printed."
     except Exception:  # noqa: BLE001 - whatever goes wrong inside the gate, the call does not run
         print(f"{REFUSAL} The gate could not read this call.", file=sys.stderr)
         return 2
-    if os.environ.get("SWK_HOOK_DRY") != "1" and not record(call, verdict) and verdict == "allow":
+    if not dry and not record(call, verdict) and verdict == "allow":
         print(f"{REFUSAL} The gate could not record this call, and a call that is not recorded does not run.", file=sys.stderr)
         return 2
     if verdict == "refuse":
