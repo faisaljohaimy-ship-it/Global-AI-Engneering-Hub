@@ -1,4 +1,4 @@
-# WAL-mode database overlay (synthetic, finding W2-UP-02)
+# WAL-mode database overlay (synthetic, findings W2-UP-02 and W2-UP-03)
 
 An overlay for `../taskapp`: tests copy `taskapp` to a temporary directory and copy these files
 over it. Nothing here is ever opened in place; a normal SQLite open would checkpoint the WAL
@@ -21,3 +21,6 @@ Before the fix the upgrade migrated the main file only, left the stale `-wal` be
 reported 300 rows preserved; the upgraded copy then opened as "database disk image is
 malformed". `tests/test_upgrade_fixes_wal.py` checks the snapshot, the migration and the full
 upgrade.
+
+`tests/test_upgrade_fixes_original.py` (W2-UP-03) copies the pair as `data/tasks.db{,-wal}` so the
+detectors' database scan opens it: a `mode=ro` open used to create the `-shm` beside the original.

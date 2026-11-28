@@ -1414,14 +1414,16 @@ class _Run:
         except detectors.DetectorError as error:
             raise UpgradeError(f"Invalid healing manifest: {error}") from None
         runtime = bool(healing_manifest.get("app")) and not self.audit_only
-        where = self.root if not runtime else self.scratch("audit")
+        # An upgrade runs the detectors on a disposable copy only, never on the original; the audit (which writes
+        # nothing) reads the target itself, and its database checks open files with immutable=1.
+        where = self.root if self.audit_only else self.scratch("audit")
         try:
             detection = detectors.run_all(where, healing_manifest, tests_dir=tests_dir, runtime=runtime,
                                           sandbox=self.sandbox if runtime else _NO_SANDBOX)
         except detectors.DetectorError as error:
             raise UpgradeError(f"Detector configuration error: {error}") from None
         finally:
-            if runtime:
+            if not self.audit_only:
                 shutil.rmtree(where, ignore_errors=True)
         self.security_baseline = sorted(f["evidence"]["fingerprint"] for f in detection["findings"] if f["detector"] == "security")
         self.defects = [f for f in detection["findings"] if healing.RANK[f["severity"]] >= healing.RANK["medium"]]
@@ -2244,9 +2246,13 @@ LIMITS = ("Generators are a bounded deterministic catalogue: spec-derived input 
 def _summary(run, status, applied):
     names = ", ".join(s["id"] for s in applied) or "none"
     unmet = run.requested.get("unmet") or []
-    return {"en": f"{status}: {len(applied)} step(s) applied in an isolated copy ({names}); the original system is unchanged."
+    unchanged = run.regression_report["checks"]["original-unchanged"]  # the sentence follows the snapshot comparison
+    return {"en": f"{status}: {len(applied)} step(s) applied in an isolated copy ({names}); "
+                  + ("the original system is unchanged." if unchanged else
+                     "WARNING: the original system changed during the run (the original-unchanged check failed).")
                   + (f" Requested but NOT implemented: {', '.join(unmet)}." if unmet else ""),
-            "ar": f"الحالة {status}: طُبّقت {len(applied)} خطوة في نسخة معزولة ({names})؛ النظام الأصلي لم يتغير."
+            "ar": f"الحالة {status}: طُبّقت {len(applied)} خطوة في نسخة معزولة ({names})؛ "
+                  + ("النظام الأصلي لم يتغير." if unchanged else "تحذير: تغيّر النظام الأصلي أثناء التشغيل (فشل فحص عدم تغيّر الأصل).")
                   + (f" طُلب ولم يُنفَّذ: {', '.join(unmet)}." if unmet else "")}
 
 
@@ -2258,10 +2264,14 @@ def _audit_report(run, extra, started):
     run.baseline()
     run.audit()
     run.plan(extra)
-    unchanged = run._snapshot(run.root) == before
-    workdir_untouched = run.workdir.exists() == workdir_existed and (
-        not workdir_existed or sorted(p.name for p in run.workdir.iterdir()) == workdir_before)
-    proof = {"target_unchanged": unchanged, "workdir_untouched": workdir_untouched, "files_written": 0, "tests_executed": False,
+    after = run._snapshot(run.root)
+    unchanged = after == before
+    workdir_after = sorted(p.name for p in run.workdir.iterdir()) if run.workdir.exists() else None
+    workdir_untouched = (workdir_after is not None) == workdir_existed and (not workdir_existed or workdir_after == workdir_before)
+    # files_written counts what the comparison found: target files added, removed or changed, and workdir entries
+    written = sum(1 for rel in set(before) | set(after) if before.get(rel) != after.get(rel))
+    written += len(set(workdir_after or []) ^ set(workdir_before or [])) + int(workdir_after is not None and not workdir_existed)
+    proof = {"target_unchanged": unchanged, "workdir_untouched": workdir_untouched, "files_written": written, "tests_executed": False,
              "memory_written": False}
     run.receipt("REPORT", {"mode": "audit"}, proof, "audited" if unchanged and workdir_untouched else "failed")
     result = {"schema_version": VERSION, "engine": ENGINE, "layers": list(LAYERS), "mode": "audit",
@@ -2275,8 +2285,12 @@ def _audit_report(run, extra, started):
               "guarantees": {**GUARANTEES, "read_only": True}, "limits": LIMITS,
               "evidence": {"deterministic": ["route", "inventory", "static detectors", "audit findings", "plan"], "measured": [],
                            "simulated": [], "ai_reasoning": []},
-              "summary": {"en": f"Audit only: {len(run.opportunities)} upgrade opportunities and {len(run.defects)} defect(s) found; nothing was changed.",
-                          "ar": f"فحص فقط: وُجدت {len(run.opportunities)} فرصة تطوير و{len(run.defects)} عيب؛ لم يتغير شيء."}}
+              "summary": {"en": f"Audit only: {len(run.opportunities)} upgrade opportunities and {len(run.defects)} defect(s) found; "
+                                + ("nothing was changed." if unchanged and workdir_untouched else
+                                   f"WARNING: {written} file(s) changed during the audit (see no_change_proof)."),
+                          "ar": f"فحص فقط: وُجدت {len(run.opportunities)} فرصة تطوير و{len(run.defects)} عيب؛ "
+                                + ("لم يتغير شيء." if unchanged and workdir_untouched else
+                                   f"تحذير: تغيّر {written} ملف أثناء الفحص (انظر no_change_proof).")}}
     result["report_sha256"] = sha(result)
     return result
 

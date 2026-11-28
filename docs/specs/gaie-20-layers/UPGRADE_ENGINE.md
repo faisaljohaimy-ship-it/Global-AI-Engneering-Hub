@@ -120,8 +120,15 @@ ROUTE → BASELINE → AUDIT → PLAN → APPLY (one receipt per step) → REGRE
 
 Audit mode («افحص», «راجع», `audit`, `review`…) runs ROUTE, a static BASELINE (no tests),
 AUDIT and PLAN on the target itself and writes nothing anywhere: not the target, not
-`workdir`, not memory; detectors run without a sandbox. The report carries the proof
-(`target_unchanged`, `workdir_untouched`).
+`workdir`, not memory; detectors run without a sandbox and open every SQLite file with
+`mode=ro&immutable=1` (a plain `mode=ro` open of a WAL database creates its `-shm`), so a
+database with a pending `-wal` is reported from its main file with `complete: false`. The
+report carries the proof (`target_unchanged`, `workdir_untouched`, and `files_written`,
+the number of target files and `workdir` entries the before/after comparison found
+added, removed or changed); the summary says "nothing was changed" only when that
+comparison is clean. In upgrade mode the detectors run on a disposable copy of the
+isolated copy, never on the target, and the summary says "the original system is
+unchanged" only when the `original-unchanged` check passed.
 
 Each receipt is `{stage, step, status, input_sha256, output_sha256, source_sha256,
 side_effect, at, previous_sha256, receipt_sha256}`; the chain is deterministic for a fixed

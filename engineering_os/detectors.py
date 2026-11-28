@@ -880,7 +880,8 @@ def detect_database(root, files=None, manifest=None, *, tests_dir=None, extra_qu
     for rel in databases:
         path = _inside(root, rel)
         try:
-            conn = sqlite3.connect(f"file:{urllib.parse.quote(str(path))}?mode=ro", uri=True)
+            # immutable=1: a mode=ro open of a WAL database would create or rewrite its -shm beside it
+            conn = sqlite3.connect(f"file:{urllib.parse.quote(str(path))}?mode=ro&immutable=1", uri=True)
             try:
                 status = conn.execute("PRAGMA quick_check").fetchone()[0]
             finally:
