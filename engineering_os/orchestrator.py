@@ -765,11 +765,12 @@ def host_cap(cpus=None, agents_per_cpu=AGENTS_PER_CPU):
 
 
 def schedule(plan_value, history, *, done=(), cpus=None, agents_per_cpu=AGENTS_PER_CPU, tokens_left=None, roles=None,
-             root=ROOT):
+             frozen=(), root=ROOT):
     """Size of the next wave and its tasks: economics.recommend_concurrency over the measured waves
     (grow only when verified tasks per token improved; shrink on conflicts; stop on limit errors),
-    capped by the plan's max_agents and the host cap, filled with ready tasks (one per agent)."""
-    plan_value = verify_plan(plan_value, roles=roles, root=root)
+    capped by the plan's max_agents and the host cap, filled with ready tasks (one per agent).
+    `frozen` names the frozen areas the caller requires (see verify_plan)."""
+    plan_value = verify_plan(plan_value, roles=roles, frozen=frozen, root=root)
     _need(isinstance(history, list), "history: list of measured waves (economics wave records)")
     done = set(done)
     ids = [task["id"] for task in plan_value["tasks"]]
@@ -1035,12 +1036,13 @@ def _inside(path, root):
     return path == root or path.startswith(root.rstrip("/") + "/")
 
 
-def worktree_plan(plan_value, *, repo, base_dir, base_ref="HEAD", roles=None, root=ROOT):
+def worktree_plan(plan_value, *, repo, base_dir, base_ref="HEAD", roles=None, frozen=(), root=ROOT):
     """git worktree and branch commands, one isolated worktree per agent, outside the repository.
 
     Commands only (argv lists): nothing is executed here. Hooks and fsmonitor are disabled so that
-    creating a worktree never runs repository code; removal refuses dirty worktrees and unmerged branches."""
-    plan_value = verify_plan(plan_value, roles=roles, root=root)
+    creating a worktree never runs repository code; removal refuses dirty worktrees and unmerged branches.
+    `frozen` names the frozen areas the caller requires (see verify_plan)."""
+    plan_value = verify_plan(plan_value, roles=roles, frozen=frozen, root=root)
     for value, what in ((repo, "repo"), (base_dir, "base_dir")):
         _need(isinstance(value, (str, os.PathLike)) and os.path.isabs(os.fspath(value)), f"{what}: absolute path")
     repo, base = os.path.realpath(os.fspath(repo)), os.path.realpath(os.fspath(base_dir))
@@ -1306,17 +1308,18 @@ def engine(action, payload, ctx=None):
         return plan(payload["goal"], roles=payload.get("roles"), max_agents=payload.get("max_agents", MAX_AGENTS),
                     per_role=payload.get("per_role", 1), frozen=payload.get("frozen", ()), now=payload.get("now"))
     if action == "schedule":
-        _need(set(payload) <= {"plan", "history", "done", "cpus"} and {"plan", "history"} <= set(payload),
-              "schedule payload: plan, history, optional done, cpus")
-        return schedule(payload["plan"], payload["history"], done=payload.get("done", ()), cpus=payload.get("cpus"))
+        _need(set(payload) <= {"plan", "history", "done", "cpus", "frozen"} and {"plan", "history"} <= set(payload),
+              "schedule payload: plan, history, optional done, cpus, frozen")
+        return schedule(payload["plan"], payload["history"], done=payload.get("done", ()), cpus=payload.get("cpus"),
+                        frozen=payload.get("frozen", ()))
     if action == "review-assignment":
         _need(set(payload) == {"task"}, "review-assignment payload: task")
         return review_assignment(payload["task"])
     if action == "worktree-plan":
-        _need({"plan", "repo", "base_dir"} <= set(payload) <= {"plan", "repo", "base_dir", "base_ref"},
-              "worktree-plan payload: plan, repo, base_dir, optional base_ref")
+        _need({"plan", "repo", "base_dir"} <= set(payload) <= {"plan", "repo", "base_dir", "base_ref", "frozen"},
+              "worktree-plan payload: plan, repo, base_dir, optional base_ref, frozen")
         return worktree_plan(payload["plan"], repo=payload["repo"], base_dir=payload["base_dir"],
-                             base_ref=payload.get("base_ref", "HEAD"))
+                             base_ref=payload.get("base_ref", "HEAD"), frozen=payload.get("frozen", ()))
     if action == "scenario-h":
         _need({"metrics"} <= set(payload) <= {"metrics", "commits", "cpus"}, "scenario-h payload: metrics, optional commits, cpus")
         return scenario_h(payload["metrics"], commits=payload.get("commits"), cpus=payload.get("cpus", 4))

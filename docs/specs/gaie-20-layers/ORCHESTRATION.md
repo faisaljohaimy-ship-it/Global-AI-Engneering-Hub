@@ -101,8 +101,9 @@ recompute, so ownership is rechecked against `agent-roles.json`, not trusted fro
 same reason a re-sealed plan can empty its own `frozen` list: the verifier passes the frozen areas it
 requires (`verify_plan(plan, frozen=[…])`); a plan that does not cover each of them is refused with
 an `OwnershipConflict` of kind `frozen-dropped`, and its tasks are checked against both lists. A plan
-whose `frozen` list is not canonical is refused. Without `frozen=` only the plan's own list applies
-(`schedule`, `worktree_plan` and the `engine` actions verify that way today).
+whose `frozen` list is not canonical is refused. Without `frozen=` only the plan's own list applies;
+`schedule`, `worktree_plan` and the `engine` actions `schedule` and `worktree-plan` (payload key
+`frozen`) pass the caller's list through to `verify_plan`.
 
 ## 5. Scheduling the next wave
 

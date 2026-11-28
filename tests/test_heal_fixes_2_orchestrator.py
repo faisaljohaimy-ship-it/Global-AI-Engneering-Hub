@@ -111,6 +111,21 @@ class VerifyPlanFrozenTests(unittest.TestCase):
             verify_plan(self.emptied(), frozen=["workspace/y"])
         self.assertEqual([(c["kind"], c["paths"]) for c in caught.exception.conflicts], [("frozen-dropped", ["workspace/y"])])
 
+    def test_schedule_worktree_plan_and_the_engine_pass_the_required_areas_through(self):
+        """heal-fixes-2 request: the callers of verify_plan take frozen= too (payload key "frozen" for the engine)."""
+        emptied, repo, base = self.emptied(), "/tmp/gaie-hf2-repo", "/tmp/gaie-hf2-worktrees"
+        calls = (lambda value, frozen: o.schedule(value, [], frozen=frozen),
+                 lambda value, frozen: o.worktree_plan(value, repo=repo, base_dir=base, frozen=frozen),
+                 lambda value, frozen: o.engine("schedule", {"plan": value, "history": [], "frozen": frozen}),
+                 lambda value, frozen: o.engine("worktree-plan", {"plan": value, "repo": repo, "base_dir": base, "frozen": frozen}))
+        for index, call in enumerate(calls):
+            with self.subTest(call=index):
+                with self.assertRaises(OwnershipConflict) as caught:
+                    call(copy.deepcopy(emptied), ["workspace/y"])
+                self.assertEqual(caught.exception.conflicts[0]["kind"], "frozen-dropped")
+                self.assertTrue(call(issued(frozen=["workspace/y"]), ["workspace/y"]))
+                self.assertTrue(call(copy.deepcopy(emptied), []))  # without frozen= only the plan's own list applies
+
     def test_the_required_areas_also_bind_the_tasks(self):
         value = issued(frozen=["swarm"])
         with self.assertRaises(OwnershipConflict) as caught:
