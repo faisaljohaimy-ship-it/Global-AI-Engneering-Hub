@@ -25,7 +25,8 @@ payload_sha256(payload) -> str
 sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
             cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
             require_fs_isolation=False, read_only=False, loopback=False)
-    -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated"}
+    -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated", "mounts"}
+       # mounts: the mount table pid 1 read back on the full tier; None on the plain tier
 isolation_probe() -> dict                  # measured once per process; decides the sandbox tier
 isolation_report() -> dict                 # public-safe form written to isolation.json
 ```
@@ -173,8 +174,9 @@ As pid 1 of the new pid namespace, `_sandbox_init`:
 2. builds a new root on a private tmpfs. It contains: `/usr /etc /bin /sbin /lib*` and
    `read_paths` bound read-only, `nosuid,nodev`; the install prefix of `cmd[0]`
    when it is outside the system directories (e.g. `/opt/node22` for `node`), read-only.
-   Strict calls omit `/etc` and the `cmd[0]` install prefix and mount a linked worktree's `.git`
-   pointer read-only;
+   Strict calls omit `/etc`, mount for `cmd[0]` and the hub's interpreter only their bin directory,
+   standard library and linked libraries (see Program mounts of strict runs) and mount a linked
+   worktree's `.git` pointer read-only;
    `allowed_paths` bound read-write, `nosuid,nodev`; a fresh `/proc` of the pid namespace,
    read-only; a private `/dev` holding only null, zero, full, random, urandom, tty (no block
    devices) and a private `/dev/shm`; and a private 64 MiB `/tmp`;

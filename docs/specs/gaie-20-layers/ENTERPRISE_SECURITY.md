@@ -133,7 +133,7 @@ revision; each acceptance still holds:
   plane authorizes only from its own `grant` argument and `ctx["approval_token"]` (SEC-13 probe). Residual (info): the
   dry run resolves the payload's `paths` with `realpath`, so its answer shows where a path resolves relative to the
   payload grant's roots; it reads no file content.
-- `private-mode` in `governor._sandbox_init`, `engineering_os/governor.py:921` and `:939`: device nodes and bind-mount
+- `private-mode` in `governor._sandbox_init`, `engineering_os/governor.py:1192` and `:1210`: device nodes and bind-mount
   targets inside the sandbox's private tmpfs root, in a mount namespace with private propagation that is read-only
   after `pivot_root`; not state files.
 - `private-mode` in `master_docs._write` (`engineering_os/master_docs.py:390`): `pin` rewrites the tracked manifest

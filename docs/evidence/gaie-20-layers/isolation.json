@@ -8,7 +8,8 @@
     "no_capabilities_in_sandbox": true,
     "own_pid_namespace": true,
     "own_process_group_killed_after_run": true,
-    "process_count_limit": false
+    "process_count_limit": false,
+    "strict_mounts_only_bin_stdlib_and_linked_libraries": true
   },
   "host": {
     "apparmor_restrict_unprivileged_userns": null,
@@ -32,7 +33,10 @@
     "legacy calls can reach visible unix sockets and opt into the host network",
     "system runtime directories are read-only; legacy calls can also read host /etc",
     "strict runs filter only socket, io_uring_setup, unshare, clone with CLONE_NEWUSER and clone3; other kernel interfaces (keyctl, bpf, perf_event_open, userfaultfd) are not filtered",
-    "legacy calls install no seccomp filter: a child can create a nested user namespace and hold a full capability set inside it (the mount walls are locked, measured in pr30-isolation F6)"
+    "legacy calls install no seccomp filter: a child can create a nested user namespace and hold a full capability set inside it (the mount walls are locked, measured in pr30-isolation F6)",
+    "strict runs show the whole bin directory of a program installed outside the system directories and the whole standard library directory of a Python interpreter (site-packages included); the rest of its install prefix (share/, etc/, include/) stays hidden",
+    "legacy and loopback calls mount the whole install prefix (the parent of bin/) of cmd[0] and of the hub's interpreter read-only; a cmd[0] prefix under a home directory or in a directory a non-root user can change is not mounted there (the program exits 127)",
+    "strict runs resolve only cmd[0] on the host: a program the child starts itself (sh -c cc, make recipes), a #! interpreter (#!/usr/bin/python3, #!/usr/bin/env node) and every link through /etc/alternatives resolve inside the sandbox, where /etc and programs outside the system directories are hidden, and exit 127 (cc, gcc, /usr/bin/python3 and node from sh -c; npm)"
   ],
   "probes": [
     {
@@ -60,6 +64,94 @@
         "write_inside": "ok",
         "write_outside": "FileNotFoundError:2",
         "write_usr": "OSError:30"
+      }
+    },
+    {
+      "command": "governor.sandbox_run([<this interpreter>, '-I', '-S', '-c', 'pass'], require_fs_isolation=True)['mounts']",
+      "name": "strict run mount table, read back by pid 1 from /proc/self/mountinfo",
+      "result": {
+        "aliases": {},
+        "links": {
+          "/bin": "usr/bin",
+          "/lib": "usr/lib",
+          "/lib64": "usr/lib64",
+          "/sbin": "usr/sbin"
+        },
+        "mounts": [
+          [
+            "/",
+            "/",
+            "tmpfs",
+            "ro"
+          ],
+          [
+            "/dev",
+            "/",
+            "tmpfs",
+            "rw"
+          ],
+          [
+            "/dev/null",
+            "/null",
+            "devtmpfs",
+            "ro"
+          ],
+          [
+            "/dev/zero",
+            "/zero",
+            "devtmpfs",
+            "ro"
+          ],
+          [
+            "/dev/full",
+            "/full",
+            "devtmpfs",
+            "ro"
+          ],
+          [
+            "/dev/random",
+            "/random",
+            "devtmpfs",
+            "ro"
+          ],
+          [
+            "/dev/urandom",
+            "/urandom",
+            "devtmpfs",
+            "ro"
+          ],
+          [
+            "/dev/tty",
+            "/tty",
+            "devtmpfs",
+            "ro"
+          ],
+          [
+            "/proc",
+            "/",
+            "proc",
+            "ro"
+          ],
+          [
+            "/tmp",
+            "/",
+            "tmpfs",
+            "rw"
+          ],
+          [
+            "<workspace>",
+            "<workspace>",
+            "ext4",
+            "rw"
+          ],
+          [
+            "/usr",
+            "/usr",
+            "ext4",
+            "ro"
+          ]
+        ],
+        "returncode": 0
       }
     },
     {
@@ -599,7 +691,7 @@
         ],
         "sources": {
           "engineering_os/detectors.py:DRIVER,Sandbox,_interpreter,_tail,_output_limit,_sweep,_stop": "5cab62c0cfbbc7b36984e8eedf5f407b9ac32c9cd297c9290dabc86602716545",
-          "engineering_os/governor.py:sandbox_run,_run_full,_run_plain,_launch,_environment,_strict_paths,_inspect_scope,_exec_prefix,_disable_socket_creation,_loopback_up,_sandbox_init,isolation_probe,_probe_sandbox,isolation_report": "01c95cdb1c0864dc45bf9521c97c79bb2162b4c4fa139bcd814d3d275172aa58",
+          "engineering_os/governor.py:sandbox_run,_run_full,_run_plain,_launch,_environment,_strict_paths,_inspect_scope,_exec_prefix,_disable_socket_creation,_loopback_up,_sandbox_init,isolation_probe,_probe_sandbox,isolation_report": "3bc23a17566f87dee320236bc8373c8b8d45f044f10f4f1e3ee629cb4114cd81",
           "engineering_os/layers.py:_python,_outside_system,_workspace,_git_metadata,_scrubbed_env,_profile,_run": "b001f6c6a8a35968ba59715f778fd426dff5c21c7b798b1067bec317b01f7742",
           "scripts/isolation_evidence.py": "422ac98d7f6ff95d3b0a37e473b527c4a6669058ca72e3a989416daa68eb16e9"
         },

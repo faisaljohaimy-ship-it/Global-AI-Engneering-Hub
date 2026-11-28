@@ -11,7 +11,8 @@ machine-readable `reason`; nothing is allowed because a text says so.
     sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
                 cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
                 require_fs_isolation=False, read_only=False, loopback=False)
-        -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated"}
+        -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated", "mounts"}
+           (mounts: the table pid 1 read back on the full tier, None on the plain tier)
     isolation_probe() -> dict                                          (measured once per process)
 
 Relative paths (grant paths and requested paths) resolve against `base`, which
