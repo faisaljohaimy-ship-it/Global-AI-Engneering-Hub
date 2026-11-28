@@ -57,8 +57,8 @@ class MemoryTests(Base):
 
     def test_credentials_are_refused(self):
         memory = self.memory()
-        samples = ("ghp_" + "a" * 36, "sk-ant-" + "b" * 30, "password: hunter2hunter2", "postgres://user:pw12345678@db.example/x",
-                   "Bearer " + "c" * 24, "AKIA" + "A" * 16, "-----BEGIN PRIVATE KEY-----")
+        samples = ("ghp_" + "a" * 36, "sk-ant-" + "b" * 30, "password: hunter2hunter2", "postgres://user:" + "pw12345678" + "@db.example/x",
+                   "Bearer " + "c" * 24, "AKIA" + "A" * 16, "-----BEGIN " + "PRIVATE KEY-----")
         for sample in samples:
             with self.assertRaises(gaie_memory.MemoryError_):
                 memory.add("lesson", "note", f"value {sample}")
