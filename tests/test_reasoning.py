@@ -132,6 +132,23 @@ class ReasoningTests(unittest.TestCase):
         with self.assertRaises(ReasoningError):
             review_decision(altered, reviews(altered), verification(altered), now=NOW)
 
+    def test_critical_path_keeps_shorter_wave_incumbent(self):
+        durations = (29, 27, 21, 19, 17, 16, 5, 13, 20)
+        dependencies = {3: (0, 2), 4: (2,), 5: (0,), 6: (4,), 8: (0, 1, 3, 5)}
+        self.request['nodes'] = [
+            {'id': f'job-{index}', 'parent': None,
+             'depends_on': [f'job-{parent}' for parent in dependencies.get(index, ())],
+             'minutes': minutes, 'risk': .1, 'novelty': .1, 'confidence': .9}
+            for index, minutes in enumerate(durations)
+        ]
+        self.request['constraints']['max_parallel'] = 3
+        self.request['constraints']['max_minutes'] = 68
+        self.request['scheduling'] = 'critical-path'
+        result = self.planned()
+        self.assertEqual(result['status'], 'provisional')
+        self.assertEqual(result['schedule']['algorithm'], 'wave-incumbent')
+        self.assertEqual(result['schedule']['elapsed_minutes'], 68)
+
     def test_adaptive_depth_rises_for_risk_novelty_and_uncertainty(self):
         simple = self.planned()['complexity']
         for node in self.request['nodes']:
