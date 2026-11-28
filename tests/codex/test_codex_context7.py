@@ -14,7 +14,9 @@ import tomllib
 import unittest
 
 
-PROFILE = Path(__file__).resolve().parents[1] / "integrations/context7-codex/config.toml"
+ROOT = Path(__file__).resolve().parents[2]
+PROFILE = ROOT / "integrations/context7-codex/config.toml"
+POLICY = ROOT / "governance/policies/context7.json"
 ENDPOINT = "https://mcp.context7.com/mcp"
 TOKEN_NAME = "GAIE_CODEX_CONTEXT7_TOKEN"
 TOOLS = ["resolve-library-id", "query-docs"]
@@ -93,6 +95,14 @@ class Context7CodexProfileTests(unittest.TestCase):
             "startup_timeout_sec": 10,
             "tool_timeout_sec": 20,
         }}})
+
+    def test_profile_matches_the_shared_context7_policy_when_integrated(self):
+        if not POLICY.is_file():
+            self.skipTest("the shared Context7 policy must land in PR #31")
+        shared = json.loads(POLICY.read_text(encoding="utf-8"))["server"]
+        profile = tomllib.loads(PROFILE.read_text(encoding="utf-8"))["mcp_servers"][shared["name"]]
+        self.assertEqual((shared["transport"], profile["url"]), ("http", shared["endpoint"]))
+        self.assertEqual(profile["enabled_tools"], shared["tools"])
 
     @unittest.skipUnless(os.environ.get("GAIE_CHECK_CODEX_CONTEXT7") == "1",
                          "set GAIE_CHECK_CODEX_CONTEXT7=1 to verify the native Codex CLI")
