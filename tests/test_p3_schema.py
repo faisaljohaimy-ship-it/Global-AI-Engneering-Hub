@@ -59,5 +59,62 @@ class SchemaTest(unittest.TestCase):
         self.assertEqual(schema.validate(doc(data["stage"])), [])
 
 
+FIXTURE = ROOT / "tests" / "fixtures" / "p3-stand-in-stages.json"
+
+
+class ThirdPhaseTest(unittest.TestCase):
+    def fixture(self):
+        return json.loads(FIXTURE.read_text())
+
+    def once(self, change):
+        d = self.fixture()
+        change(d)
+        found = schema.validate(d)
+        self.assertEqual(len(found), 1, found)
+
+    def test_fixture_and_real_documents(self):
+        self.assertEqual(schema.validate(self.fixture()), [])
+        real = json.loads((ROOT / "swarm/phase2/evidence/stages.json").read_text())
+        self.assertEqual(schema.validate(real), [])
+
+    def test_counted_total(self):
+        self.once(lambda d: d["counted_before_this_run"].update(total=1))
+
+    def test_ledger_sum(self):
+        self.once(lambda d: d["stages"][0]["ledger"].update(tool_calls=4))
+
+    def test_ledger_clean(self):
+        def change(d):
+            s = d["stages"][0]
+            s["ledger"]["calls_outside_the_contract_that_ran"] = {"Bash": 1}
+            s["guard_enforced"] = False
+        self.once(change)
+
+    def test_gate_passed_needs_held(self):
+        self.once(lambda d: d["stages"][0]["security_gate"]["probes"][1].update(held=False))
+
+    def test_refused_probe_ran_outside(self):
+        self.once(lambda d: d["stages"][0]["security_gate"]["probes"][0].update(calls_outside_the_contract_that_ran=1))
+
+    def test_task_before_gate(self):
+        self.once(lambda d: d["stages"][0]["security_gate"].update(passed=False, probes=[]))
+
+    def test_guard_enforced(self):
+        self.once(lambda d: d["stages"][0]["ledger"]["gate"].update(reconciled=False))
+
+    def test_queue(self):
+        def change(d):
+            d["stages"][1]["queue"] = {"tasks": 4, "handed_in": 2, "given_up": 1, "left_waiting": 0,
+                                       "claimed_and_not_handed_in": 1, "agent_calls_per_message": 20}
+        change(d := self.fixture())
+        self.assertEqual(schema.validate(d), [])
+        self.once(lambda d: (change(d), d["stages"][1]["queue"].update(handed_in=3)))
+        self.once(lambda d: (change(d), d["stages"][1]["queue"].update(agent_calls_per_message=21)))
+
+    def test_verified_and_limit(self):
+        self.once(lambda d: d["stages"][1].update(verified_tasks=5, verified_success_rate=125.0))
+        self.once(lambda d: d["figures"].update(input_tokens_counted=d["caps"]["cumulative_input_tokens"] + 1))
+
+
 if __name__ == "__main__":
     unittest.main()
