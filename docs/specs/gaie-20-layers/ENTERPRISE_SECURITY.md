@@ -8,15 +8,16 @@ and the SDK the release engine calls).
 - Repeatable audit: `python3 -m engineering_os.security_audit` (code: `engineering_os/security_audit.py`).
 - Evidence: `docs/evidence/gaie-20-layers/security-findings.json`, written by
   `python3 -m engineering_os.security_audit --out docs/evidence/gaie-20-layers/security-findings.json`.
-- Tests: `python3 -m unittest tests.test_security_enterprise` (72 tests: a regression test for each
+- Tests: `python3 -m unittest tests.test_security_enterprise` (73 tests: a regression test for each
   fixed finding, the audit's positive and negative cases, behavioural probe tests, and a live run checked against the
   evidence, and the `exec:sandbox` contract) and `python3 -m unittest tests.test_gaie_memory_journal` (25 tests, SEC-10
   and the portable journal).
 - Re-measured after the MASTER security hardening (`MASTER_SECURITY_ACCEPTANCE.md`) was merged: SEC-03 and
   SEC-05 keep their status under the stricter descriptor-based checks. Later reviews (pr30-authz, pr30-isolation,
   pr30-merge-quality) reopened SEC-09 and sharpened the SEC-09, SEC-11 and SEC-13 probes; SEC-10 and the build
-  engine's `private-mode` hit were fixed; SEC-16 and SEC-17 were registered. The evidence file was rewritten by the
-  command above after each change.
+  engine's `private-mode` hit were fixed; SEC-16 and SEC-17 were registered. On the final integration branch the
+  governor sandbox for target code (sec-isolation) fixed SEC-07 and SEC-12, and the offline Git preflight
+  (pr30-isolation F1) fixed SEC-09. The evidence file was rewritten by the command above after each change.
 
 The audit makes no network request and no model call, and it reads no clock. Each status in the evidence
 comes from a probe that re-runs the exploit in a private temporary directory, or checks the control, on
@@ -61,7 +62,7 @@ Each cell names the control and says whether it is enforced in code (**code**) o
 | control plane (L04) | E: authority smuggled in a payload. I: a credential in a payload. D: huge payloads. T: state written into a directory others can reach | code: authority only from grant and `ctx['approval_token']` (SEC-13 held), `secrets:none` enforced by `check_payload` (SEC-02 fixed), 1 MiB payload / 16 MiB result bounds (SEC-15 held), private state dir checked before any engine runs (SEC-05 fixed), allow audited before the run |
 | adapters (L04) | E: a path field the governor never checked. I: payload text in errors | code: `PATH_FIELDS` checked by the governor; error audit rows keep the class name only. proc.: new path-bearing actions must be added to `PATH_FIELDS` (see R7) |
 | master-release / SDK (L11) | E/T: Git in a checkout an agent prepared runs its programs (`core.fsmonitor`, `post-index-change`, filter drivers), or is redirected (`core.worktree`, `GIT_DIR`) or blinded (assume-unchanged) | code: SEC-01 fixed. `sdk.engineering_sdk.git` runs with fsmonitor and hooks off, no system config, no inherited `GIT_*`, no index writes. `checkout_guard` refuses filter programs (local, worktree, included and submodule configs), a foreign work tree and hidden index entries. SEC-11 fixed: `verify` reads through `read_audit_file`, no FIFO or device reads |
-| master-router, project registry (L03/L15) | T/I: a private registry that others can swap or read. T: `git remote` in a workspace | code: `GAIE_HOME` outside Git, 0600 file through `mkstemp`, home must be caller-owned and not writable by group or others (SEC-04 fixed); the router launches no Git itself: `workspace_policy._git` checks a `--workspace` with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited `GIT_*`, no index writes, and a write scope refuses filter, hook-path, include and URL-rewrite settings. **Open (SEC-09, low):** a partial clone's promisor remote still runs its configured upload-pack or `core.sshCommand` during the lazy fetch of `rev-parse origin/main` (pr30-isolation F1; fix in `workspace_policy._git`: `protocol.allow=never` and refuse `extensions.*`, `remote.*.promisor`/`uploadpack`, `core.sshCommand`) |
+| master-router, project registry (L03/L15) | T/I: a private registry that others can swap or read. T: `git remote` in a workspace | code: `GAIE_HOME` outside Git, 0600 file through `mkstemp`, home must be caller-owned and not writable by group or others (SEC-04 fixed); the router launches no Git itself: `workspace_policy._git` checks a `--workspace` with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited `GIT_*`, no index writes, and a write scope refuses filter, hook-path, include and URL-rewrite settings. SEC-09 fixed (pr30-isolation F1): `workspace_policy._git` runs offline (`protocol.allow=never`, an empty `GIT_ALLOW_PROTOCOL`, `GIT_NO_LAZY_FETCH=1`), and a write scope also refuses `core.sshCommand`/`gitProxy`, `protocol.*`, promisor and `partialCloneFilter` remotes, remote upload/receive-pack and vcs programs, and extensions other than `worktreeConfig` and `objectFormat`, before any object lookup |
 | memory, gaie_memory (L14) | I: secrets or private data in memory. T: an edited store or checkpoint. D: unbounded stores | code: secret guard, 0600/0700, locked atomic writes, owner/mode/link checks (`_open_private`), sealed checkpoints that restore only into an empty store (SEC-14 held), size bounds. The frozen portable journal opens its file the same way (SEC-10 fixed): regular, caller-owned, one link, mode 0600, in caller-owned 0700 directories; a journal that fails is refused with the fix command, never repaired |
 | reasoning, requirements, economics (L13/L15/L19) | E: text treated as instructions. D: large inputs | code: pure deterministic functions over bounded JSON; no eval/exec, no subprocess, no network (static rules, 0 hits). `economics --out` writes where the owner points it (proc.) |
 | self-healing, detectors (L17) | E/I: target repository code runs (tests, servers, timing probes) | code: a disposable copy, fixed driver (no shell); every run in `governor.sandbox_run` (full tier, loopback profile: own user, mount, pid and network namespaces, no capabilities, a private loopback, `/etc` hidden, the copy read-only, one fresh writable directory per run, an exact environment set with `env -i`, output capped at 32 MiB, nothing survives the run); HTTP probes are sent from inside the sandbox; where the full tier is missing every run is refused and executes nothing; `isolation="process-only"` is an explicit opt-in recorded in every result and in the governor audit log. **Fixed (SEC-07)**; measured per property in `docs/evidence/gaie-20-layers/isolation.json` |
@@ -98,8 +99,8 @@ Each cell names the control and says whether it is enforced in code (**code**) o
 Full machine-readable list: `security-findings.json` (registered findings with a measured status, and
 static hits with path:line and rule, never a value).
 
-Counts in the committed evidence (`sandbox_tier` full): 24 findings, 17 registered and 7 static. By status: open 3
-(SEC-09, SEC-16, SEC-17), fixed 9, held 4, mitigated 1, accepted 7 (all static). By severity: high 4,
+Counts in the committed evidence (`sandbox_tier` full): 24 findings, 17 registered and 7 static. By status: open 2
+(SEC-16, SEC-17), fixed 10, held 4, mitigated 1, accepted 7 (all static). By severity: high 4,
 medium 8, low 9, info 3. Open critical or high: none, so the audit exits 0.
 
 | ID | Sev. | Status | Finding | Where | Proof |
@@ -112,7 +113,7 @@ medium 8, low 9, info 3. Open critical or high: none, so the audit exits 0.
 | SEC-06 | low | mitigated | the hash chain cannot see records removed from its end, or the whole log removed | `governor.verify_audit` | `AnchorTests` (anchor helper in `security_audit`) |
 | SEC-07 | medium | **fixed** | self-healing ran target code without an OS sandbox | `engineering_os/detectors.py` `Sandbox` | behavioural probe; tests/test_isolation_enforcement.py::Sec07Tests; isolation.json |
 | SEC-08 | low | held | video output directory was created (umask mode) before the "outside the repository" check; now validated first and created 0700 | `engineering_os/video_pipeline.py` `_outside_repository` | probe, `tests/test_video_pipeline.py` `OutputDirectoryTests` |
-| SEC-09 | low | **open** | `route --workspace` runs Git in a worktree an agent may have prepared. Fixed: fsmonitor, index hooks, inherited `GIT_*`, and the router's own `git remote get-url` (removed). Still open: a partial clone's promisor remote runs its configured upload-pack or `core.sshCommand` during a lazy fetch (pr30-isolation F1). The probe drives the router's own `_verified_write_scope` (pr30-merge-quality F1) | `engineering_os/workspace_policy.py` `_git` | probe (fsmonitor, index hook, `GIT_TRACE`, promisor upload-pack, promisor ssh command); `WorkspaceGitTests` (9 tests, the exploit premise shown on plain Git first) |
+| SEC-09 | low | **fixed** | `route --workspace` ran Git in a worktree an agent may have prepared: fsmonitor, index hooks, inherited `GIT_*`, the router's own `git remote get-url` (removed), and a partial clone's promisor remote whose upload-pack or `core.sshCommand` ran during a lazy fetch (pr30-isolation F1). Now `workspace_policy._git` runs offline (`protocol.allow=never`, an empty `GIT_ALLOW_PROTOCOL`, `GIT_NO_LAZY_FETCH=1`) and a write scope refuses promisor, protocol, remote-program and unknown extension settings before any object lookup. The probe drives the router's own `_verified_write_scope` (pr30-merge-quality F1) and `_git` directly | `engineering_os/workspace_policy.py` `_git` | probe (fsmonitor, index hook, `GIT_TRACE`, promisor upload-pack, promisor ssh command, promisor upload-pack with `protocol.file.allow=always`); `WorkspaceGitTests` (10 tests, the exploit premise shown on plain Git first); tests/test_isolation_fixes_git.py |
 | SEC-10 | low | fixed | frozen gaie_memory journal was appended without an owner, mode or link check (measured: an append through a hard link wrote into the other file); now an `O_NOFOLLOW` and `O_NONBLOCK` open, then `fstat` of the descriptor, for reads and appends | `engineering_os/gaie_memory.py` `_journal_add` | probe (hard link, mode 0644), `tests/test_gaie_memory_journal.py` |
 | SEC-11 | low | fixed | SDK `verify` accepted a FIFO or device named in the manifest and would block on it; `verify` now reads every manifest file through `read_audit_file` (directory descriptors, `O_NOFOLLOW`, a regular file with one link, `O_NONBLOCK`, rechecked by `fstat`) | `sdk/engineering_sdk.py` `read_audit_file` | probe (runs `verify` on a manifest-named FIFO with a timeout), `test_fifo_capability_file_is_refused_without_blocking` |
 | SEC-12 | medium | **fixed** | `layers.verify` declared `exec:sandbox`/`secrets:none` but ran repository tests unsandboxed with the caller's environment | `engineering_os/layers.py` `_run` | behavioural probe; tests/test_isolation_enforcement.py::Sec12Tests |
@@ -124,18 +125,18 @@ medium 8, low 9, info 3. Open critical or high: none, so the audit exits 0.
 
 Static hits that were reviewed and accepted (rule, enclosing function, reason in the JSON). Re-examined at this
 revision; each acceptance still holds:
-- `authority-from-payload` in `adapters.security_governor` (high), `engineering_os/adapters.py:782` and `:797`.
-  `:782` passes `payload["grant"]` to `contracts.validate_grant` and returns only `{valid, reason}`. `:797` passes it to
+- `authority-from-payload` in `adapters.security_governor` (high), `engineering_os/adapters.py:989` and `:1004`.
+  `:989` passes `payload["grant"]` to `contracts.validate_grant` and returns only `{valid, reason}`. `:1004` passes it to
   `governor.check`, which is pure (no audit write, no state, no subprocess): the action spec comes from
   `control_plane.load_registry()`, never from the payload, and `approval_token=None`, so a gated side effect is always
   refused with `approval-missing`. The result is marked `dry_run` and no code in `engineering_os` consumes it. The control
   plane authorizes only from its own `grant` argument and `ctx["approval_token"]` (SEC-13 probe). Residual (info): the
   dry run resolves the payload's `paths` with `realpath`, so its answer shows where a path resolves relative to the
   payload grant's roots; it reads no file content.
-- `private-mode` in `governor._sandbox_init`, `engineering_os/governor.py:819` and `:837`: device nodes and bind-mount
+- `private-mode` in `governor._sandbox_init`, `engineering_os/governor.py:921` and `:939`: device nodes and bind-mount
   targets inside the sandbox's private tmpfs root, in a mount namespace with private propagation that is read-only
   after `pivot_root`; not state files.
-- `private-mode` in `master_docs._write` (`engineering_os/master_docs.py`): `pin` rewrites the tracked manifest
+- `private-mode` in `master_docs._write` (`engineering_os/master_docs.py:390`): `pin` rewrites the tracked manifest
   `governance/policies/master-prompts.json` inside the repository checkout (public, committed to Git) with mode 0644;
   it is never private state. The temporary file is created `O_EXCL|O_NOFOLLOW` beside it and replaced atomically.
 - `git-dynamic-subcommand` in `hublink._git` (`hublink.py:29`): only in the hub's own checkout, with fixed subcommands

@@ -10,6 +10,7 @@ import copy
 import json
 import os
 import pathlib
+import re
 import stat
 import subprocess
 import sys
@@ -458,9 +459,11 @@ class WorkspaceGitTests(unittest.TestCase):
             if done.returncode:
                 raise workspace_policy.WorkspacePolicyError("Git could not verify the proposed workspace.")
             return done.stdout
+        accept_any = re.compile("(?!)")  # the config preflight (pr30-isolation F1) also removed for the premise
         for vector in ("uploadpack", "sshcommand"):
             with self.subTest(vector=vector):
-                with mock.patch.object(workspace_policy, "_git", unhardened):
+                with mock.patch.object(workspace_policy, "_git", unhardened), \
+                        mock.patch.object(workspace_policy, "DENIED_CONFIG", accept_any):
                     self.assertTrue(security_audit.promisor_program_runs(private_tmp(self).resolve() / "x", vector))
                 with self.protocols_refused():
                     self.assertFalse(security_audit.promisor_program_runs(private_tmp(self).resolve() / "x", vector))
@@ -468,6 +471,19 @@ class WorkspaceGitTests(unittest.TestCase):
                     self.assertTrue(security_audit.probe_router_workspace(private_tmp(self)))
         with self.protocols_refused():
             self.assertFalse(security_audit.probe_router_workspace(private_tmp(self)))
+
+    def test_the_probe_measures_a_promisor_whose_config_allows_the_protocol(self):
+        """pr30-isolation F1: a checkout's protocol.file.allow=always defeats -c protocol.allow=never alone, so the
+        hardened _git also sets an empty GIT_ALLOW_PROTOCOL. The third vector drives _git directly, past the config
+        preflight, and is the only one that sees that environment dropped."""
+        def scratch():
+            return private_tmp(self).resolve() / "x"
+        self.assertFalse(security_audit.promisor_program_runs(scratch(), "uploadpack-allowed"))
+        with mock.patch.object(workspace_policy, "GIT_OFFLINE_ENV", {"GIT_TERMINAL_PROMPT": "0"}):
+            self.assertFalse(security_audit.promisor_program_runs(scratch(), "uploadpack"))
+            self.assertTrue(security_audit.promisor_program_runs(scratch(), "uploadpack-allowed"))
+            self.assertTrue(security_audit.probe_router_workspace(private_tmp(self)))
+        self.assertFalse(security_audit.probe_router_workspace(private_tmp(self)))
 
     def test_the_probe_reports_a_router_running_git_under_another_name_as_open(self):
         """pr30-merge-quality F1: a router that starts Git itself (here through an alias) must be measured open."""

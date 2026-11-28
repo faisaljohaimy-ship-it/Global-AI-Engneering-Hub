@@ -92,14 +92,14 @@
       "title": "Video pipeline creates its output directory (umask mode) before refusing a path inside the repository"
     },
     {
-      "control": "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope refuses configs with includes, URL rewrites, filters or core.hooksPath. Open while a promisor remote's upload-pack or core.sshCommand still runs during a lazy fetch (pr30-isolation F1; fix: protocol.allow=never and refuse extensions.*, remote.*.promisor/uploadpack, core.sshCommand)",
+      "control": "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, core.hooksPath=/dev/null, protocol.allow=never, no system or global config, a fixed environment without inherited GIT_* variables, GIT_OPTIONAL_LOCKS=0, an empty GIT_ALLOW_PROTOCOL and GIT_NO_LAZY_FETCH=1; a write scope refuses configs with includes, URL rewrites, filters, core.hooksPath/sshCommand/gitProxy, protocol.*, promisor or partialCloneFilter remotes, remote upload/receive-pack or vcs programs, and extensions other than worktreeConfig and objectFormat (pr30-isolation F1)",
       "evidence": "tests/test_security_enterprise.py::WorkspaceGitTests",
       "id": "SEC-09",
       "kind": "registered",
       "location": "engineering_os/workspace_policy.py:_git",
       "rule": "git-untrusted-checkout",
       "severity": "low",
-      "status": "open",
+      "status": "fixed",
       "title": "The workspace check behind `route --workspace` runs Git in a worktree an agent may have prepared: it must never run a program the checkout's config names (fsmonitor, index hook, a partial clone's promisor upload-pack or ssh command) or follow inherited GIT_* variables"
     },
     {
@@ -239,10 +239,10 @@
     },
     {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:848",
+      "id": "private-mode:engineering_os/governor.py:921",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:848",
+      "location": "engineering_os/governor.py:921",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -250,10 +250,10 @@
     },
     {
       "function": "_sandbox_init",
-      "id": "private-mode:engineering_os/governor.py:866",
+      "id": "private-mode:engineering_os/governor.py:939",
       "justification": "device nodes and bind-mount targets inside the sandbox's private tmpfs root (a new mount namespace with private propagation, read-only after pivot_root), not state files",
       "kind": "static",
-      "location": "engineering_os/governor.py:866",
+      "location": "engineering_os/governor.py:939",
       "rule": "private-mode",
       "severity": "medium",
       "status": "accepted",
@@ -292,10 +292,10 @@
     },
     "by_status": {
       "accepted": 7,
-      "fixed": 9,
+      "fixed": 10,
       "held": 4,
       "mitigated": 1,
-      "open": 3
+      "open": 2
     },
     "open_critical_or_high": []
   },

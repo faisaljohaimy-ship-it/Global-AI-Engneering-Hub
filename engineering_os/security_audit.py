@@ -756,17 +756,20 @@ def promisor_program_runs(base, vector):
     The checkout declares a promisor remote whose upload-pack (vector "uploadpack") or whose ssh command (vector
     "sshcommand") is a program, and origin/main names an object that is absent, as in a partial clone; resolving it
     makes Git fetch lazily from the promisor. Whether the workspace is accepted does not matter: the program must
-    never run."""
-    from . import gaie_router
+    never run. Vector "uploadpack-allowed" adds protocol.file.allow=always (which defeats -c protocol.allow=never
+    alone) and also drives the hardened workspace_policy._git directly, past the config preflight."""
+    from . import gaie_router, workspace_policy
     base.mkdir(mode=0o700)
     checkout = linked_worktree(base)
     canonical, marker = checkout["canonical"], base / "ran"
     settings = [("core.repositoryFormatVersion", "1")]
-    if vector == "uploadpack":
+    if vector in ("uploadpack", "uploadpack-allowed"):
         other = base / "promisor.git"
         _run_git(base, "init", "--bare", "-q", str(other))
         settings += [("extensions.partialClone", "lazy"), ("remote.lazy.url", str(other)), ("remote.lazy.promisor", "true"),
                      ("remote.lazy.uploadpack", f"touch {marker}; git-upload-pack")]
+        if vector == "uploadpack-allowed":
+            settings.append(("protocol.file.allow", "always"))
     else:
         settings += [("remote.origin.url", "ssh://git@github.com/example/probe.git"), ("extensions.partialClone", "origin"),
                      ("remote.origin.promisor", "true"), ("core.sshCommand", f"touch {marker}; false")]
@@ -774,6 +777,9 @@ def promisor_program_runs(base, vector):
         _run_git(canonical, "config", key, value)
     (canonical / ".git/refs/remotes/origin/main").write_text("1" * 40 + "\n")  # an object the clone never fetched
     gaie_router._verified_write_scope("upgrade", checkout["worktree"], [{"slug": "example/probe", "path": None}])
+    if vector == "uploadpack-allowed":  # the hardened Git must stay offline even where the config allows the protocol
+        with contextlib.suppress(workspace_policy.WorkspacePolicyError):
+            workspace_policy._git(checkout["worktree"], "rev-parse", "--verify", "refs/remotes/origin/main^{commit}")
     return marker.exists()
 
 
@@ -785,7 +791,8 @@ def probe_router_workspace(base):
     if hasattr(gaie_router, "subprocess") or hasattr(gaie_router, "workspace"):
         return True  # also refused by name: the router must leave every Git call to the reviewed validator
     base = pathlib.Path(base).resolve()
-    if any(promisor_program_runs(base / name, vector) for name, vector in (("lazy", "uploadpack"), ("ssh", "sshcommand"))):
+    if any(promisor_program_runs(base / name, vector) for name, vector in
+           (("lazy", "uploadpack"), ("ssh", "sshcommand"), ("allowed", "uploadpack-allowed"))):
         return True
     checkout = linked_worktree(base)
     marker, trace = base / "ran", base / "trace"
@@ -882,11 +889,12 @@ FINDINGS = (
      "upload-pack or ssh command) or follow inherited GIT_* variables",
      "engineering_os/workspace_policy.py:_git", "git-untrusted-checkout", ("open", "fixed"), probe_router_workspace,
      "tests/test_security_enterprise.py::WorkspaceGitTests",
-     "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, no system or "
-     "global config, a fixed environment without inherited GIT_* variables and GIT_OPTIONAL_LOCKS=0; a write scope "
-     "refuses configs with includes, URL rewrites, filters or core.hooksPath. Open while a promisor remote's "
-     "upload-pack or core.sshCommand still runs during a lazy fetch (pr30-isolation F1; fix: protocol.allow=never "
-     "and refuse extensions.*, remote.*.promisor/uploadpack, core.sshCommand)"),
+     "the router launches no Git; workspace_policy._git runs with fsmonitor and the untracked cache off, "
+     "core.hooksPath=/dev/null, protocol.allow=never, no system or global config, a fixed environment without "
+     "inherited GIT_* variables, GIT_OPTIONAL_LOCKS=0, an empty GIT_ALLOW_PROTOCOL and GIT_NO_LAZY_FETCH=1; a write "
+     "scope refuses configs with includes, URL rewrites, filters, core.hooksPath/sshCommand/gitProxy, protocol.*, "
+     "promisor or partialCloneFilter remotes, remote upload/receive-pack or vcs programs, and extensions other than "
+     "worktreeConfig and objectFormat (pr30-isolation F1)"),
     ("SEC-10", "low", "Frozen gaie_memory journal was appended without an owner, mode or hard-link check",
      "engineering_os/gaie_memory.py:_journal_add", "private-state-permissions", ("open", "fixed"), probe_legacy_journal,
      "tests/test_gaie_memory_journal.py",
