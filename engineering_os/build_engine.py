@@ -57,6 +57,10 @@ MAX_SPEC_BYTES = 512 * 1024
 MAX_TEXT = 10000
 MAX_BODY_BYTES = 64 * 1024
 PBKDF2_ITERATIONS = 600000
+# Sign-in limit the template implements and tests.test_api.ApiTests.test_login_lockout proves:
+# (failures, minutes) for one e-mail from one client address in any sliding window
+# (templates/app-stdlib/app/auth.py LOCKOUT_FAILURES, LOCKOUT_SECONDS; the test's STATED_SIGNIN_LIMIT).
+SIGNIN_LIMIT = (5, 15)
 MISSING_ID = 999999999
 SLUG = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 IDENT = re.compile(r"[a-z][a-z0-9_]{0,62}")
@@ -860,7 +864,8 @@ def _nfr_rules(model, locales):
         (r"csrf token on cookie sessions", [API_ID + "test_csrf_token_required", API_ID + "test_cross_origin_write_refused",
                                             API_ID + "test_login_logout_cycle"], None),
         (r"passwords stored as salted pbkdf2-sha256 hashes", [API_ID + "test_passwords_are_salted_pbkdf2"], None),
-        (r"rate limit on sign-in \(5 failures per 15 minutes\)", [API_ID + "test_login_lockout"], None),
+        (r"rate limit on sign-in \((?P<failures>\d{1,4}) failures per (?P<minutes>\d{1,4}) minutes\)",
+         [API_ID + "test_login_lockout"], lambda m: (int(m["failures"]), int(m["minutes"])) == SIGNIN_LIMIT),
         (r"p95 api latency < (?P<ms>\d{1,5}) ms locally(?: with (?P<records>[\d,]{1,9}) records)?",
          [API_ID + "test_list_latency_budget"],
          lambda m: int(m["ms"]) == numbers["p95_ms"]

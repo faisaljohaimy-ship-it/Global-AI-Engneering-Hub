@@ -59,17 +59,18 @@ JSON over HTTP. Full reference: [docs/API.md](docs/API.md).
 ## Security
 
 - Accounts: e-mail + password stored as salted PBKDF2-HMAC-SHA256 (600,000 iterations);
-  sign-in does the same hashing work for unknown e-mails. Failed sign-ins are counted over
-  15 minutes per e-mail and client address (5), per client address for any e-mails (20)
-  and per e-mail from all addresses together (20); a limit that is reached refuses sign-in
-  (429 with `Retry-After`, before any password is checked or hashed) for a backoff of 30 s
-  after the latest failure that doubles with each further failure (at most 15 minutes). So
-  rotating e-mails cannot make one client burn unbounded CPU, and one address cannot lock
-  an account out for another address; only 20 failures from several addresses together
-  hold that e-mail everywhere until the backoff ends. The counters are in memory and reset
-  on restart; behind a reverse proxy every client shares the proxy's address, so these
-  limits then apply to all clients together: rate-limit at the proxy by the real client
-  address too. Sessions are random tokens (only their SHA-256 is stored) in an
+  sign-in does the same hashing work for unknown e-mails. Failed sign-ins are counted in
+  sliding 15-minute windows: per e-mail and client address at most 5 (the "rate limit on
+  sign-in (5 failures per 15 minutes)"), per client address for any e-mails at most 20,
+  and per e-mail from all addresses together at most 20. A full window refuses sign-in
+  (429 with `Retry-After`, before any password is checked or hashed) until the oldest
+  failure in it is 15 minutes old. So rotating e-mails cannot make one client burn
+  unbounded CPU and one address cannot lock an account out for another address; 20
+  failures from several addresses together hold that e-mail everywhere except at
+  addresses that signed in to it successfully in the last 30 days. The counters are in
+  memory and reset on restart; behind a reverse proxy every client shares the proxy's
+  address, so these limits then apply to all clients together: rate-limit at the proxy by
+  the real client address too. Sessions are random tokens (only their SHA-256 is stored) in an
   `HttpOnly; SameSite=Strict` cookie that expires after 12 hours.
 - Every API route except `/api/health` and `/api/login` needs a session and the role
   permission for its method. Roles: @@ROLES@@.

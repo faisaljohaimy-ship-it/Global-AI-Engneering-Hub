@@ -6,6 +6,7 @@ real HTTP server on loopback in a child process (helpers from tests/test_build_f
 or runs the application's own generated tests, unmodified and on a mutated copy, to show that
 a generated test fails when the behaviour it stands for is removed. No network beyond loopback.
 """
+import ast
 import importlib.util
 import os
 import pathlib
@@ -17,6 +18,8 @@ import unittest
 _SPEC = importlib.util.spec_from_file_location("_build_fixes_app", pathlib.Path(__file__).with_name("test_build_fixes_app.py"))
 _APP = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_APP)
+engine, requirements = _APP.engine, _APP.requirements
+TEMPLATE = pathlib.Path(__file__).resolve().parents[1] / "templates" / "app-stdlib"
 
 
 def run_generated(app, tmp, names):
@@ -116,6 +119,102 @@ class SignInCeilingTests(MutatedApp):
                           ("no-account-ceiling", LIMITS_LINE.replace('"account": ACCOUNT_FAILURES', '"account": 10 ** 9'))):
             with self.subTest(name):
                 self.assertGeneratedFails([LOCKOUT], self.mutant(name, "app/auth.py", LIMITS_LINE, new))
+
+
+WINDOW_RULE = "        return recent[-limit] + LOCKOUT_SECONDS - now\n"
+SIGNIN = "rate limit on sign-in (5 failures per 15 minutes)"
+SECURE_COMMAND = "build a new secure project management system"  # its NFR list carries SIGNIN
+
+
+def _constants(path, names):
+    """Module-level constants of a template file, evaluated from their literal expressions."""
+    found = {}
+    for node in ast.parse(path.read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", None) in names:
+            allowed = (ast.Expression, ast.Constant, ast.BinOp, ast.Mult, ast.Tuple, ast.Load)
+            expression = ast.Expression(node.value)
+            assert all(isinstance(part, allowed) for part in ast.walk(expression)), ast.dump(node.value)
+            found[node.targets[0].id] = eval(compile(expression, str(path), "eval"), {"__builtins__": {}})  # noqa: S307
+    return found
+
+
+class SignInStatementTests(MutatedApp):
+    """recheck-build W2-BU-06 residual: 'rate limit on sign-in (5 failures per 15 minutes)' is reported
+    passed only through a generated test that proves those numbers against the implementation."""
+
+    def model(self):
+        spec = engine.validate_spec(requirements.parse(SECURE_COMMAND))
+        model = engine.derive_model(spec)
+        engine.compile_acceptance(spec, model)
+        return spec, model
+
+    def test_the_statement_maps_only_with_the_implemented_numbers(self):
+        spec, model = self.model()
+        self.assertIn(SIGNIN, [text for items in spec["nfr"].values() for text in items])
+        self.assertEqual(engine.map_statement(model, spec["locales"], SIGNIN), [engine.API_ID + "test_login_lockout"])
+        for text in ("rate limit on sign-in (9 failures per 15 minutes)", "rate limit on sign-in (5 failures per 10 minutes)",
+                     "rate limit on sign-in (5 failures per 15 minutes per account)",
+                     "rate limit on sign-in (5 failures per 15 minutes) and on every endpoint"):
+            with self.subTest(text):
+                self.assertEqual(engine.map_statement(model, spec["locales"], text), [])
+
+    def test_engine_template_and_generated_test_state_the_same_numbers(self):
+        failures, minutes = engine.SIGNIN_LIMIT
+        self.assertEqual(_constants(TEMPLATE / "app/auth.py", {"LOCKOUT_FAILURES", "LOCKOUT_SECONDS"}),
+                         {"LOCKOUT_FAILURES": failures, "LOCKOUT_SECONDS": minutes * 60})
+        self.assertEqual(_constants(TEMPLATE / "tests/test_api.py", {"STATED_SIGNIN_LIMIT"}),
+                         {"STATED_SIGNIN_LIMIT": (failures, minutes * 60)})
+        self.assertEqual(engine.SIGNIN_LIMIT, (5, 15), "the numbers of the statement requirements writes")
+
+    def test_one_pair_gets_exactly_five_checked_failures_in_any_fifteen_minutes(self):
+        result = self.scenario("""
+            import http.client, threading
+            sessions, now = auth.Sessions(SCHEMA), [0.0]
+            sessions.clock = lambda: now[0]
+            checked = []
+            with db.session(server.db_path) as connection:
+                while now[0] < 2 * 900:
+                    try:
+                        sessions.login(connection, "admin@example.invalid", "wrong-guess-123", source="198.51.100.7")
+                    except auth.AuthError as error:
+                        if error.status == 401:
+                            checked.append(int(now[0]))
+                    now[0] += 1
+            result["checked"] = checked
+
+            def login_from(address, replies):
+                connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=60, source_address=(address, 0))
+                try:
+                    body = json.dumps({"email": "nobody@example.invalid", "password": "wrong-guess-123"}).encode()
+                    connection.request("POST", "/api/login", body=body, headers={"Content-Type": "application/json"})
+                    response = connection.getresponse()
+                    response.read()
+                    replies.append(response.status)
+                finally:
+                    connection.close()
+
+            replies = []
+            threads = [threading.Thread(target=login_from, args=("127.0.0.7", replies)) for _ in range(12)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            result["parallel"] = sorted(replies)
+        """)
+        self.assertEqual(result["checked"], [0, 1, 2, 3, 4, 900, 901, 902, 903, 904])
+        self.assertEqual(result["parallel"], [401] * 5 + [429] * 7, "parallel requests cannot pass the limit")
+
+    def test_generated_test_fails_when_the_policy_is_not_the_stated_one(self):
+        self.assertGeneratedPasses([LOCKOUT])
+        backoff = "        return max(0, recent[-1] + min(LOCKOUT_SECONDS, 30 * 2 ** (len(recent) - limit)) - now)\n"
+        mutants = (("doubling-backoff", "app/auth.py", WINDOW_RULE, backoff),  # 9 failures per 15 minutes
+                   ("window-from-latest", "app/auth.py", WINDOW_RULE, WINDOW_RULE.replace("[-limit]", "[-1]")),
+                   ("six-failures", "app/auth.py", "LOCKOUT_FAILURES = 5 ", "LOCKOUT_FAILURES = 6 "),
+                   ("ten-minutes", "app/auth.py", "LOCKOUT_SECONDS = 900 ", "LOCKOUT_SECONDS = 600 "),
+                   ("no-known-address", "app/auth.py", 'if not (kind == "account" and known is not None))', ")"))
+        for name, path, old, new in mutants:
+            with self.subTest(name):
+                self.assertGeneratedFails([LOCKOUT], self.mutant(name, path, old, new))
 
 
 if __name__ == "__main__":

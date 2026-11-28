@@ -12,6 +12,9 @@ from app import db, model, seed as seeding
 
 LIMITS = SCHEMA.limits
 METHOD_NEED = (("GET", "read"), ("POST", "write"), ("DELETE", "delete"))
+# "rate limit on sign-in (5 failures per 15 minutes)": the numbers test_login_lockout proves
+# (the build engine maps that statement to the test only with these numbers)
+STATED_SIGNIN_LIMIT = (5, 15 * 60)
 
 
 class ApiTests(unittest.TestCase):
@@ -368,62 +371,87 @@ class ApiTests(unittest.TestCase):
         self.assertEqual((status, error["error"]["code"]), (403, "cross_origin"))
 
     def test_login_lockout(self):
+        """One e-mail from one client address: exactly 5 failed sign-ins are checked in any 15 minutes
+        (sliding window); per client address and per e-mail across addresses, a ceiling."""
+        from app import auth
+        failures, window = STATED_SIGNIN_LIMIT
+        self.assertEqual((auth.LOCKOUT_FAILURES, auth.LOCKOUT_SECONDS), (failures, window))
         email, password = self.server.account(ADMIN)
-        for _ in range(5):
+        for _ in range(failures):
             self.assertEqual(self.call("POST", "/api/login", {"email": email, "password": "wrong-" + password}, role=None)[0], 401)
         status, headers, error = self.call("POST", "/api/login", {"email": email, "password": password}, role=None)
         self.assertEqual((status, error["error"]["code"]), (429, "too_many_attempts"))
         self.assertRegex(headers.get("retry-after", ""), r"^[1-9][0-9]*$")
-        from app import auth
+        self.assertLessEqual(int(headers["retry-after"]), window)
         sessions, now = auth.Sessions(SCHEMA), [1000.0]
         sessions.clock = lambda: now[0]
-        email, password = self.server.account(ADMIN)
         calls, original = [], auth.hash_password
         auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or original(*args, **kwargs)
 
-        def attempt(who, secret, source):
-            """Status of one sign-in through Sessions.login, and how many hashes it computed."""
+        def attempt(who, secret, source, at=None):
+            """(status, hashes computed, Retry-After) of one sign-in through Sessions.login at time `at`."""
+            if at is not None:
+                now[0] = 1000.0 + at
             del calls[:]
             try:
                 sessions.login(connection, who, secret, source=source)
-                return 200, len(calls)
+                return 200, len(calls), None
             except auth.AuthError as error:
-                if error.status == 429:
-                    self.assertGreaterEqual(error.retry_after, 1)
-                return error.status, len(calls)
+                return error.status, len(calls), error.retry_after
+        email, password = self.server.account(ADMIN)
+        target, secret = self.server.account(ADMIN)
         try:
             with db.session(self.server.db_path) as connection:
-                # one e-mail from one address: LOCKOUT_FAILURES failures, then a backoff that doubles
-                for _ in range(auth.LOCKOUT_FAILURES):
-                    self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.7"), (401, 1))
-                self.assertEqual(attempt(email, password, "198.51.100.7"), (429, 0), "refused before any hashing")
+                # one wrong password per second for 30 minutes: exactly `failures` are checked in each window
+                checked, refused = [], []
+                for second in range(2 * window):
+                    status, hashes, retry = attempt(email, "wrong-" + password, "198.51.100.7", at=second)
+                    if status == 401:
+                        checked.append(second)
+                        self.assertEqual(hashes, 1)
+                    else:
+                        refused.append((status, hashes, retry, second))
+                self.assertEqual(checked, list(range(failures)) + [window + n for n in range(failures)])
+                for status, hashes, retry, second in refused:  # refused until the oldest failure is `window` old
+                    self.assertEqual((status, hashes, retry), (429, 0, (window if second < window else 2 * window) - second))
+                self.assertEqual(attempt(email, password, "198.51.100.7", at=2 * window - 1)[:2], (429, 0),
+                                 "the right password is not checked while the window is full")
                 self.assertEqual(attempt(email, password, "203.0.113.9")[0], 200, "another address is not refused")
-                now[0] += auth.BACKOFF_SECONDS + 1
-                self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.7")[0], 401)
-                now[0] += auth.BACKOFF_SECONDS + 1
-                self.assertEqual(attempt(email, password, "198.51.100.7")[0], 429, "the backoff doubled")
-                now[0] += auth.BACKOFF_SECONDS * 2
-                self.assertEqual(attempt(email, password, "198.51.100.7")[0], 200)
-                # an unknown e-mail costs the same PBKDF2 work as a wrong password
-                del calls[:]
-                with self.assertRaises(auth.AuthError):
-                    sessions.login(connection, f"nobody.{time.time_ns()}@example.invalid", password, source="x")
-                self.assertEqual(calls, [SCHEMA.auth["pbkdf2_iterations"]])
-                now[0] += auth.LOCKOUT_SECONDS
+                self.assertEqual(attempt(email, password, "198.51.100.7", at=2 * window)[0], 200)
+                # the window slides: failures spread over 15 minutes still count together
+                start = 3 * window
+                for n in range(failures):
+                    self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.8", at=start + n * 200)[0], 401)
+                self.assertEqual(attempt(email, password, "198.51.100.8", at=start + window - 50)[::2], (429, 50))
+                self.assertEqual(attempt(email, "wrong-" + password, "198.51.100.8", at=start + window)[0], 401)
+                self.assertEqual(attempt(email, password, "198.51.100.8", at=start + window + 1)[::2], (429, 199))
+                # an unknown e-mail costs the same PBKDF2 work as a wrong password, and is counted the same
+                stranger = f"nobody.{time.time_ns()}@example.invalid"
+                for n in range(failures):
+                    self.assertEqual(attempt(stranger, password, "x")[:2], (401, 1))
+                    self.assertEqual(calls, [SCHEMA.auth["pbkdf2_iterations"]])
+                self.assertEqual(attempt(stranger, password, "x")[:2], (429, 0))
                 # one address rotating e-mails: ADDRESS_FAILURES failures, then refused before hashing
+                now[0] += window
                 auth.hash_password = lambda *args, **kwargs: calls.append(args[1]) or ("", "")
                 for n in range(auth.ADDRESS_FAILURES):
-                    self.assertEqual(attempt(f"spray.{n}@example.invalid", password, "192.0.2.1"), (401, 1), n)
-                self.assertEqual(attempt("spray.next@example.invalid", password, "192.0.2.1"), (429, 0))
+                    self.assertEqual(attempt(f"spray.{n}@example.invalid", password, "192.0.2.1")[:2], (401, 1), n)
+                self.assertEqual(attempt("spray.next@example.invalid", password, "192.0.2.1")[:2], (429, 0))
                 self.assertEqual(attempt(email, "wrong-" + password, "192.0.2.2")[0], 401)
                 # one e-mail from many addresses: ACCOUNT_FAILURES failures in all, then every address waits
-                target = f"target.{time.time_ns()}@example.invalid"
+                # except one that signed in to it before (it keeps its own pair and address limits)
+                auth.hash_password = original
+                self.assertEqual(attempt(target, secret, "198.20.0.1")[0], 200)
                 for n in range(auth.ACCOUNT_FAILURES):
-                    source = f"198.18.{n // auth.LOCKOUT_FAILURES}.1"
+                    source = f"198.18.{n // failures}.1"
                     self.assertEqual(attempt(target.upper() if n % 2 else target, password, source)[0], 401, n)
-                self.assertEqual(attempt(target, password, "198.19.0.1"), (429, 0), "the ceiling holds every address")
-                now[0] += auth.LOCKOUT_SECONDS
-                self.assertEqual(attempt(target, password, "198.19.0.1")[0], 401, "the ceiling expires")
+                self.assertEqual(attempt(target, secret, "198.19.0.1")[:2], (429, 0), "the ceiling holds new addresses")
+                self.assertEqual(attempt(target, secret, "198.20.0.1")[0], 200, "a known address is not held")
+                for _ in range(failures):
+                    self.assertEqual(attempt(target, "wrong-" + secret, "198.20.0.1")[0], 401)
+                self.assertEqual(attempt(target, secret, "198.20.0.1")[:2], (429, 0), "but keeps its own pair limit")
+                now[0] += window
+                self.assertEqual(attempt(target, secret, "198.19.0.1")[0], 200, "the ceiling expires")
         finally:
             auth.hash_password = original
         for n in range(auth.MAX_TRACKED + 5):

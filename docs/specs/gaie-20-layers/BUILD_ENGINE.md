@@ -161,7 +161,11 @@ whole-statement forms (`_nfr_rules`: the statements `requirements` writes, match
 case-insensitive): no secrets in the repository → secret scan; parameterized SQL → injection
 test; input validation → validation tests; role check on every endpoint; CSRF token on
 cookie sessions; passwords stored as salted PBKDF2-SHA256 hashes → PBKDF2 test; rate limit on
-sign-in (5 failures per 15 minutes) → lockout test; p95 API latency and pagination → their
+sign-in (N failures per M minutes) → lockout test only when (N, M) is `SIGNIN_LIMIT` (5, 15),
+the numbers `app/auth.py` implements for one e-mail from one client address in a sliding
+window and `test_login_lockout` proves (one wrong password per second for 30 minutes on a
+fake clock: exactly 5 are checked in each 15 minutes, the rest get 429 with the wait until
+the oldest failure is 15 minutes old); p95 API latency and pagination → their
 tests when the stated numbers are the ones the test measures; keyboard; labels; focus; ISO
 dates per locale; "ar rtl"/"en ltr" → server and E2E locale checks; one-aggregate progress;
 the scoping statement. Any other statement — including one that merely contains such a
@@ -235,10 +239,11 @@ in the tests) to that record and let the adapter delegate them to
   uploads, e-mail or other integrations (refused, not faked).
 - Acceptance coverage is limited to the forms in §4; anything else is reported unmapped.
   Domain rules come only from criteria; the engine does not infer business logic.
-- Sign-in failures are limited per (e-mail, client address), per client address and per
-  e-mail across addresses, in process memory (behind a reverse proxy all clients share its
-  address; a restart resets the counters); the per-e-mail ceiling means failures from
-  several addresses together can make that e-mail wait. Unknown e-mails cost the same
+- Sign-in failures are limited per (e-mail, client address) (5), per client address (20)
+  and per e-mail across addresses (20) in sliding 15-minute windows, in process memory
+  (behind a reverse proxy all clients share its address; a restart resets the counters);
+  the per-e-mail ceiling means failures from several addresses together make that e-mail
+  wait at every address that has not signed in to it in the last 30 days. Unknown e-mails cost the same
   PBKDF2 work as wrong passwords, and a refused attempt costs none. No password reset, MFA,
   audit log or account UI
   (accounts are created with `manage.py create-account`). Many-to-many links have an API,

@@ -7,24 +7,28 @@ the first administrator is created with `python3 manage.py create-account`.
 
 Sign-in does the same PBKDF2 work whether or not the e-mail has an account (a dummy
 hash with the schema's iteration count), so response time does not reveal which
-accounts exist. Failed sign-ins are counted over the last LOCKOUT_SECONDS (15 minutes)
-under three limits, all checked before any account lookup or hashing:
+accounts exist. Failed sign-ins are counted in sliding windows of LOCKOUT_SECONDS
+(15 minutes) under three limits, all checked before any account lookup or hashing:
 
-- one e-mail from one client address: LOCKOUT_FAILURES (5) failures;
+- one e-mail from one client address: LOCKOUT_FAILURES (5) failures in any 15 minutes,
+  the "rate limit on sign-in (5 failures per 15 minutes)";
 - one client address, any e-mails: ADDRESS_FAILURES, so rotating e-mails (each of
   which costs a full PBKDF2) cannot make one client burn unbounded CPU;
 - one e-mail from all client addresses together: ACCOUNT_FAILURES, a ceiling on
   guessing one account from many addresses.
 
-A limit that is reached refuses sign-in (429 with Retry-After, the password is not
-checked) for a backoff that starts at BACKOFF_SECONDS after the latest failure and
-doubles with each further failure, up to LOCKOUT_SECONDS. An attempt is counted when
-it is admitted (so parallel requests cannot pass a limit) and stops counting once its
-password proves correct; a correct password also clears its (e-mail, address) pair.
-E-mails are counted whether or not an account has them. Failures from one address
-never refuse the pair of another address; only ACCOUNT_FAILURES failures from several
-addresses together hold one e-mail everywhere. The counters are in process memory,
-bounded to MAX_TRACKED keys each, and reset when the server restarts.
+While a window holds its limit, sign-in for it is refused (429 with Retry-After, the
+password is not checked) until the oldest failure counted in it is LOCKOUT_SECONDS old:
+that wait is the backoff, so no window ever admits more than its limit. An attempt is
+counted when it is admitted (so parallel requests cannot pass a limit) and stops
+counting once its password proves correct; a correct password also clears its (e-mail,
+address) pair. E-mails are counted whether or not an account has them. Failures from
+one address never refuse the pair of another address. ACCOUNT_FAILURES failures from
+several addresses together hold one e-mail at every address except those that signed in
+to it successfully within KNOWN_SECONDS (those keep their own pair and address limits),
+so a distributed guesser cannot keep the owner out of their usual address. The counters
+are in process memory, bounded to MAX_TRACKED keys each, and reset when the server
+restarts.
 """
 import datetime
 import hashlib
@@ -39,11 +43,11 @@ from . import db
 MIN_PASSWORD = 12
 MAX_PASSWORD = 256
 MAX_EMAIL = 254
-LOCKOUT_SECONDS = 900  # the window of every sign-in limit, and the longest backoff
-BACKOFF_SECONDS = 30
+LOCKOUT_SECONDS = 900  # the sliding window of every sign-in limit
 LOCKOUT_FAILURES = 5  # per (e-mail, client address)
 ADDRESS_FAILURES = 20  # per client address, any e-mails
 ACCOUNT_FAILURES = 20  # per e-mail, all client addresses together
+KNOWN_SECONDS = 30 * 24 * 3600  # an address that signed in to an e-mail is exempt from its ceiling this long
 MAX_TRACKED = 10000  # keys kept per counter
 
 
@@ -98,6 +102,7 @@ class Sessions:
         self.schema = schema
         self.hours = schema.auth.get("session_hours", 12)
         self._failures = {"pair": {}, "address": {}, "account": {}}
+        self._known = {}  # (e-mail, address) -> time of its latest successful sign-in
         self._lock = threading.Lock()
         self.clock = time.monotonic
         # a salt and a digest no password produces: verifying against them costs the full PBKDF2 work
@@ -122,7 +127,7 @@ class Sessions:
         """Seconds a window with these failures still refuses sign-in (0: it admits one)."""
         if len(recent) < limit:
             return 0
-        return max(0, recent[-1] + min(LOCKOUT_SECONDS, BACKOFF_SECONDS * 2 ** (len(recent) - limit)) - now)
+        return recent[-limit] + LOCKOUT_SECONDS - now
 
     def _admit(self, keys):
         """Count one attempt in every window, or none when a window is full.
@@ -131,7 +136,12 @@ class Sessions:
         limits = {"pair": LOCKOUT_FAILURES, "address": ADDRESS_FAILURES, "account": ACCOUNT_FAILURES}
         with self._lock:
             now = self.clock()
-            wait = max(self._wait(self._recent(kind, key, now), limits[kind], now) for kind, key in keys.items())
+            known = self._known.get(keys["pair"])
+            if known is not None and known <= now - KNOWN_SECONDS:
+                del self._known[keys["pair"]]
+                known = None
+            wait = max(self._wait(self._recent(kind, key, now), limits[kind], now) for kind, key in keys.items()
+                       if not (kind == "account" and known is not None))
             if wait > 0:
                 return wait, None
             for kind, key in keys.items():
@@ -145,9 +155,13 @@ class Sessions:
             return None, now
 
     def _succeeded(self, keys, stamp):
-        """The password was right: the admitted attempt is no failure and the pair starts again."""
+        """The password was right: the admitted attempt is no failure, the pair starts again and
+        its address is known for this e-mail."""
         with self._lock:
             self._failures["pair"].pop(keys["pair"], None)
+            if keys["pair"] not in self._known and len(self._known) >= MAX_TRACKED:
+                del self._known[min(self._known, key=self._known.get)]
+            self._known[keys["pair"]] = self.clock()
             for kind in ("address", "account"):
                 entries = self._failures[kind].get(keys[kind])
                 if entries and stamp in entries:
