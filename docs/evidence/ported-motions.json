@@ -39,6 +39,36 @@
     "networks-data-transmission": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/networks/data-transmission.mjs)",
     "networks-distributed-system": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/networks/distributed-system.mjs)"
    }
+  },
+  {
+   "source": "motion-library/expansion/nextgen-motion-ui.mjs",
+   "from_branch": "origin/codex/nextgen-intelligence",
+   "from_commit": "330e66279baed4dceb0cb6a050485b9f84bed94d",
+   "from_blob": "7c990fb9d2605a746e3060534add69f9f29e6328",
+   "ids": [
+    "hologram-card-assembly",
+    "hologram-depth-mapping",
+    "hologram-interface-deconstruction",
+    "hologram-data-projection",
+    "hologram-command-interface",
+    "dashboard-risk-matrix",
+    "dashboard-predictive-reveal",
+    "dashboard-geographic-heatmap",
+    "dashboard-network-graph",
+    "dashboard-alert-cascade"
+   ],
+   "left_out": {
+    "hologram-scanline-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/hologram/scanline-reveal.mjs)",
+    "dashboard-kpi-flow": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/kpi-flow.mjs)",
+    "dashboard-sankey-flow": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/sankey-flow.mjs)",
+    "dashboard-time-series-reveal": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/time-series-reveal.mjs)",
+    "dashboard-signal-pulse": "superseded: HEAD has it as a native engine motion with a stated meaning (packages/motion-engines/motions/dashboard/signal-pulse.mjs)",
+    "hologram-materialization": "no stated purpose: a wireframe vessel forms slice by slice above an emitter; no digital service is shown",
+    "hologram-volumetric-projection": "no stated purpose: depth planes and voxels appear inside a projector frustum; a projection effect with no digital service shown",
+    "hologram-floating-grid": "no stated purpose: a displacement wave lifts a wire grid; a surface effect with no digital service shown",
+    "hologram-interactive-rotation": "no stated purpose: a wireframe cube turns with the pointer and the timeline; no digital service is shown",
+    "dashboard-data-orbit": "no stated purpose: metric dots circle on tilted ellipses with trails; the orbits carry no readable data or process"
+   }
   }
  ],
  "not_ported": {

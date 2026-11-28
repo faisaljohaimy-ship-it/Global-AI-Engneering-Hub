@@ -1559,6 +1559,1052 @@
    "production_fps_verified": false,
    "real_devices_verified": false,
    "gpu_runtime_verified": false
+  },
+  "motion-library/expansion/nextgen-motion-ui.mjs": {
+   "status": "passed",
+   "recorded_at_utc": "2026-11-28T09:23:37.424Z",
+   "browser": "chromium",
+   "browser_version": "158.0.8127.36",
+   "playwright_version": "1.63.0",
+   "reviewed_playwright_pin": "1.65.1",
+   "toolchain_matches_reviewed_pin": false,
+   "platform": "linux",
+   "source_sha256": "d36562f1da2eaf2f7dedcae4e2207c6e0ad2f5a64189cf842e55c87cee77a816",
+   "inputs": {
+    "packages/motion-sdk/index.mjs": "9a970315891f120c090335eb7b2cc666725b36d608b215052a71e4dc86377fef",
+    "tests/test_ported_motions_browser.mjs": "c36ce62d480c3c46af140ec5b53a7c4af693601d586a07898c2189a84023dd3a",
+    "motion-library/verify/serve.mjs": "a13b9eff1a7e34ad8240eb5f5cb73aab74c91e815f9163ad75099915566eba0d"
+   },
+   "motions": [
+    {
+     "id": "hologram-card-assembly",
+     "name_en": "Card Assembly",
+     "name_ar": "تجميع البطاقات",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Building a dashboard card from components: a trend chart, a message badge and a progress bar slot into one panel.",
+      "ar": "بناء بطاقة لوحة معلومات من مكوّناتها: يستقر مخطط الاتجاه وشارة الرسائل وشريط التقدّم في لوحة واحدة."
+     }
+    },
+    {
+     "id": "hologram-depth-mapping",
+     "name_en": "Depth Mapping",
+     "name_ar": "رسم خريطة العمق",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Depth sensing for a digital model: a scan line sweeps the area, samples each point and turns it into a colour-coded height.",
+      "ar": "استشعار العمق لنموذج رقمي: يمسح خط المسح المنطقة، ويقيس كل نقطة ويحوّلها إلى ارتفاع مرمّز بالألوان."
+     }
+    },
+    {
+     "id": "hologram-interface-deconstruction",
+     "name_en": "Interface Deconstruction",
+     "name_ar": "تفكيك الواجهة",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Interface breakdown: a service screen is pulled apart into its components, and tethers keep each one tied to its place in the layout.",
+      "ar": "تفكيك الواجهة: تُفصل شاشة الخدمة إلى مكوّناتها، وتُبقي الروابط كل مكوّن مشدودًا إلى موضعه في التخطيط."
+     }
+    },
+    {
+     "id": "hologram-data-projection",
+     "name_en": "Data Projection",
+     "name_ar": "إسقاط البيانات",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Data visualisation: readings rise from the platform as columns and are joined into a trend line.",
+      "ar": "تصوير البيانات: ترتفع القراءات من المنصة أعمدةً وتتصل في خط اتجاه واحد."
+     }
+    },
+    {
+     "id": "hologram-command-interface",
+     "name_en": "Command Interface",
+     "name_ar": "واجهة الأوامر",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "An operator command runs as a pipeline: the typed request passes check, review and report, and each stage lights up as it completes.",
+      "ar": "أمر المشغّل يعمل كمسار: يمرّ الطلب المكتوب بالتحقق ثم المراجعة ثم التقرير، وتضيء كل مرحلة عند اكتمالها."
+     }
+    },
+    {
+     "id": "dashboard-risk-matrix",
+     "name_en": "Risk Matrix",
+     "name_ar": "مصفوفة المخاطر",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Risk assessment: findings fill a likelihood-impact matrix, and the assessment line climbs to the highest-risk cell.",
+      "ar": "تقييم المخاطر: تملأ النتائج مصفوفة الاحتمال والأثر، ويصعد خط التقييم إلى الخلية الأعلى خطورة."
+     }
+    },
+    {
+     "id": "dashboard-predictive-reveal",
+     "name_en": "Predictive Reveal",
+     "name_ar": "كشف التوقع",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Forecasting: past observations are followed by a fan of projected scenarios that widens the further ahead it looks.",
+      "ar": "التنبؤ: تتبع المشاهداتِ السابقة مروحةٌ من السيناريوهات المتوقعة تتسع كلما امتد النظر إلى الأمام."
+     }
+    },
+    {
+     "id": "dashboard-geographic-heatmap",
+     "name_en": "Geographic Heatmap",
+     "name_ar": "خريطة حرارية جغرافية",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Regional activity monitoring: service demand hotspots grow and fade across the regions of a fictional map.",
+      "ar": "مراقبة النشاط الإقليمي: تكبر بؤر الطلب على الخدمة وتخبو عبر مناطق خريطة افتراضية."
+     }
+    },
+    {
+     "id": "dashboard-network-graph",
+     "name_en": "Network Graph",
+     "name_ar": "رسم الشبكة",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "A relationship graph: linked records spread out around their central entity so that each connection can be read.",
+      "ar": "رسم العلاقات: تنتشر السجلات المرتبطة حول الكيان المركزي حتى يمكن قراءة كل صلة."
+     }
+    },
+    {
+     "id": "dashboard-alert-cascade",
+     "name_en": "Alert Cascade",
+     "name_ar": "تتابع التنبيهات",
+     "engine": "canvas2d",
+     "meaning": {
+      "en": "Incident alerting: platform events arrive and stack in time order in the alert queue, coloured by severity.",
+      "ar": "التنبيه بالحوادث: تصل أحداث المنصة وتتراص بترتيب زمني في طابور التنبيهات، ملوّنة بحسب خطورتها."
+     }
+    }
+   ],
+   "cases": [
+    {
+     "id": "hologram-card-assembly",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "1746e3b18eeb66f6e105ad70281930bf1144012ab07085dde3f6f85a5cb476ff",
+       "drawn_pixels": 26200
+      },
+      {
+       "sha256": "00ea6507a033212bd3f79bc25771867d40d6502938f4002389d2e555d6f7e9ad",
+       "drawn_pixels": 26453
+      },
+      {
+       "sha256": "3046bc8ef5cb7a34711da2e053a800093717c69dd9eaf6c305fe56a95c5ee748",
+       "drawn_pixels": 25794
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.7000000001862645,
+      "max_ms": 2.699999999953434,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-depth-mapping",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "2a8df94d642b40c64c98a0767b8b14c9caeb084a58089b2d054137d5223670b0",
+       "drawn_pixels": 7977
+      },
+      {
+       "sha256": "d4c7a7937f53e754aa28f30ebb6328f8220a2010095cce1b8204b64ebc14a6bb",
+       "drawn_pixels": 9538
+      },
+      {
+       "sha256": "e3c237394054694f140504a317b9f5ceb3e480d95d6af9629e5ca396c7529903",
+       "drawn_pixels": 11631
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.5,
+      "p95_ms": 0.8000000000465661,
+      "max_ms": 1.6000000000931323,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-interface-deconstruction",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "4122252d45ea0bf229a6fc9395f4b274a4864989cf49ce336e1249c9f9f1f3c7",
+       "drawn_pixels": 8863
+      },
+      {
+       "sha256": "a50417563b96da1c4ecda79badf86131915f40e88843aff5e22cb6de9f87965f",
+       "drawn_pixels": 8695
+      },
+      {
+       "sha256": "66eec9ffcf2ccec9cff7eaf2278f67f44fbef7d582ac7fdc222aed2f8aaf06dc",
+       "drawn_pixels": 9864
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.19999999995343387,
+      "max_ms": 1.4000000001396984,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-data-projection",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "48488b900206400407b07a121e33e868688f2c1b610e45d5bc503a1b18e0d2cf",
+       "drawn_pixels": 7506
+      },
+      {
+       "sha256": "15615199073fb64efba2c30b4c3eef66e0e643db1536090944483b3d48409cc8",
+       "drawn_pixels": 8745
+      },
+      {
+       "sha256": "d37ed03deee5605e82764e7b7e666799aa23b9756f7ab059010c230a781899d9",
+       "drawn_pixels": 9971
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.6999999999534339,
+      "max_ms": 0.7000000001862645,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-command-interface",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "a693ade95b170c5241da585ba447cde5cc57e4033f380d959123c01d24d253b1",
+       "drawn_pixels": 52800
+      },
+      {
+       "sha256": "02fece15113561eac79b51009d177495c09be952cf81de17130c6c3f937551f6",
+       "drawn_pixels": 55408
+      },
+      {
+       "sha256": "15a640752711760645da50c42f20b97b61c75d6c5d619b6221d7a3ac8766bab7",
+       "drawn_pixels": 59652
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.5,
+      "max_ms": 3.3999999999068677,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-risk-matrix",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "abcdc392141e38fb9b9620cef185d75ec499808f330c79a3ae1dde2883bfc70d",
+       "drawn_pixels": 65314
+      },
+      {
+       "sha256": "a96c40dd1db6077b05f2adb358a46e823fbb67b4689cc97d98dd1d91310d980e",
+       "drawn_pixels": 65316
+      },
+      {
+       "sha256": "689feb91ec36a3038a8cc739cf75061213d4e6eac60b084da15c5a06719ad21c",
+       "drawn_pixels": 65312
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 1.2000000001862645,
+      "max_ms": 2.800000000046566,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-predictive-reveal",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "3232cbb4d2ac382d646e9ad703847dcbca6cf27097d11ddeaedcc107dc8caf88",
+       "drawn_pixels": 65324
+      },
+      {
+       "sha256": "b0f9adbb590ee5b23ebd492173604c7845ea164c6d9cd597784c5633e05271e7",
+       "drawn_pixels": 65324
+      },
+      {
+       "sha256": "08c350dfc42dab135e9fbc2a4941ced71bdb2d1c14a9cd8f32a5e4f66f469f7c",
+       "drawn_pixels": 65324
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 0.6999999999534339,
+      "max_ms": 2.699999999953434,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-geographic-heatmap",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "9852fd34c825a84440112669c971edb1c5468618e4cc141bf3d3114bb813f26b",
+       "drawn_pixels": 65324
+      },
+      {
+       "sha256": "beb70f2a2ba8b2ee06d9fd3184581b8a2e75d75cfd7d4d33a8034dad756cd95d",
+       "drawn_pixels": 65324
+      },
+      {
+       "sha256": "35c5e8e4b2cd4d736930376809488b032c91f234dc987feeafee6b529d3a201d",
+       "drawn_pixels": 65324
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.5,
+      "max_ms": 0.5,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-network-graph",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "5eddfe4fbca9b06e0294954cdd9c16a260f4ea55770f37c6e929b7593eb20d65",
+       "drawn_pixels": 65316
+      },
+      {
+       "sha256": "b4a27632097e1b4b97467f0db3736ba530061facac0bee75a918f467739cc1d0",
+       "drawn_pixels": 65316
+      },
+      {
+       "sha256": "d10407bc3b321966d532f35dbb84cf30f3071d9ae7dd7072fb01bd6725060f1d",
+       "drawn_pixels": 65316
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.5999999998603016,
+      "max_ms": 4.400000000139698,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-alert-cascade",
+     "viewport": {
+      "width": 390,
+      "height": 844
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "627cc876c6980f1f8727f601ed652c7386c59621f0d0eac1d91256e781d74f22",
+       "drawn_pixels": 65324
+      },
+      {
+       "sha256": "bf3843e434576f99df47432199542959b3f96ef6b1cdb1e18e8bc011f1d0cc4f",
+       "drawn_pixels": 59922
+      },
+      {
+       "sha256": "92d3889b1c29e70299ed5530d33003ff6785ddd14bde3002c20066cc23c3beab",
+       "drawn_pixels": 51590
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.10000000009313226,
+      "max_ms": 0.4000000001396984,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-card-assembly",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "d9b97c43cce575c3df43eb4ea9b0c3562fa4fe37eaec3f887c2e6dccf2b72648",
+       "drawn_pixels": 192272
+      },
+      {
+       "sha256": "2d0043575f7afb7de3d731260b0e7680082db6d22e16da7458b74016f39d9d52",
+       "drawn_pixels": 195405
+      },
+      {
+       "sha256": "643a13bf2def4194536aec265ca11a677dab3eacdc10c3c1b6f1ea57f417713d",
+       "drawn_pixels": 190802
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 2.5,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-depth-mapping",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "fe3c2d839f27fad569f66aa29f3fb25573067b0c6646837b29765d9cb1091c34",
+       "drawn_pixels": 55868
+      },
+      {
+       "sha256": "b1c42efe7e02b10adad222d750a39497cd3aa2fb9fcec253adb21fb8b68eac01",
+       "drawn_pixels": 65991
+      },
+      {
+       "sha256": "03856073da17c857731aeb4d2378f4e8cfd6819a8f6529fb038b5881cd07ed78",
+       "drawn_pixels": 80847
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.30000000004656613,
+      "p95_ms": 0.6999999999534339,
+      "max_ms": 1.8000000000465661,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-interface-deconstruction",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "391a570c81c15ebe365c7fa1afe6824b16db457ad0d06b3ceff90920848f8e13",
+       "drawn_pixels": 60822
+      },
+      {
+       "sha256": "250a39f1fcacd69dd4421b892dd834a116b18dc3fdcf8c99e78a86f044b255c2",
+       "drawn_pixels": 60613
+      },
+      {
+       "sha256": "a440ff8659bd43db49093743a652a88ae25c559b4e7d0930d8fc348c5efef8df",
+       "drawn_pixels": 66282
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0,
+      "p95_ms": 0.19999999995343387,
+      "max_ms": 1.6000000000931323,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-data-projection",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "d8b37dee3415e43d60e9793e7e2b00dedae53fa25f75031cd21d180153676911",
+       "drawn_pixels": 54029
+      },
+      {
+       "sha256": "043b6949689ea32c9b204cc25570d121663fe2a29f9847bdc1d774d1fe85f4d9",
+       "drawn_pixels": 61339
+      },
+      {
+       "sha256": "f62a2896fa73774da85ca0eeeea20d9b9d02049b0590139d60b340ca208d615a",
+       "drawn_pixels": 68420
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.4000000001396984,
+      "max_ms": 0.6999999999534339,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "hologram-command-interface",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "98451ddcec8722741dc36d6fcd2cf91fc66a2ae60fa41e781d48c1e8752a24f1",
+       "drawn_pixels": 388426
+      },
+      {
+       "sha256": "6b5ae91b0fd460ed4adc81da8f588f52e042b63f4a50f9ffbba1933e03af93b5",
+       "drawn_pixels": 407644
+      },
+      {
+       "sha256": "f6130c7d660d2152d90828eef00c3f208e9fcbc54c5e6453db0826cb172b255c",
+       "drawn_pixels": 441382
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 2.5,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-risk-matrix",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "33ab75870c096301e1174e2ffcec9cb3402d9c82030bff6841c1016a55752e15",
+       "drawn_pixels": 485246
+      },
+      {
+       "sha256": "b75f2bef841ac678eed31e5d90acee1853ebcdd5e73bd226e0f4e7d42b03758c",
+       "drawn_pixels": 485252
+      },
+      {
+       "sha256": "6f87c89d9b4173b2c46dcf6e08dd78bb1101301e38aa4d3266cc62d0df02a092",
+       "drawn_pixels": 485250
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.19999999995343387,
+      "p95_ms": 0.5999999998603016,
+      "max_ms": 2.199999999953434,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-predictive-reveal",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "a1efc675a4e35e4e4baec8917368bb9c521b7bf89cf1e2ef873dec5d4d5ddf98",
+       "drawn_pixels": 485512
+      },
+      {
+       "sha256": "c0527da618c333cb315e31454df5417e6aadac910db33f7dca0d6407d7a46f04",
+       "drawn_pixels": 485512
+      },
+      {
+       "sha256": "975def79e5fd0f0da5e77f0a32da6490fb9ddf4ae957c434fc96a4061a084a9e",
+       "drawn_pixels": 485512
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.5,
+      "max_ms": 2,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-geographic-heatmap",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "a86b6983d7fd4b636c3b128d12f14eadfc2fad71d57f2fcc424ff9c41fb0a15e",
+       "drawn_pixels": 485512
+      },
+      {
+       "sha256": "f7b9192a16b080e36196e6ee6ca81072a9420940e742d4caf649d6a3932d5a1d",
+       "drawn_pixels": 485512
+      },
+      {
+       "sha256": "80bc675346d7a2f3fba6a25161dcce656b3b7281900a5a4aa97b2ee3e5833aa3",
+       "drawn_pixels": 485512
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.39999999990686774,
+      "max_ms": 1,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-network-graph",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "aef939e486e07964b97220c3d16661e37d76673d22eef154aeffb7f24934fb35",
+       "drawn_pixels": 485129
+      },
+      {
+       "sha256": "5d33f4e3520c0cae0f9fe4e85eb102569be086a2abc5b05de2ad3c7c948821ac",
+       "drawn_pixels": 485130
+      },
+      {
+       "sha256": "e28f1c4fc496184ab3aaac0d2ac9889ed01c17b19e39a5e77f9008e2cf842dc5",
+       "drawn_pixels": 485130
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.10000000009313226,
+      "p95_ms": 0.19999999995343387,
+      "max_ms": 0.4000000001396984,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    },
+    {
+     "id": "dashboard-alert-cascade",
+     "viewport": {
+      "width": 1280,
+      "height": 720
+     },
+     "checks": {
+      "drawn": true,
+      "changes": true,
+      "deterministic": true,
+      "reduced_motion": true,
+      "rtl": true,
+      "exports": true,
+      "pause": true,
+      "stop": true,
+      "cleanup": true,
+      "cpu_budget": true
+     },
+     "frames": [
+      {
+       "sha256": "20a077b15b6f4f6055908ea6ca8ffdb5e520ea3c6450cd3354b46ecffb2b657f",
+       "drawn_pixels": 485512
+      },
+      {
+       "sha256": "3ef6b7e782443b2551f19c104124dd6ded105b70bcbaa1cc607b079f450764e7",
+       "drawn_pixels": 440358
+      },
+      {
+       "sha256": "5e3cec68320fac2e2dcccb8ee175a4db7326056c2032a9a3c2b9b108f8d09f01",
+       "drawn_pixels": 373304
+      }
+     ],
+     "benchmark": {
+      "kind": "synchronous-sampling-and-draw",
+      "frames": 45,
+      "median_ms": 0.09999999986030161,
+      "p95_ms": 0.20000000018626451,
+      "max_ms": 0.39999999990686774,
+      "budget_ms": 25,
+      "within_cpu_budget": true,
+      "production_fps_verified": false,
+      "engine": "canvas2d",
+      "detail": 12,
+      "pixelRatio": 1
+     }
+    }
+   ],
+   "failures": [],
+   "page_errors": 0,
+   "external_requests": 0,
+   "production_fps_verified": false,
+   "real_devices_verified": false,
+   "gpu_runtime_verified": false
   }
  }
 }
