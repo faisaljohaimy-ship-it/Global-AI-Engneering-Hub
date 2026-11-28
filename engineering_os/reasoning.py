@@ -7,11 +7,12 @@ SPDX-License-Identifier: MIT
 """
 
 import copy
+import heapq
 import math
 import re
 import time
 
-from .orchestration import DIGEST, SLUG, _text, canonical, sha
+from .orchestration import DIGEST, SLUG, _text, sha
 
 MAX_AGE = 86400
 
@@ -87,15 +88,79 @@ def _waves(nodes, edges, parallel):
     return waves
 
 
+def _critical_path_schedule(nodes, edges, waves, capacity):
+    """Conservative list scheduling with dependencies released on completion."""
+    successors = {key: [] for key in nodes}
+    remaining = {key: len(dependencies) for key, dependencies in edges.items()}
+    for key, dependencies in edges.items():
+        for parent in dependencies:
+            successors[parent].append(key)
+
+    tail = {}
+    for wave in reversed(waves):
+        for key in wave:
+            tail[key] = nodes[key]['minutes'] + max(
+                (tail[child] for child in successors[key]), default=0
+            )
+
+    lower_bound = max(max(tail.values()),
+                      math.ceil(sum(node['minutes'] for node in nodes.values()) / capacity))
+    ready = [(-tail[key], key) for key, count in remaining.items() if count == 0]
+    heapq.heapify(ready)
+    workers = list(range(1, capacity + 1))
+    running, assignments = [], []
+    clock, peak = 0, 0
+    while ready or running:
+        while ready and workers:
+            _, key = heapq.heappop(ready)
+            worker = heapq.heappop(workers)
+            end = clock + nodes[key]['minutes']
+            assignments.append({'task': key, 'worker': worker, 'start_minute': clock,
+                                'end_minute': end})
+            heapq.heappush(running, (end, worker, key))
+        peak = max(peak, len(running))
+        clock = running[0][0]
+        while running and running[0][0] == clock:
+            _, worker, key = heapq.heappop(running)
+            heapq.heappush(workers, worker)
+            for child in successors[key]:
+                remaining[child] -= 1
+                if not remaining[child]:
+                    heapq.heappush(ready, (-tail[child], child))
+
+    # Preserve the feasible incumbent if list scheduling would lengthen it.
+    baseline = sum(max(nodes[key]['minutes'] for key in wave) for wave in waves)
+    method = 'critical-path-list'
+    if clock > baseline:
+        assignments, clock = [], 0
+        for wave in waves:
+            for worker, key in enumerate(wave, 1):
+                assignments.append({'task': key, 'worker': worker, 'start_minute': clock,
+                                    'end_minute': clock + nodes[key]['minutes']})
+            clock += max(nodes[key]['minutes'] for key in wave)
+        peak = max(map(len, waves))
+        method = 'wave-incumbent'
+    return {'algorithm': method, 'assignments': assignments, 'peak_parallel': peak,
+            'elapsed_minutes': clock, 'wave_baseline_minutes': baseline,
+            'lower_bound_minutes': lower_bound, 'optimal_for_estimates': clock == lower_bound}
+
+
 def plan(request, *, now=None):
     """Return a deterministic provisional plan; all candidates are caller supplied.
 
-    ``max_minutes`` bounds the conservative wave schedule's elapsed duration.
+    ``max_minutes`` bounds the selected schedule's estimated elapsed duration.
+    The optional ``scheduling: critical-path`` emits worker assignments with
+    dependencies released on completion and retains the wave incumbent as a bound.
     ``cost_units`` are arbitrary planning units, never currency or token billing.
     Evidence is structurally checked and source/project/time bound, not signed.
     """
-    _shape(request, {'schema_version', 'project', 'task', 'source_sha256', 'nodes',
-                     'constraints', 'alternatives', 'evidence'})
+    fields = {'schema_version', 'project', 'task', 'source_sha256', 'nodes',
+              'constraints', 'alternatives', 'evidence'}
+    if isinstance(request, dict) and 'scheduling' in request:
+        fields.add('scheduling')
+        if request['scheduling'] != 'critical-path':
+            raise ReasoningError("Unknown scheduling strategy")
+    _shape(request, fields)
     if type(request['schema_version']) is not int or request['schema_version'] != 1:
         raise ReasoningError("Unknown schema")
     _id(request['project'])
@@ -128,7 +193,12 @@ def plan(request, *, now=None):
         for name in ['risk', 'novelty', 'confidence']:
             _number(node[name], 0, 1)
     waves = _waves(nodes, edges, constraints['max_parallel'])
-    elapsed = sum(max(nodes[key]['minutes'] for key in wave) for wave in waves)
+    schedule = None
+    if request.get('scheduling') == 'critical-path':
+        schedule = _critical_path_schedule(nodes, edges, waves, constraints['max_parallel'])
+    elapsed = schedule['elapsed_minutes'] if schedule is not None else sum(
+        max(nodes[key]['minutes'] for key in wave) for wave in waves
+    )
     hierarchy = {}
     for wave in waves:
         for key in wave:
@@ -210,6 +280,8 @@ def plan(request, *, now=None):
               'review_requirements': {'distinct_models': 2, 'required_checks': checks},
               'provider_calls': 0, 'executed_tasks': 0,
               'limits': 'Declared estimates and evaluator assertions; no live model, execution, causal or billing proof.'}
+    if schedule is not None:
+        result['schedule'] = schedule
     result['plan_sha256'] = sha(result)
     return result
 

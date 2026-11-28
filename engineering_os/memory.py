@@ -196,29 +196,39 @@ class MemoryStore:
             return copy.deepcopy(self._load())
 
     def put(self, record):
-        record = _record(record)
-        identifier = sha(_content(record))
+        return self._put_batch([record])[0]
+
+    def _put_batch(self, records):
+        records = [_record(record) for record in records]
+        if not records:
+            return []
+        results = []
         with self._locked():
             state = self._load()
-            for link in record["links"]:
-                if link not in state["records"] or state["records"][link]["record"]["project"] != record["project"]:
-                    raise MemoryError("Link requires existing knowledge in the same project")
-            exists = identifier in state["records"]
-            if exists:
-                row = state["records"][identifier]
-                if record["provenance"] not in row["provenances"]:
+            revision = state["revision"]
+            for record in records:
+                identifier = sha(_content(record))
+                for link in record["links"]:
+                    if link not in state["records"] or state["records"][link]["record"]["project"] != record["project"]:
+                        raise MemoryError("Link requires existing knowledge in the same project")
+                row = state["records"].get(identifier)
+                if row is None:
+                    if len(state["records"]) >= MAX_RECORDS:
+                        raise MemoryError("Memory record limit reached")
+                    state["records"][identifier] = {
+                        "record": record, "provenances": [record["provenance"]], "verification": None
+                    }
+                    state["revision"] += 1
+                elif record["provenance"] not in row["provenances"]:
                     if len(row["provenances"]) >= 100:
                         raise MemoryError("Provenance limit reached")
                     row["provenances"].append(record["provenance"])
                     state["revision"] += 1
-                    self._write(state)
-            else:
-                if len(state["records"]) >= MAX_RECORDS:
-                    raise MemoryError("Memory record limit reached")
-                state["records"][identifier] = {"record": record, "provenances": [record["provenance"]], "verification": None}
-                state["revision"] += 1
+                results.append({"id": identifier, "deduplicated": row is not None,
+                                "revision": state["revision"]})
+            if state["revision"] != revision:
                 self._write(state)
-            return {"id": identifier, "deduplicated": exists, "revision": state["revision"]}
+        return results
 
     def graph(self, project):
         _slug(project)
@@ -264,6 +274,7 @@ class MemoryStore:
         return sorted(rows, key=lambda item: (-item["score"], item["id"]))[:limit]
 
     def index_python(self, project, path, source_root, engine):
+        """Publish all classified symbols from a source snapshot as one transaction."""
         _slug(project)
         if engine not in ENGINES:
             raise MemoryError("Unknown indexing engine")
@@ -285,9 +296,12 @@ class MemoryStore:
                     raise MemoryError("Python symbol count exceeds bounded index")
             pending.extend((child, prefix) for child in reversed(list(ast.iter_child_nodes(node))))
         digest = hashlib.sha256(data).hexdigest()
-        return [self.put({"project": project, "kind": "symbol", "title": name,
-                          "summary": f"{kind} {path}:{line}", "tags": ["python"], "symbols": [name], "links": [],
-                          "provenance": {"engine": engine, "source_sha256": digest}}) for name, line, kind in definitions]
+        return self._put_batch([
+            {"project": project, "kind": "symbol", "title": name,
+             "summary": f"{kind} {path}:{line}", "tags": ["python"], "symbols": [name], "links": [],
+             "provenance": {"engine": engine, "source_sha256": digest}}
+            for name, line, kind in definitions
+        ])
 
     def verify_solution(self, project, identifier, source_root, receipt_path, receipt_sha256):
         _slug(project)

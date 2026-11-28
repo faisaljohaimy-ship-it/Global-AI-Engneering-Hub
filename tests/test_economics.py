@@ -1,9 +1,12 @@
 """Synthetic ledger tests; no real billing, subscription or provider evidence."""
 import copy
+import hashlib
+import pathlib
 import unittest
 from unittest import mock
 
-from engineering_os.economics import EconomicsError, recommend_model, summarize
+from engineering_os.economics import EconomicsError, measure_runtime, recommend_model, summarize
+from engineering_os.orchestration import sha
 
 
 def ledger():
@@ -30,6 +33,33 @@ def ledger():
 
 
 class EconomicsTests(unittest.TestCase):
+    def test_measure_runtime_uses_real_timings_and_source_bytes(self):
+        request = ledger()
+        result = measure_runtime({"schema_version": 1, "operation": "economics",
+                                  "request": request, "repeats": 3})
+        self.assertEqual(result["request_sha256"], sha(request))
+        self.assertEqual(result["output_sha256"], sha(summarize(request)))
+        self.assertEqual(result["provider_calls"], 0)
+        self.assertIsNone(result["tokens"])
+        self.assertIsNone(result["charged_usd"])
+        for metric in ("wall", "thread_cpu"):
+            timings = result[metric]
+            self.assertEqual(len(timings["samples_ns"]), 3)
+            self.assertTrue(all(value > 0 for value in timings["samples_ns"]))
+            self.assertEqual(timings["p50_ns"], sorted(timings["samples_ns"])[1])
+            self.assertEqual(timings["p95_ns"], max(timings["samples_ns"]))
+        root = pathlib.Path(__file__).resolve().parents[1]
+        for path, expected in result["source_sha256"].items():
+            self.assertEqual(hashlib.sha256((root / path).read_bytes()).hexdigest(), expected)
+        self.assertEqual(result.pop("receipt_sha256"), sha(result))
+
+    def test_runtime_measurement_rejects_non_allowlisted_and_unbounded_work(self):
+        envelope = {"schema_version": 1, "operation": "economics", "request": ledger(),
+                    "repeats": 3}
+        for change in ({"repeats": 21}, {"repeats": True}, {"operation": "shell"},
+                       {"request": {"data": "a" * (256 * 1024)}}, {"argv": ["run"]}):
+            with self.subTest(change=list(change)), self.assertRaises(EconomicsError):
+                measure_runtime({**envelope, **change})
     def test_counts_coordinator_and_workers_without_doublecounting_cache(self):
         result = summarize(ledger())
         self.assertTrue(result["accounting_complete"])

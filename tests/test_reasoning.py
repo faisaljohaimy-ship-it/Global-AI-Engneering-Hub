@@ -93,6 +93,45 @@ class ReasoningTests(unittest.TestCase):
         self.assertIn('elapsed_minutes_budget', self.planned()['blockers'])
         self.assertIsNone(self.planned()['selected'])
 
+    def test_critical_path_schedule_frees_workers_before_wave_barrier(self):
+        self.request['nodes'] = [
+            {'id': key, 'parent': parent, 'depends_on': [], 'minutes': minutes,
+             'risk': .1, 'novelty': .1, 'confidence': .9}
+            for key, parent, minutes in [('a-long', None, 20), ('b-start', None, 2),
+                                          ('c-build', 'b-start', 4), ('d-check', 'c-build', 3)]
+        ]
+        self.request['constraints']['max_minutes'] = 20
+        self.assertEqual(self.planned()['elapsed_minutes'], 27)
+        self.assertIn('elapsed_minutes_budget', self.planned()['blockers'])
+
+        self.request['scheduling'] = 'critical-path'
+        result = self.planned()
+        self.assertEqual(result['status'], 'provisional')
+        self.assertEqual(result['elapsed_minutes'], 20)
+        schedule = result['schedule']
+        self.assertEqual(schedule['wave_baseline_minutes'], 27)
+        self.assertEqual(schedule['peak_parallel'], 2)
+        self.assertEqual(schedule['lower_bound_minutes'], 20)
+        self.assertTrue(schedule['optimal_for_estimates'])
+        assignments = {row['task']: row for row in schedule['assignments']}
+        for task, dependencies in result['dependency_edges'].items():
+            for dependency in dependencies:
+                self.assertLessEqual(assignments[dependency]['end_minute'],
+                                     assignments[task]['start_minute'])
+        for minute in range(result['elapsed_minutes']):
+            workers = [row['worker'] for row in assignments.values()
+                       if row['start_minute'] <= minute < row['end_minute']]
+            self.assertLessEqual(len(workers), 2)
+            self.assertEqual(len(workers), len(set(workers)))
+
+        self.assertEqual(review_decision(result, reviews(result), verification(result),
+                                         now=NOW)['decision'], 'accepted')
+        altered = copy.deepcopy(result)
+        altered['schedule']['assignments'][0]['end_minute'] -= 1
+        altered['plan_sha256'] = sha({k: v for k, v in altered.items() if k != 'plan_sha256'})
+        with self.assertRaises(ReasoningError):
+            review_decision(altered, reviews(altered), verification(altered), now=NOW)
+
     def test_adaptive_depth_rises_for_risk_novelty_and_uncertainty(self):
         simple = self.planned()['complexity']
         for node in self.request['nodes']:

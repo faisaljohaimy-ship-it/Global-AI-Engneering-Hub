@@ -1,12 +1,18 @@
-"""Offline engineering accounting over explicit, source-bound ledger metadata.
+"""Offline engineering accounting and bounded local engine measurements.
 
 Input tokens include cached input; cached tokens are a priced subset, never added
 again. Receipt digests are caller-supplied evidence references, not authenticated
 provider invoices or proof of a real test run. Keep the underlying ledger private.
-No subscription allowance is inferred, and no model or tool is invoked here.
+Ledger summaries infer no subscription allowance. Runtime measurements execute
+only the local Python operations explicitly listed by this module.
 SPDX-License-Identifier: MIT
 """
 
+import hashlib
+import math
+import pathlib
+import sys
+import time
 from decimal import Decimal, localcontext
 
 from .model_router import _finite, _identifier, _integer, _money, select_model
@@ -15,6 +21,7 @@ from .orchestration import DIGEST, MAX_BYTES, canonical, sha
 SCOPES = ("feature", "mvp", "enterprise")
 CATEGORIES = ("human-review", "infrastructure", "maintenance", "rework")
 LIMIT = 10000
+MAX_RUNTIME_REQUEST_BYTES = 256 * 1024
 
 
 class EconomicsError(ValueError):
@@ -292,6 +299,84 @@ def summarize(ledger):
         if isinstance(error, EconomicsError):
             raise
         raise EconomicsError("Malformed engineering accounting metadata") from error
+
+
+def measure_runtime(envelope):
+    """Measure repeated, deterministic offline engine calls on this host.
+
+    Wall and thread CPU timings exclude hashing, import work and CLI
+    serialization. The result is a local performance receipt for this workload.
+    """
+    try:
+        _object(envelope, {"schema_version", "operation", "request", "repeats"})
+        if type(envelope["schema_version"]) is not int or envelope["schema_version"] != 1:
+            raise EconomicsError("Unsupported runtime measurement schema")
+        repeats = _integer(envelope["repeats"], 1, 20)
+        request = envelope["request"]
+        if not isinstance(request, dict) or len(canonical(request)) > MAX_RUNTIME_REQUEST_BYTES:
+            raise EconomicsError("Invalid or oversized runtime measurement request")
+        operation = envelope["operation"]
+        now = time.time()  # Repeats process the same freshness horizon.
+        if operation == "reasoning-plan":
+            from .reasoning import plan
+            evaluate = plan
+            sources = {"reasoning.py"}
+        elif operation == "healing-analyze":
+            from .healing import analyze
+            evaluate = analyze
+            sources = {"healing.py", "../scripts/security_scan.py"}
+        elif operation == "factory-plan":
+            from .factory import plan_factory
+            evaluate = plan_factory
+            sources = {"factory.py"}
+        elif operation == "economics":
+            evaluate = summarize
+            sources = set()
+        else:
+            raise EconomicsError("Unknown local measurement operation")
+
+        if operation in ("reasoning-plan", "healing-analyze"):
+            options = {"now": now}
+        else:
+            options = {}
+        directory = pathlib.Path(__file__).resolve().parent
+        sources.update(("economics.py", "model_router.py", "orchestration.py"))
+        source_hashes = {}
+        for name in sorted(sources):
+            source = (directory / name).resolve()
+            source_hashes[source.relative_to(directory.parent).as_posix()] = hashlib.sha256(
+                source.read_bytes()
+            ).hexdigest()
+
+        wall_ns, cpu_ns, outputs = [], [], set()
+        for _ in range(repeats):
+            wall_started = time.perf_counter_ns()
+            cpu_started = time.thread_time_ns()
+            result = evaluate(request, **options)
+            cpu_ns.append(time.thread_time_ns() - cpu_started)
+            wall_ns.append(time.perf_counter_ns() - wall_started)
+            outputs.add(sha(result))
+        if len(outputs) != 1:
+            raise EconomicsError("Measured operation produced inconsistent results")
+
+        def metrics(samples):
+            ordered = sorted(samples)
+            return {"samples_ns": samples, "p50_ns": ordered[math.ceil(repeats / 2) - 1],
+                    "p95_ns": ordered[math.ceil(repeats * .95) - 1]}
+
+        report = {"schema_version": 1, "operation": operation, "repeats": repeats,
+                  "measured_at": now, "runtime": {"implementation": sys.implementation.name,
+                  "python_version": list(sys.version_info[:3]), "platform": sys.platform},
+                  "request_sha256": sha(request), "output_sha256": outputs.pop(),
+                  "source_sha256": source_hashes, "wall": metrics(wall_ns),
+                  "thread_cpu": metrics(cpu_ns), "provider_calls": 0,
+                  "tokens": None, "charged_usd": None, "subscription_allowance": None}
+        report["receipt_sha256"] = sha(report)
+        return report
+    except (TypeError, KeyError, ArithmeticError, RecursionError, ValueError) as error:
+        if isinstance(error, EconomicsError):
+            raise
+        raise EconomicsError("Invalid local measurement request") from error
 
 
 def recommend_model(registry, request, evidence=None, *, environ=None, now=None):

@@ -8,6 +8,7 @@ import os
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
 from engineering_os.memory import MemoryError, MemoryStore
 from engineering_os.orchestration import CoordinationError, _atomic_write, sha
@@ -88,6 +89,25 @@ class EngineeringMemoryTests(unittest.TestCase):
         path.write_text('def broken(:')
         with self.assertRaises(SyntaxError):
             self.store.index_python('demo', 'example.py', self.source, 'codex')
+
+    def test_symbol_batch_is_atomic_at_capacity_and_deduplicates_on_retry(self):
+        source = self.source / 'module.py'
+        source.write_text('def prepare():\n    pass\n\ndef finish():\n    pass\n')
+        self.store.put(self.record())
+        before = self.store.path.read_bytes()
+        with mock.patch('engineering_os.memory.MAX_RECORDS', 2):
+            with self.assertRaises(MemoryError):
+                self.store.index_python('demo', 'module.py', self.source, 'codex')
+        self.assertEqual(self.store.path.read_bytes(), before)
+
+        initial = self.store.index_python('demo', 'module.py', self.source, 'codex')
+        snapshot = self.store.path.read_bytes()
+        self.assertEqual(len(initial), 2)
+        self.assertEqual(self.store.snapshot()['revision'], 3)
+        repeat = self.store.index_python('demo', 'module.py', self.source, 'codex')
+        self.assertEqual([row['id'] for row in repeat], [row['id'] for row in initial])
+        self.assertTrue(all(row['deduplicated'] for row in repeat))
+        self.assertEqual(self.store.path.read_bytes(), snapshot)
 
     def test_verified_solution_source_binding_and_staleness(self):
         identifier = self.store.put(self.record(kind='solution'))['id']
