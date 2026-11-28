@@ -476,22 +476,29 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._json(204, None)
 
     def _sub(self, method, entity, record_id, rest, query, account):
-        """/api/<collection>/{id}/<progress | link | child collection>[/{target id}]"""
+        """/api/<collection>/{id}/<progress | link | child collection>[/{target id}]
+
+        A link belongs to its parent record: adding one is a write on the parent and
+        removing one is a write and a delete on it. A `:own` permission covers only
+        parent records the account created, and both changes pass the CSRF and
+        same-origin checks, exactly like PATCH/DELETE of the parent itself.
+        """
         name = rest[0]
         link = next((item for item in entity.links if item["segment"] == name), None)
         child = next((item for item in entity.children if item["collection"] == name), None)
         rule = next((item for item in self.schema.rules.get("progress", []) if item["parent"] == entity.name), None)
         if len(rest) == 2 and link is not None and RECORD_ID.fullmatch(rest[1]):
             self._only(method, ("DELETE",))
-            self._permit(account, "PUT")
+            modes = (self._permit(account, "PUT"), self._permit(account, "DELETE"))
         elif len(rest) == 1 and link is not None:
             self._only(method, ("GET", "HEAD", "POST"))
-            self._permit(account, "PUT" if method == "POST" else "GET")
+            modes = (self._permit(account, "PUT" if method == "POST" else "GET"),)
         elif len(rest) == 1 and (child is not None or (name == "progress" and rule is not None)):
             self._only(method, ("GET", "HEAD"))
-            self._permit(account, "GET")
+            modes = (self._permit(account, "GET"),)
         else:
             raise ApiError(404, "not_found", "no such resource")
+        mode = "own" if "own" in modes else "all"
         scope = db.Scope(self.schema, account, account["principal_id"])
         with db.session(self.app.db_path) as connection:
             if not db.visible(connection, entity, record_id, scope):
@@ -501,7 +508,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if child is not None and link is None:
             return self._list(child["entity"], query, scope, equals={child["field"]: record_id})
         if len(rest) == 2:
+            self._same_origin()
             with db.session(self.app.db_path) as connection:
+                self._owned(connection, entity, record_id, account, scope, mode)
                 removed = db.remove_link(connection, link, record_id, int(rest[1]))
             if not removed:
                 raise ApiError(404, "not_found", "no such link")
@@ -516,6 +525,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             raise ApiError(400, "validation_failed", "validation failed", fields={link["target_key"]: "required"})
         try:
             with db.session(self.app.db_path) as connection:
+                self._owned(connection, entity, record_id, account, scope, mode)
                 if not db.visible(connection, self.schema.by_name[link["entity"]], target, scope):
                     raise db.ReferenceMissing({link["target_key"]: "not_found"})
                 db.add_link(connection, link, record_id, target)

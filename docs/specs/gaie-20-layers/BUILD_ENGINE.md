@@ -105,7 +105,10 @@ Security: every API route except health and login needs a session (`HttpOnly;
 SameSite=Strict` cookie, random token, only its SHA-256 stored, 12 h) and the role
 permission for its method (`read`→GET, `write`→POST/PUT/PATCH, `delete`→DELETE, `:own` =
 records the account created). Writes need the session's `X-CSRF-Token`, JSON and a
-same-origin request. When the spec says users "see only <entity> they belong to", roles
+same-origin request. A many-to-many link belongs to its source record: adding one needs
+`write` on that record and removing one needs `write` and `delete` on it, with the same
+`:own` ownership rule and the same CSRF and same-origin checks as a PATCH/DELETE of the
+record itself. When the spec says users "see only <entity> they belong to", roles
 without `*` see only those records (via the many-to-many link to the principal entity —
 the entity with a required unique e-mail) and their children. CSP `default-src 'self'`,
 `frame-ancestors 'none'`, nosniff, DENY, no-referrer, COOP/CORP; body limit 64 KiB;

@@ -157,9 +157,71 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call("POST", path, {"other": 1})[0], 400)
         status, _, listing = self.call("GET", path)
         self.assertEqual((status, [row["id"] for row in listing["items"]]), (200, [target["id"]]))
+        status, _, error = self.call("DELETE", f"{path}/{target['id']}", headers={"Origin": "https://attacker.example"})
+        self.assertEqual((status, error["error"]["code"]), (403, "cross_origin"))
+        self.assertEqual(self.call("DELETE", f"{path}/{target['id']}", csrf=False)[0], 403)
         self.assertEqual(self.call("DELETE", f"{path}/{target['id']}")[0], 204)
         self.assertEqual(self.call("DELETE", f"{path}/{target['id']}")[0], 404)
         self.assertEqual(self.call("GET", f"{self.path(entity, 999999999)}/{link['segment']}")[0], 404)
+        self._link_permissions(entity, link)
+
+    def _link_permissions(self, entity, link):
+        """Every non-admin role: adding a link needs write on the parent record, removing one needs
+        write and delete; a :own permission covers only parent records the account created."""
+        scoping, principal = SCHEMA.auth.get("scoping"), SCHEMA.auth.get("principal")
+        target_entity = SCHEMA.by_name[link["entity"]]
+        for role, permissions in sorted(SCHEMA.auth["roles"].items()):
+            if "*" in permissions:
+                continue
+            email = f"links.{role}.{time.time_ns()}@example.invalid"
+            session = self.server.login(role, email=email)
+            with db.session(self.server.db_path) as connection:
+                account_id = db.account_by_email(connection, email)["id"]
+            me = None
+            if scoping and principal and entity.name == scoping["entity"]:
+                person = SCHEMA.by_name[principal["entity"]]
+                me = self.server.create(person, 1, self.parents(person), **{principal["email_field"]: email})
+                member_link = next(item for item in entity.links if item["link_table"] == scoping["link_table"])
+            write, remove = model.allowed(permissions, "write"), model.allowed(permissions, "delete")
+            for owned in (False, True):
+                source = self.server.create(entity, 1, self.parents(entity))
+                if owned:
+                    with db.session(self.server.db_path) as connection:
+                        connection.execute("UPDATE " + db.ident(entity.table) + " SET created_by = ? WHERE id = ?",
+                                           (account_id, source["id"]))
+                if me is not None:
+                    self.assertEqual(self.call("POST", f"{self.path(entity, source['id'])}/{member_link['segment']}",
+                                               {member_link["target_key"]: me["id"]})[0], 201)
+                path = f"{self.path(entity, source['id'])}/{link['segment']}"
+                kept = self.server.create(target_entity, 2, self.parents(target_entity))
+                self.assertEqual(self.call("POST", path, {link["target_key"]: kept["id"]})[0], 201)
+                added = self.server.create(target_entity, 3, self.parents(target_entity))
+                with db.session(self.server.db_path) as connection:
+                    scope = db.Scope(SCHEMA, {"id": account_id, "role": role}, me["id"] if me else None)
+                    source_seen = db.visible(connection, entity, source["id"], scope)
+                    added_seen = db.visible(connection, target_entity, added["id"], scope)
+                if write is None:
+                    add_status = 403
+                elif not source_seen:
+                    add_status = 404
+                elif write == "own" and not owned:
+                    add_status = 403
+                else:
+                    add_status = 201 if added_seen else 400
+                if None in (write, remove):
+                    remove_status = 403
+                elif not source_seen:
+                    remove_status = 404
+                else:
+                    remove_status = 403 if "own" in (write, remove) and not owned else 204
+                case = (role, "own record" if owned else "another account's record")
+                status, _, reply = self.call("POST", path, {link["target_key"]: added["id"]}, session=session)
+                self.assertEqual(status, add_status, (case, reply))
+                status, _, reply = self.call("DELETE", f"{path}/{kept['id']}", session=session)
+                self.assertEqual(status, remove_status, (case, reply))
+                listed = {row["id"] for row in self.call("GET", path)[2]["items"]}
+                self.assertEqual((added["id"] in listed, kept["id"] in listed), (add_status == 201, remove_status != 204),
+                                 case)
 
     def _children(self, parent, child):
         entity = child["entity"]
