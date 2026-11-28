@@ -548,9 +548,8 @@ def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, str
     # from its own install, which lies outside the system directories on e.g. GitHub runners.
     system = tuple(d for d in SYSTEM_DIRS if not (strict and d == "/etc"))
     runtime = interpreter_prefixes(system + tuple(allowed) + tuple(readable))
-    exe = None
-    if strict:  # /etc is hidden: exec the host-resolved file itself, so alternatives links cannot dangle
-        exe, prefix = _strict_program(cmd[0], env["PATH"], cwd, system + tuple(allowed + readable + runtime))
+    if strict:  # /etc is hidden: pid 1 execs the host-resolved file itself, so alternatives links cannot dangle
+        _, prefix = _strict_program(cmd[0], env["PATH"], cwd, system + tuple(allowed + readable + runtime))
         runtime += prefix
         if any(_is_inside(root, path) or _is_inside(path, root) for path in runtime for root in allowed):
             raise GovernorDenied("invalid-sandbox-mode", "the writable workspace must not overlap a program prefix")
@@ -559,7 +558,7 @@ def _run_full(cmd, *, cwd, timeout, network, env, allowed, readable, limits, str
     readable = sorted(set(readable) | set(runtime))
     status_r, status_w = os.pipe()
     spec = {"cmd": list(cmd), "cwd": cwd, "allowed": allowed, "readable": readable,
-            "env_names": sorted(env), "status_fd": status_w, "strict": strict, "exe": exe}
+            "env_names": sorted(env), "status_fd": status_w, "strict": strict}
     argv = [unshare, "--user", "--map-root-user", "--mount", "--propagation", "private",
             "--pid", "--fork", "--kill-child"] + ([] if network else ["--net"]) + [
             "--", sys.executable, "-I", "-B", "-S", "-c", _BOOT, ROOT, json.dumps(spec)]
@@ -627,11 +626,17 @@ def interpreter_prefixes(visible=SYSTEM_DIRS):
     return found
 
 
-def _strict_program(program, path, cwd, visible):
-    """Resolve cmd[0] on the host for a strict run: (real file to exec, prefixes to mount read-only)."""
+def _resolve_program(program, path, cwd):
+    """The real file argv[0] names on the host view (pid 1 calls this again before pivot_root), or None."""
     found = shutil.which(program, path=path) if "/" not in program else os.path.join(cwd, program)
     real = os.path.realpath(found) if found else None
-    if real is None or not os.path.isfile(real) or not os.access(real, os.X_OK):
+    return real if real and os.path.isfile(real) and os.access(real, os.X_OK) else None
+
+
+def _strict_program(program, path, cwd, visible):
+    """Resolve cmd[0] on the host for a strict run: (real file to exec, prefixes to mount read-only)."""
+    real = _resolve_program(program, path, cwd)
+    if real is None:
         raise GovernorDenied("program-not-visible", "the program cannot be resolved to an executable file")
     if any(_is_inside(real, root) for root in visible):
         return real, []
@@ -851,6 +856,7 @@ def _sandbox_init(raw):
         if os.getpid() != 1:
             raise OSError(errno.EPERM, "not pid 1")
         step = "open sources"
+        exe = _resolve_program(spec["cmd"][0], os.environ.get("PATH", os.defpath), spec["cwd"]) if spec["strict"] else None
         handles = {}
         links = {}
         for path in SYSTEM_DIRS:
@@ -943,7 +949,7 @@ def _sandbox_init(raw):
     child = os.fork()
     if child == 0:
         try:
-            os.execve(spec["exe"], cmd, env) if spec.get("exe") else os.execvpe(cmd[0], cmd, env)
+            os.execve(exe, cmd, env) if exe else os.execvpe(cmd[0], cmd, env)
         except OSError as exc:
             os.write(2, f"governor-sandbox: cannot execute: {exc.strerror}\n".encode())
         os._exit(127)
