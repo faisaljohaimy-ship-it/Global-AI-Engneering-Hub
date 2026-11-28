@@ -149,7 +149,7 @@ class RegistryTests(unittest.TestCase):
             ("kpi", {"repository": SITE, "project_skills": ["Not A Slug"]}),
             ("kpi", {"repository": SITE, "deployment_target": {"token": "ghp_" + "a" * 36}}),
             ("kpi", {"repository": SITE, "deployment_target": {"note": "password=hunter2hunter2"}}),
-            ("kpi", {"repository": SITE, "database_target": {"url": "postgres://user:secretpw@db.example/x"}}),
+            ("kpi", {"repository": SITE, "database_target": {"url": "postgres://user:" + "fake-pw" + "@db.example/x"}}),
             ("kpi", {"repository": SITE, "database_target": {"size": 1.5}}),
             ("kpi", {"repository": SITE, "deployment_target": {}}),
             ("kpi", {"repository": SITE, "visibility": "secret"}),
