@@ -162,5 +162,10 @@ atmosphere 0, story 8, compositions 9.
   CPU 8) and must be updated with this batch: count 67, by_engine
   `{'canvas2d': 22, 'composition': 1, 'dom': 2, 'svg': 3, 'webgl2-glsl': 31, 'webgl2-points': 7, 'webgpu-wgsl': 1}`,
   GPU-API 39, CPU 28, native_total 70.
+- `docs/evidence/gaie-20-layers/video-sample.json` (cinematic agent) embeds a snapshot of
+  `motion_inventory()` taken at render time, so
+  `tests/test_video_pipeline.py::test_manifest_is_bound_to_current_sources` fails until the sample
+  manifest is regenerated (or its `inventory` field refreshed) on top of this batch; the shots it
+  renders (`quantum-light-tunnel`, `atmosphere-core-ignition`) are unchanged.
 - `hublink.py` resolves `engine-motion:<id>` from the committed registry, so every new motion can
   be installed selectively once merged to main.
