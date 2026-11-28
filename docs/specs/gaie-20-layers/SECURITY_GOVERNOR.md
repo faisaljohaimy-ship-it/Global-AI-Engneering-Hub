@@ -24,7 +24,7 @@ approval_token_sha256(token) -> str        # the digest a grant's approval store
 payload_sha256(payload) -> str
 sandbox_run(cmd, *, cwd, timeout, network=False, env_allow=(), allowed_paths=(), read_paths=(),
             cpu_seconds=None, memory_mb=1024, file_mb=64, nofile=256,
-            require_fs_isolation=False, read_only=False, loopback=False)
+            require_fs_isolation=False, read_only=False, loopback=False, disk_mb=None)
     -> {"returncode", "stdout", "stderr", "limit", "network_isolated", "fs_isolated"}
 isolation_probe() -> dict                  # measured once per process; decides the sandbox tier
 isolation_report() -> dict                 # public-safe form written to isolation.json
@@ -157,7 +157,23 @@ so parent secrets never reach the command. Test: `SandboxTests.test_parent_secre
 captured stdout/stderr, which go to unlinked temporary files), RLIMIT_NOFILE and no core files.
 The process runs in its own session/process group, which `cage._kill` kills whole on timeout and
 after every run. The module is loaded by path under a private name. It is read, never modified or copied.
-`limit` is `"timeout"`, `"cpu"`, `"file"` or `None`.
+`limit` is `"timeout"`, `"cpu"`, `"file"`, `"disk"` or `None`.
+
+Output and disk caps (recheck-security item 3). Only the last `OUTPUT_TAIL_BYTES` (1 MiB) of each
+captured stream is read back and decoded (invalid UTF-8 becomes U+FFFD); a longer stream starts with
+the line `[governor: the first N bytes of this stream were dropped]`. Measured with the reviewer's
+case (2 x 32 MiB of non-UTF-8 output through `detectors.Sandbox`): parent maximum RSS 23 -> 32 MB,
+was 23 -> 285 MB. The writable `allowed_paths` may grow by `disk_mb` at most (default
+`DISK_FACTOR * file_mb` = 8 x `file_mb`; `detectors.Sandbox` passes `file_mb=32`, so 256 MiB): their
+allocated size (`st_blocks`, each inode once, links not followed) is polled while the run lasts, at
+least 50 ms apart and with at most a tenth of the time spent walking, and the whole process group is
+killed past the cap (`limit` `"disk"`). A run that ends between two polls above the cap is recorded
+the same way; a run can overshoot by what it writes between two polls (measured: 12 x 31 MiB through
+`detectors.Sandbox` stopped at 263 MiB, status `crashed`; was 373 MiB kept). Writable paths of more
+than `DISK_WALK_ENTRIES` (250 000) entries cannot be measured and are refused (`invalid-limit`) before
+anything starts. Callers see `"disk"` in `limit`; `detectors.Sandbox` and `layers._run` treat only
+`"timeout"`/`"cpu"` specially, so a killed run reaches them as a crash without a result. Tests:
+`tests/test_sec_fixes_2_governor.py`.
 
 ### Tiers
 `isolation_probe()` runs once per process. When `unshare` can make user, mount and pid
