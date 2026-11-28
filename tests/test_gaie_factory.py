@@ -260,6 +260,40 @@ class BootstrapTests(Base):
         self.assertTrue((claude / "skills").is_dir() and (claude / "agents").is_dir())
         self.assertFalse((claude / "skills/gaie-build").exists())
 
+    def test_uninstall_drops_only_the_bytecode_of_removed_modules(self):
+        claude = self.tmp / "b/.claude"
+        gaie_bootstrap.install(claude, False, apply=True)
+        engine = claude / "skills/gaie-master-router/engine"
+        (engine / "__pycache__").mkdir()
+        for name in ("gaie_router.cpython-313.pyc", "memory.cpython-313.opt-1.pyc", "mine.cpython-313.pyc"):
+            (engine / "__pycache__" / name).write_bytes(b"")
+        (engine / "mine.py").write_text("owner's module")
+        gaie_bootstrap.uninstall(claude, apply=True)
+        self.assertEqual(sorted(p.name for p in (engine / "__pycache__").iterdir()), ["mine.cpython-313.pyc"])
+        self.assertEqual((engine / "mine.py").read_text(), "owner's module")
+        gaie_bootstrap.install(claude, False, apply=True)
+        (engine / "mine.py").unlink()
+        (engine / "__pycache__/mine.cpython-313.pyc").unlink()
+        (engine / "__pycache__/gaie_router.cpython-313.pyc").write_bytes(b"")
+        gaie_bootstrap.uninstall(claude, apply=True)
+        self.assertFalse((claude / "skills/gaie-master-router").exists())
+
+    def test_a_refused_path_leaves_no_partial_install(self):
+        claude = self.tmp / "r/.claude"
+        claude.mkdir(parents=True)
+        (claude / "skills").symlink_to(self.tmp, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            gaie_bootstrap.install(claude, False, apply=True)
+        self.assertEqual(sorted(p.name for p in claude.iterdir()), ["skills"])
+
+    def test_symlinked_target_directory_is_refused(self):
+        project = self.tmp / "real-project"
+        project.mkdir()
+        (self.tmp / "link").symlink_to(project, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            gaie_bootstrap.base("project", str(self.tmp / "link"))
+        self.assertEqual(gaie_bootstrap.base("project", str(project)), (project.resolve() / ".claude", False))
+
     def test_symlinks_are_refused(self):
         real = self.tmp / "real"
         real.mkdir()
@@ -308,8 +342,14 @@ class IntegrityTests(Base):
         plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         market = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual((plugin["name"], market["plugins"][0]["name"], market["plugins"][0]["source"]), ("gaie", "gaie", "./"))
-        for path in plugin["agents"]:
-            self.assertTrue(path.startswith("./") and ".." not in path and (ROOT / path).is_file())
+        # No component path fields: Claude Code then reads the plugin's default skills/ and agents/
+        # directories, the form `claude plugin details` counts (an explicit "agents" list showed Agents (0)).
+        self.assertFalse({"agents", "skills", "commands", "hooks", "mcpServers"} & set(plugin))
+        agents = [source for source, target in gaie_bootstrap.pack()["files"].items() if target.startswith(".claude/agents/")]
+        self.assertIn("agents/gaie-verifier.md", agents)
+        for source in agents:
+            self.assertEqual(pathlib.PurePosixPath(source).parent.as_posix(), "agents")
+            self.assertTrue((ROOT / source).is_file() and not (ROOT / source).is_symlink())
 
     def test_pack_registers_and_runs_vendored_in_a_project(self):
         project = self.tmp / "product"
@@ -338,6 +378,10 @@ class IntegrityTests(Base):
         self.assertFalse((project / ".engineering/gaie/__pycache__").exists())
         run = subprocess.run([sys.executable, ".engineering/gaie/gaie_inventory.py", "."], capture_output=True, text=True, cwd=project)
         self.assertTrue(json.loads(run.stdout)["signals"]["hub_linked"])
+        for name, path in gaie_bootstrap.LOCATIONS["pack"].items():
+            self.assertTrue((project / path).is_file(), f"{name}: {path}")
+        for source, target in gaie_bootstrap.pack()["files"].items():
+            self.assertEqual((project / target).read_bytes(), (ROOT / source).read_bytes(), target)
 
     @staticmethod
     def _at(revision, path):
@@ -346,6 +390,93 @@ class IntegrityTests(Base):
             return True
         except Exception:
             return False
+
+
+class VendoredSetTests(Base):
+    """The gaie-factory pack is the one list of vendored files, for `hub.py register` and the bootstrap alike."""
+
+    UNIFIED = {"memory.py", "orchestration.py", "security_scan.py", "project_registry.py"}
+
+    def test_every_listed_file_exists_and_maps_into_the_install_layout(self):
+        data = gaie_bootstrap.pack()
+        self.assertEqual(tuple(data["skills"]), SKILLS)
+        vendored = {}
+        for source, target in data["files"].items():
+            self.assertTrue((ROOT / source).is_file() and not (ROOT / source).is_symlink(), source)
+            if target.startswith(".engineering/gaie/"):
+                vendored[target.rsplit("/", 1)[1]] = source
+        self.assertLessEqual(self.UNIFIED | {"gaie_router.py", "gaie_memory.py", "workspace_policy.py"}, set(vendored))
+        files = gaie_bootstrap.plan(False)
+        engine = {path.rsplit("/", 1)[1]: source for path, source in files.items()
+                  if path.startswith("skills/gaie-master-router/engine/")}
+        prompts = {name: vendored.pop(name) for name in gaie_bootstrap.PROMPTS}
+        self.assertEqual(engine, vendored, "engine/ mirrors .engineering/gaie/ without the MASTER prompts")
+        for name, source in prompts.items():
+            self.assertEqual(files[f"skills/{gaie_bootstrap.PROMPTS[name]}/{name}"], source)
+        self.assertEqual(set(gaie_bootstrap.plan(True)), {path for path in files if path.endswith("SKILL.md") or path.startswith("agents/")})
+
+    def test_one_pack_line_ships_a_file_to_both_installs(self):
+        data = gaie_bootstrap.pack()
+        grown = {**data, "files": {**data["files"], "engineering_os/contracts.py": ".engineering/gaie/contracts.py",
+                                   "agents/orchestrator/README.md": ".claude/agents/gaie-extra.md"}}
+        with mock.patch.object(gaie_bootstrap, "pack", return_value=grown):
+            self.assertEqual(gaie_bootstrap.plan(False)["skills/gaie-master-router/engine/contracts.py"], "engineering_os/contracts.py")
+            self.assertNotIn("skills/gaie-master-router/engine/contracts.py", gaie_bootstrap.plan(True))
+            self.assertEqual(gaie_bootstrap.plan(True)["agents/gaie-extra.md"], "agents/orchestrator/README.md")
+
+    def test_destinations_outside_the_layout_are_refused(self):
+        data = gaie_bootstrap.pack()
+        for target in (".engineering/gaie/../x.py", ".engineering/gaie/sub/x.py", ".claude/agents/x.txt", ".claude/skills/x/SKILL.md",
+                       "engine/x.py", ".engineering/gaie/", ".engineering/gaie/.hidden"):
+            with mock.patch.object(gaie_bootstrap, "pack", return_value={**data, "files": {**data["files"], "README.md": target}}):
+                with self.assertRaises(ValueError, msg=target):
+                    gaie_bootstrap.plan(False)
+        twice = {**data, "files": {**data["files"], "projects/aliases.json": ".engineering/gaie/projects.json"}}
+        with mock.patch.object(gaie_bootstrap, "pack", return_value=twice), self.assertRaises(ValueError):
+            gaie_bootstrap.plan(False)
+
+    def test_installed_copy_imports_and_runs_standalone_outside_the_hub(self):
+        project = self.tmp / "standalone"
+        project.mkdir()
+        self.assertFalse(project.resolve().is_relative_to(ROOT))
+        gaie_bootstrap.install(project / ".claude", False, apply=True)
+        engine = project / ".claude/skills/gaie-master-router/engine"
+        env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(self.tmp / "home"), **self.env}
+        run = subprocess.run([sys.executable, "-s", str(engine / "gaie_router.py"), "projects"], capture_output=True,
+                             text=True, cwd=project, env=env)
+        self.assertIn("public-catalog", {row["source"] for row in json.loads(run.stdout)}, "project registry, not the legacy loader")
+        self.assertFalse((engine / "__pycache__").exists(), "the router writes no bytecode beside itself")
+        env["PYTHONDONTWRITEBYTECODE"] = "1"  # gaie_memory.py as a script does not set it itself
+        probe = (
+            "import json, pathlib, sys\n"
+            "engine = pathlib.Path(sys.argv[1]).resolve()\n"
+            "sys.path.insert(0, str(engine))\n"
+            "names = sorted(p.stem for p in engine.glob('*.py'))\n"
+            "modules = {name: __import__(name) for name in names}\n"
+            "outside = [m.__name__ for m in sys.modules.values() if getattr(m, '__file__', None)\n"
+            "           and pathlib.Path(m.__file__).resolve().is_relative_to(pathlib.Path(sys.argv[2]))]\n"
+            "for path in engine.glob('*.json'):\n"
+            "    json.loads(path.read_text(encoding='utf-8'))\n"
+            "memory = modules['gaie_memory'].Memory('standalone')\n"
+            "print(json.dumps({'modules': names, 'hub_modules': outside, 'package': 'engineering_os' in sys.modules,\n"
+            "                  'registry': modules['gaie_router']._registry_module() is not None,\n"
+            "                  'backend': memory.backend, 'engine_file': pathlib.Path(modules['gaie_memory'].ENGINE.__file__).name}))\n")
+        run = subprocess.run([sys.executable, "-s", "-c", probe, str(engine), str(ROOT)], capture_output=True, text=True,
+                             cwd=project, env=env, timeout=120)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        result = json.loads(run.stdout)
+        self.assertLessEqual({name[:-3] for name in self.UNIFIED}, set(result["modules"]))
+        self.assertEqual((result["hub_modules"], result["package"], result["registry"], result["backend"], result["engine_file"]),
+                         ([], False, True, "engine", "memory.py"))
+        run = subprocess.run([sys.executable, "-s", str(engine / "gaie_memory.py"), "--project", "standalone", "add",
+                              "--kind", "lesson", "--title", "t", "--body", "b"], capture_output=True, text=True, cwd=project, env=env)
+        self.assertEqual(json.loads(run.stdout)["status"], "stored", run.stderr)
+        store = pathlib.Path(self.env["GAIE_HOME"]) / "memory/standalone"
+        self.assertEqual(sorted(path.name for path in store.iterdir() if path.suffix == ".jsonl"), ["memory.jsonl"])
+        run = subprocess.run([sys.executable, "-s", str(engine / "gaie_memory.py"), "--project", "standalone", "brief"],
+                             capture_output=True, text=True, cwd=project, env=env)
+        self.assertEqual((run.returncode, json.loads(run.stdout)["entries"]), (0, 1), run.stdout)
+        self.assertFalse((engine / "__pycache__").exists())
 
 
 if __name__ == "__main__":
