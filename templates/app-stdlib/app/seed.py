@@ -1,6 +1,7 @@
 """Load the synthetic seed data (app/seed_data.json) into the database.
 
 Every seeded record is synthetic: it describes no real person, project or customer.
+No sign-in account is seeded; create one with `python3 manage.py create-account`.
 """
 import json
 import pathlib
@@ -33,11 +34,15 @@ def seed(db_path, schema=None, path=SEED_PATH):
                     if isinstance(value, dict) and "$ref" in value:
                         target, index = value["$ref"]
                         value = created[target][index]
-                    elif isinstance(value, list) and value and isinstance(value[0], dict):
-                        value = [created[item["$ref"][0]][item["$ref"][1]] for item in value]
                     payload[key] = value
-                values, links = model.validate(entity, payload, schema.limits)
-                db.check_references(connection, schema, entity, values, links)
-                ids.append(db.insert(connection, entity, values, links, server.utc_now()))
+                values = model.validate(entity, payload, schema.limits)
+                db.check_references(connection, schema, entity, values)
+                db.check_unique(connection, entity, values)
+                ids.append(db.insert(connection, entity, values, server.utc_now()))
             counts[entity.name] = len(ids)
+        for row in data.get("links", []):
+            entity = schema.by_name[row["source"][0]]
+            link = next(item for item in entity.links if item["segment"] == row["segment"])
+            db.add_link(connection, link, created[row["source"][0]][row["source"][1]],
+                        created[row["target"][0]][row["target"][1]])
     return counts

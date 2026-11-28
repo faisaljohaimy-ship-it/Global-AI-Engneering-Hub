@@ -7,12 +7,13 @@
 | Component | Path | Responsibility |
 |---|---|---|
 | Entity model | `app/model.py`, `app/schema.json` | Entity definitions as data; record validation |
-| Storage | `app/db.py`, `migrations/` | SQLite connection, versioned up/down migrations, parameterized CRUD |
+| Storage | `app/db.py`, `migrations/` | SQLite connection, versioned up/down migrations, parameterized CRUD, scoping |
+| Accounts | `app/auth.py` | PBKDF2 passwords, sessions, CSRF tokens, sign-in lockout |
 | HTTP server | `app/server.py` | JSON REST API, static files, security headers, request guards |
 | Seed | `app/seed.py`, `app/seed_data.json` | Synthetic sample records |
 | Frontend | `static/` | Bilingual accessible UI (vanilla JS, no build step) |
-| Command line | `manage.py`, `app/__main__.py` | serve, migrate, seed, test |
-| Tests | `tests/` | Unit, API integration, browser E2E |
+| Command line | `manage.py`, `app/__main__.py` | serve, migrate, seed, create-account, test |
+| Tests | `tests/` | Unit, API integration, acceptance, browser E2E |
 
 ## Decisions
 
@@ -24,15 +25,22 @@
   stdlib server suits a single team or local use, not high concurrency.
 - Revisit when: measured load exceeds a single process, or multi-tenant hosting is required.
 
-### ADR-002 Same-origin JSON API as the CSRF defence
-- Writes require `application/json` and a same-origin request; no CORS is offered.
+### ADR-002 Same-origin JSON API with per-session CSRF tokens
+- Writes require `application/json`, a same-origin request and the session's `X-CSRF-Token`;
+  no CORS is offered.
 - Revisit when: a separate frontend origin or third-party API clients are required.
 
-### ADR-003 No authentication in the first release
-- The specification defines roles (@@ROLES@@) but no identity provider. Roles are not
-  enforced yet; the server binds to loopback and refuses public binding by default.
-- Revisit when: the owner selects an identity provider (open item OI-AUTH).
+### ADR-003 Local accounts, cookie sessions, roles from the specification
+- Accounts are local (PBKDF2-HMAC-SHA256, per-account salt); sessions are random tokens in
+  an `HttpOnly; SameSite=Strict` cookie; every API route checks the role permission for its
+  method (roles: @@ROLES@@).
+- Revisit when: the owner selects an identity provider, or needs password reset/MFA (open item OI-IDENTITY).
 
 ### ADR-004 Bilingual UI without a build step
-- Arabic (RTL) and English (LTR) strings live in `static/i18n.json`; CSS uses logical
-  properties so one stylesheet serves both directions.
+- Arabic (RTL) and English (LTR) strings live in `static/i18n.json`; the server renders
+  `lang`/`dir` for `/?lang=<locale>`; CSS uses logical properties so one stylesheet serves
+  both directions; dates are stored as ISO-8601 and displayed with `Intl.DateTimeFormat`.
+
+### ADR-005 Acceptance criteria as executable tests
+- Each criterion of the specification (`METHOD /path [condition] returns NNN [and …]`) is
+  stored in `app/acceptance.json` and executed by `tests/test_acceptance.py`.

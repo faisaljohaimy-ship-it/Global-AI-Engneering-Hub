@@ -13,30 +13,36 @@ It has **no runtime dependency on the engineering hub**: the hub is referenced o
 ## Run
 
 ```sh
-python3 manage.py migrate          # create data/app.sqlite3 (gitignored)
-python3 manage.py seed             # optional: load SYNTHETIC sample records
-python3 manage.py serve            # http://127.0.0.1:8000
+python3 manage.py migrate                                   # create data/app.sqlite3 (gitignored)
+python3 manage.py create-account --email you@example.org --role @@ADMIN_ROLE@@   # asks for a password
+python3 manage.py seed                                      # optional: load SYNTHETIC sample records
+python3 manage.py serve                                     # http://127.0.0.1:8000
 ```
 
-Options: `serve --port 0` picks a free port, `--db PATH` uses another database file.
+There is no default account and no default password: the first administrator is created
+with `create-account` (`--password-stdin` reads the password from standard input; at least
+12 characters). Options: `serve --port 0` picks a free port, `--db PATH` uses another
+database file, `--secure-cookies` marks the session cookie Secure behind HTTPS.
 The server binds to loopback only; see [Security](#security) before exposing it.
 
 ## Test
 
 ```sh
-python3 -I manage.py test --report /tmp/report.json   # unit + API integration tests
+python3 -I manage.py test --report /tmp/report.json   # unit, API integration and acceptance tests
 node tests/e2e/ui.e2e.mjs                             # browser E2E (Playwright + Chromium)
 ```
 
 - Unit tests (`tests/test_validation.py`, `tests/test_migrations.py`) cover validation of
-  types, required fields, maximum lengths, enumerations, defaults and the migrations.
+  types, required fields, maximum lengths, enumerations, defaults, PATCH merging and the migrations.
 - API integration tests (`tests/test_api.py`) start the real HTTP server on a free port and
-  cover CRUD for every entity, status codes 201/400/404/405/409/413/415, relation checks,
-  security headers, cross-origin refusal and SQL-injection inertness.
-- The E2E test creates, edits and deletes records through the UI in every locale, checks
-  labels, keyboard reachability, CSP and that no request leaves the application origin.
-  Set `APP_CHROMIUM_EXECUTABLE` to use a specific Chromium binary. `package.json` pins the
-  reviewed Playwright version for `npm ci --ignore-scripts`.
+  cover CRUD for every entity, relation and uniqueness checks, sessions, roles on every
+  endpoint, CSRF, security headers, pagination, sorting, filters and SQL-injection inertness.
+- Acceptance tests (`tests/test_acceptance.py`) execute the @@ACCEPTANCE_COUNT@@ machine-checkable
+  criteria of the specification (`app/acceptance.json`), each against a fresh server.
+- The E2E test signs in, creates, edits and deletes records through the UI in every locale,
+  checks labels, keyboard reachability, the focus indicator, CSP and that no request leaves
+  the application origin. Set `APP_CHROMIUM_EXECUTABLE` to use a specific Chromium binary.
+  `package.json` pins the reviewed Playwright version for `npm ci --ignore-scripts`.
 
 ## Data model
 
@@ -52,18 +58,22 @@ JSON over HTTP. Full reference: [docs/API.md](docs/API.md).
 
 ## Security
 
-- Input validation for every field (type, required, maximum length/value, enumeration,
+- Accounts: e-mail + password stored as salted PBKDF2-HMAC-SHA256 (600,000 iterations);
+  sign-in lockout after 5 failures; sessions are random tokens (only their SHA-256 is
+  stored) in an `HttpOnly; SameSite=Strict` cookie that expires after 12 hours.
+- Every API route except `/api/health` and `/api/login` needs a session and the role
+  permission for its method. Roles: @@ROLES@@.
+- CSRF: every write needs the session's `X-CSRF-Token`, `Content-Type: application/json`
+  and a same-origin request (`Origin`/`Sec-Fetch-Site` checked); no CORS headers are sent.
+- Input validation for every field (type, required, length, value range, enumeration,
   strict dates and e-mail), unknown and read-only fields refused, body size limit
-  (@@MAX_BODY@@ bytes), JSON only, duplicate JSON keys refused.
-- Parameterized SQL; identifiers come only from the validated schema.
+  (@@MAX_BODY@@ bytes), duplicate JSON keys refused; parameterized SQL only.
 - Headers on every response: `Content-Security-Policy` (`default-src 'self'`,
   `frame-ancestors 'none'`, no inline code), `X-Content-Type-Options: nosniff`,
   `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, COOP/CORP.
-- CSRF-safe design: writes need `Content-Type: application/json` and a same-origin
-  request (`Origin`/`Sec-Fetch-Site` checked); no CORS headers are ever sent.
 - No secrets in the repository, no shell, no `eval`; the frontend never uses `innerHTML`.
-- **No user authentication yet.** The server refuses non-loopback binding unless
-  `--allow-network` is given; put it behind an authenticating proxy first (open item).
+- The server refuses non-loopback binding unless `--allow-network` is given; deploy it only
+  behind TLS (with `--secure-cookies`) and a reverse proxy (open item OI-DEPLOY).
 
 ## Open items for the owner
 

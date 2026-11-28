@@ -22,7 +22,14 @@
       "empty": "لا توجد سجلات بعد",
       "choose": "— اختر —",
       "yes": "نعم",
-      "no": "لا"
+      "no": "لا",
+      "loginTitle": "تسجيل الدخول",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "signIn": "دخول",
+      "signOut": "خروج",
+      "signedInAs": "{email} ({role})",
+      "signedOut": "تم تسجيل الخروج"
     },
     "errors": {
       "validation_failed": "يرجى تصحيح الحقول المشار إليها",
@@ -43,8 +50,15 @@
       "format": "الصيغة غير صحيحة",
       "unknown_field": "حقل غير معروف",
       "read_only": "حقل للقراءة فقط",
-      "duplicate": "قيم مكررة",
-      "invalid": "حدث خطأ"
+      "duplicate": "هذه القيمة مستخدمة مسبقًا",
+      "invalid": "حدث خطأ",
+      "unauthenticated": "يرجى تسجيل الدخول",
+      "forbidden": "دورك لا يسمح بهذا الإجراء",
+      "csrf": "انتهت صلاحية الجلسة؛ أعد تحميل الصفحة",
+      "state_conflict": "هذا التغيير يخالف قاعدة الحالة",
+      "too_many_attempts": "محاولات كثيرة؛ حاول لاحقًا",
+      "invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      "min_length": "النص أقصر من المسموح"
     }
   },
   "en": {
@@ -70,7 +84,14 @@
       "empty": "No records yet",
       "choose": "— Choose —",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "loginTitle": "Sign in",
+      "email": "Email",
+      "password": "Password",
+      "signIn": "Sign in",
+      "signOut": "Sign out",
+      "signedInAs": "{email} ({role})",
+      "signedOut": "Signed out"
     },
     "errors": {
       "validation_failed": "Please correct the highlighted fields",
@@ -91,8 +112,15 @@
       "format": "The format is not valid",
       "unknown_field": "Unknown field",
       "read_only": "Read-only field",
-      "duplicate": "Duplicate values",
-      "invalid": "Something went wrong"
+      "duplicate": "This value is already used",
+      "invalid": "Something went wrong",
+      "unauthenticated": "Please sign in",
+      "forbidden": "Your role does not allow this action",
+      "csrf": "The session expired; reload the page",
+      "state_conflict": "This change breaks a state rule",
+      "too_many_attempts": "Too many attempts; try again later",
+      "invalid_credentials": "E-mail or password is not correct",
+      "min_length": "The text is too short"
     }
   }
 }

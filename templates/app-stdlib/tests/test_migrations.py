@@ -25,9 +25,10 @@ class MigrationTests(unittest.TestCase):
         for entity in SCHEMA.entities:
             self.assertIn(entity.table, self.tables())
             columns = {row[1] for row in self.connection.execute("PRAGMA table_info(" + db.ident(entity.table) + ")")}
-            self.assertTrue(set(entity.columns) | {"id", "created_at", "updated_at"} <= columns, entity.name)
+            self.assertTrue(set(entity.columns) | {"id", "created_by", "created_at", "updated_at"} <= columns, entity.name)
             for link in entity.links:
                 self.assertIn(link["link_table"], self.tables())
+        self.assertTrue({"app_account", "app_session"} <= self.tables())
         self.assertEqual(self.connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)
 
     def test_down_removes_schema(self):

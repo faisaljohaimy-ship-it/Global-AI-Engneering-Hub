@@ -87,8 +87,19 @@ class ValidationTests(unittest.TestCase):
             if "default" in field:
                 payload = sample(entity, 1, refs)
                 del payload[field["name"]]
-                values, _ = model.validate(entity, payload, LIMITS)
+                values = model.validate(entity, payload, LIMITS)
                 self.assertEqual(values[field["name"]], field["default"])
+
+    def test_partial_update_merges_stored_values(self):
+        entity = SCHEMA.entities[0]
+        stored = {**model.validate(entity, sample(entity, 1), LIMITS), "id": 1}
+        field = entity.fields[0]
+        changed = sample(entity, 2)[field["name"]]
+        values = model.validate(entity, {field["name"]: changed}, LIMITS, base=stored)
+        self.assertEqual(values[field["name"]], model.check_value(field, changed, LIMITS))
+        for other in entity.columns[1:]:
+            self.assertEqual(values[other], stored[other])
+        self.assertEqual(_errors(entity, {"created_by": 1}).get("created_by"), "read_only")
 
     def test_text_rejects_control_characters(self):
         field = {"name": "x", "type": "text", "required": True}

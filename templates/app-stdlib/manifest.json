@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "name": "app-stdlib",
-  "version": "1.0.0",
-  "summary": "Independent Python-stdlib + SQLite web application with a bilingual static frontend and unit/API/E2E tests.",
+  "version": "2.0.0",
+  "summary": "Independent Python-stdlib + SQLite web application: JSON API with sessions, CSRF and roles, a bilingual accessible frontend, and unit/API/acceptance/E2E tests.",
   "data": [
     "glossary.json",
     "ui-strings.json"
@@ -27,6 +27,10 @@
     "app/__main__.py": {
       "mode": "copy",
       "to": "app/__main__.py"
+    },
+    "app/auth.py": {
+      "mode": "copy",
+      "to": "app/auth.py"
     },
     "app/db.py": {
       "mode": "copy",
@@ -65,8 +69,8 @@
       "to": "static/app.js"
     },
     "static/index.html.tmpl": {
-      "mode": "render",
-      "to": "static/index.html"
+      "mode": "render-per-locale",
+      "to": "static/index.{locale}.html"
     },
     "tests/__init__.py": {
       "mode": "copy",
@@ -83,6 +87,10 @@
     "tests/support.py": {
       "mode": "copy",
       "to": "tests/support.py"
+    },
+    "tests/test_acceptance.py": {
+      "mode": "copy",
+      "to": "tests/test_acceptance.py"
     },
     "tests/test_api.py": {
       "mode": "copy",

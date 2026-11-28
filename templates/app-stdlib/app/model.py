@@ -18,9 +18,8 @@ EMAIL = re.compile(r"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 DATETIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})?")
 FIELD_TYPES = frozenset({"text", "int", "number", "bool", "date", "datetime", "enum", "email"})
-READ_ONLY = frozenset({"id", "created_at", "updated_at"})
+READ_ONLY = frozenset({"id", "created_at", "updated_at", "created_by"})
 MAX_INT = 2 ** 53 - 1
-MAX_LINKS = 1000
 
 
 class SchemaError(ValueError):
@@ -43,6 +42,7 @@ def _need(condition, message):
 class Entity:
     def __init__(self, raw):
         _need(isinstance(raw, dict), "entity must be an object")
+        self.raw = raw
         self.name = raw["name"]
         self.table = raw["table"]
         self.collection = raw["collection"]
@@ -50,6 +50,7 @@ class Entity:
         self.fields = [dict(field) for field in raw["fields"]]
         self.references = [dict(ref) for ref in raw.get("references", [])]
         self.links = [dict(link) for link in raw.get("links", [])]
+        self.default_order = list(raw.get("default_order", []))
         _need(IDENT.fullmatch(self.table or ""), f"bad table name {self.table!r}")
         _need(COLLECTION.fullmatch(self.collection or ""), f"bad collection {self.collection!r}")
         names = set()
@@ -58,21 +59,28 @@ class Entity:
             _need(field.get("type") in FIELD_TYPES, f"bad field type {field.get('type')!r}")
             names.add(field["name"])
         for ref in self.references:
-            _need(IDENT.fullmatch(ref.get("field") or "") and IDENT.fullmatch(ref.get("table") or ""),
-                  "bad reference")
+            _need(IDENT.fullmatch(ref.get("field") or "") and IDENT.fullmatch(ref.get("table") or ""), "bad reference")
             names.add(ref["field"])
         for link in self.links:
-            _need(IDENT.fullmatch(link.get("field") or "") and IDENT.fullmatch(link.get("table") or "")
-                  and IDENT.fullmatch(link.get("link_table") or ""), "bad link")
-            names.add(link["field"])
-        _need(len(names) == len(self.fields) + len(self.references) + len(self.links), "duplicate field")
+            _need(all(IDENT.fullmatch(link.get(key) or "") for key in ("table", "link_table", "target_key"))
+                  and COLLECTION.fullmatch(link.get("segment") or ""), "bad link")
+        _need(len(names) == len(self.fields) + len(self.references), "duplicate field")
         _need(not names & READ_ONLY, "reserved field name")
+        for column in self.default_order:
+            _need(column in names, f"bad default order column {column!r}")
         self.columns = [field["name"] for field in self.fields] + [ref["field"] for ref in self.references]
+        self.children = []
 
     def field(self, name):
         for field in self.fields:
             if field["name"] == name:
                 return field
+        return None
+
+    def reference(self, name):
+        for ref in self.references:
+            if ref["field"] == name:
+                return ref
         return None
 
 
@@ -83,6 +91,8 @@ class Schema:
         self.app = raw["app"]
         self.limits = raw["limits"]
         self.nfr = raw.get("nfr", {})
+        self.auth = raw["auth"]
+        self.rules = raw.get("rules", {})
         self.entities = [Entity(row) for row in raw["entities"]]
         self.by_name = {entity.name: entity for entity in self.entities}
         self.by_collection = {entity.collection: entity for entity in self.entities}
@@ -90,9 +100,21 @@ class Schema:
         for entity in self.entities:
             for target in entity.references + entity.links:
                 _need(target["entity"] in self.by_name, f"unknown related entity {target['entity']!r}")
+            for ref in entity.references:
+                parent = self.by_name[ref["entity"]]
+                if sum(1 for other in entity.references if other["entity"] == parent.name) == 1:
+                    parent.children.append({"collection": entity.collection, "entity": entity, "field": ref["field"]})
+        roles = self.auth["roles"]
+        _need(isinstance(roles, dict) and self.auth["admin_role"] in roles, "auth roles")
+        scoping = self.auth.get("scoping")
+        if scoping:
+            _need(scoping["entity"] in self.by_name and IDENT.fullmatch(scoping["link_table"]), "bad scoping")
 
     def public(self):
         return self.raw
+
+    def permissions(self, role):
+        return frozenset(self.auth["roles"].get(role, []))
 
 
 def load_schema(path=SCHEMA_PATH):
@@ -101,6 +123,15 @@ def load_schema(path=SCHEMA_PATH):
         return Schema(raw)
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise SchemaError(f"cannot load {path}: {error}") from None
+
+
+def allowed(permissions, need):
+    """`need` is read, write or delete. Returns 'all', 'own' or None."""
+    if "*" in permissions or need in permissions:
+        return "all"
+    if f"{need}:own" in permissions:
+        return "own"
+    return None
 
 
 def _control(text):
@@ -120,6 +151,8 @@ def check_value(field, value, limits):
             raise KeyError("max_length")
         if field.get("required") and not value:
             raise KeyError("required")
+        if value and len(value) < field.get("min", 0):
+            raise KeyError("min_length")
         if kind == "email" and value and not EMAIL.fullmatch(value):
             raise KeyError("format")
         return value if value else None
@@ -174,26 +207,29 @@ def _identifier(value):
     return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= MAX_INT
 
 
-def validate(entity, payload, limits):
-    """Validate a complete record (create or full replacement).
+def validate(entity, payload, limits, base=None):
+    """Validate a record for create (base=None) or update (base = the stored record).
 
-    Returns (values, links): values maps every column to a normalized value or None,
-    links maps every many-to-many field to a sorted list of unique ids.
+    For an update the payload is merged over the stored values (PATCH semantics; a
+    full PUT body simply replaces every value). Returns the complete column values.
     """
     if not isinstance(payload, dict):
         raise ValidationError({"_body": "type"})
     errors = {}
-    known = {field["name"] for field in entity.fields} | {ref["field"] for ref in entity.references} \
-        | {link["field"] for link in entity.links}
+    known = {field["name"] for field in entity.fields} | {ref["field"] for ref in entity.references}
     for key in payload:
         if key in READ_ONLY:
             errors[str(key)[:64]] = "read_only"
         elif key not in known:
             errors[str(key)[:64]] = "unknown_field"
+    merged = dict(payload)
+    if base is not None:
+        merged = {column: base.get(column) for column in entity.columns}
+        merged.update({key: value for key, value in payload.items() if key in known})
     values = {}
     for field in entity.fields:
         name = field["name"]
-        if name not in payload:
+        if name not in merged:
             if "default" in field:
                 values[name] = field["default"]
             elif field.get("required"):
@@ -201,7 +237,7 @@ def validate(entity, payload, limits):
             else:
                 values[name] = None
             continue
-        value = payload[name]
+        value = merged[name]
         if value is None:
             if field.get("required"):
                 errors[name] = "required"
@@ -216,7 +252,7 @@ def validate(entity, payload, limits):
         if values[name] is None and field.get("required"):
             errors[name] = "required"
     for ref in entity.references:
-        value = payload.get(ref["field"])
+        value = merged.get(ref["field"])
         if value is None:
             if ref.get("required"):
                 errors[ref["field"]] = "required"
@@ -225,18 +261,6 @@ def validate(entity, payload, limits):
             errors[ref["field"]] = "type"
         else:
             values[ref["field"]] = value
-    links = {}
-    for link in entity.links:
-        value = payload.get(link["field"], [])
-        if value is None:
-            value = []
-        if not isinstance(value, list) or len(value) > MAX_LINKS or not all(_identifier(item) for item in value):
-            errors[link["field"]] = "type"
-            continue
-        if len(set(value)) != len(value):
-            errors[link["field"]] = "duplicate"
-            continue
-        links[link["field"]] = sorted(value)
     if errors:
         raise ValidationError(errors)
-    return values, links
+    return values

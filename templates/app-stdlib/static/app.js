@@ -1,10 +1,14 @@
 // Generated application frontend: plain JavaScript, no dependencies, no inline code.
 // The DOM is built with createElement/textContent only (never innerHTML), so record
-// values cannot inject markup. Writes are same-origin JSON requests.
+// values cannot inject markup. Writes are same-origin JSON requests that carry the
+// session's CSRF token; the session itself is an HttpOnly cookie the script never reads.
 'use strict';
 
 (function () {
-  const state = { schema: null, i18n: null, lang: null, entity: null, records: [], options: {}, editing: null, pendingDelete: null };
+  const state = {
+    schema: null, i18n: null, lang: null, entity: null, records: [], options: {}, editing: null,
+    pendingDelete: null, account: null, csrf: null,
+  };
   const STORAGE_KEY = 'app.lang';
   const byId = (id) => document.getElementById(id);
 
@@ -23,7 +27,7 @@
 
   function strings() { return state.i18n[state.lang]; }
   function ui(key, vars) {
-    let text = strings().ui[key] || state.i18n.en?.ui?.[key] || key;
+    let text = strings().ui[key] || (state.i18n.en && state.i18n.en.ui[key]) || key;
     for (const [name, value] of Object.entries(vars || {})) text = text.split('{' + name + '}').join(String(value));
     return text;
   }
@@ -37,6 +41,7 @@
 
   async function api(method, path, body) {
     const options = { method, headers: { Accept: 'application/json' }, credentials: 'same-origin' };
+    if (method !== 'GET' && state.csrf) options.headers['X-CSRF-Token'] = state.csrf;
     if (body !== undefined) {
       options.headers['Content-Type'] = 'application/json';
       options.body = JSON.stringify(body);
@@ -47,17 +52,27 @@
       const error = new Error((data && data.error && data.error.code) || String(response.status));
       error.status = response.status;
       error.data = data && data.error;
+      if (response.status === 401 && state.account) showLogin();
       throw error;
     }
     return data;
   }
 
-  function pickLanguage() {
-    const locales = state.schema.app.locales;
+  function allowed(need) {
+    const permissions = (state.schema && state.account && state.schema.auth.roles[state.account.role]) || [];
+    return permissions.includes('*') || permissions.includes(need) || permissions.includes(need + ':own');
+  }
+
+  function pickLanguage(locales) {
+    const requested = new URLSearchParams(window.location.search).get('lang');
+    if (locales.includes(requested)) return requested;
     let saved = null;
     try { saved = window.localStorage.getItem(STORAGE_KEY); } catch (_) { saved = null; }
-    return locales.includes(saved) ? saved : state.schema.app.default_locale;
+    if (locales.includes(saved)) return saved;
+    return locales.includes(document.documentElement.lang) ? document.documentElement.lang : locales[0];
   }
+
+  function locales() { return Object.keys(state.i18n); }
 
   function applyLanguage() {
     const root = document.documentElement;
@@ -69,24 +84,76 @@
     byId('lang-label').textContent = ui('language');
     byId('entity-nav').setAttribute('aria-label', ui('sections'));
     byId('footer-note').textContent = ui('footer');
+    byId('login-title').textContent = ui('loginTitle');
+    byId('login-email-label').textContent = ui('email');
+    byId('login-password-label').textContent = ui('password');
+    byId('login-button').textContent = ui('signIn');
+    byId('logout-button').textContent = ui('signOut');
+    if (state.account) byId('account-name').textContent = ui('signedInAs', { email: state.account.email, role: state.account.role });
     const buttons = byId('lang-buttons');
     buttons.replaceChildren();
-    for (const locale of state.schema.app.locales) {
-      const pressed = locale === state.lang;
+    for (const locale of locales()) {
       buttons.append(el('button', {
-        type: 'button', lang: locale, 'aria-pressed': pressed ? 'true' : 'false', 'data-locale': locale,
+        type: 'button', lang: locale, 'aria-pressed': locale === state.lang ? 'true' : 'false', 'data-locale': locale,
         text: state.i18n[locale].name, onclick: () => setLanguage(locale),
       }));
     }
   }
 
   function setLanguage(locale) {
-    if (!state.schema.app.locales.includes(locale)) return;
+    if (!locales().includes(locale)) return;
     state.lang = locale;
     try { window.localStorage.setItem(STORAGE_KEY, locale); } catch (_) { /* storage may be unavailable */ }
     applyLanguage();
-    renderNav();
-    renderEntity();
+    if (state.schema) {
+      renderNav();
+      renderEntity();
+    }
+  }
+
+  function showLogin() {
+    state.account = null;
+    state.csrf = null;
+    state.schema = null;
+    byId('account').hidden = true;
+    byId('entity-nav').hidden = true;
+    byId('workspace').hidden = true;
+    byId('login-section').hidden = false;
+    document.body.setAttribute('data-ready', 'true');
+  }
+
+  async function enter(session) {
+    state.account = session.account;
+    state.csrf = session.csrf_token;
+    state.schema = await api('GET', '/api/schema');
+    byId('login-section').hidden = true;
+    byId('account').hidden = false;
+    byId('entity-nav').hidden = false;
+    byId('workspace').hidden = false;
+    applyLanguage();
+    await selectEntity(state.schema.entities[0].name);
+    document.body.setAttribute('data-ready', 'true');
+  }
+
+  async function login(event) {
+    event.preventDefault();
+    const form = byId('login-form');
+    message('', '');
+    try {
+      const session = await api('POST', '/api/login', { email: form.elements.email.value, password: form.elements.password.value });
+      form.reset();
+      await enter(session);
+    } catch (error) {
+      message('', errorText(error.message));
+      form.elements.password.focus();
+    }
+  }
+
+  async function logout() {
+    try { await api('POST', '/api/logout'); } catch (_) { /* the session may already be gone */ }
+    showLogin();
+    message(ui('signedOut'), '');
+    byId('login-email').focus();
   }
 
   function renderNav() {
@@ -118,15 +185,15 @@
     const entity = state.entity;
     const main = byId('main');
     main.setAttribute('aria-busy', 'true');
+    const limit = state.schema.limits.max_page_size;
     try {
-      const related = [...entity.references, ...entity.links];
-      const lists = await Promise.all(related.map((rel) => {
-        const target = state.schema.entities.find((item) => item.name === rel.entity);
-        return api('GET', '/api/' + target.collection + '?limit=500').then((page) => [rel.field, target, page.items]);
+      const lists = await Promise.all(entity.references.map((ref) => {
+        const target = state.schema.entities.find((item) => item.name === ref.entity);
+        return api('GET', '/api/' + target.collection + '?limit=' + limit).then((page) => [ref.field, target, page.items]);
       }));
       state.options = {};
       for (const [field, target, items] of lists) state.options[field] = { target, items };
-      const page = await api('GET', '/api/' + entity.collection + '?limit=500');
+      const page = await api('GET', '/api/' + entity.collection + '?limit=' + limit);
       state.records = page.items;
     } catch (error) {
       message('', ui('loadError'));
@@ -147,19 +214,19 @@
     const common = { id, name: spec.name, 'aria-describedby': describedBy };
     if (spec.required) common['aria-required'] = 'true';
     let input;
-    if (spec.kind === 'reference' || spec.kind === 'link') {
+    if (spec.kind === 'reference') {
       const option = state.options[spec.name] || { target: null, items: [] };
-      input = el('select', { ...common, multiple: spec.kind === 'link', required: spec.required && spec.kind === 'reference' });
-      if (spec.kind === 'reference') input.append(el('option', { value: '', text: ui('choose') }));
+      input = el('select', { ...common, required: spec.required });
+      input.append(el('option', { value: '', text: ui('choose') }));
       for (const item of option.items) {
-        const selected = spec.kind === 'link' ? (value || []).includes(item.id) : value === item.id;
-        input.append(el('option', { value: String(item.id), text: recordLabel(option.target, item), selected }));
+        input.append(el('option', { value: String(item.id), text: recordLabel(option.target, item), selected: value === item.id }));
       }
     } else if (spec.type === 'enum') {
       input = el('select', { ...common, required: spec.required });
-      input.append(el('option', { value: '', text: ui('choose') }));
+      if (!('default' in spec)) input.append(el('option', { value: '', text: ui('choose') }));
+      const current = value === undefined || value === null ? spec.default : value;
       for (const choice of spec.values) {
-        input.append(el('option', { value: choice, text: valueText(entity, spec.name, choice), selected: value === choice }));
+        input.append(el('option', { value: choice, text: valueText(entity, spec.name, choice), selected: current === choice }));
       }
     } else if (spec.type === 'bool') {
       input = el('input', { ...common, type: 'checkbox' });
@@ -173,7 +240,8 @@
         ...common, type: types[spec.type] || 'text', required: spec.required,
         maxlength: ['text', 'email'].includes(spec.type) ? spec.max : null,
         step: spec.type === 'int' ? '1' : spec.type === 'number' ? 'any' : null,
-        min: spec.min, max: ['int', 'number'].includes(spec.type) ? spec.max : null,
+        min: ['int', 'number'].includes(spec.type) ? spec.min : null,
+        max: ['int', 'number'].includes(spec.type) ? spec.max : null,
       });
       let shown = value === null || value === undefined ? '' : String(value);
       if (spec.type === 'datetime' && shown) shown = shown.slice(0, 16);
@@ -189,13 +257,11 @@
   function specs(entity) {
     const rows = entity.fields.map((field) => ({ ...field, kind: 'field' }));
     for (const ref of entity.references) rows.push({ name: ref.field, kind: 'reference', required: ref.required });
-    for (const link of entity.links) rows.push({ name: link.field, kind: 'link', required: false });
     return rows;
   }
 
   function readValue(form, spec) {
     const input = form.elements.namedItem(spec.name);
-    if (spec.kind === 'link') return Array.from(input.selectedOptions).map((option) => Number(option.value));
     if (spec.kind === 'reference') return input.value ? Number(input.value) : null;
     if (spec.type === 'bool') return input.checked;
     const raw = input.value;
@@ -213,8 +279,9 @@
     byId('form-title').textContent = current
       ? ui('editTitle', { entity: entityText(entity, 'singular'), label: recordLabel(entity, current) })
       : ui('newTitle', { entity: entityText(entity, 'singular') });
+    const writable = allowed('write');
     for (const spec of specs(entity)) form.append(control(entity, spec, current ? current[spec.name] : undefined));
-    const actions = el('div', { className: 'actions' }, [el('button', { type: 'submit', className: 'primary', text: ui('save') })]);
+    const actions = el('div', { className: 'actions' }, [el('button', { type: 'submit', className: 'primary', text: ui('save'), disabled: !writable })]);
     if (current) {
       actions.append(el('button', { type: 'button', text: ui('cancel'), onclick: () => { state.editing = null; renderEntity(); } }));
     }
@@ -267,19 +334,24 @@
     }
   }
 
+  function formatDate(value, withTime) {
+    const date = new Date(withTime ? value : value + 'T00:00:00Z');
+    if (Number.isNaN(date.getTime())) return value;
+    const options = withTime ? { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' } : { dateStyle: 'medium', timeZone: 'UTC' };
+    return new Intl.DateTimeFormat(state.lang, options).format(date);
+  }
+
   function cellText(entity, spec, record) {
     const value = record[spec.name];
-    if (value === null || value === undefined || (Array.isArray(value) && !value.length)) return '—';
-    if (spec.kind === 'reference' || spec.kind === 'link') {
+    if (value === null || value === undefined) return '—';
+    if (spec.kind === 'reference') {
       const option = state.options[spec.name];
-      const ids = Array.isArray(value) ? value : [value];
-      return ids.map((id) => {
-        const item = option && option.items.find((row) => row.id === id);
-        return item ? recordLabel(option.target, item) : '#' + id;
-      }).join(strings().dir === 'rtl' ? '، ' : ', ');
+      const item = option && option.items.find((row) => row.id === value);
+      return item ? recordLabel(option.target, item) : '#' + value;
     }
     if (spec.type === 'bool') return value ? ui('yes') : ui('no');
     if (spec.type === 'enum') return valueText(entity, spec.name, value);
+    if (spec.type === 'date' || spec.type === 'datetime') return formatDate(value, spec.type === 'datetime');
     return String(value);
   }
 
@@ -306,15 +378,17 @@
           'aria-label': ui('cancel') + ': ' + label, onclick: () => { state.pendingDelete = null; renderEntity(); } }));
         window.setTimeout(() => confirm.focus(), 0);
       } else {
-        actions.append(
-          el('button', { type: 'button', text: ui('edit'), 'aria-label': ui('edit') + ': ' + label,
-            onclick: () => { state.editing = record.id; state.pendingDelete = null; renderEntity(); byId('record-form').querySelector('input, select, textarea')?.focus(); } }),
-          el('button', { type: 'button', className: 'danger', text: ui('delete'), 'aria-label': ui('delete') + ': ' + label,
-            onclick: () => { state.pendingDelete = record.id; renderEntity(); } }),
-        );
+        if (allowed('write')) {
+          actions.append(el('button', { type: 'button', text: ui('edit'), 'aria-label': ui('edit') + ': ' + label,
+            onclick: () => { state.editing = record.id; state.pendingDelete = null; renderEntity(); byId('record-form').querySelector('input, select, textarea')?.focus(); } }));
+        }
+        if (allowed('delete')) {
+          actions.append(el('button', { type: 'button', className: 'danger', text: ui('delete'), 'aria-label': ui('delete') + ': ' + label,
+            onclick: () => { state.pendingDelete = record.id; renderEntity(); } }));
+        }
       }
       body.append(el('tr', { 'data-id': record.id }, [
-        ...columns.map((spec) => el('td', { text: cellText(entity, spec, record) })),
+        ...columns.map((spec) => el('td', { 'data-field': spec.name, text: cellText(entity, spec, record) })),
         actions,
       ]));
     }
@@ -333,14 +407,16 @@
 
   async function boot() {
     try {
-      const [schema, i18n] = await Promise.all([api('GET', '/api/schema'), api('GET', '/static/i18n.json')]);
-      state.schema = schema;
-      state.i18n = i18n;
-      state.lang = pickLanguage();
+      state.i18n = await api('GET', '/static/i18n.json');
+      state.lang = pickLanguage(locales());
       applyLanguage();
       byId('skip-link').addEventListener('click', (event) => { event.preventDefault(); byId('main').focus(); });
-      await selectEntity(schema.entities[0].name);
-      document.body.setAttribute('data-ready', 'true');
+      byId('login-form').addEventListener('submit', login);
+      byId('logout-button').addEventListener('click', logout);
+      let session = null;
+      try { session = await api('GET', '/api/session'); } catch (_) { session = null; }
+      if (session) await enter(session);
+      else showLogin();
     } catch (error) {
       byId('alert').textContent = 'The application could not start / تعذّر تشغيل التطبيق';
     }

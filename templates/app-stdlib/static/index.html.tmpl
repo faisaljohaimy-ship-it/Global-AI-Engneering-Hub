@@ -13,27 +13,49 @@
 <a class="skip-link" href="#main" id="skip-link">@@SKIP@@</a>
 <header class="topbar">
   <h1 id="app-title">@@TITLE@@</h1>
-  <div class="lang-switch" role="group" aria-labelledby="lang-label">
-    <span id="lang-label" class="visually-hidden">@@LANGUAGE@@</span>
-    <div id="lang-buttons"></div>
+  <div class="topbar-tools">
+    <div class="lang-switch" role="group" aria-labelledby="lang-label">
+      <span id="lang-label" class="visually-hidden">@@LANGUAGE@@</span>
+      <div id="lang-buttons"></div>
+    </div>
+    <div id="account" class="account" hidden>
+      <span id="account-name"></span>
+      <button type="button" id="logout-button">@@SIGN_OUT@@</button>
+    </div>
   </div>
 </header>
-<nav id="entity-nav" class="entity-nav" aria-label="@@SECTIONS@@"></nav>
+<nav id="entity-nav" class="entity-nav" aria-label="@@SECTIONS@@" hidden></nav>
 <main id="main" tabindex="-1">
-  <h2 id="entity-title"></h2>
   <div id="alert" class="alert" role="alert"></div>
   <div id="status" class="status" role="status" aria-live="polite"></div>
-  <section class="panel" aria-labelledby="form-title">
-    <h3 id="form-title"></h3>
-    <form id="record-form" class="record-form"></form>
+  <section id="login-section" class="panel login" aria-labelledby="login-title">
+    <h2 id="login-title">@@LOGIN_TITLE@@</h2>
+    <form id="login-form" class="record-form">
+      <div class="field">
+        <label for="login-email" id="login-email-label">@@EMAIL@@</label>
+        <input id="login-email" name="email" type="email" autocomplete="username" required maxlength="254">
+      </div>
+      <div class="field">
+        <label for="login-password" id="login-password-label">@@PASSWORD@@</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="256">
+      </div>
+      <div class="actions"><button type="submit" class="primary" id="login-button">@@SIGN_IN@@</button></div>
+    </form>
   </section>
-  <section class="panel" aria-labelledby="list-title">
-    <h3 id="list-title"></h3>
-    <div class="table-wrap" id="table-wrap" tabindex="0" role="region" aria-labelledby="list-title">
-      <table id="records"><caption id="records-caption" class="visually-hidden"></caption><thead></thead><tbody></tbody></table>
-    </div>
-    <p id="empty" class="empty" hidden></p>
-  </section>
+  <div id="workspace" hidden>
+    <h2 id="entity-title"></h2>
+    <section class="panel" aria-labelledby="form-title">
+      <h3 id="form-title"></h3>
+      <form id="record-form" class="record-form"></form>
+    </section>
+    <section class="panel" aria-labelledby="list-title">
+      <h3 id="list-title"></h3>
+      <div class="table-wrap" id="table-wrap" tabindex="0" role="region" aria-labelledby="list-title">
+        <table id="records"><caption id="records-caption" class="visually-hidden"></caption><thead></thead><tbody></tbody></table>
+      </div>
+      <p id="empty" class="empty" hidden></p>
+    </section>
+  </div>
 </main>
 <footer class="footer"><p id="footer-note">@@FOOTER@@</p></footer>
 <noscript><p>@@NOSCRIPT@@</p></noscript>

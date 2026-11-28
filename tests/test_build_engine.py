@@ -1,9 +1,9 @@
 """Master Build Engine (L16): specification gate, workspace safety, generation, receipts, repository gate.
 
 Builds here use verify=False (generation, static checks, local Git) so they stay fast;
-tests/test_build_engine_e2e.py runs Scenario A with the generated unit/API/Playwright
-suites. Everything is real: files, SQLite, Git and receipts. No network is used and no
-GitHub call is made; the push mechanics are proven against a local bare repository.
+tests/test_build_engine_e2e.py runs Scenario A with the generated unit/API/acceptance and
+Playwright suites. Everything is real: files, SQLite, Git and receipts. No network is used
+and no GitHub call is made; the push mechanics are proven against a local bare repository.
 """
 import copy
 import hashlib
@@ -21,7 +21,7 @@ from unittest import mock
 
 import hublink
 from engineering_os import build_engine as engine
-from engineering_os import contracts, factory
+from engineering_os import contracts, factory, requirements
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 COMMAND = "ابنِ نظامًا جديدًا لإدارة المشاريع"
@@ -38,9 +38,10 @@ def main_revision():
 
 
 def scenario_a_spec():
-    """Hand-written gaie.spec/1 fixture in exactly the SPEC_FORMAT shape (Scenario A)."""
+    """Hand-written gaie.spec/1 fixture in the SPEC_FORMAT shape (plus the required `mode`)."""
     return {
         "schema": "gaie.spec/1",
+        "mode": "deterministic",
         "source": {"command": COMMAND, "language": "ar", "sha256": hashlib.sha256(COMMAND.encode()).hexdigest()},
         "title": {"ar": "نظام إدارة المشاريع", "en": "Project Management System"},
         "slug": "project-management",
@@ -61,19 +62,22 @@ def scenario_a_spec():
         "features": [
             {"id": "F1", "title": {"ar": "إنشاء المشاريع وعرضها", "en": "Create and list projects"},
              "acceptance": ["POST /api/projects with a valid body returns 201 and the record",
-                            "GET /api/projects lists created projects"]},
+                            "GET /api/projects returns 200 and lists the created records"]},
             {"id": "F2", "title": {"ar": "المهام تنتمي إلى المشاريع", "en": "Tasks belong to projects"},
-             "acceptance": ["POST /api/tasks with a project_id that does not exist returns 409",
-                            "Deleting a project that still has tasks returns 409",
-                            "GET /api/tasks/{id} returns 404 for an unknown task"]},
+             "acceptance": ["POST /api/tasks with a project_id that does not exist returns 400",
+                            "GET /api/tasks/{id} with an unknown id returns 404",
+                            "GET /api/projects/{id}/tasks returns 200 and only that project's tasks"]},
             {"id": "F3", "title": {"ar": "تعديل المهام وحذفها", "en": "Edit and delete tasks"},
-             "acceptance": ["PUT /api/tasks/{id} updates a task",
-                            "DELETE /api/tasks/{id} removes a task and returns 204"]},
+             "acceptance": ["PATCH /api/tasks/{id} with a valid body returns 200 and the updated record",
+                            "DELETE /api/tasks/{id} as admin returns 204",
+                            "DELETE /api/tasks/{id} as member returns 403"]},
             {"id": "F4", "title": {"ar": "واجهة ثنائية اللغة", "en": "Bilingual interface"},
-             "acceptance": ["A project and a task can be created through the UI in Arabic (RTL)",
-                            "A project and a task can be created through the UI in English (LTR)"]},
+             "acceptance": ["GET /?lang=ar returns 200 and html with dir=rtl and lang=ar",
+                            "GET /?lang=en returns 200 and html with dir=ltr and lang=en"]},
             {"id": "F5", "title": {"ar": "التحقق من المدخلات", "en": "Input validation"},
-             "acceptance": ["Invalid input returns 400 with field errors"]},
+             "acceptance": ["POST /api/projects without title returns 400",
+                            "POST /api/projects with status=not_a_value returns 400",
+                            "GET /api/tasks without a session returns 401"]},
         ],
         "nfr": {"security": ["input validation", "no secrets in repo", "parameterized SQL"],
                 "performance": ["p95 API latency < 200 ms locally"],
@@ -115,16 +119,17 @@ class Workspace(unittest.TestCase):
 class SpecificationTests(unittest.TestCase):
     def test_fixture_is_valid_and_planning_is_deterministic(self):
         spec = scenario_a_spec()
+        self.assertTrue(requirements.is_ready(spec))
         self.assertEqual(engine.validate_spec(spec), spec)
         first = engine.plan(spec)
         self.assertEqual(first, engine.plan(copy.deepcopy(spec)))
         self.assertEqual(first["collections"], ["/api/projects", "/api/tasks"])
         self.assertEqual(first["factory_stages"], ["requirements", "architecture", "database", "api", "backend",
                                                    "frontend", "testing", "security", "documentation", "release"])
-        self.assertEqual(first["unmapped_criteria"], [])
+        self.assertEqual(first["unmapped_criteria"], {})
+        self.assertEqual(first["acceptance"], {"criteria": 21, "executable": 13})
         self.assertEqual(first["translation_gaps"], [])
-        self.assertEqual(first["expected_tests"], {"python": 47, "e2e": 19})
-        self.assertEqual({item["id"] for item in first["open_items"]}, {"OI-REPO", "OI-LICENSE", "OI-DEPLOY", "OI-AUTH"})
+        self.assertEqual({item["id"] for item in first["open_items"]}, {"OI-REPO", "OI-LICENSE", "OI-DEPLOY", "OI-IDENTITY"})
 
     def test_invalid_specifications_are_refused(self):
         def change(path, value):
@@ -141,6 +146,7 @@ class SpecificationTests(unittest.TestCase):
         token = "gh" + "p_" + "A1b2C3d4" * 5
         cases = {
             "schema": change(["schema"], "gaie.spec/2"),
+            "mode": change(["mode"], KeyError),
             "missing key": change(["nfr"], KeyError),
             "extra key": {**scenario_a_spec(), "extra": 1},
             "slug": change(["slug"], "Project Management"),
@@ -151,16 +157,16 @@ class SpecificationTests(unittest.TestCase):
             "values on text": change(["entities", 0, "fields", 0, "values"], ["a"]),
             "reserved field": change(["entities", 0, "fields", 0, "name"], "id"),
             "default type": change(["entities", 1, "fields", 2, "default"], "no"),
-            "text max": change(["entities", 0, "fields", 0, "max"], 0),
             "relation entity": change(["relations", 0, "to"], "Ghost"),
             "relation kind": change(["relations", 0, "kind"], "one-to-one"),
             "duplicate entity": change(["entities", 1, "name"], "Project"),
             "control text": change(["title", "en"], "Project\x00System"),
             "secret text": change(["title", "en"], "Project " + token),
+            "untestable criterion": change(["features", 0, "acceptance"], ["Projects can be created"]),
             "no acceptance": change(["features", 0, "acceptance"], []),
-            "feature id": change(["features", 1, "id"], "F1"),
-            "source digest": change(["source", "sha256"], "not-a-digest"),
+            "source digest": change(["source", "sha256"], "0" * 64),
             "paid services": change(["constraints", "no_paid_services"], False),
+            "nfr keys": change(["nfr"], {"security": []}),
             "not an object": ["not", "a", "spec"],
         }
         spec = scenario_a_spec()
@@ -176,15 +182,21 @@ class SpecificationTests(unittest.TestCase):
 
     def test_unsupported_requests_are_refused_not_dropped(self):
         cases = {
-            "ai": ("ai", {"needed": True, "use_cases": ["summaries"]}),
-            "integrations": ("integrations", ["email"]),
+            "ai": ("ai", {"needed": True, "use_cases": ["summaries"], "provider": "local-model"}),
+            "integrations": ("integrations", [{"id": "email", "title": {"ar": "بريد", "en": "Email"}, "paid": False,
+                                               "network": True, "approved": True}]),
             "product type": ("product_type", "mobile-app"),
             "runtime": ("constraints", {"runtime": "node", "database": "sqlite", "no_paid_services": True}),
+            "no administrator": ("roles", [{"id": "member", "permissions": ["read"]}]),
+            "reserved table": ("entities", scenario_a_spec()["entities"] + [
+                {"name": "AppAccount", "fields": [{"name": "title", "type": "text", "required": True}]}]),
         }
         for label, (key, value) in cases.items():
             with self.subTest(label):
                 spec = scenario_a_spec()
                 spec[key] = value
+                if label == "reserved table":
+                    spec["relations"].append({"from": "AppAccount", "to": "Project", "kind": "many-to-one", "required": False})
                 with self.assertRaises(engine.UnsupportedSpec):
                     engine.validate_spec(spec)
         spec = scenario_a_spec()
@@ -193,74 +205,107 @@ class SpecificationTests(unittest.TestCase):
             engine.validate_spec(spec)
 
     def test_open_questions_go_to_the_owner(self):
-        spec = scenario_a_spec()
-        spec["open_questions"] = ["Which identity provider should be used?"]
+        spec = requirements.parse("ابن نظاما جديدا")
+        self.assertFalse(requirements.is_ready(spec))
         with self.assertRaises(engine.OpenQuestions):
             engine.validate_spec(spec)
-        self.assertEqual(engine.validate_spec(spec, allow_open_questions=True)["open_questions"], spec["open_questions"])
+        planned = engine.plan(spec, allow_open_questions=True)
+        self.assertEqual(planned["ready"], False)
+        self.assertTrue(planned["open_questions"])
 
 
 class ModelTests(unittest.TestCase):
-    def test_model_order_relations_and_labels(self):
+    def model(self, spec=None):
+        spec = engine.validate_spec(spec or scenario_a_spec())
+        return spec, engine.derive_model(spec)
+
+    def test_model_order_relations_labels_and_auth(self):
         spec = scenario_a_spec()
         spec["entities"].reverse()
-        model = engine.derive_model(engine.validate_spec(spec))
+        _, model = self.model(spec)
         self.assertEqual([e["name"] for e in model["entities"]], ["Project", "Task"])
         task = model["entities"][1]
-        self.assertEqual(task["references"], [{"field": "project_id", "entity": "Project", "table": "project",
-                                               "required": True, "relation": "many-to-one"}])
-        self.assertEqual(task["label_field"], "title")
+        self.assertEqual(task["references"], [{"field": "project_id", "attr": "project", "entity": "Project",
+                                               "table": "project", "required": True, "relation": "many-to-one"}])
+        self.assertEqual(task["default_order"], ["due_date"])
+        self.assertEqual(model["entities"][0]["children"], [{"collection": "tasks", "entity": "Task", "field": "project_id"}])
         self.assertEqual(model["labels"]["ar"]["entities"]["Project"], {"singular": "مشروع", "plural": "المشاريع"})
         self.assertEqual(model["labels"]["ar"]["fields"]["Task"]["project_id"], "مشروع")
         self.assertEqual(model["labels"]["ar"]["values"]["Project"]["status"]["planned"], "مخطط")
-        self.assertEqual(model["p95_ms"], 200)
+        self.assertEqual(model["auth"]["admin_role"], "admin")
+        self.assertIsNone(model["auth"]["principal"])
+        self.assertIsNone(model["auth"]["scoping"])
+        self.assertEqual(model["auth"]["pbkdf2_iterations"], 600000)
+        self.assertEqual(model["nfr"], {"p95_ms": 200, "latency_records": 1000, "page_size": 50, "max_page_size": 200})
 
-    def test_translation_gaps_are_reported_and_many_to_many_is_modelled(self):
+    def test_real_requirements_output_derives_rules_scoping_and_links(self):
+        spec, model = self.model(requirements.parse(COMMAND))
+        self.assertEqual([e["name"] for e in model["entities"]], ["Project", "Member", "Milestone", "Task"])
+        task = next(e for e in model["entities"] if e["name"] == "Task")
+        self.assertEqual([ref["field"] for ref in task["references"]], ["project_id", "assignee_id", "milestone_id"])
+        project = model["entities"][0]
+        self.assertEqual(project["links"][0]["segment"], "members")
+        self.assertEqual(model["auth"]["principal"], {"entity": "Member", "email_field": "email"})
+        self.assertEqual(model["auth"]["scoping"]["entity"], "Project")
+        self.assertEqual(model["nfr"]["latency_records"], 10000)
+        checks, unmapped = engine.compile_acceptance(spec, model)
+        self.assertEqual((len(checks), unmapped), (64, {}))
+        self.assertEqual(model["rules"]["progress"][0]["key"], "tasks")
+        self.assertEqual(model["rules"]["overdue"], [{"entity": "Task", "date": "due_date", "field": "status", "value": "done"}])
+        self.assertEqual(model["rules"]["completion"][0]["entity"], "Milestone")
+        kinds = {check["route"]["kind"] for check in checks}
+        self.assertEqual(kinds, {"collection", "item", "children", "progress", "link", "login", "logout", "page"})
+
+    def test_translation_gaps_are_reported(self):
         spec = scenario_a_spec()
         spec["entities"].append({"name": "Widget", "fields": [{"name": "gizmo", "type": "text", "required": True}]})
         spec["relations"].append({"from": "Project", "to": "Widget", "kind": "many-to-many", "required": False})
-        model = engine.derive_model(engine.validate_spec(spec))
+        _, model = self.model(spec)
         self.assertIn("entity Widget", model["translation_gaps"])
         self.assertIn("field Widget.gizmo", model["translation_gaps"])
-        project = model["entities"][0]
-        self.assertEqual(project["links"][0]["field"], "widget_ids")
+        self.assertEqual(model["entities"][0]["links"][0]["segment"], "widgets")
         self.assertIn("OI-I18N", {item["id"] for item in engine.open_items_for(spec, model)})
         up, down = engine.migrations_sql(model)
-        self.assertIn('CREATE TABLE "project_widget_link"', up)
-        self.assertIn('DROP TABLE IF EXISTS "project_widget_link"', down)
+        self.assertIn('CREATE TABLE "project_widgets_link"', up)
+        self.assertIn('DROP TABLE IF EXISTS "project_widgets_link"', down)
 
-    def test_acceptance_criteria_map_to_named_evidence(self):
-        spec = engine.validate_spec(scenario_a_spec())
-        model = engine.derive_model(spec)
+    def test_unsupported_criteria_are_unmapped_with_a_reason(self):
+        spec = scenario_a_spec()
+        spec["features"][0]["acceptance"] += ["GET /api/projects?archived=true returns 200 and only archived projects",
+                                              "POST /api/reports with a valid body returns 201 and the record",
+                                              "GET /api/projects returns 200 and a delightful page"]
+        planned = engine.plan(spec)
+        self.assertEqual(sorted(planned["unmapped_criteria"]), ["f1-a3", "f1-a4", "f1-a5"])
+        self.assertIn("route", planned["unmapped_criteria"]["f1-a4"])
+        spec, model = self.model(spec)
+        checks, unmapped = engine.compile_acceptance(spec, model)
+        self.assertEqual(len(checks), 13)
+        self.assertEqual(set(unmapped), {"f1-a3", "f1-a4", "f1-a5"})
+
+    def test_non_functional_statements_map_to_named_evidence(self):
+        _, model = self.model()
         api = engine.API_ID
         cases = {
-            "POST /api/projects with a valid body returns 201 and the record": {api + "test_create_project"},
-            "PUT /api/tasks/{id} updates a task": {api + "test_update_task"},
-            "GET /api/tasks/{id} returns 404 for an unknown task": {api + "test_not_found_task"},
-            "POST /api/tasks with a project_id that does not exist returns 409": {
-                api + "test_create_task", api + "test_reference_task_project_id_missing",
-                api + "test_reference_task_project_id_delete_parent"},
-            "A project and a task can be created through the UI in Arabic (RTL)": {
-                "e2e:ar:language", "e2e:ar:project:create", "e2e:ar:task:create"},
             "no secrets in repo": {"static:security:secrets"},
             "keyboard navigable": {"e2e:keyboard"},
             "parameterized SQL": {api + "test_sql_injection_is_inert"},
+            "ar rtl": {"e2e:ar:language", api + "test_pages_follow_requested_locale"},
+            "CSRF token on cookie sessions": {api + "test_csrf_token_required", api + "test_cross_origin_write_refused",
+                                              api + "test_login_logout_cycle"},
+            "members see only projects they belong to": set(),
+            "The product feels delightful": set(),
         }
         for text, expected in cases.items():
             with self.subTest(text):
-                self.assertEqual(set(engine.map_criterion(model, spec["locales"], text, [])), expected)
-        self.assertEqual(engine.map_criterion(model, spec["locales"], "The product feels delightful", []), [])
-        spec["features"][0]["acceptance"].append("The product feels delightful")
-        self.assertEqual(engine.plan(spec)["unmapped_criteria"], ["f1-a3"])
+                self.assertEqual(set(engine.map_statement(model, ["ar", "en"], text)), expected)
 
     def test_generated_migrations_apply_and_revert(self):
-        spec = engine.validate_spec(scenario_a_spec())
-        model = engine.derive_model(spec)
+        _, model = self.model()
         up, down = engine.migrations_sql(model)
         problems, detail = engine._migration_check({"migrations/0001_initial.up.sql": up.encode(),
                                                     "migrations/0001_initial.down.sql": down.encode()}, model)
         self.assertEqual(problems, [])
-        self.assertEqual(detail["tables"], ["project", "task"])
+        self.assertEqual(detail["tables"], ["app_account", "app_session", "project", "task"])
         self.assertIn("ON DELETE RESTRICT", up)
         broken = up.replace('"project_id" INTEGER NOT NULL REFERENCES "project" ("id") ON DELETE RESTRICT,', "")
         problems, _ = engine._migration_check({"migrations/0001_initial.up.sql": broken.encode(),
@@ -325,8 +370,9 @@ class GeneratedApplicationTests(Workspace):
         self.assertEqual(self.report["static_checks"], {key: "passed" for key in self.report["static_checks"]})
         self.assertEqual(len(self.report["static_checks"]), 9)
         tracked = git(self.app, "ls-files").stdout.split()
-        for required in ("app/server.py", "app/db.py", "app/model.py", "app/schema.json", "app/seed_data.json",
-                         "static/index.html", "static/app.js", "static/i18n.json", "tests/test_api.py",
+        for required in ("app/server.py", "app/db.py", "app/auth.py", "app/model.py", "app/schema.json",
+                         "app/acceptance.json", "app/seed_data.json", "static/index.ar.html", "static/index.en.html",
+                         "static/app.js", "static/i18n.json", "tests/test_api.py", "tests/test_acceptance.py",
                          "tests/test_validation.py", "tests/e2e/ui.e2e.mjs", "migrations/0001_initial.up.sql",
                          "migrations/0001_initial.down.sql", "README.md", "CHANGELOG.md", "LICENSE-PENDING.md",
                          "docs/API.md", "docs/ARCHITECTURE.md", ".gaie/link.json", ".gaie/spec.json",
@@ -344,18 +390,25 @@ class GeneratedApplicationTests(Workspace):
         self.assertEqual(link["hub_revision"], self.revision)
         self.assertFalse(link["production_runtime_dependency"])
         self.assertEqual(link["runtime_imports_from_hub"], [])
-        self.assertEqual({row["id"] for row in link["used"]},
-                         {"template:app-stdlib", "catalog:microsoft/playwright", "engine:factory", "skill:gaie-build"})
+        self.assertEqual({row["id"] for row in link["used"]}, {"template:app-stdlib", "catalog:microsoft/playwright",
+                                                               "engine:requirements", "engine:factory", "skill:gaie-build"})
         readme = (self.app / "README.md").read_text()
         for heading in ("## Run", "## Test", "## API", "## Security", "## Open items for the owner"):
             self.assertIn(heading, readme)
         self.assertIn("OI-LICENSE", readme)
-        index = (self.app / "static/index.html").read_text()
-        self.assertIn('<html lang="ar" dir="rtl">', index)
-        self.assertIn("نظام إدارة المشاريع", index)
+        self.assertIn("create-account", readme)
+        for lang, direction in (("ar", "rtl"), ("en", "ltr")):
+            page = (self.app / f"static/index.{lang}.html").read_text()
+            self.assertIn(f'<html lang="{lang}" dir="{direction}">', page)
+            self.assertIn('<label for="login-password"', page)
+        self.assertIn("نظام إدارة المشاريع", (self.app / "static/index.ar.html").read_text())
         package = json.loads((self.app / "package.json").read_text())
         self.assertEqual(package["devDependencies"], {"playwright": "1.65.1"})
         self.assertNotIn("license", package)
+        schema = json.loads((self.app / "app/schema.json").read_text())
+        self.assertEqual(schema["auth"]["roles"], {"admin": ["*"], "member": ["read", "write:own"]})
+        seed = json.loads((self.app / "app/seed_data.json").read_text())
+        self.assertEqual(seed["label"], "synthetic")
 
     def test_application_is_its_own_git_repository(self):
         log = git(self.app, "log", "--format=%H %an <%ae> %s").stdout.splitlines()
@@ -392,12 +445,10 @@ class GeneratedApplicationTests(Workspace):
         self.assertEqual(request["source_revision"], self.report["source_commit"])
         plan = factory.plan_factory(request)
         receipts = json.loads((root / "receipts.json").read_text())
-        before = factory.evaluate_factory(plan, receipts, artifact_root=root)
-        self.assertEqual(before["verified_count"], 2)
+        self.assertEqual(factory.evaluate_factory(plan, receipts, artifact_root=root)["verified_count"], 2)
         artifact = root / "artifacts/requirements.json"
         artifact.write_text(artifact.read_text().replace("synthetic", "changed"))
-        after = factory.evaluate_factory(plan, receipts, artifact_root=root)
-        self.assertEqual(after["verified_count"], 0)
+        self.assertEqual(factory.evaluate_factory(plan, receipts, artifact_root=root)["verified_count"], 0)
 
     def test_source_commit_is_deterministic(self):
         other = self.tmp / "second-workspace"
@@ -431,7 +482,7 @@ class GeneratedApplicationTests(Workspace):
                          environ={"GAIE_HOME": str(self.tmp / "other-home")}, verify=False)
         self.assertEqual(list(workspace.iterdir()), [])
 
-    def test_project_registry_is_used_when_available_and_skipped_when_absent(self):
+    def test_registry_sources_are_reported(self):
         workspace = self.tmp / "registry"
         workspace.mkdir()
         calls = []
@@ -444,14 +495,16 @@ class GeneratedApplicationTests(Workspace):
             engine.build(scenario_a_spec(), out_dir=workspace / "pm", hub_revision=self.revision,
                          workspace=workspace, environ=self.environ, registry=finder, verify=False)
         self.assertEqual(calls, [("project-management", "Project Management System")])
-        found = engine.find_existing(scenario_a_spec(), workspace=workspace, environ=self.environ,
-                                     registry=type("Module", (), {})())
-        self.assertIn("no find_existing", found["sources"][-1]["status"])
-        try:
-            importlib.import_module("engineering_os.project_registry")
-        except ImportError:
-            found = engine.find_existing(scenario_a_spec(), workspace=workspace, environ=self.environ)
-            self.assertIn("not present", found["sources"][-1]["status"])
+        found = engine.find_existing(scenario_a_spec(), workspace=workspace, environ=self.environ, registry=object())
+        self.assertIn("not callable", found["sources"][-1]["status"])
+        found = engine.find_existing(scenario_a_spec(), workspace=workspace, environ=self.environ)
+        self.assertEqual(found["sources"][-1]["source"], "project_registry")
+        self.assertEqual(found["matches"], [])
+        home = pathlib.Path(self.environ["GAIE_HOME"])
+        home.mkdir(exist_ok=True)
+        (home / "projects.json").write_text("{not json")
+        with self.assertRaises(engine.BuildError):
+            engine.find_existing(scenario_a_spec(), workspace=workspace, environ=self.environ)
 
 
 class NoNetworkTests(Workspace):
@@ -529,6 +582,7 @@ class RepositoryGateTests(Workspace):
         result = engine.publish(self.app, remote=str(self.bare), grant=self.grant, token=self.token, now=NOW)
         head = git(self.app, "rev-parse", "HEAD").stdout.strip()
         self.assertEqual((result["status"], result["remote_kind"], result["commit"]), ("pushed", "local-bare", head))
+        self.assertIsNone(result["registered"])
         self.assertEqual(git(self.bare, "rev-parse", "refs/heads/main").stdout.strip(), head)
         clone = self.tmp / "clone"
         git(self.tmp, "clone", "-q", "-b", "main", str(self.bare), str(clone))
@@ -545,6 +599,24 @@ class RepositoryGateTests(Workspace):
                 with self.assertRaises(engine.BuildError):
                     engine.publish(self.app, remote=remote, grant=self.grant, token=self.token, now=NOW)
         self.assertEqual(self.refs(), "")
+
+    def test_published_project_is_registered_privately(self):
+        url = "https://github.com/example/project-management.git"
+        planned = engine.register_project(self.app, url, environ=self.environ)
+        self.assertEqual(planned["status"], "would-register")
+        self.assertFalse((pathlib.Path(self.environ["GAIE_HOME"]) / "projects.json").exists())
+        done = engine.register_project(self.app, url, environ=self.environ, apply=True)
+        self.assertEqual(done["status"], "registered")
+        from engineering_os import project_registry
+        record = project_registry.load(self.environ)["project-management"]
+        self.assertEqual(record["repository"], "https://github.com/example/project-management")
+        self.assertEqual(record["private"]["approved_hub_revision"], self.revision)
+        fresh = self.tmp / "fresh"
+        fresh.mkdir()
+        with self.assertRaises(engine.DuplicateProject) as caught:
+            engine.build(scenario_a_spec(), out_dir=fresh / "pm", hub_revision=self.revision, workspace=fresh,
+                         environ=self.environ, verify=False)
+        self.assertEqual(caught.exception.matches[0]["source"], "private-overlay")
 
 
 class EngineContractTests(unittest.TestCase):
@@ -577,19 +649,19 @@ class EngineContractTests(unittest.TestCase):
 class RequirementsIntegrationTests(Workspace):
     def test_requirements_parse_output_is_buildable(self):
         try:
-            requirements = importlib.import_module("engineering_os.requirements")
+            module = importlib.import_module("engineering_os.requirements")
         except ImportError:
-            self.skipTest("engineering_os.requirements is not in this branch yet (written by the L15 agent)")
-        parse = getattr(requirements, "parse", None)
-        if parse is None:
-            self.skipTest("engineering_os.requirements has no parse() yet")
-        spec = parse(COMMAND)
-        self.assertEqual(spec["schema"], "gaie.spec/1")
-        planned = engine.plan(spec, allow_open_questions=True)
-        self.assertEqual(planned["project"], spec["slug"])
-        if not spec["open_questions"]:
-            report = self.build(spec, name=spec["slug"])
-            self.assertEqual(report["static_checks"], {key: "passed" for key in report["static_checks"]})
+            self.skipTest("engineering_os.requirements is not in this branch (written by the L15 agent)")
+        spec = module.parse(COMMAND)
+        self.assertTrue(module.is_ready(spec))
+        planned = engine.plan(spec)
+        self.assertEqual((planned["acceptance"], planned["unmapped_criteria"]), ({"criteria": 80, "executable": 64}, {}))
+        report = self.build(spec, name=spec["slug"])
+        self.assertEqual(report["static_checks"], {key: "passed" for key in report["static_checks"]})
+        app = pathlib.Path(report["out_dir"])
+        checks = json.loads((app / "app/acceptance.json").read_text())["checks"]
+        parsed = module.acceptance_checks(spec)["checks"]
+        self.assertEqual([c["criterion"] for c in checks], [c["criterion"] for c in parsed])
 
 
 if __name__ == "__main__":
