@@ -19,8 +19,17 @@ HERE = pathlib.Path(__file__).resolve().parent
 SHA = re.compile(r"[a-f0-9]{40}")
 REPOSITORY = re.compile(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 # A checkout is not trusted: its own Git settings must not run programs during a read-only check.
-GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
+# protocol.allow=never, GIT_ALLOW_PROTOCOL="" (which overrides any protocol.<name>.allow of the checkout) and
+# GIT_NO_LAZY_FETCH=1 stop every transport, so a partial clone's lazy fetch of a missing object cannot start
+# the upload-pack, ssh or remote-helper program its config names (recheck-release item 1).
+GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null",
+                 "-c", "core.untrackedCache=false", "-c", "protocol.allow=never")
+GIT_ENV = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_OPTIONAL_LOCKS": "0",
+           "GIT_TERMINAL_PROMPT": "0", "GIT_NO_LAZY_FETCH": "1", "GIT_ALLOW_PROTOCOL": ""}
 FILTER_SETTING = re.compile(r"filter\..+\.(?:clean|smudge|process)", re.I)  # `git status` runs these on changed files
+# Config keys (as `git config --list` prints them) that make an object lookup fetch from a promisor remote.
+PARTIAL_CLONE_SETTING = re.compile(r"extensions\.partialclone|remote\..+\.(?:promisor|partialclonefilter)",
+                                   re.I | re.A | re.S)
 
 
 def pairs(items):
@@ -90,15 +99,23 @@ def read_audit_file(root, name):
 
 
 def git(root, *args):
-    """Run Git in a checkout that may be hostile: its fsmonitor and hooks are off, system config and
-    inherited GIT_* variables are ignored, the index is never rewritten and nothing prompts."""
+    """Run Git in a checkout that may be hostile: its fsmonitor, hooks and untracked cache are off, system and
+    global config and inherited GIT_* variables are ignored, no transport or lazy fetch can start, the index
+    is never rewritten, nothing reads stdin and nothing prompts."""
     env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
-    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
+    env.update(GIT_ENV)
     try:
-        return subprocess.run(["git", *GIT_HARDENING, "-C", str(root), *args], capture_output=True, check=True,
-                              env=env, timeout=120).stdout.decode("utf-8", "surrogateescape")
+        return subprocess.run(["git", *GIT_HARDENING, "-C", str(root), "--no-pager", *args], capture_output=True,
+                              check=True, env=env, stdin=subprocess.DEVNULL,
+                              timeout=120).stdout.decode("utf-8", "surrogateescape")
     except subprocess.TimeoutExpired:
         raise ValueError("Git did not finish in time") from None
+
+
+def _refuse_partial_clone(keys):
+    if any(PARTIAL_CLONE_SETTING.fullmatch(key) for key in keys):
+        raise ValueError("release checkout is a partial clone (a promisor remote, extensions.partialClone or "
+                         "partialCloneFilter): reading a missing object would fetch; refused")
 
 
 def _keys(listing, scopes=None):
@@ -196,20 +213,34 @@ def checkout_guard(root):
 
     Every submodule config Git would read is checked; one that cannot be resolved and checked is refused,
     never skipped. `target` runs its status with submodules ignored, so a populated submodule must sit at
-    its recorded commit; changes inside a submodule's working files are not inspected."""
+    its recorded commit; changes inside a submodule's working files are not inspected. A populated
+    submodule that records submodules of its own is refused: nested gitlinks are not traversed, so their
+    Git directories (embedded, or reached through a gitfile anywhere) are never trusted (recheck-authz F1).
+    A partial clone is refused from its config alone, read first, before any command that reads the index or
+    objects; a submodule's config is checked the same way before its index is listed (recheck-release item 1)."""
+    keys = _keys(git(root, "config", "--list", "--show-scope", "--includes", "-z"), {"local", "worktree"})
+    _refuse_partial_clone(keys)
     if pathlib.Path(git(root, "rev-parse", "--show-toplevel").strip()).resolve() != pathlib.Path(root).resolve():
         raise ValueError("release checkout is not its own Git work tree root")
-    keys = _keys(git(root, "config", "--list", "--show-scope", "--includes", "-z"), {"local", "worktree"})
     common = pathlib.Path(git(root, "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
     for path in _module_configs(common / "modules"):
         keys += _config_keys(root, path)
+    _refuse_partial_clone(keys)
     for entry in filter(None, git(root, "ls-files", "-v", "--stage", "-z").split("\0")):
         info, name = entry.split("\t", 1)
         tag, mode, recorded = info.split()[:3]
         if tag != tag.upper() or tag == "S":
             raise ValueError("release checkout hides changes (assume-unchanged or skip-worktree entries)")
         if mode == "160000":
-            keys += _submodule_keys(root, common / "modules", name, recorded)
+            submodule = _submodule_keys(root, common / "modules", name, recorded)
+            _refuse_partial_clone(submodule)
+            keys += submodule
+            populated = pathlib.Path(root, name)  # no link on the way: _submodule_keys checked every part
+            if os.path.lexists(populated / ".git") and any(
+                    item.split(" ", 1)[0] == "160000"
+                    for item in filter(None, git(populated, "ls-files", "--stage", "-z").split("\0"))):
+                raise ValueError("release checkout has a nested submodule (a submodule inside a submodule); "
+                                 "nested submodules are refused, not inspected")
     if any(FILTER_SETTING.fullmatch(key) for key in keys):
         raise ValueError("release checkout defines Git filter programs; inspect its .git/config")
 

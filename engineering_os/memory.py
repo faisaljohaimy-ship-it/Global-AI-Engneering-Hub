@@ -83,9 +83,16 @@ STOPWORDS = frozenset({"a", "an", "the", "of", "to", "for", "and", "or", "in", "
 # Token edges are ASCII-aware: `\b` treats an Arabic letter, a digit or "_" as part of the word, so
 # "وAKIA…" (the conjunction wa- attached to a key) or "aws_AKIA…" slipped past it.
 _L, _R = r"(?<![A-Za-z0-9])", r"(?![A-Za-z0-9])"
-# Arabic labels for a password, a secret number or an access key or code, followed by ":" or "=".
-_ARABIC_SECRET_LABEL = (r"(?:كلمة (?:ال)?(?:مرور|سر)|(?:ال)?رقم (?:ال)?سري|رمز (?:ال)?(?:مرور|دخول|وصول|تحقق)"
-                        r"|مفتاح (?:ال)?(?:api|واجهة|وصول|سري|خاص))\s*[:=]\s*\S{4,}")
+# Arabic labels for a password, a secret number, an access key or code and the loanwords توكن / باسورد, at parity
+# with the English rule below (recheck-authz M2): any suffix on the label, then ":", "=" or the prose "هي"/"هو"
+# ("is") and a value, with up to three words of the same line between label and separator; ة or ه and ي or ى
+# spellings. Harakat and tatweel are removed from a scanned copy (_ARABIC_MARKS). Without such a separator the
+# label is prose ("كلمة المرور يجب أن تكون طويلة") and stays storable.
+_ARABIC_SECRET_LABEL = (r"(?:كلم[ةه]\s+(?:ال)?(?:مرور|سر)|(?:ال)?رقم\s+(?:ال)?سر[يى]"
+                        r"|رمز\s+(?:ال)?(?:مرور|دخول|وصول|تحقق|سر[يى])|مفتاح\s+(?:ال)?\s*(?:api|واجهة|وصول|سر[يى]|خاص)"
+                        r"|(?:ال)?(?:توكن|باسورد|باسوورد))\w*"
+                        r"(?:[ \t]+[^\s:=\"'«»,،؛.]+){0,3}?(?:\s*[:=]\s*|\s+(?:هي|هو|هى)\s+)[\"'«]?\S{4,}")
+_ARABIC_MARKS = re.compile("[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]")  # harakat, Quranic marks, tatweel
 # Broader than the task-store pattern: the credential shapes the GAIE factory memory refused (PR #26).
 BROAD_SECRET = re.compile(
     rf"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY|{_L}gh[pousr]_[A-Za-z0-9]{{20,}}|{_L}github_pat_[A-Za-z0-9_]{{20,}}"
@@ -131,7 +138,8 @@ class MissingMemory(MemoryError):
 # ---------------------------------------------------------------- validation
 
 def _refuse_secrets(value):
-    for text in {value, unicodedata.normalize("NFKC", value)}:
+    folded = unicodedata.normalize("NFKC", value)
+    for text in {value, folded, _ARABIC_MARKS.sub("", folded)}:
         if (TASK_SECRET.search(text) or BROAD_SECRET.search(text) or SPLIT_SECRET.search(re.sub(r"\s+", "", text))
                 or PRIVATE_MARKER.search(text) or secret_findings("memory.txt", text)):
             raise SecretRefused("Credential-shaped or private-marked text refused; nothing was stored")

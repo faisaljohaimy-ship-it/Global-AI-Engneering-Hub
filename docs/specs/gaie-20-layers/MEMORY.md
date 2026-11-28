@@ -144,10 +144,13 @@ The new session runs the commands below from the project checkout. Pick `M` by w
 - **From an installed project** (the vendored copy):
   `M="python3 .engineering/gaie/gaie_memory.py --project $P"` (gaie-factory pack) or
   `M="python3 .claude/skills/gaie-master-router/engine/gaie_memory.py --project $P"`
-  (`scripts/gaie_bootstrap.py`). These copies run the commands below only when
-  `memory.py`, `orchestration.py` and `security_scan.py` sit beside them (section 7);
-  until the pack and the bootstrap vendor them, they answer
-  `this command needs the unified engine` and the hub form above is the one to use.
+  (`scripts/gaie_bootstrap.py`). The pack (`gaie-factory` 1.1.0) and the bootstrap
+  vendor `memory.py`, `orchestration.py` and `security_scan.py` beside `gaie_memory.py`
+  (commit e652601), so both copies run the commands below on the same store; measured
+  on 2026-11-28 in a scratch project: `task`, `next`, `brief` and `adr` exit 0 from the
+  pack copy, `task`, `next` and `brief` from the bootstrap copy. A copy without those
+  files (an install older than pack 1.1.0) answers `this command needs the unified
+  engine`; the hub form above stays the fallback.
 
 ```bash
 P=my-project                     # the project slug
@@ -199,25 +202,28 @@ the old repository paths, and a deliberate control read is detected.
   every write rewrites the file atomically, so very large stores get slower.
 - The private directory checks refuse a store under a symlinked path (e.g. macOS
   `/tmp`); `GAIE_HOME` is resolved, `MemoryStore` paths are not.
-- Until the integrator vendors the engine (below), skill/pack copies of
-  `gaie_memory.py` run the portable journal: no ADR/task/symbol commands there, and
-  they refuse projects the engine manages.
+- The pack and the bootstrap vendor the engine (section 5). Only a copy of
+  `gaie_memory.py` installed without `memory.py` (older than pack 1.1.0) runs the
+  portable journal: no ADR/task/symbol commands there, and it refuses projects the
+  engine manages.
 
 ## 7. Integration requests (outside this layer's owned paths)
 
-- Vendor `engineering_os/memory.py`, `engineering_os/orchestration.py` and
-  `scripts/security_scan.py` beside `gaie_memory.py` in `scripts/gaie_bootstrap.py`
-  (`ENGINE`) and in `catalog/packs.json` (`gaie-factory.files`, as `memory.py`,
-  `orchestration.py`, `security_scan.py`); then the portable journal can be removed.
+- Done (e652601): `catalog/packs.json` (`gaie-factory.files`, the one list
+  `scripts/gaie_bootstrap.py` derives its plan from) vendors `memory.py`,
+  `orchestration.py` and `security_scan.py` beside `gaie_memory.py`. Remaining: remove
+  the portable journal once installs older than pack 1.1.0 are no longer supported.
 - The control plane reaches memory only through `engineering_os/adapters.py`
-  (`memory_store`, `memory`, `memory_health`; the `memory` record in
-  `governance/engines.json`: put, search, graph, index, checkpoint, restore, verify). A task
-  ID in `ctx` writes no memory and no checkpoint; a checkpoint is written only by the
-  explicit `checkpoint` action under a state-write grant. That
-  adapter opens the multi-project `MemoryStore(<state>/memory)` (isolation rule 6) and
-  detects an existing store by the engine's own file names. `memory.invoke` /
-  `memory.ENGINE_RECORD` offer the wider, always project-isolated action set (adr-add,
-  why, brief, task-progress, failure-record, where, …); exposing those to the control
-  plane means adding them to the engines.json `memory` record and the adapter.
+  (`memory_store`, `memory`, `memory_health`). The `memory` record in
+  `governance/engines.json` lists all 22 `memory.ENGINE_RECORD` actions
+  (`python3 hub.py engines`, `control_plane.describe("memory")`): 13 reads with
+  side_effect none (search, graph, retrieve, neighbours, path, adr-get, why, solutions,
+  failure-recall, next-steps, brief, where, evidence-status) and 9 writes under a
+  state-write grant (put, index, checkpoint, restore, verify, adr-add, adr-status,
+  failure-record, task-progress), every one project-isolated. A task ID in `ctx` writes
+  no memory and no checkpoint; a checkpoint is written only by the explicit `checkpoint`
+  action under a state-write grant. That adapter opens the multi-project
+  `MemoryStore(<state>/memory)` (isolation rule 6) and detects an existing store by the
+  engine's own file names.
 - List `tests/test_memory_unified.py` for L14 (Scenario D) in `governance/layers.json`.
 - `docs/GAIE_FACTORY.md` still describes the PR #26 journal format.
