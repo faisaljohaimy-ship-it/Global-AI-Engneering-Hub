@@ -755,8 +755,10 @@ class MemoryStore:
             self._load()
 
     @classmethod
-    def for_project(cls, root, project, create=True):
-        """Open root/<project>/ as an isolated store; the path is derived from the slug, never supplied."""
+    def for_project(cls, root, project, create=True, *, read_only=False):
+        """Open root/<project>/ as an isolated store; the path is derived from the slug, never supplied.
+
+        read_only opens it without creating a directory, a lock or a migrated journal."""
         _slug(project)
         base = pathlib.Path(root).absolute()
         if ".." in base.parts:
@@ -764,10 +766,16 @@ class MemoryStore:
         target = base / project
         if target.is_symlink() or (target.exists() and not target.is_dir()):
             raise IsolationError("Project memory directory must be a real directory")
-        if not create and not target.is_dir():
+        if (read_only or not create) and not target.is_dir():
             raise MissingMemory("No private memory recorded for this project")
-        _safe_directory(base)
-        store = cls(target, project=project, create=create)
+        if read_only:
+            info = base.stat()
+            if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+                raise CoordinationError("State directory must be user-owned mode 0700")
+            store = cls(target, project=project, read_only=True)
+        else:
+            _safe_directory(base)
+            store = cls(target, project=project, create=create)
         if os.path.realpath(store.directory) != os.path.join(os.path.realpath(base), project):
             raise IsolationError("Project memory escaped its root")
         return store
@@ -1644,6 +1652,17 @@ class MemoryStore:
 
 # ---------------------------------------------------------------- engine contract (CONTRACTS.md section 2)
 
+class _NeverWritten(MemoryStore):
+    """A project memory that was never written, read as an empty store; nothing on disk is opened."""
+
+    def __init__(self, project):  # super().__init__ would open a directory
+        _slug(project)
+        self.project, self._read_only, self._cache, self.directory, self.path = project, True, None, None, None
+
+    def _load(self):
+        return _empty(self.project)
+
+
 _READ, _WRITE = ["read:state", "secrets:none"], ["read:state", "write:state", "secrets:none"]
 _ACTIONS = {
     # action: (method, required payload keys, optional payload keys, side effect, permissions, summary)
@@ -1698,7 +1717,13 @@ def invoke(action, payload, ctx):
     if "project" not in payload or not set(required) <= keys or keys - set(required) - set(optional):
         raise MemoryError("Payload fields do not match the action")
     project = payload["project"]
-    store = MemoryStore.for_project(ctx["state_dir"], project, create=side_effect != "none")
+    if side_effect == "none":  # read actions never create a directory, a lock or a migrated journal
+        try:
+            store = MemoryStore.for_project(ctx["state_dir"], project, read_only=True)
+        except MissingMemory:
+            store = _NeverWritten(project)
+    else:
+        store = MemoryStore.for_project(ctx["state_dir"], project)
     arguments = {_RENAMED.get(key, key): payload[key] for key in keys}
     if action in _SOURCE_ROOT:
         if action in {"verify", "index"} and not ctx.get("source_root"):
@@ -1713,7 +1738,12 @@ def invoke(action, payload, ctx):
         return store.put(payload["record"])
     if action in {"checkpoint", "restore"}:
         return getattr(store, method)(**arguments)
-    result = getattr(store, method)(project, **arguments)
+    try:
+        result = getattr(store, method)(project, **arguments)
+    except MissingMemory:  # a read-only store directory without a journal yet
+        if side_effect != "none":
+            raise
+        result = getattr(_NeverWritten(project), method)(project, **arguments)
     return result if isinstance(result, dict) else {"items": result}
 
 

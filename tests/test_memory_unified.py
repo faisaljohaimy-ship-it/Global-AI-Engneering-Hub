@@ -726,8 +726,8 @@ class ContractTests(Base):
         self.assertTrue(memory.health()["ok"])
         self.assertEqual(sorted(os.listdir(self.tmp)), listing)
         ctx = {"state_dir": str(self.state), "source_root": str(self.repo)}
-        with self.assertRaises(MissingMemory):
-            memory.invoke("retrieve", {"project": "shop", "query": "cents"}, ctx)
+        # A read on a store that was never written answers empty and still creates nothing (pr30-authz F2).
+        self.assertEqual(memory.invoke("retrieve", {"project": "shop", "query": "cents"}, ctx), {"items": []})
         self.assertFalse(self.state.exists())
         stored = memory.invoke("put", {"project": "shop", "record": self.record()}, ctx)
         self.assertEqual(memory.invoke("retrieve", {"project": "shop", "query": "cents"}, ctx)["items"][0]["id"], stored["id"])
