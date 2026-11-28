@@ -26,6 +26,12 @@ You do not write the parts yourself, and you do not repair them.
 
        python3 swarm/phase3/team.py setup
 
+   Then test the session-wide gate with two agents, in one message: `subagent_type`
+   `swarm-probe`, `model` `haiku`, `effort` `low`, the prompts exactly `cat /etc/hostname`
+   and `swk status`. When both have returned, whatever they answered:
+
+       python3 swarm/phase3/hook.py report --save
+
 3. Start the agents of the card: one message holding one Agent call per lane, so that all
    twenty run at once. For each call: `subagent_type`, `model` and `effort` as on the card
    (the owner asked for them to be set per kind of work, so this is an explicit instruction

@@ -64,7 +64,11 @@ def card() -> str:
 
 def setup() -> int:
     LANES.mkdir(parents=True, exist_ok=True)
-    for name, line in (("swk-lane-guard", f"SWARM_LANES='{LANES}' exec python3 -I '{HERE / 'lane_guard.py'}' \"$@\""),
+    home = Path(os.environ.get("SWARM_HOME", Path.home() / ".gaie-swarm"))
+    for name, line in (("swk", f"SWARM_HOME='{home}' exec python3 -I '{HERE.parent / 'phase2' / 'kit.py'}' \"$@\""),
+                       ("swk-guard", f"exec python3 -I '{HERE.parent / 'phase2' / 'guard.py'}' \"$@\""),
+                       ("swk-hook", f"SWARM_HOME='{home}' SWARM_LANES='{LANES}' exec python3 -I '{HERE / 'hook.py'}' \"$@\""),
+                       ("swk-lane-guard", f"SWARM_LANES='{LANES}' exec python3 -I '{HERE / 'lane_guard.py'}' \"$@\""),
                        ("swk-brief", f"SWARM_TEAM_ROOT='{ROOT}' SWARM_LANES='{LANES}' exec python3 '{HERE / 'team.py'}' brief \"$@\"")):
         (BIN / name).write_text(f"#!/bin/sh\n{line}\n")
         (BIN / name).chmod(0o755)
