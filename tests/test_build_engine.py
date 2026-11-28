@@ -256,6 +256,28 @@ class ModelTests(unittest.TestCase):
         for stale in ("limits writes to records", "(and their children)", "| 204 | 404 |"):
             self.assertNotIn(stale, doc)
 
+    def test_the_api_reference_states_the_sign_in_limits_of_the_template(self):
+        """build-fixes-2 request: docs/API.md names Retry-After and the three windows auth.py enforces."""
+        import math
+        import re
+        spec, model = self.model(requirements.parse(COMMAND))
+        doc = " ".join(engine._api_doc(spec, model).split())
+        auth = (ROOT / "templates/app-stdlib/app/auth.py").read_text(encoding="utf-8")
+        def constant(name):  # an integer or a product of integers, as auth.py writes them
+            factors = re.search(rf"^{name} = ([0-9 *]+)", auth, re.M).group(1).split("*")
+            return math.prod(int(factor) for factor in factors)
+        value = {name: constant(name) for name in ("LOCKOUT_SECONDS", "LOCKOUT_FAILURES", "ADDRESS_FAILURES",
+                                                   "ACCOUNT_FAILURES", "KNOWN_SECONDS")}
+        self.assertEqual((value["LOCKOUT_FAILURES"], value["LOCKOUT_SECONDS"] // 60), engine.SIGNIN_LIMIT)
+        for sentence in ("`429 too_many_attempts` from `POST /api/login` carries `Retry-After` (seconds)",
+                         f"sliding {value['LOCKOUT_SECONDS'] // 60}-minute windows",
+                         f"{value['LOCKOUT_FAILURES']} per e-mail and client address",
+                         f"{value['ADDRESS_FAILURES']} per client address (any e-mails)",
+                         f"{value['ACCOUNT_FAILURES']} per e-mail across addresses",
+                         f"within {value['KNOWN_SECONDS'] // 86400} days"):
+            self.assertIn(sentence, doc)
+        self.assertIn("## Entities", doc.split("Retry-After", 1)[1])  # below the route table, not inside it
+
     def test_real_requirements_output_derives_rules_scoping_and_links(self):
         spec, model = self.model(requirements.parse(COMMAND))
         self.assertEqual([e["name"] for e in model["entities"]], ["Project", "Member", "Milestone", "Task"])

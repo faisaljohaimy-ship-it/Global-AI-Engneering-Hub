@@ -1176,7 +1176,11 @@ def _api_doc(spec, model):
         if any(rule["parent"] == entity["name"] for rule in model["rules"]["progress"]):
             lines.append(f"| GET | `{base}/{{id}}/progress` | 200 totals and percent (one aggregate query) | 404 |")
         lines.append(f"| | list parameters for `{base}`: {', '.join(filters + ['`sort=<field>`', '`limit`', '`offset`'])} | | |")
-    lines += ["", "## Entities", ""]
+    lines += ["", "`429 too_many_attempts` from `POST /api/login` carries `Retry-After` (seconds). Failed sign-ins are",
+              "counted in sliding 15-minute windows: 5 per e-mail and client address, 20 per client address (any",
+              "e-mails), 20 per e-mail across addresses (an address that signed in to that e-mail within 30 days is",
+              "exempt from that last one); a full window refuses before any password check until its oldest failure",
+              "is 15 minutes old.", "", "## Entities", ""]
     for entity in model["entities"]:
         lines += [f"### {entity['name']} — `/api/{entity['collection']}`", "",
                   "| Field | Type | Required | Constraints |", "|---|---|---|---|"]
@@ -2109,7 +2113,7 @@ def _stage_content(ctx):
                         "unauthenticated network exposure"],
             "findings": [{"id": "SEC-1", "severity": "medium", "summary": "local accounts without password reset or MFA",
                           "status": "accepted for 0.1.0; open item OI-IDENTITY"},
-                         {"id": "SEC-2", "severity": "low", "summary": "login lockout is per process (in memory)",
+                         {"id": "SEC-2", "severity": "low", "summary": "sign-in limits are per process (in memory) and per client address",
                           "status": "accepted; a reverse proxy rate limit is recommended"}]
                         + [{"id": key, "status": value["status"]} for key, value in sorted(ctx["statics"].items())
                            if key.startswith(("static:security", "static:dependencies"))],
