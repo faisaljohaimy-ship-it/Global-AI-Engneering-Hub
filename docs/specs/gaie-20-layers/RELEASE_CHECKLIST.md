@@ -52,7 +52,7 @@ grep -m1 '^## Engineering OS' CHANGELOG.md   # must name the same $VERSION
      --jq '.workflow_runs[] | [.path, .event, .status, .conclusion, .updated_at] | @tsv'
    ```
    Required: `verify.yml`, `operating-system.yml`, `security.yml`,
-   `dependency-audit.yml`, `motion-cross-browser.yml` and `nextgen-intelligence.yml`,
+   `dependency-audit.yml`, `motion-cross-browser.yml`, `nextgen-intelligence.yml` and `isolation.yml`,
    each `push`, `completed`, `success`.
 
 ## The step left for the owner
@@ -109,6 +109,7 @@ permissions `contents: read` and `actions: read`. `scripts/verify_release.py`:
    | `.github/workflows/dependency-audit.yml` | `Audit exact tracked npm locks` |
    | `.github/workflows/motion-cross-browser.yml` | `Motion Studio in firefox`, `Motion Studio in webkit` |
    | `.github/workflows/nextgen-intelligence.yml` | `Original camera motions in Chromium` |
+   | `.github/workflows/isolation.yml` | `Full sandbox tier with no skipped isolation test` |
 
 It uploads the Actions artifact `engineering-release-provenance-<run_id>` (30-day
 retention) holding `schema_version`, `tag`, `commit`, `main_ancestor`,
