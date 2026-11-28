@@ -63,6 +63,8 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(c.sha256({"b": 1, "a": 2}), c.sha256({"a": 2, "b": 1}))
         with self.assertRaises(c.ContractError):
             c.side_effect_rank("root")
+        with self.assertRaises(ValueError):
+            c.sha256({"x": float("nan")})                     # not JSON: never hashed
 
 
 if __name__ == "__main__":

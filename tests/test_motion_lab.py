@@ -33,7 +33,7 @@ class LabParser(HTMLParser):
 
 class MotionLabTests(unittest.TestCase):
     def test_true_counts_and_engine_coverage(self):
-        self.assertEqual(len(CATALOG["entries"]), 142)
+        self.assertEqual(len(CATALOG["entries"]), 156)  # 142 + 14 documented specifications indexed on main (bf96921)
         rows = COMPONENTS["components"]
         self.assertEqual(len(rows), 30)
         engines = [row["engine"] for row in rows]

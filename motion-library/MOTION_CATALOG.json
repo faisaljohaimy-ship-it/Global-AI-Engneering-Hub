@@ -1449,6 +1449,146 @@
       "reference": "https://www.remotion.dev/docs/components",
       "status": "specification",
       "runtime_verified": false
+    },
+    {
+      "id": "research-book-page-flip-transition",
+      "category": "Cinema",
+      "name": "Book page flip transition",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "bookFlip; fallback simple cut or crossfade.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-clock-sector-wipe",
+      "category": "Cinema",
+      "name": "Clock sector wipe",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "clockWipe; angular reveal, static reduced-motion alternative.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-cross-axis-warp-transition",
+      "category": "Cinema",
+      "name": "Cross-axis warp transition",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "crosswarp; test GPU support and use fallback.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-cross-zoom-transition",
+      "category": "Cinema",
+      "name": "Cross zoom transition",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "crossZoom; limit blur and zoom intensity.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-3d-cube-scene-rotation",
+      "category": "Cinema",
+      "name": "3D cube scene rotation",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "cube; use bounded perspective and fallback.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-procedural-film-burn-transition",
+      "category": "Cinema",
+      "name": "Procedural film burn transition",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "filmBurn; avoid rapid flashes and use fallback.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-radial-iris-transition",
+      "category": "Cinema",
+      "name": "Radial iris transition",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "iris; circular aperture reveal.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-sinusoidal-ripple-transition",
+      "category": "Cinema",
+      "name": "Sinusoidal ripple transition",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "ripple; fallback on unsupported rendering.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-perspective-reflection-scene-swap",
+      "category": "Cinema",
+      "name": "Perspective reflection scene swap",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://www.remotion.dev/docs/transitions/presentations/",
+      "hint": "swap; bound reflection effects and render cost.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-reversible-playback-on-interaction",
+      "category": "Interactive",
+      "name": "Reversible playback on interaction",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/API/Animation/reverse",
+      "hint": "WAAPI reverse; maintain position and provide instant state change in reduced-motion mode.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-additive-animation-layering",
+      "category": "UI",
+      "name": "Additive animation layering",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-composition",
+      "hint": "Compose independent motion layers without overriding existing transforms; test compatibility.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-multitouch-pinch-and-rotate",
+      "category": "Interactive",
+      "name": "Multitouch pinch and rotate",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://motion.dev/changelog",
+      "hint": "Motion 14.11.0 (2026-11-09); preserve keyboard alternative, constrain gesture scope.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-velocity-preserving-layout-spring",
+      "category": "UI",
+      "name": "Velocity-preserving layout spring",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://motion.dev/changelog",
+      "hint": "Motion 14.13.0 (2026-11-12); preserve momentum when target layout changes.",
+      "status": "specification",
+      "runtime_verified": false
+    },
+    {
+      "id": "research-keyboard-accessible-reorder-animation",
+      "category": "UI",
+      "name": "Keyboard-accessible reorder animation",
+      "origin": "official documentation discovery 2026-11-28",
+      "reference": "https://motion.dev/changelog",
+      "hint": "Motion 14.6.0 (2026-10-22); accessible keyboard alternative to pointer drag.",
+      "status": "specification",
+      "runtime_verified": false
     }
   ]
 }

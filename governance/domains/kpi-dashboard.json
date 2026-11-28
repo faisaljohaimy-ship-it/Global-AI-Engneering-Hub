@@ -1,0 +1,91 @@
+{
+  "schema": "gaie.domain/1",
+  "id": "kpi-dashboard",
+  "version": 1,
+  "title": {"ar": "لوحة مؤشرات الأداء الرئيسية", "en": "KPI Dashboard"},
+  "summary": {"ar": "تعريف المؤشرات وأهدافها وتسجيل القياسات الدورية وعرض الحالة (أخضر/أصفر/أحمر) والاتجاه.",
+              "en": "Define KPIs with targets, record periodic measurements, and show green/amber/red status and trends."},
+  "keywords": {"ar": ["مؤشرات أداء", "مؤشرات أداء رئيسية", "مؤشر أداء", "لوحة مؤشرات", "لوحة قياس أداء", "بطاقة أداء متوازن"],
+               "en": ["kpi", "kpi dashboard", "key performance indicator", "key performance indicators", "performance indicators", "scorecard"]},
+  "product_type": "dashboard",
+  "primary": "Kpi",
+  "rationale": {
+    "ar": "الحالة لا تُخزَّن بل تُحسب من آخر قياس مقابل الهدف واتجاه المؤشر (الأعلى أفضل أو الأقل أفضل): أخضر عند تحقيق الهدف، وأصفر عند الابتعاد عنه 10٪ فأقل، وأحمر فيما عدا ذلك؛ ويُمنع تكرار القياس للفترة نفسها.",
+    "en": "Status is computed, never stored: the latest measurement against the target and the KPI direction (higher or lower is better) gives green when the target is met, amber within 10 percent of it, red otherwise. One measurement per KPI and period."
+  },
+  "roles": [
+    {"id": "admin", "label": {"ar": "مدير النظام", "en": "Administrator"}, "permissions": ["*"]},
+    {"id": "kpi-owner", "label": {"ar": "مالك المؤشر", "en": "KPI owner"}, "permissions": ["read", "write:own"]},
+    {"id": "viewer", "label": {"ar": "مشاهد", "en": "Viewer"}, "permissions": ["read"]}
+  ],
+  "entities": [
+    {"name": "Kpi", "label": {"ar": "مؤشر أداء", "en": "KPI"}, "plural": "kpis",
+     "synonyms": {"ar": ["مؤشر", "مؤشرات", "مؤشر أداء"], "en": ["kpi", "indicator", "metric"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 200, "unique": true, "label": {"ar": "اسم المؤشر", "en": "Name"}},
+       {"name": "unit", "type": "text", "required": true, "max": 32, "label": {"ar": "وحدة القياس", "en": "Unit"},
+        "keywords": {"ar": ["وحدة قياس"], "en": ["unit of measure"]}},
+       {"name": "direction", "type": "enum", "values": ["higher_is_better", "lower_is_better"], "default": "higher_is_better", "required": true,
+        "label": {"ar": "اتجاه التحسن", "en": "Direction"}},
+       {"name": "target", "type": "number", "required": true, "label": {"ar": "المستهدف", "en": "Target"},
+        "keywords": {"ar": ["مستهدف", "هدف", "أهداف"], "en": ["target", "targets", "goal"]}},
+       {"name": "frequency", "type": "enum", "values": ["daily", "weekly", "monthly", "quarterly"], "default": "monthly", "required": true,
+        "label": {"ar": "دورية القياس", "en": "Frequency"}, "keywords": {"ar": ["دورية قياس", "تكرار قياس"], "en": ["frequency"]}}]},
+    {"name": "Measurement", "label": {"ar": "قياس", "en": "Measurement"}, "plural": "measurements",
+     "synonyms": {"ar": ["قياس", "قياسات", "قراءة", "قراءات", "قيمة فعلية", "قيم فعلية"], "en": ["measurement", "reading", "data point", "actual"]},
+     "fields": [
+       {"name": "value", "type": "number", "required": true, "label": {"ar": "القيمة", "en": "Value"}},
+       {"name": "period_start", "type": "date", "required": true, "label": {"ar": "بداية الفترة", "en": "Period start"}},
+       {"name": "note", "type": "text", "required": false, "max": 500, "label": {"ar": "ملاحظة", "en": "Note"}}]},
+    {"name": "Department", "label": {"ar": "قسم", "en": "Department"}, "plural": "departments", "portable": true,
+     "synonyms": {"ar": ["قسم", "أقسام", "إدارات"], "en": ["department", "division"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 120, "unique": true, "label": {"ar": "اسم القسم", "en": "Name"}}]}
+  ],
+  "relations": [
+    {"from": "Measurement", "to": "Kpi", "kind": "many-to-one", "required": true, "field": "kpi"},
+    {"from": "Kpi", "to": "Department", "kind": "many-to-one", "required": false, "field": "department"}
+  ],
+  "features": [
+    {"id": "record-measurements", "requires": ["Measurement", "Kpi"],
+     "title": {"ar": "تسجيل القياسات", "en": "Record measurements"},
+     "acceptance": [
+       {"en": "POST /api/measurements for a kpi and period_start already recorded returns 409",
+        "ar": "تسجيل قياس ثانٍ للمؤشر والفترة نفسيهما يعيد 409"},
+       {"en": "POST /api/measurements with a kpi_id that does not exist returns 400",
+        "ar": "تسجيل قياس لمؤشر غير موجود يعيد 400"}]},
+    {"id": "kpi-status", "requires": ["Kpi", "Measurement"],
+     "title": {"ar": "حالة المؤشر مقابل الهدف", "en": "KPI status against target"},
+     "acceptance": [
+       {"en": "GET /api/kpis/{id}/status returns 200 and status green when the latest value meets the target",
+        "ar": "حالة المؤشر تعيد 200 وأخضر عندما يحقق آخر قياس الهدف"},
+       {"en": "GET /api/kpis/{id}/status returns 200 and status amber when the latest value misses the target by at most 10 percent",
+        "ar": "حالة المؤشر تعيد 200 وأصفر عندما يبتعد آخر قياس عن الهدف 10٪ فأقل"},
+       {"en": "GET /api/kpis/{id}/status returns 200 and status red when the latest value misses the target by more than 10 percent",
+        "ar": "حالة المؤشر تعيد 200 وأحمر عندما يبتعد آخر قياس عن الهدف أكثر من 10٪"},
+       {"en": "GET /api/kpis/{id}/status for a kpi without measurements returns 200 and status none",
+        "ar": "حالة مؤشر بلا قياسات تعيد 200 والحالة «لا يوجد»"}]},
+    {"id": "dashboard-summary", "requires": ["Kpi", "Measurement"],
+     "title": {"ar": "ملخص لوحة المؤشرات", "en": "Dashboard summary"},
+     "acceptance": [
+       {"en": "GET /api/dashboard returns 200 and one entry per kpi with latest value, target and status",
+        "ar": "لوحة المؤشرات تعيد 200 وسطرًا لكل مؤشر بآخر قيمة والهدف والحالة"},
+       {"en": "GET /api/dashboard?department_id={department_id} returns 200 and only that department's kpis",
+        "ar": "تصفية اللوحة حسب القسم تعيد 200 ومؤشرات القسم فقط"},
+       {"en": "GET /dashboard returns 200 and html",
+        "ar": "صفحة اللوحة تعيد 200 وصفحة HTML"}]},
+    {"id": "kpi-trend", "requires": ["Kpi", "Measurement"],
+     "title": {"ar": "اتجاه المؤشر عبر الزمن", "en": "KPI trend over time"},
+     "acceptance": [
+       {"en": "GET /api/kpis/{id}/measurements returns 200 and measurements ordered by period_start ascending",
+        "ar": "قياسات المؤشر تعيد 200 مرتبة تصاعديًا ببداية الفترة"},
+       {"en": "GET /api/kpis/{id}/measurements.csv returns 200 and text/csv content with one row per measurement",
+        "ar": "تصدير قياسات المؤشر يعيد 200 وملف text/csv بصف لكل قياس"}]}
+  ],
+  "nfr": {
+    "security": [],
+    "performance": ["dashboard with 50 KPIs renders in < 1 s locally"],
+    "accessibility": ["status never conveyed by colour alone (text label next to the colour)"],
+    "i18n": ["numbers formatted per locale with the unit"]
+  }
+}

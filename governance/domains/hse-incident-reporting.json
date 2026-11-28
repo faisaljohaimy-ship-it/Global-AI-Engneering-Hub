@@ -1,0 +1,121 @@
+{
+  "schema": "gaie.domain/1",
+  "id": "hse-incident-reporting",
+  "version": 1,
+  "title": {"ar": "نظام الإبلاغ عن حوادث الصحة والسلامة والبيئة", "en": "HSE Incident Reporting System"},
+  "summary": {"ar": "الإبلاغ عن الحوادث والحوادث الوشيكة وتصنيف خطورتها والتحقيق فيها ومتابعة الإجراءات التصحيحية حتى الإغلاق.",
+              "en": "Report incidents and near misses, rate severity, investigate, and track corrective actions to closure."},
+  "keywords": {"ar": ["حوادث سلامة", "سلامة وصحة مهنية", "صحة وسلامة مهنية", "سلامة مهنية", "صحة وسلامة", "إبلاغ عن حوادث",
+                      "بلاغات حوادث", "حوادث عمل", "إصابات عمل", "صحة وسلامة وبيئة", "hse"],
+               "en": ["hse", "ehs", "health and safety", "safety incident", "incident reporting", "occupational safety", "near miss", "safety reporting"]},
+  "product_type": "web-app",
+  "primary": "Incident",
+  "rationale": {
+    "ar": "دورة الحادث (بلاغ ← تحقيق ← إجراءات تصحيحية ← إغلاق) هي جوهر أنظمة HSE؛ لذلك لا يُغلق الحادث قبل إنجاز إجراءاته، ويُشترط تحقيق مكتمل للحوادث العالية والحرجة، ويُخفى المبلّغ عن غير المختصين لتشجيع الإبلاغ.",
+    "en": "The incident lifecycle (report, investigate, correct, close) is the core of HSE systems: an incident cannot close before its corrective actions are done, high and critical incidents need a completed investigation, and the reporter is hidden from other employees to encourage reporting."
+  },
+  "roles": [
+    {"id": "admin", "label": {"ar": "مدير النظام", "en": "Administrator"}, "permissions": ["*"]},
+    {"id": "hse-manager", "label": {"ar": "مدير الصحة والسلامة", "en": "HSE manager"}, "permissions": ["read", "write", "delete", "approve", "export"]},
+    {"id": "supervisor", "label": {"ar": "مشرف", "en": "Supervisor"}, "permissions": ["read", "write"]},
+    {"id": "employee", "label": {"ar": "موظف", "en": "Employee"}, "permissions": ["read:own", "write:own"]}
+  ],
+  "entities": [
+    {"name": "Incident", "label": {"ar": "حادث", "en": "Incident"}, "plural": "incidents",
+     "synonyms": {"ar": ["حادث", "حوادث", "حادثة", "بلاغ", "بلاغات", "إصابة", "إصابات", "حادث وشيك"], "en": ["incident", "accident", "injury", "near miss"]},
+     "fields": [
+       {"name": "title", "type": "text", "required": true, "max": 200, "label": {"ar": "العنوان", "en": "Title"}},
+       {"name": "description", "type": "text", "required": true, "max": 4000, "label": {"ar": "الوصف", "en": "Description"}},
+       {"name": "occurred_at", "type": "datetime", "required": true, "label": {"ar": "وقت الحدوث", "en": "Occurred at"}},
+       {"name": "location", "type": "text", "required": true, "max": 200, "label": {"ar": "الموقع", "en": "Location"}},
+       {"name": "category", "type": "enum", "values": ["injury", "near_miss", "environmental", "property_damage", "fire"], "required": true,
+        "label": {"ar": "الفئة", "en": "Category"}, "keywords": {"ar": ["نوع حادث", "تصنيف حادث"], "en": ["incident type", "incident category"]}},
+       {"name": "severity", "type": "enum", "values": ["low", "medium", "high", "critical"], "required": true,
+        "label": {"ar": "الخطورة", "en": "Severity"}, "keywords": {"ar": ["خطورة", "درجة خطورة"], "en": ["severity"]}},
+       {"name": "status", "type": "enum", "values": ["reported", "investigating", "action_required", "closed"], "default": "reported", "required": true,
+        "label": {"ar": "الحالة", "en": "Status"}}]},
+    {"name": "Investigation", "label": {"ar": "تحقيق", "en": "Investigation"}, "plural": "investigations",
+     "synonyms": {"ar": ["تحقيق", "تحقيقات", "تحليل سبب جذري", "سبب جذري"], "en": ["investigation", "root cause", "root cause analysis"]},
+     "fields": [
+       {"name": "root_cause", "type": "text", "required": true, "max": 2000, "label": {"ar": "السبب الجذري", "en": "Root cause"}},
+       {"name": "findings", "type": "text", "required": false, "max": 4000, "label": {"ar": "النتائج", "en": "Findings"}},
+       {"name": "completed", "type": "bool", "required": true, "default": false, "label": {"ar": "مكتمل", "en": "Completed"}}]},
+    {"name": "CorrectiveAction", "label": {"ar": "إجراء تصحيحي", "en": "Corrective action"}, "plural": "corrective-actions",
+     "synonyms": {"ar": ["إجراء تصحيحي", "إجراءات تصحيحية", "إجراء وقائي", "إجراءات وقائية"], "en": ["corrective action", "preventive action", "capa", "action item"]},
+     "fields": [
+       {"name": "description", "type": "text", "required": true, "max": 2000, "label": {"ar": "الوصف", "en": "Description"}},
+       {"name": "due_date", "type": "date", "required": true, "label": {"ar": "تاريخ الاستحقاق", "en": "Due date"}},
+       {"name": "status", "type": "enum", "values": ["open", "in_progress", "done"], "default": "open", "required": true,
+        "label": {"ar": "الحالة", "en": "Status"}}]},
+    {"name": "Employee", "label": {"ar": "موظف", "en": "Employee"}, "plural": "employees", "portable": true,
+     "synonyms": {"ar": ["موظف", "موظفين", "موظفون", "عامل", "عمال", "مبلغ"], "en": ["employee", "worker", "staff", "reporter"]},
+     "fields": [
+       {"name": "name", "type": "text", "required": true, "max": 120, "label": {"ar": "الاسم", "en": "Name"}},
+       {"name": "email", "type": "email", "required": true, "max": 254, "unique": true, "label": {"ar": "البريد الإلكتروني", "en": "Email"}},
+       {"name": "department", "type": "text", "required": false, "max": 120, "label": {"ar": "القسم", "en": "Department"}}]}
+  ],
+  "relations": [
+    {"from": "Incident", "to": "Employee", "kind": "many-to-one", "required": true, "field": "reporter"},
+    {"from": "Investigation", "to": "Incident", "kind": "many-to-one", "required": true, "field": "incident"},
+    {"from": "Investigation", "to": "Employee", "kind": "many-to-one", "required": false, "field": "investigator"},
+    {"from": "CorrectiveAction", "to": "Incident", "kind": "many-to-one", "required": true, "field": "incident"},
+    {"from": "CorrectiveAction", "to": "Employee", "kind": "many-to-one", "required": false, "field": "owner"}
+  ],
+  "features": [
+    {"id": "report-incident", "requires": ["Incident", "Employee"],
+     "title": {"ar": "الإبلاغ عن حادث", "en": "Report an incident"},
+     "acceptance": [
+       {"en": "POST /api/incidents with a valid body returns 201 and status reported",
+        "ar": "الإبلاغ عن حادث ببيانات صحيحة يعيد 201 والحالة «مُبلَّغ»"},
+       {"en": "POST /api/incidents with occurred_at in the future returns 400",
+        "ar": "الإبلاغ بوقت حدوث في المستقبل يعيد 400"},
+       {"en": "POST /api/incidents as employee returns 201 and reporter_id equal to the signed-in employee",
+        "ar": "بلاغ الموظف يعيد 201 والمبلّغ هو الموظف الحالي"}]},
+    {"id": "triage-severity", "requires": ["Incident"],
+     "title": {"ar": "فرز الحوادث حسب الخطورة", "en": "Triage by severity"},
+     "acceptance": [
+       {"en": "GET /api/incidents?severity=critical&status=reported returns 200 and only matching incidents",
+        "ar": "تصفية الحوادث الحرجة المبلّغ عنها تعيد 200 وتلك الحوادث فقط"},
+       {"en": "POST /api/incidents with severity=critical returns 201 and a notification for every hse-manager at GET /api/notifications",
+        "ar": "بلاغ حادث حرج يعيد 201 وإشعارًا لكل مدير صحة وسلامة"}]},
+    {"id": "corrective-actions", "requires": ["CorrectiveAction", "Incident"],
+     "title": {"ar": "الإجراءات التصحيحية", "en": "Corrective actions"},
+     "acceptance": [
+       {"en": "POST /api/corrective-actions with an incident_id that does not exist returns 400",
+        "ar": "إضافة إجراء لحادث غير موجود يعيد 400"},
+       {"en": "GET /api/corrective-actions?overdue=true returns 200 and only actions with due_date before today and status not done",
+        "ar": "عرض الإجراءات المتأخرة يعيد 200 والإجراءات التي فات موعدها ولم تُنجز فقط"}]},
+    {"id": "close-incident", "requires": ["Incident", "CorrectiveAction"],
+     "title": {"ar": "إغلاق الحادث", "en": "Close an incident"},
+     "acceptance": [
+       {"en": "PATCH /api/incidents/{id} with status=closed while a corrective action is not done returns 409",
+        "ar": "إغلاق حادث له إجراء غير منجز يعيد 409"},
+       {"en": "PATCH /api/incidents/{id} with status=closed after all corrective actions are done returns 200",
+        "ar": "إغلاق حادث أُنجزت كل إجراءاته يعيد 200"}]},
+    {"id": "investigations", "requires": ["Investigation", "Incident"],
+     "title": {"ar": "التحقيق في الحوادث", "en": "Incident investigations"},
+     "acceptance": [
+       {"en": "POST /api/investigations with an incident_id that already has an investigation returns 409",
+        "ar": "فتح تحقيق ثانٍ للحادث نفسه يعيد 409"},
+       {"en": "PATCH /api/incidents/{id} with status=closed for a high or critical incident without a completed investigation returns 409",
+        "ar": "إغلاق حادث عالي أو حرج الخطورة دون تحقيق مكتمل يعيد 409"}]},
+    {"id": "incident-statistics", "requires": ["Incident"],
+     "title": {"ar": "إحصائيات الحوادث", "en": "Incident statistics"},
+     "acceptance": [
+       {"en": "GET /api/reports/incidents-by-category returns 200 and a count per category that sums to the number of incidents",
+        "ar": "تقرير الحوادث حسب الفئة يعيد 200 وعددًا لكل فئة مجموعه يساوي عدد الحوادث"},
+       {"en": "GET /api/reports/incidents-by-month?year=2026 returns 200 and twelve monthly counts",
+        "ar": "تقرير الحوادث الشهري يعيد 200 واثني عشر رقمًا شهريًا"}]},
+    {"id": "reporter-privacy", "requires": ["Incident", "Employee"],
+     "title": {"ar": "سرية المبلّغ", "en": "Reporter privacy"},
+     "acceptance": [
+       {"en": "GET /api/incidents/{id} as employee who did not report it returns 403",
+        "ar": "اطلاع موظف على بلاغ لم يقدمه يعيد 403"}]}
+  ],
+  "nfr": {
+    "security": ["reporter identity visible only to hse-manager and admin", "incident records are never hard-deleted"],
+    "performance": [],
+    "accessibility": ["incident form usable on a phone screen (320 px wide)"],
+    "i18n": []
+  }
+}

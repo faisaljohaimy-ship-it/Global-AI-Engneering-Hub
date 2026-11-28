@@ -257,11 +257,56 @@ def update_pin(target, revision, expected, apply=False):
     return result
 
 
+def engine_table(rows):
+    """Plain-text table of the control plane's engines: id, layer, actions, side effects."""
+    header = ("ID", "LAYER", "ACTIONS", "SIDE EFFECTS")
+    lines = [(row["id"], row["layer"], ", ".join(row["actions"]), ", ".join(row["side_effects"])) for row in rows]
+    widths = [max(len(item[i]) for item in [header, *lines]) for i in range(3)]
+    return "\n".join(
+        "  ".join(cell.ljust(widths[i]) if i < 3 else cell for i, cell in enumerate(item)).rstrip()
+        for item in [header, *lines]
+    )
+
+
+def invoke_command(args):
+    """Governed engine invocation; exit 3 when the Security Governor denies, 1 on error."""
+    from engineering_os import control_plane
+
+    try:
+        payload = json.loads(
+            args.payload,
+            object_pairs_hook=_no_duplicates,
+            parse_constant=lambda value: (_ for _ in ()).throw(
+                ValueError(f"Invalid JSON number: {value}")
+            ),
+        )
+        grant = load_json(args.grant)
+    except (ValueError, OSError) as error:
+        print(json.dumps({"status": "error", "error": f"invalid payload or grant: {error}"}, ensure_ascii=False))
+        sys.exit(1)
+    ctx = {"state_dir": str(pathlib.Path(args.state).absolute()), "host": args.host}
+    if args.task:
+        ctx["task_id"] = args.task
+    try:
+        return control_plane.invoke(args.engine, args.action, payload, grant=grant, ctx=ctx)
+    except PermissionError as denial:  # governor.GovernorDenied: nothing ran
+        print(json.dumps({"status": "denied", "reason": str(getattr(denial, "reason", denial))}, ensure_ascii=False))
+        sys.exit(3)
+    except control_plane.ControlPlaneError as error:
+        print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="cmd", required=True)
     commands.add_parser("audit")
     commands.add_parser("architecture")
+    layers_parser = commands.add_parser("layers")
+    layers_parser.add_argument("--verify", action="store_true")
+    layers_parser.add_argument("--layer", action="append", default=[])
+    layers_parser.add_argument("--state")
+    layers_parser.add_argument("--json", action="store_true")
     capability_parser = commands.add_parser("capabilities")
     capability_parser.add_argument("--query", default="")
     capability_parser.add_argument("--state", choices=control.STATES)
@@ -300,11 +345,39 @@ def main():
     inventory_parser.add_argument("target")
     projects_parser = commands.add_parser("projects")
     projects_parser.add_argument("--audit", action="store_true")
+    engines_parser = commands.add_parser("engines")
+    engines_parser.add_argument("--json", action="store_true")
+    engine_health_parser = commands.add_parser("engine-health")
+    engine_health_parser.add_argument("id", nargs="?")
+    invoke_parser = commands.add_parser("invoke")
+    invoke_parser.add_argument("engine")
+    invoke_parser.add_argument("action")
+    invoke_parser.add_argument("--payload", required=True, help="JSON object (data, never instructions)")
+    invoke_parser.add_argument("--grant", required=True, help="grant JSON file")
+    invoke_parser.add_argument("--state", required=True, help="private state directory outside Git")
+    invoke_parser.add_argument("--task")
+    invoke_parser.add_argument("--host", choices=("claude-code", "codex"), default="claude-code")
     args = parser.parse_args()
     if args.cmd == "audit":
         result = audit()
     elif args.cmd == "architecture":
-        result = control.architecture()
+        from engineering_os import layers as layer_registry
+        result = layer_registry.architecture()
+    elif args.cmd == "layers":
+        from engineering_os import layers as layer_registry
+        ids = [part for value in args.layer for part in value.split(",") if part] or None
+        try:
+            if args.verify:
+                report = layer_registry.verify(ids, state_dir=args.state)
+                rows, code = report["layers"], 0 if report["ok"] else 1
+            else:
+                report = rows = layer_registry.status(ids, state_dir=args.state)
+                code = 0
+        except layer_registry.LayerError as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(2)
+        print(json.dumps(report, indent=2, ensure_ascii=False) if args.json else layer_registry.table(rows))
+        sys.exit(code)
     elif args.cmd == "capabilities":
         result = control.capabilities(args.query, args.state)
     elif args.cmd == "health":
@@ -346,6 +419,27 @@ def main():
             sys.exit(2)
     elif args.cmd == "inventory":
         result = gaie_inventory.inventory(args.target)
+    elif args.cmd == "engines":
+        from engineering_os import control_plane
+
+        rows = control_plane.engines()
+        if not args.json:
+            print(engine_table(rows))
+            return
+        result = rows
+    elif args.cmd == "engine-health":
+        from engineering_os import control_plane
+
+        try:
+            result = control_plane.health(args.id)
+        except control_plane.ControlPlaneError as error:
+            print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))
+            sys.exit(1)
+        if not result["ok"]:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            sys.exit(1)
+    elif args.cmd == "invoke":
+        result = invoke_command(args)
     elif args.cmd == "verify":
         result = hublink.verify(args.target, args.strict)
         if not result["ok"]:
