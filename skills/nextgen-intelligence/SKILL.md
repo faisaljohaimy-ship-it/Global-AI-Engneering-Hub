@@ -60,13 +60,21 @@ skill is an invocation contract, not proof of native host activation.
 9. Cinematic results must bind actual renderer/core sources to real proof.
    Browser viewport emulation is not physical mobile/device performance proof.
    Keep PR16's original 200 separate from the existing 400 reference recipes.
-10. In Claude Code, approve the checked-in `gaie` project MCP server through the
-    host's usual workflow. Use `claude mcp list` to check the connection. The
-    server advertises bounded `gaie_*` operations. Optional private memory and
-    generation output must be scoped at server startup. CLI-only operations
-    accept operator-chosen private paths. The native smoke test connected and
-    listed tools without a model call. Project credentials and approvals remain
-    specific to the caller's Claude Code environment.
+10. In Claude Code, review and approve the `gaie` project MCP server through
+    the host's usual workflow. Use `claude mcp list` to check the connection.
+    Use the structured `gaie_*` tools advertised by the server. Private memory,
+    artifact verification, evidence directories and generation output are scoped
+    at server startup. Use the terminal CLI when an operator supplies private
+    paths directly. Check actual tool calls separately from native discovery.
+11. For a request to build or upgrade a project, start with `gaie_master_status`.
+    If the verified master routes are enabled, pass the owner's original words
+    to `gaie_master_route`. Follow the accepted route using the existing
+    `gaie-build` or `gaie-upgrade` skill and its approved master prompt. Use
+    `gaie_master_execute` for the supported local profile once its scoped inputs
+    are available. Carry forward the route restrictions and inspect the step
+    receipts. If the approval is pending, use the appropriate standalone local
+    operations within their scope and report the master dependency. See
+    [master integration acceptance](../../docs/specs/nextgen-intelligence/master-mcp.md).
 
 Run module and integration tests, the tracked secret/AST scan, dependency scan
 and hub audit. Existing mandatory CI and independent approval remain required.
