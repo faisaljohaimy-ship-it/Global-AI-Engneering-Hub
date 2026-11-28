@@ -198,7 +198,10 @@ def _registered_origin(workspace, environ):
         remotes = workspace_policy._git(path, "remote", "-v") if in_git else ""
     except (OSError, workspace_policy.WorkspacePolicyError):
         raise UpgradeError("The target's Git remotes cannot be read, so its project cannot be ruled out; refused") from None
-    ids = {workspace_policy._repo_id(line.split("\t", 1)[1].rsplit(" (", 1)[0]) for line in remotes.splitlines() if "\t" in line}
+    try:  # _repo_id refuses a GitHub remote it cannot reduce to one owner/name; callers see one error type
+        ids = {workspace_policy._repo_id(line.split("\t", 1)[1].rsplit(" (", 1)[0]) for line in remotes.splitlines() if "\t" in line}
+    except workspace_policy.WorkspacePolicyError as error:
+        raise UpgradeError(f"The target's Git remotes cannot be ruled out as a registered project: {error}") from None
     owners = [row for row in gaie_router.projects(environ).values() if row.get("slug") and row["slug"] in ids]
     _need(len(owners) <= 1, "The target's Git remotes belong to several registered projects; refused")
     return owners[0] if owners else None
