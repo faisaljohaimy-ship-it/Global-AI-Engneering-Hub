@@ -1,0 +1,38 @@
+# Architecture
+
+@@TITLE_EN@@ — @@TITLE_AR@@
+
+## Components
+
+| Component | Path | Responsibility |
+|---|---|---|
+| Entity model | `app/model.py`, `app/schema.json` | Entity definitions as data; record validation |
+| Storage | `app/db.py`, `migrations/` | SQLite connection, versioned up/down migrations, parameterized CRUD |
+| HTTP server | `app/server.py` | JSON REST API, static files, security headers, request guards |
+| Seed | `app/seed.py`, `app/seed_data.json` | Synthetic sample records |
+| Frontend | `static/` | Bilingual accessible UI (vanilla JS, no build step) |
+| Command line | `manage.py`, `app/__main__.py` | serve, migrate, seed, test |
+| Tests | `tests/` | Unit, API integration, browser E2E |
+
+## Decisions
+
+### ADR-001 Modular monolith on the Python standard library
+- Context: the specification asks for runtime `python3-stdlib` and database `sqlite`,
+  no paid services, and independence from the hub.
+- Decision: one process (`http.server` + `sqlite3`), entity model as data.
+- Trade-offs: no third-party framework to patch or license-review; a threaded
+  stdlib server suits a single team or local use, not high concurrency.
+- Revisit when: measured load exceeds a single process, or multi-tenant hosting is required.
+
+### ADR-002 Same-origin JSON API as the CSRF defence
+- Writes require `application/json` and a same-origin request; no CORS is offered.
+- Revisit when: a separate frontend origin or third-party API clients are required.
+
+### ADR-003 No authentication in the first release
+- The specification defines roles (@@ROLES@@) but no identity provider. Roles are not
+  enforced yet; the server binds to loopback and refuses public binding by default.
+- Revisit when: the owner selects an identity provider (open item OI-AUTH).
+
+### ADR-004 Bilingual UI without a build step
+- Arabic (RTL) and English (LTR) strings live in `static/i18n.json`; CSS uses logical
+  properties so one stylesheet serves both directions.

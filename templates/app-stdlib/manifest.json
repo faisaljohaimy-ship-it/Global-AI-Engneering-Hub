@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "name": "app-stdlib",
+  "version": "1.0.0",
+  "summary": "Independent Python-stdlib + SQLite web application with a bilingual static frontend and unit/API/E2E tests.",
+  "data": [
+    "glossary.json",
+    "ui-strings.json"
+  ],
+  "files": {
+    "CHANGELOG.md.tmpl": {
+      "mode": "render",
+      "to": "CHANGELOG.md"
+    },
+    "LICENSE-PENDING.md.tmpl": {
+      "mode": "render",
+      "to": "LICENSE-PENDING.md"
+    },
+    "README.md.tmpl": {
+      "mode": "render",
+      "to": "README.md"
+    },
+    "app/__init__.py": {
+      "mode": "copy",
+      "to": "app/__init__.py"
+    },
+    "app/__main__.py": {
+      "mode": "copy",
+      "to": "app/__main__.py"
+    },
+    "app/db.py": {
+      "mode": "copy",
+      "to": "app/db.py"
+    },
+    "app/model.py": {
+      "mode": "copy",
+      "to": "app/model.py"
+    },
+    "app/seed.py": {
+      "mode": "copy",
+      "to": "app/seed.py"
+    },
+    "app/server.py": {
+      "mode": "copy",
+      "to": "app/server.py"
+    },
+    "docs/ARCHITECTURE.md.tmpl": {
+      "mode": "render",
+      "to": "docs/ARCHITECTURE.md"
+    },
+    "gitignore": {
+      "mode": "copy",
+      "to": ".gitignore"
+    },
+    "manage.py": {
+      "mode": "copy",
+      "to": "manage.py"
+    },
+    "static/app.css": {
+      "mode": "copy",
+      "to": "static/app.css"
+    },
+    "static/app.js": {
+      "mode": "copy",
+      "to": "static/app.js"
+    },
+    "static/index.html.tmpl": {
+      "mode": "render",
+      "to": "static/index.html"
+    },
+    "tests/__init__.py": {
+      "mode": "copy",
+      "to": "tests/__init__.py"
+    },
+    "tests/e2e/ui.e2e.mjs": {
+      "mode": "copy",
+      "to": "tests/e2e/ui.e2e.mjs"
+    },
+    "tests/run_tests.py": {
+      "mode": "copy",
+      "to": "tests/run_tests.py"
+    },
+    "tests/support.py": {
+      "mode": "copy",
+      "to": "tests/support.py"
+    },
+    "tests/test_api.py": {
+      "mode": "copy",
+      "to": "tests/test_api.py"
+    },
+    "tests/test_migrations.py": {
+      "mode": "copy",
+      "to": "tests/test_migrations.py"
+    },
+    "tests/test_validation.py": {
+      "mode": "copy",
+      "to": "tests/test_validation.py"
+    }
+  }
+}
