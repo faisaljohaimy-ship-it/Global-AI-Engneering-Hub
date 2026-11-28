@@ -1,0 +1,3 @@
+# Synthetic pins for the self-healing fixture; nothing here is installed or fetched.
+fixture-json-schema==1.2.0
+fixture-http-utils==0.9.1
