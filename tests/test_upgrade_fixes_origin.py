@@ -39,6 +39,16 @@ class OriginErrors(unittest.TestCase):
         self.assertIn("cannot be ruled out as a registered project", str(caught.exception))
         self.assertIsNone(caught.exception.__cause__)
 
+    def test_real_refusals_of_the_policy_arrive_as_upgrade_errors(self):
+        """recheck-fixes-2: _repo_id itself (not mocked) refuses a non-ASCII look-alike host and a non-default port."""
+        for remote in ("https://g\u0131thub.com/acme/app.git", "https://github.com:8443/acme/app.git"):
+            lines = f"origin\t{remote} (fetch)\norigin\t{remote} (push)\n"
+            with self.subTest(remote=remote), \
+                    mock.patch.object(workspace_policy, "_git_checkout_marker", return_value=True), \
+                    mock.patch.object(workspace_policy, "_git", return_value=lines), self.assertRaises(UpgradeError) as caught:
+                engine._registered_origin(self.workspace, {"GAIE_HOME": str(self.workspace / "home")})
+            self.assertIn("cannot be ruled out as a registered project", str(caught.exception))
+
     def test_a_parseable_unregistered_origin_is_still_no_project(self):
         marker, git, repo_id = self.patched(lambda value: "acme/app")
         with marker, git, repo_id:

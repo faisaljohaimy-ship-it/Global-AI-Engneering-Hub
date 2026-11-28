@@ -846,9 +846,12 @@ FINDINGS = (
      "index hooks) and could be redirected by core.worktree, assume-unchanged bits or inherited GIT_* variables",
      "sdk/engineering_sdk.py:target", "git-untrusted-checkout", ("open", "fixed"), probe_sdk_git,
      "tests/test_security_enterprise.py::GitCheckoutTests",
-     "git() runs with -c core.fsmonitor=false -c core.hooksPath=/dev/null, no system config, no GIT_* from the "
-     "parent, GIT_OPTIONAL_LOCKS=0; checkout_guard refuses filter programs (also in submodule configs), a "
-     "redirected work tree and hidden index entries"),
+     "git() runs with -c core.fsmonitor=false -c core.hooksPath=/dev/null -c core.untrackedCache=false, no system "
+     "or global config, no GIT_* from the parent, GIT_OPTIONAL_LOCKS=0, no transport or lazy fetch "
+     "(GIT_NO_LAZY_FETCH=1, GIT_ALLOW_PROTOCOL=\"\", -c protocol.allow=never), stdin closed; checkout_guard refuses "
+     "a partial clone (remote.<x>.promisor, extensions.partialClone or remote.<x>.partialCloneFilter in its own, "
+     "worktree, included or .git/modules config) before reading the index, filter programs (also in submodule "
+     "configs), nested submodules, a redirected work tree and hidden index entries"),
     ("SEC-02", "high", "Control plane did not enforce secrets:none: a credential-shaped payload reached the engine",
      "engineering_os/control_plane.py:invoke", "secret-in-payload", ("open", "fixed"), probe_payload_secrets,
      "tests/test_security_enterprise.py::PayloadSecretTests",

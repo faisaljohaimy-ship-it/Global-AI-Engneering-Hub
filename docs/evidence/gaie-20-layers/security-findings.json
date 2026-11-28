@@ -3,7 +3,7 @@
   "deterministic": true,
   "findings": [
     {
-      "control": "git() runs with -c core.fsmonitor=false -c core.hooksPath=/dev/null, no system config, no GIT_* from the parent, GIT_OPTIONAL_LOCKS=0; checkout_guard refuses filter programs (also in submodule configs), a redirected work tree and hidden index entries",
+      "control": "git() runs with -c core.fsmonitor=false -c core.hooksPath=/dev/null -c core.untrackedCache=false, no system or global config, no GIT_* from the parent, GIT_OPTIONAL_LOCKS=0, no transport or lazy fetch (GIT_NO_LAZY_FETCH=1, GIT_ALLOW_PROTOCOL=\"\", -c protocol.allow=never), stdin closed; checkout_guard refuses a partial clone (remote.<x>.promisor, extensions.partialClone or remote.<x>.partialCloneFilter in its own, worktree, included or .git/modules config) before reading the index, filter programs (also in submodule configs), nested submodules, a redirected work tree and hidden index entries",
       "evidence": "tests/test_security_enterprise.py::GitCheckoutTests",
       "id": "SEC-01",
       "kind": "registered",
