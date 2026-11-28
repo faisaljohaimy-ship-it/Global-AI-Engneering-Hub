@@ -338,12 +338,14 @@ class ReferenceTests(Base):
         self.assertEqual(named, paths)
 
     def test_master_skills_list_only_declared_locations(self):
-        for name, record in records().items():
+        documents = records()
+        for name, record in documents.items():
             skill = posixpath.basename(posixpath.dirname(record["installed_as"]["claude"]))
             text = (ROOT / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
             listed = set(named_token().findall(text)) | set(PROMPT.findall(text))
             self.assertIn(record["path"], listed, skill)
-            self.assertLessEqual(listed, allowed_references(record), skill)
+            # ${CLAUDE_SKILL_DIR} forms are judged by the location they stand for, as in the tree scan above.
+            self.assertLessEqual({normalized(token, documents) for token in listed}, allowed_references(record), skill)
 
 
 class CopyTests(Base):

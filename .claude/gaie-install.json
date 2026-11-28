@@ -2,11 +2,11 @@
   "files": {
     "agents/gaie-verifier.md": "fb0eb10632d5e671c03bf2f3b1205309f2101d8d173f8790408d8357ee089c93",
     "skills/gaie-audit/SKILL.md": "456c76fe24992fab3b205f05b6ffbe02f94cb42043e9a96dc26e96d5c9e8fe51",
-    "skills/gaie-build/SKILL.md": "e0de0ec0c93046b1076ed251fc12f9e0a30a5769e28c567fcdc1e7b9e80f5779",
+    "skills/gaie-build/SKILL.md": "0b3480e5a04c3115c2f3e69599128efb881400b572ab42b5f874d1e83039c450",
     "skills/gaie-cinematic/SKILL.md": "8fe77b982e4c49bf5904d900c5ecbd01f89dc515cacb520af0c0ab745dcff2fb",
-    "skills/gaie-master-router/SKILL.md": "aed9e1aae135d46575b56b0fccbda9d78389c9f545948c03c24eb1ac2be28382",
-    "skills/gaie-release/SKILL.md": "a2f92b95c03f888b1aedd50d0a9c334033f6cc2a8ba5f96886b5bf37bcfd76b3",
-    "skills/gaie-upgrade/SKILL.md": "dc7ec31438f15b9127a90a3c0885ba608eb11aa3476358e652d6efb5343b83fe"
+    "skills/gaie-master-router/SKILL.md": "e748a808ab5ad9f9946d71e146238fc358a7704a0e003616d4ca3efb02f1d5d4",
+    "skills/gaie-release/SKILL.md": "fe71d86f7eed35538535dd4d07a4139cf1303da724fcbffca76441629d285ec8",
+    "skills/gaie-upgrade/SKILL.md": "2e61ce2f5ffb0865037df7cecd0ec722652e8b15ddce68f7e8b55b911547248a"
   },
   "hub_revision": null,
   "schema_version": 1

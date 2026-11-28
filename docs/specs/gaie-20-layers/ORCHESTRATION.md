@@ -22,7 +22,7 @@ lifecycle, and prints the git commands that give every agent its own worktree an
 | Hierarchy and dependencies | `reasoning.decompose`, `reasoning.analyze_dependencies` | goal → milestones → tasks, dependency waves, critical path, sealed receipts |
 | Wave assignment | `swarm/scheduler.py:plan` | loaded read-only by path (`adapters.load_path_module`); one agent per role instance per wave |
 | Next-wave size | `economics.recommend_concurrency` (wraps `swarm/phase3/adaptive.py:next_wave`) | grow/hold/shrink/stop rules plus the host cap |
-| Leases, handovers, approvals | `orchestration.TaskStore` | hash-chained private state; three independent approvals before done |
+| Leases, handovers, approvals | `orchestration.TaskStore` | hash-chained private state; three independent approvals before done; no reviewer may be anyone who ever claimed, renewed, handed over, submitted or failed the task (checked against the audit history, also after a handover or a recover) |
 | Checkpoints and resume | `memory.MemoryStore` (`task_progress`, `next_steps`, checkpoint records) | work steps survive a crash; a fresh process resumes |
 
 Nothing in `swarm/**` is modified; both swarm files are only loaded and called.

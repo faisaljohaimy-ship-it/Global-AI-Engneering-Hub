@@ -25,5 +25,14 @@ to deploy. If the router lists `release` under `prohibited`, stop.
    provider receipts with its `release` command.
 7. Report the commit, deployment identity, checks, smoke results, rollback target
    and anything not verified. Save a `release` entry to project memory.
+8. For a release of this hub (Engineering OS) or of any repository with a release profile, the
+   release engine decides eligibility and never tags: in a hub checkout run
+   `python3 -m engineering_os.release_engine plan --version <X.Y.Z> --commit <exact SHA>
+   --receipts <ci.json> --authorization <auth.json> --review-gate <gate.json>` (another
+   repository adds `--profile <profile.json> --root <checkout>`) and continue only on
+   `ELIGIBLE`. For the hub, run `hub-record ... --out <private path outside Git>` with HEAD at the
+   merge commit. The record's status stays "recorded, tag pending" until the owner publishes the
+   GitHub Release with the `gh release create` command listed in it. Never run that command,
+   never create or push a tag. Formats: docs/specs/gaie-20-layers/RELEASE_ENGINE.md.
 
 Follow `release-engineering` and `engineering-sdk` for the detailed guards.

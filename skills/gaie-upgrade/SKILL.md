@@ -11,17 +11,19 @@ argument-hint: "[project] [scope]"
    write, require explicit operator approval, a matching target and branch, and a
    host grant limited to its assigned paths. Stop at planning when the
    workspace or the grant is missing.
-3. Read the master prompt and follow its steps in order. Print it with the loader
-   from the first location that exists, and stop if it reports drift, a missing file
-   or a symlink:
-   - hub checkout: `python3 engineering_os/master_docs.py show MASTER_UPGRADE`
-   - plugin: `python3 "${CLAUDE_PLUGIN_ROOT}/engineering_os/master_docs.py" show MASTER_UPGRADE`
+3. Read the master prompt and follow its steps in order. `${CLAUDE_SKILL_DIR}` is this
+   skill's base directory. Print the prompt with the loader from the first location that
+   exists, and stop if it reports drift, a missing file or a symlink:
+   - bootstrap install (project or user scope):
+     `python3 "${CLAUDE_SKILL_DIR}/../gaie-master-router/engine/master_docs.py" show MASTER_UPGRADE`
+   - plugin install: `python3 "${CLAUDE_SKILL_DIR}/../../engineering_os/master_docs.py" show MASTER_UPGRADE`
    - registered project: `python3 .engineering/gaie/master_docs.py show MASTER_UPGRADE`
-   - user-level bootstrap: `python3 ../gaie-master-router/engine/master_docs.py show MASTER_UPGRADE`,
-     relative to this file
-   Only an install without a loader reads the file directly: `prompts/MASTER_UPGRADE.md`,
-   `${CLAUDE_PLUGIN_ROOT}/prompts/MASTER_UPGRADE.md`, `.engineering/gaie/MASTER_UPGRADE.md`
-   or `MASTER_UPGRADE.md` beside this file; then report that its bytes were not verified.
+   - hub checkout: `python3 engineering_os/master_docs.py show MASTER_UPGRADE`
+   Only an install without a loader reads the file directly, the first that exists of
+   `${CLAUDE_SKILL_DIR}/MASTER_UPGRADE.md` (bootstrap install),
+   `${CLAUDE_SKILL_DIR}/../../prompts/MASTER_UPGRADE.md` (plugin install),
+   `.engineering/gaie/MASTER_UPGRADE.md` (registered project) and `prompts/MASTER_UPGRADE.md`
+   (hub checkout); then report that its bytes were not verified.
 4. Staff an upgrade route (`intent: upgrade`) with the standing team of
    `governance/policies/agent-team.json` (`agents.team` in the plan;
    `python3 -m engineering_os.agent_team show --intent upgrade` in a hub checkout,
@@ -30,9 +32,12 @@ argument-hint: "[project] [scope]"
    as omitted with a reason (`agent_team check PLAN.json --intent upgrade`). Run waves
    no larger than `effective`. A reviewer never reviews its own work. A performance or
    repair pass has no standing team: staff it from the plan's workstreams.
-5. Start with the inventory (`hub.py inventory <checkout>` or
-   `gaie_inventory.py <checkout>` beside the router) and complete its coverage matrix;
-   record a measured baseline before changing anything.
+5. Start with the inventory and complete its coverage matrix; record a measured
+   baseline before changing anything. Run the first that exists:
+   `python3 "${CLAUDE_SKILL_DIR}/../gaie-master-router/engine/gaie_inventory.py" <checkout>`
+   (bootstrap install), `python3 "${CLAUDE_SKILL_DIR}/../../hub.py" inventory <checkout>`
+   (plugin install), `python3 .engineering/gaie/gaie_inventory.py <checkout>`
+   (registered project), `python3 hub.py inventory <checkout>` (hub checkout).
 6. Load supporting skills only as needed (`security-review`, `universal-motion`,
    `digital-motion`, `chromium-engineering`, `headroom-context-engineering`,
    `hub-capabilities`). Media work goes through `gaie-cinematic`.

@@ -29,23 +29,23 @@ EXACT_VERSION = re.compile(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]
 
 SECRET_PATTERNS = (
     ("private-key", re.compile(r"-----BEGIN (?:RSA |DSA |EC |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----")),
-    ("openai-or-anthropic-key", re.compile(r"\bsk-(?:(?:proj|svcacct|admin|ant)-[A-Za-z0-9_-]{20,}|[A-Za-z0-9]{32,})\b")),
-    ("github-token", re.compile(r"\b(?:gh[opsur]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{60,})\b")),
-    ("aws-access-key", re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")),
-    ("google-api-key", re.compile(r"\bAIza[A-Za-z0-9_-]{35}\b")),
-    ("stripe-secret", re.compile(r"\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{20,}\b")),
-    ("slack-token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
-    ("supabase-secret", re.compile(r"\bsb_secret_[A-Za-z0-9_-]{20,}\b")),
-    ("elevenlabs-key", re.compile(r"\bsk_[a-f0-9]{48}\b")),
-    ("resend-key", re.compile(r"\bre_[A-Za-z0-9]{8}_[A-Za-z0-9]{24}\b")),
-    ("bearer-token", re.compile(r"\bBearer\s+[A-Za-z0-9_./+=-]{16,}\b", re.I)),
+    ("openai-or-anthropic-key", re.compile(r"(?<![A-Za-z0-9])sk-(?:(?:proj|svcacct|admin|ant)-[A-Za-z0-9_-]{20,}|[A-Za-z0-9]{32,})(?![A-Za-z0-9])")),
+    ("github-token", re.compile(r"(?<![A-Za-z0-9])(?:gh[opsur]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{60,})(?![A-Za-z0-9])")),
+    ("aws-access-key", re.compile(r"(?<![A-Za-z0-9])(?:AKIA|ASIA)[A-Z0-9]{16}(?![A-Za-z0-9])")),
+    ("google-api-key", re.compile(r"(?<![A-Za-z0-9])AIza[A-Za-z0-9_-]{35}(?![A-Za-z0-9])")),
+    ("stripe-secret", re.compile(r"(?<![A-Za-z0-9])(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{20,}(?![A-Za-z0-9])")),
+    ("slack-token", re.compile(r"(?<![A-Za-z0-9])xox[baprs]-[A-Za-z0-9-]{10,}(?![A-Za-z0-9])")),
+    ("supabase-secret", re.compile(r"(?<![A-Za-z0-9])sb_secret_[A-Za-z0-9_-]{20,}(?![A-Za-z0-9])")),
+    ("elevenlabs-key", re.compile(r"(?<![A-Za-z0-9])sk_[a-f0-9]{48}(?![A-Za-z0-9])")),
+    ("resend-key", re.compile(r"(?<![A-Za-z0-9])re_[A-Za-z0-9]{8}_[A-Za-z0-9]{24}(?![A-Za-z0-9])")),
+    ("bearer-token", re.compile(r"(?<![A-Za-z0-9])Bearer\s+[A-Za-z0-9_./+=-]{16,}", re.I)),
 )
 CREDENTIAL_URL = re.compile(r"\b(?:https?|postgres(?:ql)?|mysql|rediss?|mongodb(?:\+srv)?)://[^\s/:@]+:(?P<password>[^\s/@]+)@", re.I)
 TOKEN_QUERY = re.compile(r"[?&](?:_vercel_share|x-vercel-protection-bypass|access_token|auth_token|token|api_key|password|x-amz-signature|x-goog-signature)=(?P<value>[^\s&#\"'<>]{16,})", re.I)
 SENSITIVE_NAME = r"(?:[A-Za-z0-9_]*(?:API_KEY|ACCESS_TOKEN|AUTH_TOKEN|CLIENT_SECRET|BYPASS_SECRET|BYPASS_TOKEN|PRIVATE_KEY|PASSWORD|VERCEL_TOKEN|FINN_GITHUB_TOKEN|FINN_VERCEL_TOKEN)[A-Za-z0-9_]*|token|secret)"
 QUOTED_VALUE = re.compile(r"(?<![\w])(?:[\"']?" + SENSITIVE_NAME + r"[\"']?)\s*[:=]\s*(?P<quote>[\"'])(?P<value>[^\r\n\"']{16,})(?P=quote)", re.I)
 ENV_VALUE = re.compile(r"^\s*(?:export\s+)?" + SENSITIVE_NAME + r"\s*[:=]\s*(?P<value>[^\s#\"']{16,})", re.I | re.M)
-JWT = re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.(?P<body>[A-Za-z0-9_-]{8,})\.[A-Za-z0-9_-]{16,}\b")
+JWT = re.compile(r"(?<![A-Za-z0-9])eyJ[A-Za-z0-9_-]{8,}\.(?P<body>[A-Za-z0-9_-]{8,})\.[A-Za-z0-9_-]{16,}")
 TEMPLATE = re.compile(r"^(?:\$\{|\{\{|<|process\.env\.|os\.environ|os\.getenv|secrets\.)")
 PLACEHOLDERS = frozenset(("your-api-key-here", "replace-with-your-token", "replace-with-a-secret", "example-token-value", "set-in-provider-env"))
 
