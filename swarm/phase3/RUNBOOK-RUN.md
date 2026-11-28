@@ -52,7 +52,12 @@ agents started and finished, 20 at a time.
       set per kind of work, so this is an explicit instruction to set them. Never put more
       than 20 Agent calls in one message. When a stage has more than 20 agents, send the
       next message of 20 as soon as the one before has returned, with no text and no other
-      tool call in between, until the card's number is reached. Count the messages.
+      tool call in between, until the card's number is reached.
+      Do not keep the count in your head. After every ten messages of a large stage, and
+      whenever you are not certain how many agents you have started (for example after
+      your context has been summarised), run `python3 swarm/phase3/stage3.py status`. It
+      reads the records and says how many agents are left and how many to start now. Do
+      what it says. When it says `Start no more`, go to step c.
       In the security gate stage some agents will answer that they were refused. That is
       the result the stage is looking for: do not help them, repeat them or do their
       command for them.
@@ -66,14 +71,28 @@ agents started and finished, 20 at a time.
           git commit -q -m "Third phase: stage <id>"
           git push -q origin claude/swarm-phase-3
 
-      The last line of `finish` is `NEXT <id>` or `END - <why>`. Do what it says.
+      If the push is refused because the remote has new commits:
+      `git fetch origin claude/swarm-phase-3 && git merge --no-edit FETCH_HEAD`, then push
+      again. The last line of `finish` is `NEXT <id>` or `END - <why>`. Do what it says.
+      Never start a stage that `finish` or `prep` did not name.
 
 4. At the end:
 
        python3 swarm/phase3/stage3.py report
        git add swarm/phase3 && git commit -q -m "Third phase: results of the run" && git push -q origin claude/swarm-phase-3
 
-5. End with one message: the stages that ran, the largest number of agents that ran at
-   once, how many Agent calls one message held at most, the last line of the last
-   `finish`, and anything that did not go as this runbook says. Then stop. Do not open a
-   pull request: one exists for this branch.
+5. Report to the session that started you, with one `send_message` to
+   `session_01CMJzrzrBBEyhkxrVx4Kkyb`: the stages that ran, whether the security gate
+   passed, the largest number of agents that ran at once, how many Agent calls one message
+   held at most, the last line of the last `finish`, and anything that did not go as this
+   runbook says. Then stop. Do not open a pull request: one exists for this branch.
+
+## If something is not as written
+
+- The scripts hold the state of the run, not you. `status` says which stage is open and
+  how many of its agents are left; `finish` closes it; `prep` opens the next one and
+  refuses while a stage is open.
+- If `setup`, `prep` or `finish` prints `END`, or exits with an error, the run is over:
+  go to step 4, then step 5, and say what was printed. Do not try to repair it.
+- If the security gate stage does not pass, no task stage may start. That is the rule the
+  owner set: the run stops and is reported.
