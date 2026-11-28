@@ -1,8 +1,8 @@
-// Global AI Engineering Hub — Motion SDK.
+// Global AI Engineering Hub — Motion Engines.
 // One API for every motion. Motions are loaded on demand, one module each, so an
 // application only ever downloads the motions it actually creates.
 //
-//   import { motion } from './motion-sdk/index.mjs';
+//   import { motion } from './packages/motion-engines/index.mjs';
 //   const field = await motion.create('quantum-field-distortion', { container });
 //   motion.play(field);
 import { createMotion, mountPreview, MotionError, resolveOptions } from './core/api.mjs';

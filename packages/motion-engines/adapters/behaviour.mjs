@@ -2,8 +2,8 @@
 // `respond(input, params)`, the response itself, which this adapter feeds from pointer
 // and focus events:
 //
-//   import { attach } from 'motion-sdk/adapters/behaviour.mjs';
-//   import { respond } from 'motion-sdk/motions/micro/magnetic-button.mjs';
+//   import { attach } from 'packages/motion-engines/adapters/behaviour.mjs';
+//   import { respond } from 'packages/motion-engines/motions/micro/magnetic-button.mjs';
 //   const detach = attach(document.querySelector('button'), respond, { params: { strength: 0.4 } });
 //
 // Only inline styles of that element are touched, and detach() puts them back.

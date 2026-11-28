@@ -1,8 +1,8 @@
 # Writing a motion
 
-A motion is one file, `motion-sdk/motions/<module>/<slug>.mjs`, whose default export is
+A motion is one file, `packages/motion-engines/motions/<module>/<slug>.mjs`, whose default export is
 `defineMotion({...})` with the id `<module>-<slug>`. It has no dependencies outside
-`motion-sdk/core`, `motion-sdk/engines` and `motion-sdk/shaders` (a composition may also
+`packages/motion-engines/core`, `packages/motion-engines/engines` and `packages/motion-engines/shaders` (a composition may also
 import other motion files). Nothing is downloaded, and no image, font, sound or video
 file is used: everything on screen is computed.
 
@@ -185,7 +185,7 @@ export function respond(input, params) {
 
 ## What the harness checks
 
-`node motion-sdk/verify/browser.mjs --module <module>` (or `--id <id>`) creates every
+`node packages/motion-engines/verify/browser.mjs --module <module>` (or `--id <id>`) creates every
 motion in a real browser at 320x180 and fails it unless all of this holds:
 
 | check | meaning |
@@ -214,7 +214,7 @@ A motion that fails any check is not operational and is not counted.
 The harness proves that a motion works. Only looking at it shows whether it is good:
 
 ```
-node motion-sdk/verify/sheet.mjs --module <module> --out /path/outside/the/repo/sheet.png [--direction rtl]
+node packages/motion-engines/verify/sheet.mjs --module <module> --out /path/outside/the/repo/sheet.png [--direction rtl]
 ```
 
 renders three moments of every motion in the module side by side. Open the PNG and judge

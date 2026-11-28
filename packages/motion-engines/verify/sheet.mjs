@@ -2,11 +2,11 @@
 // Contact sheet for looking at motions: three moments of each, side by side, in one PNG.
 // The harness proves a motion works; only eyes can tell whether it looks right.
 //
-//   node motion-sdk/verify/sheet.mjs --module quantum --out /tmp/quantum.png [--direction rtl]
+//   node packages/motion-engines/verify/sheet.mjs --module quantum --out /tmp/quantum.png [--direction rtl]
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serve } from '../../motion-library/verify/serve.mjs';
+import { serve } from './serve.mjs';
 import { scan } from '../tools/build_registry.mjs';
 
 const sdk = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -21,11 +21,11 @@ if (!out || !entries.length) {
   process.exit(2);
 }
 const { chromium } = createRequire(import.meta.url)('playwright');
-const server = await serve(resolve(sdk, '..'));
+const server = await serve(sdk);
 const browser = await chromium.launch({ args: ['--enable-unsafe-webgpu', '--enable-features=Vulkan,WebGPU', '--use-webgpu-adapter=swiftshader', '--ignore-gpu-blocklist'] });
 try {
   const page = await browser.newPage({ viewport: { width: 3 * 324 + 8, height: 400 }, deviceScaleFactor: 1 });
-  await page.goto(`${server.origin}/motion-sdk/verify/harness.html`);
+  await page.goto(`${server.origin}/verify/harness.html`);
   await page.waitForFunction(() => window.h);
   await page.evaluate(async ({ ids, direction }) => {
     const { createMotion } = await import('../core/api.mjs');

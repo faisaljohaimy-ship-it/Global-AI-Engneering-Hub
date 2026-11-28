@@ -1,7 +1,7 @@
 {
-  "name": "@global-ai-hub/motion-sdk",
+  "name": "@global-ai-hub/motion-engines",
   "version": "1.0.0",
-  "description": "Universal motion API and a registry of browser-verified motions. No runtime dependencies.",
+  "description": "The named motions, each on its real engine (GLSL, WGSL, GPU particles, DOM, SVG, Canvas 2D, compositions) behind one instance API, each proven in a browser. No runtime dependencies.",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -15,7 +15,7 @@
     "./orchestrator": "./orchestrator.mjs",
     "./registry.json": "./registry.json"
   },
-  "bin": { "hub-motion": "./cli.mjs" },
+  "bin": { "hub-engine-motion": "./cli.mjs" },
   "scripts": {
     "registry": "node tools/build_registry.mjs",
     "verify": "node verify/browser.mjs",
