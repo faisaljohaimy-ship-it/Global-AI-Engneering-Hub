@@ -97,7 +97,7 @@ EVIDENCE_BOUNDARY = {
     "L17": "Repair proposals and fixed declarative checks; candidate code is never executed",
     "L18": "Source-bound inventory and engine-motion resolution; every render needs its own browser receipt",
     "L19": "Offline accounting over supplied ledgers; tokens, cost and subscription quota stay separate",
-    "L20": "Source-bound test receipts; engineering_os/assurance.py is wave 2; hashes do not authenticate reviewers",
+    "L20": "Source-bound test receipts; engineering_os/assurance.py is not yet integrated; hashes do not authenticate reviewers",
 }
 
 # Subprocess programs. Each imports only what it is asked to and writes JSON to a result file,

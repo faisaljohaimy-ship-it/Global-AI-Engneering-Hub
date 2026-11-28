@@ -632,7 +632,7 @@ Responsibilities:
 - **Agents:** `independent-assurance-engineer`, `twenty-layer-architecture-engineer`
 - **Tests:** `tests/test_layers.py`, `tests/test_os_control.py`, `tests/test_reasoning.py`, `tests/test_release_provenance.py`, `tests/test_layer_scenarios.py`, `tests/test_evidence.py`
 - **Scenarios:** none bound
-- **Evidence boundary:** Source-bound test receipts; engineering_os/assurance.py is wave 2; hashes do not authenticate reviewers
+- **Evidence boundary:** Source-bound test receipts; engineering_os/assurance.py is not yet integrated; hashes do not authenticate reviewers
 - **Evidence status:** VERIFIED — 6/6 test files, 100 test cases passed; 46 sources bound (`source_sha256` 63902b4bb52e4a02…).
 
 ## Evidence status

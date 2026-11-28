@@ -150,17 +150,17 @@ Status values: `open`, `in progress`, `done` (with the commit).
 | Id | Item | Status |
 |---|---|---|
 | pr30 | Review and merge the security hardening of #30 | merged into this branch (`ff3368e`); independent review in progress |
-| motion-policy | Purposeful digital motion policy: one central policy file, validator, tests, registry build refuses a motion with no stated meaning | in progress |
+| motion-policy | Purposeful digital motion policy: one central policy file, validator, tests, registry build refuses a motion with no stated meaning | done (`f95b85e`) |
 | motion-port | Bring over motions that exist only on earlier branches (`claude/native-motion-engines-wip`, `feat/chromium-motion-stack`), as they are, each with a stated meaning and a fresh browser proof | in progress |
 | agents-20 | Standing policy: a team of up to twenty specialist roles for every build and upgrade, bound to `governance/agent-roles.json` | done (`823e6b5`): policy file, standalone loader, orchestrator reads its limits from it, specialist agent definition; router/skills wiring in wave 1 |
-| master-central | `MASTER_BUILD` and `MASTER_UPGRADE` adopted, one canonical source with version and digest, drift test | open |
+| master-central | `MASTER_BUILD` and `MASTER_UPGRADE` adopted, one canonical source with version and digest, drift test | done (`157d8d1`; pinned 1.1.0 in `daacfa6`, merged with wiring-1 in `8800176`) |
 | registry | Register the wave-2 engines in `governance/engines.json` and `engineering_os/adapters.py`; append their interfaces and tests to `governance/layers.json`; bind scenarios A–I | open |
 | assurance | L20 independent assurance module (`engineering_os/assurance.py`): the reviewer is never the producer | done (`121bab9`): assign/record/verify/gate with source-bound receipts; control-plane registration in wave 2 |
 | scenario-g | Release engine acceptance: spec, test on a synthetic repository, evidence | done (`347bd86`): 22 tests, never tags or pushes, evidence reproducible; registration in wave 2 |
 | scenario-i | Install proof in a new Claude Code session and in an independent project | open |
-| security | Remaining findings in `docs/evidence/gaie-20-layers/security-findings.json`; measured isolation | open |
+| security | Remaining findings in `docs/evidence/gaie-20-layers/security-findings.json`; measured isolation | in progress: regenerated after the sec-isolation, sec-findings and isolation-fixes merges (`d9c84ef`): open 2 (SEC-16, SEC-17, low), fixed 10 including SEC-07, SEC-09 and SEC-12 |
 | activation | Run the approved tools, skills and engines for real and record what ran on this host | done (`867aebf`): 5 of 6 tools ran from their locks, Headroom 71% lossless reduction, 33/33 engine calls; receipt regenerated at the final commit |
-| status-docs | `docs/OPERATING_SYSTEM_STATUS.md`, `CHANGELOG.md`, `docs/GAIE_FACTORY.md` are stale | open |
+| status-docs | `docs/OPERATING_SYSTEM_STATUS.md`, `CHANGELOG.md`, `docs/GAIE_FACTORY.md` are stale | done for the status documents, README and the final report skeleton (merge `2c0667f`); `CHANGELOG.md` untouched |
 | review | Independent engineering review of the whole branch | open |
 | release | Version, changelog and release record; merge to `main` | open |
 | report | Final report in Arabic and English with a scenario matrix checked by a test | open |
