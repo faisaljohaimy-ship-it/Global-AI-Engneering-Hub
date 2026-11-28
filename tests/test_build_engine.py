@@ -630,7 +630,7 @@ class EngineContractTests(unittest.TestCase):
 
     def test_health_and_entrypoint(self):
         self.assertEqual(engine.health()["ok"], True)
-        result = engine.engine("plan", {"spec": scenario_a_spec()}, {})
+        result = engine.engine("plan-app", {"spec": scenario_a_spec()}, {})
         self.assertEqual(result["project"], "project-management")
         with self.assertRaises(engine.BuildError):
             engine.engine("deploy", {}, {})
@@ -638,7 +638,10 @@ class EngineContractTests(unittest.TestCase):
             engine.engine("build", {"spec": scenario_a_spec(), "out_dir": "/tmp/x", "hub_revision": "a" * 40,
                                     "shell": "rm -rf /"}, {})
         with self.assertRaises(engine.SpecError):
-            engine.engine("plan", {"spec": {"schema": "gaie.spec/1"}}, {})
+            engine.engine("plan-app", {"spec": {"schema": "gaie.spec/1"}}, {})
+        existing = {action for row in json.loads((ROOT / "governance/engines.json").read_text())
+                    if row["id"] == "master-build" for action in row["actions"]}
+        self.assertFalse(existing & set(engine.ENGINE_RECORD["actions"]), "no clash with the adapter's actions")
 
     def test_template_manifest_matches_the_template_directory(self):
         manifest, files = engine._template_files()

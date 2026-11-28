@@ -39,7 +39,7 @@ publish(app, remote=…, grant=…, token=…)   gated external-write: push + pr
 | `request_repository(app_dir)` | workspace-write | Writes the repository request; never contacts GitHub. |
 | `publish(app_dir, *, remote, grant, token, now=None, environ=None)` | **external-write** | Needs a `contracts.validate_grant` grant for `master-build/publish` with `max_side_effect ≥ external-write`, not expired, and an approval whose `token_sha256` equals SHA-256 of `token`. Remote: `https://github.com/<owner>/<slug>(.git)` or a local bare repository (tests). After an approved GitHub push the project is registered in the private registry (`register_project`). |
 | `register_project(app_dir, repository, *, environ=None, apply=False)` | state-write | `project_registry.register` (dry-run unless `apply`). |
-| `engine(action, payload, ctx=None)` / `health()` / `ENGINE_RECORD` | | Control-plane facade, CONTRACTS.md §2. Actions `plan`, `build`, `evaluate`, `request-repository`, `publish`. Unknown payload keys are refused; payloads are data. |
+| `engine(action, payload, ctx=None)` / `health()` / `ENGINE_RECORD` | | Control-plane facade, CONTRACTS.md §2. Actions `plan-app`, `build`, `evaluate-app`, `request-repository`, `publish` — distinct from the factory actions `spec`/`plan`/`evaluate` that `engineering_os.adapters:master_build` already serves, so both fit one `master-build` record. Unknown payload keys are refused; payloads are data. |
 | CLI | | `python3 -m engineering_os.build_engine plan --spec f.json \| build --spec f.json --out DIR --hub-revision SHA [--workspace W] [--now T] [--no-verify] [--no-e2e] \| evaluate APP \| publish APP --remote URL --grant g.json --token-file t` |
 
 Errors: `BuildError` ⊃ `SpecError` ⊃ {`UnsupportedSpec`, `OpenQuestions`}, `WorkspaceError`,
@@ -188,10 +188,13 @@ review — `evaluate(app)` or `factory.evaluate_factory` can be re-run by the ve
 
 ## 8. Registration (for the integrator — not edited by L16)
 
-`governance/engines.json`: `build_engine.ENGINE_RECORD` (validated by
-`contracts.validate_engine(..., check_imports=True)` in the tests). Layer L16 interfaces:
-`engineering_os.build_engine:build`, `:plan`, `:evaluate`, `:publish`; tests:
-`tests/test_build_engine.py`, `tests/test_build_engine_e2e.py`; scenario A.
+`governance/engines.json` already has `master-build` → `engineering_os.adapters:master_build`
+(factory `spec`/`plan`/`evaluate`). Proposed: add the five actions of
+`build_engine.ENGINE_RECORD` (validated by `contracts.validate_engine(..., check_imports=True)`
+in the tests) to that record and let the adapter delegate them to
+`engineering_os.build_engine:engine`. Layer L16: add interfaces
+`engineering_os.build_engine:build`, `:plan`, `:evaluate`, `:publish`, tests
+`tests/test_build_engine.py`, `tests/test_build_engine_e2e.py`, scenario `A`.
 
 ## 9. Limitations (honest)
 

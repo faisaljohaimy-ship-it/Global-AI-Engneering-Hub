@@ -200,7 +200,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def _page(self, method, query):
         self._only(method, ("GET", "HEAD"))
-        params = urllib.parse.parse_qs(query, max_num_fields=5)
+        try:
+            params = urllib.parse.parse_qs(query, max_num_fields=5)
+        except ValueError:
+            params = {}
         lang = (params.get("lang") or [""])[0]
         page = self.app.pages.get(lang) or self.app.pages[self.schema.app["default_locale"]]
         self._send(200, page, CONTENT_TYPES[".html"], cache="no-cache")

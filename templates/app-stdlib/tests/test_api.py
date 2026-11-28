@@ -336,7 +336,10 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn(f'<html lang="{locale}" dir="{directions[locale]}">', page.decode("utf-8"))
         default = SCHEMA.app["default_locale"]
-        self.assertIn(f'lang="{default}"', self.call("GET", "/?lang=xx", role=None)[2].decode("utf-8"))
+        for query in ("?lang=xx", "?a=1&b=2&c=3&d=4&e=5&f=6&lang=en", "?lang=%00"):
+            status, _, page = self.call("GET", "/" + query, role=None)
+            self.assertEqual(status, 200, query)
+            self.assertIn(f'lang="{default}"', page.decode("utf-8"), query)
 
     def test_cross_origin_write_refused(self):
         entity = SCHEMA.entities[0]

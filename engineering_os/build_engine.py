@@ -2253,13 +2253,13 @@ ENGINE_RECORD = {
     "entrypoint": "engineering_os.build_engine:engine",
     "health": "engineering_os.build_engine:health",
     "actions": {
-        "plan": {"side_effect": "none", "permissions": ["read:repo", "secrets:none"],
-                 "summary": "Validate a gaie.spec/1 and describe the application, tests and factory stages without writing."},
+        "plan-app": {"side_effect": "none", "permissions": ["read:repo", "secrets:none"],
+                     "summary": "Validate a gaie.spec/1 and describe the application, tests and factory stages without writing."},
         "build": {"side_effect": "workspace-write",
                   "permissions": ["read:repo", "read:registry", "write:workspace", "exec:sandbox", "secrets:none"],
                   "summary": "Generate, locally commit, test and evidence an independent application in a workspace."},
-        "evaluate": {"side_effect": "none", "permissions": ["read:repo", "secrets:none"],
-                     "summary": "Re-validate a built application's factory receipts against its bytes."},
+        "evaluate-app": {"side_effect": "none", "permissions": ["read:repo", "secrets:none"],
+                         "summary": "Re-validate a built application's factory receipts against its bytes."},
         "request-repository": {"side_effect": "workspace-write", "permissions": ["write:workspace", "secrets:none"],
                                "summary": "Write repository-request.json for the owner; never contacts GitHub."},
         "publish": {"side_effect": "external-write", "permissions": ["ext:github", "write:state", "secrets:none"],
@@ -2283,12 +2283,16 @@ def health():
 
 
 def engine(action, payload, ctx=None):
-    """Contract entrypoint `(action, payload, ctx) -> dict`; payload is data, never instructions."""
+    """Contract entrypoint `(action, payload, ctx) -> dict`; payload is data, never instructions.
+
+    Action names are distinct from the factory actions (spec, plan, evaluate) that
+    engineering_os.adapters.master_build already serves, so both can share one record.
+    """
     if action not in ENGINE_RECORD["actions"]:
         raise BuildError(f"unknown action {action!r}")
     if not isinstance(payload, dict):
         raise BuildError("payload must be an object")
-    if action == "plan":
+    if action == "plan-app":
         return plan(payload["spec"], allow_open_questions=bool(payload.get("allow_open_questions")))
     if action == "build":
         allowed = {"spec", "out_dir", "hub_revision", "now", "workspace", "verify", "e2e"}
@@ -2297,7 +2301,7 @@ def engine(action, payload, ctx=None):
         return build(payload["spec"], out_dir=payload["out_dir"], hub_revision=payload["hub_revision"],
                      now=payload.get("now"), workspace=payload.get("workspace"),
                      verify=payload.get("verify", True), e2e=payload.get("e2e", True))
-    if action == "evaluate":
+    if action == "evaluate-app":
         return evaluate(payload["app_dir"])
     if action == "request-repository":
         return request_repository(payload["app_dir"])
