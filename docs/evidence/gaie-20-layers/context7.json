@@ -2,10 +2,10 @@
  "schema": "gaie.context7-probe/1",
  "endpoint": "https://mcp.context7.com/mcp",
  "transport": "MCP streamable HTTP (remote); nothing installed",
- "generated_at_utc": "2026-11-28T12:07:09Z",
+ "generated_at_utc": "2026-11-28T12:11:35Z",
  "generator": {
   "path": "integrations/context7/probe.py",
-  "sha256": "ea10059bc0706f25fb253f4d145170b9a68255a5ab777880dab2d3e4e260be6a"
+  "sha256": "2defc11834f6804870b2d51b18d96e1e0f22495abddb6d3f98620111b76de289"
  },
  "keys_read_into_output": 0,
  "paid_services": 0,
@@ -16,14 +16,22 @@
   "protocol": "2025-06-18"
  },
  "tools": {
-  "resolve-library-id": [
-   "libraryName",
-   "query"
-  ],
-  "query-docs": [
-   "libraryId",
-   "query"
-  ]
+  "resolve-library-id": {
+   "required": [
+    "libraryName",
+    "query"
+   ],
+   "read_only": true,
+   "destructive": false
+  },
+  "query-docs": {
+   "required": [
+    "libraryId",
+    "query"
+   ],
+   "read_only": true,
+   "destructive": false
+  }
  },
  "calls": {
   "resolve-library-id": {
@@ -32,8 +40,8 @@
     "query": "dependency injection with Depends"
    },
    "is_error": false,
-   "chars": 944,
-   "sha256": "5057f44048a623c65bbad3eefa1c276e24d78821dbee2f62a671e876d9b20b1a",
+   "chars": 1629,
+   "sha256": "dc48dde3a7cc128408a6a84b43e36ba05ed4064e854b11c39aa488f453699102",
    "library_id": "/websites/fastapi_tiangolo"
   },
   "query-docs": {
@@ -51,10 +59,11 @@
   "initialize": true,
   "lists_resolve_library_id": true,
   "lists_query_docs": true,
+  "only_read_only_lookup_tools": true,
   "library_resolved": true,
   "documentation_returned": true
  },
  "status": "passed",
- "duration_s": 3.21,
+ "duration_s": 3.07,
  "key_source": "proxy network secret or none"
 }

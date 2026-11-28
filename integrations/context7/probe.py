@@ -98,7 +98,9 @@ def run(library, question, endpoint=ENDPOINT):
     init = client.request("initialize", {"protocolVersion": PROTOCOL, "capabilities": {},
                                          "clientInfo": {"name": "gaie-context7-probe", "version": "1"}})
     client.notify("notifications/initialized")
-    tools = {tool["name"]: sorted(tool.get("inputSchema", {}).get("required", []))
+    tools = {tool["name"]: {"required": sorted(tool.get("inputSchema", {}).get("required", [])),
+                            "read_only": (tool.get("annotations") or {}).get("readOnlyHint") is True,
+                            "destructive": (tool.get("annotations") or {}).get("destructiveHint") is not False}
              for tool in client.request("tools/list").get("tools", [])}
     found, found_error = client.call("resolve-library-id", {"libraryName": library, "query": question})
     match = LIBRARY_ID.search(found)
@@ -109,6 +111,8 @@ def run(library, question, endpoint=ENDPOINT):
         "initialize": init.get("serverInfo", {}).get("name") == "Context7",
         "lists_resolve_library_id": "resolve-library-id" in tools,
         "lists_query_docs": "query-docs" in tools,
+        "only_read_only_lookup_tools": set(tools) == {"resolve-library-id", "query-docs"}
+                                       and all(v["read_only"] and not v["destructive"] for v in tools.values()),
         "library_resolved": bool(library_id) and not found_error,
         "documentation_returned": not docs_error and len(docs) >= 200,
     }

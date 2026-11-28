@@ -96,6 +96,12 @@ class Evidence(unittest.TestCase):
         self.assertTrue(receipt["calls"]["resolve-library-id"]["library_id"].startswith("/"))
         self.assertGreater(receipt["calls"]["query-docs"]["chars"], 200)
 
+    def test_server_exposes_only_read_only_lookup_tools(self):
+        tools = json.loads(EVIDENCE_PATH.read_text())["tools"]
+        self.assertEqual(set(tools), {"resolve-library-id", "query-docs"}, "a new tool needs a new review")
+        for name, tool in tools.items():
+            self.assertTrue(tool["read_only"] and not tool["destructive"], name)
+
     def test_receipt_was_made_by_the_committed_probe(self):
         receipt = json.loads(EVIDENCE_PATH.read_text())
         self.assertEqual(receipt["generator"]["sha256"], hashlib.sha256(PROBE_PATH.read_bytes()).hexdigest(),
