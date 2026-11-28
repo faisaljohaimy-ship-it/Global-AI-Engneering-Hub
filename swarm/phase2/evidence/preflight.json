@@ -1,0 +1,105 @@
+{
+ "about": "Four real agents started in the authoring session on 2026-11-28 to try the worker command before the plan ran: one small task, two medium (ledger, expression) on the light model, one large (lean commands) on the middle model. They were the first phase's minimal worker type, with the general prompt of stage g10, in a session whose instruction files make every agent start at about 128,000 tokens. Their input tokens are counted against the limit as preflight_input_tokens in PLAN.json. This run also found a fault in how the stage driver located the session's record, which was corrected before the plan ran.",
+ "stage": {
+  "label": "x0",
+  "actual_agents": 4,
+  "peak_concurrent_agents": 4,
+  "tasks": 4,
+  "verified_tasks": 4,
+  "verified_success_rate": 100.0,
+  "hidden_tests_passed": 65,
+  "hidden_tests_total": 65,
+  "security_findings": 0,
+  "files_outside_contract": 0,
+  "mean_solution_lines": 49.5,
+  "agents_replying_done": 4,
+  "agents_with_limit_error": 0,
+  "wall_seconds": 25.31,
+  "sum_of_agent_seconds": 62.85,
+  "effective_concurrency": 2.48,
+  "tasks_per_minute": 9.48,
+  "models": [
+   "haiku",
+   "sonnet"
+  ],
+  "agent_tokens": {
+   "input_uncached": 32,
+   "cache_write": 573001,
+   "cache_read": 1646288,
+   "input_total": 2219321,
+   "output": 6904,
+   "total": 2226225
+  },
+  "cache_read_share": 0.7418,
+  "model_roundtrips": 16,
+  "tool_calls": 20,
+  "repeated_file_reads": 0,
+  "tool_output_chars": 9015,
+  "per_verified_task": {
+   "input_total": 554830,
+   "output": 1726,
+   "roundtrips": 4.0,
+   "agent_seconds": 15.71
+  },
+  "helper_calls": {},
+  "machine": {
+   "samples": 49,
+   "peak_load_1m": 0.24,
+   "least_memory_available_mb": 15412,
+   "peak_host_process_rss_mb": 438,
+   "host_process_cpu_seconds": 3.2
+  },
+  "kind": "task",
+  "size": "mixed",
+  "agent_type": "swarm-worker",
+  "model": "mixed",
+  "effort": "mixed",
+  "mode": null,
+  "delivery": "general",
+  "registered_agents": 4,
+  "started": "2026-11-28T03:47:52.996925Z",
+  "finished": "2026-11-28T03:49:31.977489Z",
+  "first_request_context": {
+   "median": 127942,
+   "least": 127887,
+   "most": 127942
+  },
+  "first_request_read_from_cache": 0.0,
+  "cache_written": {
+   "five_minutes": 573001,
+   "one_hour": 0,
+   "lifetime_not_reported": 0
+  },
+  "cost_units": 915432,
+  "swk_calls": 16,
+  "refused_calls": 0,
+  "foreign_calls": 0,
+  "other_tool_calls": 0,
+  "agent_types_in_records": [
+   "swarm-worker"
+  ],
+  "replies_per_agent": {
+   "median": 3.0,
+   "most": 7
+  },
+  "ownership": {
+   "submitted": 4,
+   "approved": 4,
+   "rejected": 0,
+   "failed": 0,
+   "task_states": {
+    "review": 4
+   },
+   "revision": 16
+  },
+  "not_verified": [],
+  "worker_command": {
+   "hand_ins": 3,
+   "calls": 17,
+   "characters_printed": 9571,
+   "headroom_views": 1
+  },
+  "per_verified_task_cost_units": 228858,
+  "guard_enforced": null
+ }
+}
