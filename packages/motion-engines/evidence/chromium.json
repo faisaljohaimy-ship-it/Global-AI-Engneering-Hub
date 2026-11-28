@@ -15,10 +15,486 @@
   "core_sha256": "0fe34d1f484c3650ef7d9fcdbda9510585608e1a8d7abbceff4e22bb0af46d0c"
  },
  "summary": {
-  "passed": 14,
+  "passed": 34,
   "failed": 0
  },
  "results": [
+  {
+   "id": "atmosphere-aurora-wave",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "71f25fe3de538ffe39161cda95384753ecd983747242ff5aec022857d67989e6",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 1352,
+     "spread": 0.9168,
+     "largestChange": 0.648,
+     "readback": "pixels"
+    },
+    "signature": "bfac7e2b-267c9a60-c20a1a41-d6bdd8bc",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 0.171,
+     "p95Ms": 0.3,
+     "maxMs": 0.4,
+     "framesPerSecond": 5853.7
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.583,
+    "heapAfterAllChecksMB": 10.42
+   }
+  },
+  {
+   "id": "atmosphere-core-ignition",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "5d4056b6027e5fcbb0bc67ef6ae2f1ab28dc474db81534e7c0f38657430655d0",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 828,
+     "spread": 0.5722,
+     "largestChange": 0.4627,
+     "readback": "pixels"
+    },
+    "signature": "79308fb5-f469a248-1417ccfc-f62e5861",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 3.15,
+     "p95Ms": 4.6,
+     "maxMs": 5.4,
+     "framesPerSecond": 317.5
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.217,
+    "heapAfterAllChecksMB": 7.57
+   }
+  },
+  {
+   "id": "atmosphere-electric-arc",
+   "module": "atmosphere",
+   "engine": "canvas2d",
+   "source_sha256": "2bd1a2c013dc6779a91e62ca4f5755b92d453edff07130e59ab48f43692c95bf",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 462,
+     "spread": 0.617,
+     "largestChange": 0.2125,
+     "readback": "pixels"
+    },
+    "signature": "6569afc9-cc868628-8c6524bc-356e1c70",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.633,
+     "p95Ms": 3.5,
+     "maxMs": 6,
+     "framesPerSecond": 379.7
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.593,
+    "heapAfterAllChecksMB": 4.67
+   }
+  },
+  {
+   "id": "atmosphere-electromagnetic-field",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "964e4877bb988877cfe5914bb4aead9808441ed9d9970a5360efee26e6740ca4",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 1445,
+     "spread": 0.6764,
+     "largestChange": 0.3123,
+     "readback": "pixels"
+    },
+    "signature": "2575427a-b44907a2-bf2728cc-2c450959",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.513,
+     "p95Ms": 4.1,
+     "maxMs": 4.5,
+     "framesPerSecond": 398
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.4,
+    "heapAfterAllChecksMB": 9.31
+   }
+  },
+  {
+   "id": "atmosphere-energy-shield",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "1eff852f79886441b357c0ca353027587490d138f770ed85b24d3a606e4bc2d3",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 1150,
+     "spread": 0.4926,
+     "largestChange": 0.2459,
+     "readback": "pixels"
+    },
+    "signature": "47c620ec-26103eed-f1339daf-4cdf66b3",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 3.921,
+     "p95Ms": 6.1,
+     "maxMs": 8.2,
+     "framesPerSecond": 255
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.034,
+    "heapAfterAllChecksMB": 7.14
+   }
+  },
+  {
+   "id": "atmosphere-plasma-flow",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "0d39b714f003733df9941673f8c3bcaca5cd3f1eba835246e765040189ef994e",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "mirrorsUnderRtl": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 372,
+     "spread": 0.9026,
+     "largestChange": 0.8406,
+     "readback": "pixels"
+    },
+    "signature": "f9fbd277-7fb12e48-1476547e-8aee9818",
+    "centroidX": {
+     "ltr": 0.525,
+     "rtl": 0.475
+    },
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 10.392,
+     "p95Ms": 11.3,
+     "maxMs": 19.9,
+     "framesPerSecond": 96.2
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.033,
+    "heapAfterAllChecksMB": 6.47
+   }
+  },
+  {
+   "id": "atmosphere-procedural-fog",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "afb50d21d2284885d838c7d39b50558a5ef81cd581db663675167a0d6b9633da",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 203,
+     "spread": 0.9533,
+     "largestChange": 0.184,
+     "readback": "pixels"
+    },
+    "signature": "e1d61ef3-c879a161-b6cb537a-6c7128b5",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 7.65,
+     "p95Ms": 8.6,
+     "maxMs": 17,
+     "framesPerSecond": 130.7
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.143,
+    "heapAfterAllChecksMB": 7.65
+   }
+  },
+  {
+   "id": "atmosphere-shockwave",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "89b137257d6d53db9a2157873fd622cbee040b1f0ca4530ea2ad6b42c7f80f23",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 829,
+     "spread": 0.9633,
+     "largestChange": 0.9963,
+     "readback": "pixels"
+    },
+    "signature": "b17a3350-6638e5cc-8e107035-2afa87fa",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 10.825,
+     "p95Ms": 13.4,
+     "maxMs": 20.6,
+     "framesPerSecond": 92.4
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.181,
+    "heapAfterAllChecksMB": 7.35
+   }
+  },
+  {
+   "id": "atmosphere-solar-flare",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "bf9ca0b5084ccf005728813f341922772b6c36a091c9fb7b88ee963502420fea",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 766,
+     "spread": 0.8552,
+     "largestChange": 0.3328,
+     "readback": "pixels"
+    },
+    "signature": "808a2f97-264ba2e2-9c304059-bf9caad5",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 8.733,
+     "p95Ms": 11.9,
+     "maxMs": 15.2,
+     "framesPerSecond": 114.5
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.595,
+    "heapAfterAllChecksMB": 7.56
+   }
+  },
+  {
+   "id": "atmosphere-volumetric-clouds",
+   "module": "atmosphere",
+   "engine": "webgl2-glsl",
+   "source_sha256": "51bbcf0c3ecd305da9041e25459094fbe1a3c7559a9249c3cc488c5a4d8d92fb",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 281,
+     "spread": 0.9634,
+     "largestChange": 0.7136,
+     "readback": "pixels"
+    },
+    "signature": "99c27445-a9b3df14-83a4db96-15d67372",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 13.304,
+     "p95Ms": 15,
+     "maxMs": 24.3,
+     "framesPerSecond": 75.2
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.961,
+    "heapAfterAllChecksMB": 9.77
+   }
+  },
   {
    "id": "compositions-quantum-master-sequence",
    "module": "compositions",
@@ -66,6 +542,484 @@
     "fallback": null,
     "heapGrowthPerInstanceMB": -0.472,
     "heapAfterAllChecksMB": 8.75
+   }
+  },
+  {
+   "id": "glass-card-elevation",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "9db26c189d26976b9670c8eea61e874c641c8de46c00097c82629d682b384b39",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 745,
+     "spread": 0.8766,
+     "largestChange": 0.2758,
+     "readback": "pixels"
+    },
+    "signature": "34506a0e-996e5fea-e5dcec14-edc0a39f",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.671,
+     "p95Ms": 3.5,
+     "maxMs": 4.7,
+     "framesPerSecond": 374.4
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.071,
+    "heapAfterAllChecksMB": 6.68
+   }
+  },
+  {
+   "id": "glass-crystal-transformation",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "503472a234fb29dbabe32ada3ae414e4c3b4b043b18d792aa254c0d49ffbaf10",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 455,
+     "spread": 0.75,
+     "largestChange": 0.2179,
+     "readback": "pixels"
+    },
+    "signature": "62f095a8-ed56e5d9-024f1116-668c2eb4",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 10.346,
+     "p95Ms": 11.4,
+     "maxMs": 19.7,
+     "framesPerSecond": 96.7
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.071,
+    "heapAfterAllChecksMB": 6.7
+   }
+  },
+  {
+   "id": "glass-dynamic-dispersion",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "c1ac22312a9ef27208aeb2277ab7e7d3483063f7b600f42ea4baa46a35897564",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 1429,
+     "spread": 0.4183,
+     "largestChange": 0.2314,
+     "readback": "pixels"
+    },
+    "signature": "ebee535c-d3881df8-712f594b-d0bfcd06",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 11.088,
+     "p95Ms": 13.1,
+     "maxMs": 21.4,
+     "framesPerSecond": 90.2
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.875,
+    "heapAfterAllChecksMB": 12.23
+   }
+  },
+  {
+   "id": "glass-frosted-focus",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "69282bdc8e6e2ea29075403dd26e5244168fa2e4687ad9f09881680b86c5873c",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 590,
+     "spread": 0.8272,
+     "largestChange": 0.7846,
+     "readback": "pixels"
+    },
+    "signature": "80d2f00c-89eee44d-7f0f0d11-9f2262ad",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 1.796,
+     "p95Ms": 1.8,
+     "maxMs": 3,
+     "framesPerSecond": 556.8
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.521,
+    "heapAfterAllChecksMB": 4.05
+   }
+  },
+  {
+   "id": "glass-iridescent-morphing",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "0e06e1b366d991fa07907082bff62f2b1a96697ac05060b189edc2e26bd66c4f",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 1567,
+     "spread": 0.9132,
+     "largestChange": 0.3756,
+     "readback": "pixels"
+    },
+    "signature": "de2fdcfc-27f5194b-b35a73b6-48f4bcb4",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.246,
+     "p95Ms": 3.6,
+     "maxMs": 4.1,
+     "framesPerSecond": 445.3
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.595,
+    "heapAfterAllChecksMB": 7.58
+   }
+  },
+  {
+   "id": "glass-lens-distortion",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "c9729ef33edb3a873b1d518fdc4d7a658f45ddb00031e55c28c45577cd24fb05",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 1514,
+     "spread": 0.6988,
+     "largestChange": 0.3685,
+     "readback": "pixels"
+    },
+    "signature": "f3fddd26-2a64dd8b-a3cd687b-49efd06d",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.171,
+     "p95Ms": 3.1,
+     "maxMs": 3.7,
+     "framesPerSecond": 460.7
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.888,
+    "heapAfterAllChecksMB": 5.58
+   }
+  },
+  {
+   "id": "glass-liquid-refraction",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "686cd98ef5eb04be86904b7cb252a3cdc7d043c2f2e1fb2d35683f6667dc4299",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 2077,
+     "spread": 0.8046,
+     "largestChange": 0.367,
+     "readback": "pixels"
+    },
+    "signature": "d3403cff-ee9c6d99-c13dc3c4-5b0c2a1f",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 5.688,
+     "p95Ms": 6.7,
+     "maxMs": 9.7,
+     "framesPerSecond": 175.8
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -1.363,
+    "heapAfterAllChecksMB": 10.29
+   }
+  },
+  {
+   "id": "glass-metallic-flow",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "2f702d8cc7c4bdb9b98b6ed007da99dc84cc67a22222c1b8f77e448b9ac58137",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 278,
+     "spread": 0.8358,
+     "largestChange": 0.9102,
+     "readback": "pixels"
+    },
+    "signature": "0087b96b-1eb2f70f-db3aa48b-b1a35c07",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.942,
+     "p95Ms": 4.6,
+     "maxMs": 5.5,
+     "framesPerSecond": 339.9
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.997,
+    "heapAfterAllChecksMB": 9.99
+   }
+  },
+  {
+   "id": "glass-surface-ripple",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "fa2ce4e3bc9bf0c3f60626fde43de528b3961837d1851fe7fa6d60a46537cc84",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "reducedMotionIsOneStillFrame": true,
+    "directionNeutral": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 363,
+     "spread": 0.9127,
+     "largestChange": 0.4097,
+     "readback": "pixels"
+    },
+    "signature": "e21d4f11-2fd7fbcc-57c9d85f-6f695446",
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.563,
+     "p95Ms": 4,
+     "maxMs": 4.2,
+     "framesPerSecond": 390.2
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.667,
+    "heapAfterAllChecksMB": 4.92
+   }
+  },
+  {
+   "id": "glass-titanium-sweep",
+   "module": "glass",
+   "engine": "webgl2-glsl",
+   "source_sha256": "e396de50b19f51b623d000d1abf75bb93c4e74732d8bd3d4574a00abc619457f",
+   "pass": true,
+   "checks": {
+    "draws": true,
+    "changesOverTime": true,
+    "sameFrameForSameMoment": true,
+    "coloursChangeTheFrame": true,
+    "everyParameterChangesTheFrame": true,
+    "durationSetsTheSpeed": true,
+    "durationChangesTheFrame": true,
+    "easingChangesTheFrame": true,
+    "transportWorks": true,
+    "oneShotFinishes": true,
+    "reducedMotionIsOneStillFrame": true,
+    "mirrorsUnderRtl": true,
+    "drawsInPortrait": true,
+    "lowerQualityStillDraws": true,
+    "exportsFrames": true,
+    "destroyReleasesEverything": true,
+    "releasesMemory": true
+   },
+   "measured": {
+    "frames": {
+     "distinctColours": 216,
+     "spread": 0.7509,
+     "largestChange": 0.6201,
+     "readback": "pixels"
+    },
+    "signature": "28d597da-0e242290-76acf666-19ff8dac",
+    "centroidX": {
+     "ltr": 0.306,
+     "rtl": 0.694
+    },
+    "export": "in-page",
+    "benchmark": {
+     "frames": 24,
+     "tier": "high",
+     "pixels": 57600,
+     "averageMs": 2.704,
+     "p95Ms": 4.8,
+     "maxMs": 4.9,
+     "framesPerSecond": 369.8
+    },
+    "fallback": null,
+    "heapGrowthPerInstanceMB": -0.595,
+    "heapAfterAllChecksMB": 7.56
    }
   },
   {
