@@ -946,7 +946,8 @@
       "tests/test_gaie_router.py",
       "tests/test_intelligence.py",
       "tests/test_factory.py",
-      "tests/test_requirements.py"
+      "tests/test_requirements.py",
+      "tests/test_build_fixes_requirements.py"
     ],
     "scenarios": [],
     "evidence": {
@@ -1028,7 +1029,8 @@
       "tests/test_build_engine.py",
       "tests/test_build_engine_e2e.py",
       "tests/test_upgrade_engine.py",
-      "tests/test_review_fixes_upgrade_scope.py"
+      "tests/test_review_fixes_upgrade_scope.py",
+      "tests/test_build_fixes_app.py"
     ],
     "scenarios": [
       {
