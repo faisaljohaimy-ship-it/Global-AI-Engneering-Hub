@@ -1,8 +1,8 @@
 """recheck-release-2 N2: a URL whose authority Git and libcurl end before the @ never names a registered project.
 
 workspace_policy.REMOTE accepted any user info without / or whitespace, so it also swallowed ? and #. For
-libcurl and Git those end the authority: https://evil.example?@github.com/<owner>/<repo> (or #@, or
-http://evil.example:80?@...) normalised to the registered owner/name, validate_workspace granted a write scope
+libcurl and Git those end the authority: https://evil.example?@github.com/<owner>/<repo> (or #@, or the http
+form with port 80 before the ?@) normalised to the registered owner/name, validate_workspace granted a write scope
 to a worktree with that fetch and push origin and upgrade_engine.route_command took it for the registered
 project, while Git fetched from and pushed to evil.example. The user info of REMOTE now excludes / ? # @ \\,
 whitespace and control characters, and _repo_id refuses any URL authority that holds ?, #, a backslash,
@@ -47,7 +47,7 @@ AMBIGUOUS = {
     "# before @ (http)": f"http://evil.example#{GH}",
     "? before @ (ssh)": f"ssh://evil.example?{GH}.git",
     "# before @ (git)": f"git://evil.example#{GH}",
-    "? in a password": "https://x-access-token:" + "abc?def" + f"{GH}",
+    "? after the colon of user info": "https://x-access-token:" + "abc?def" + f"{GH}",
     "backslash before @": f"https://evil.example\\{GH}",
     "two @": f"http://a{AT}evil.example{GH}",
     "two @ (ssh)": f"ssh://git{AT}evil.example{GH}.git",
