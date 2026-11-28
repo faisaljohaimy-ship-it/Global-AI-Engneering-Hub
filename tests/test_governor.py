@@ -811,7 +811,11 @@ print(json.dumps(r))
         self.assertEqual(json.loads(opened["stdout"])["loopback_host_listener"], "connected")
 
     def test_host_unix_sockets_are_out_of_reach(self):
-        path = self.outside / "control.sock"
+        # An AF_UNIX path is limited to about 107 bytes, so the host socket sits in a short host
+        # directory instead of under a possibly long TMPDIR; it is outside every granted path too.
+        short = tempfile.mkdtemp(prefix="gaie-sock-", dir="/tmp")
+        self.addCleanup(shutil.rmtree, short, True)
+        path = Path(short) / "control.sock"
         server = socket.socket(socket.AF_UNIX)
         self.addCleanup(server.close)
         server.bind(str(path))

@@ -1,0 +1,8 @@
+# Paths whose changes need the repository owner's review.
+# This file only takes effect when branch protection or a ruleset on main requires review from
+# code owners. That setting belongs to the repository owner; nothing in this file turns it on.
+/prompts/ @faisaljohaimy-ship-it
+/governance/policies/ @faisaljohaimy-ship-it
+/.github/workflows/ @faisaljohaimy-ship-it
+/.github/CODEOWNERS @faisaljohaimy-ship-it
+/SECURITY.md @faisaljohaimy-ship-it
