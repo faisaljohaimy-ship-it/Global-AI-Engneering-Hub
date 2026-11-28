@@ -1156,8 +1156,8 @@ def _api_doc(spec, model):
         for child in entity["children"]:
             lines.append(f"| GET | `{base}/{{id}}/{child['collection']}` | 200 that record's {child['collection']} | 404 |")
         for link in entity["links"]:
-            lines.append(f"| GET / POST `{{{link['target_key']}}}` | `{base}/{{id}}/{link['segment']}` | 200 / 201 | 400, 404, 409 |")
-            lines.append(f"| DELETE | `{base}/{{id}}/{link['segment']}/{{{link['target_key']}}}` | 204 | 404 |")
+            lines.append(f"| GET / POST `{{{link['target_key']}}}` | `{base}/{{id}}/{link['segment']}` | 200 / 201 | 400, 401, 403, 404, 409 |")
+            lines.append(f"| DELETE | `{base}/{{id}}/{link['segment']}/{{{link['target_key']}}}` | 204 | 401, 403, 404 |")
         if any(rule["parent"] == entity["name"] for rule in model["rules"]["progress"]):
             lines.append(f"| GET | `{base}/{{id}}/progress` | 200 totals and percent (one aggregate query) | 404 |")
         lines.append(f"| | list parameters for `{base}`: {', '.join(filters + ['`sort=<field>`', '`limit`', '`offset`'])} | | |")
@@ -1191,10 +1191,13 @@ def _api_doc(spec, model):
         lines.append("")
     roles = ", ".join(f"`{role}`: {', '.join(perms)}" for role, perms in sorted(model["auth"]["roles"].items()))
     lines += ["## Roles", "", f"Permissions by role: {roles}. `read`/`write`/`delete` map to GET, POST/PUT/PATCH and",
-              "DELETE; `:own` limits writes to records the account created."]
+              "DELETE; `:own` limits a permission to records the account created; sub-resources (children, links,",
+              "progress) are authorized like their parent record; adding a link needs write and removing one needs",
+              "write and delete on its source record."]
     if model["auth"]["scoping"]:
         scoping = model["auth"]["scoping"]
-        lines.append(f"Roles without `*` see only {scoping['entity']} records they are linked to (and their children).")
+        lines.append(f"Roles without `*` see only {scoping['entity']} records they are linked to (and every record whose "
+                     "references lead to them); only a `*` role can change the principal e-mail field that identifies an account.")
     return "\n".join(lines) + "\n"
 
 

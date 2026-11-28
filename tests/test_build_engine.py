@@ -239,6 +239,23 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(model["auth"]["pbkdf2_iterations"], 600000)
         self.assertEqual(model["nfr"], {"p95_ms": 200, "latency_records": 1000, "page_size": 50, "max_page_size": 200})
 
+    def test_the_api_reference_states_the_authorization_the_generated_server_enforces(self):
+        """W2-BU-01..04 (lane build-fixes) changed link, sub-resource, scoping and principal rules; docs/API.md says so."""
+        spec, model = self.model(requirements.parse(COMMAND))
+        doc = " ".join(engine._api_doc(spec, model).split())
+        project = next(entity for entity in model["entities"] if entity["links"])
+        base, link = f"/api/{project['collection']}", project["links"][0]
+        self.assertIn(f"`{base}/{{id}}/{link['segment']}` | 200 / 201 | 400, 401, 403, 404, 409 |", doc)
+        self.assertIn(f"| DELETE | `{base}/{{id}}/{link['segment']}/{{{link['target_key']}}}` | 204 | 401, 403, 404 |", doc)
+        for sentence in ("`:own` limits a permission to records the account created",
+                         "sub-resources (children, links, progress) are authorized like their parent record",
+                         "adding a link needs write and removing one needs write and delete on its source record",
+                         "(and every record whose references lead to them)",
+                         "only a `*` role can change the principal e-mail field that identifies an account"):
+            self.assertIn(sentence, doc)
+        for stale in ("limits writes to records", "(and their children)", "| 204 | 404 |"):
+            self.assertNotIn(stale, doc)
+
     def test_real_requirements_output_derives_rules_scoping_and_links(self):
         spec, model = self.model(requirements.parse(COMMAND))
         self.assertEqual([e["name"] for e in model["entities"]], ["Project", "Member", "Milestone", "Task"])
