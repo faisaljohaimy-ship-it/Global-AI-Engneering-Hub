@@ -372,7 +372,7 @@ def check_policy(rules):
     intents = plane["intents"]
     _guard(set(intents) == set(rules["engines"]), "every routed intent needs exactly one control-plane entry")
     roles = plane.get("role_ids", {})
-    known = set(roles.get("named_by_owner_directive", [])) | set(roles.get("provisional", []))
+    known = set(roles.get("registered", [])) | set(roles.get("provisional", []))
     _guard(known and all(isinstance(role, str) and _ID.match(role) for role in known), "role ids must be kebab-case")
     _guard(isinstance(plane.get("grant_ttl_hours"), int) and 0 < plane["grant_ttl_hours"] <= 24, "grant_ttl_hours 1-24")
     _guard(not rules["engines"]["audit"]["write"], "audit must not write")
@@ -380,29 +380,33 @@ def check_policy(rules):
         where = f"control_plane.{intent}"
         _guard(isinstance(spec, dict) and isinstance(spec.get("engine_id"), str) and _ID.match(spec["engine_id"]),
                f"{where}.engine_id")
-        actions = spec.get("actions")
-        _guard(isinstance(actions, list) and actions and len(set(actions)) == len(actions)
-               and all(isinstance(a, str) and _ID.match(a) for a in actions), f"{where}.actions")
+        engines = spec.get("engines")
+        _guard(isinstance(engines, dict) and spec["engine_id"] in engines, f"{where}.engines must include engine_id")
+        for name, actions in engines.items():
+            _guard(_ID.match(name) and isinstance(actions, list) and actions and len(set(actions)) == len(actions)
+                   and all(isinstance(a, str) and _ID.match(a) for a in actions), f"{where}.engines.{name}")
+        granted = {(name, action) for name, actions in engines.items() for action in actions}
         ceiling = spec.get("max_side_effect")
         _rank(ceiling)
         _guard(spec.get("execution") in HARD_EXECUTION[intent], f"{where}.execution must be one of {HARD_EXECUTION[intent]}")
         steps = spec.get("gated_steps")
         _guard(isinstance(steps, list), f"{where}.gated_steps")
         for step in steps:
-            _guard(isinstance(step, dict) and set(step) == {"action", "side_effect", "permissions", "summary"}
-                   and step["side_effect"] in GATED and _ID.match(step["action"]), f"{where}: gated steps are external-write or production")
+            _guard(isinstance(step, dict) and set(step) == {"engine", "action", "side_effect", "permissions", "summary"}
+                   and step["side_effect"] in GATED and _ID.match(step["action"]) and _ID.match(step["engine"]),
+                   f"{where}: gated steps are external-write or production")
             for perm in step["permissions"]:
                 _guard(perm in PERMISSIONS and _rank(PERMISSION_FLOOR.get(perm, "none")) <= _rank(step["side_effect"]),
                        f"{where}.{step['action']}: permission {perm!r}")
         if intent == "release":
             _guard(ceiling in GATED and spec.get("approval_required") is True and steps,
                    "release always needs approval and an external-write or production side effect")
-            _guard(all(step["action"] in actions for step in steps), "release gated steps belong to the release grant")
+            _guard(all((step["engine"], step["action"]) in granted for step in steps), "release gated steps belong to the release grant")
             _guard(any(step["side_effect"] == "production" for step in steps), "release promotion is a production step")
         else:
             _guard(_rank(ceiling) <= _rank(HARD_CEILING[intent]), f"{where}: ceiling {ceiling} exceeds {HARD_CEILING[intent]}")
             _guard(not spec.get("approval_required"), f"{where}: only release is approval-gated as a whole")
-            _guard(all(step["action"] not in actions for step in steps), f"{where}: a gated step never enters the base grant")
+            _guard(all((step["engine"], step["action"]) not in granted for step in steps), f"{where}: a gated step never enters the base grant")
         if intent == "build":
             _guard(any(step["action"] == "create-repository" and step["side_effect"] == "external-write" for step in steps),
                    "build marks new-repository creation as an approved external-write step")
@@ -432,7 +436,7 @@ def _scope_path(rules, project_id, path):
 
 def grant_template(spec, rules, project_id=None, path=None):
     """Least-privilege grant skeleton in the contract's shape; the control plane fills id and expiry."""
-    return {"grant_id": None, "role": spec["roles"]["lead"], "engines": {spec["engine_id"]: list(spec["actions"])},
+    return {"grant_id": None, "role": spec["roles"]["lead"], "engines": {name: list(acts) for name, acts in spec["engines"].items()},
             "paths": [_scope_path(rules, project_id, path)], "max_side_effect": spec["max_side_effect"],
             "expires_at": None, "approvals": []}
 
@@ -469,9 +473,9 @@ def _execution(spec, rules, intent, project_id=None, path=None):
 
 
 def _approvals(spec):
-    return [{"engine": spec["engine_id"], "action": step["action"], "side_effect": step["side_effect"],
+    return [{"engine": step["engine"], "action": step["action"], "side_effect": step["side_effect"],
              "permissions": list(step["permissions"]), "summary": step["summary"], "needs_approval": True,
-             "in_base_grant": step["action"] in spec["actions"]} for step in spec["gated_steps"]]
+             "in_base_grant": step["action"] in spec["engines"].get(step["engine"], [])} for step in spec["gated_steps"]]
 
 
 def _team(spec):

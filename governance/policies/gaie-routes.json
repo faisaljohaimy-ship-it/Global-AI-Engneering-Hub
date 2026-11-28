@@ -522,27 +522,37 @@
     "workspace_root": "workspace",
     "evidence_root": "$GAIE_HOME/evidence",
     "role_ids": {
-      "named_by_owner_directive": [
+      "registered": [
+        "chief-engineering-architect",
+        "cinematic-production-engineer",
+        "enterprise-security-privacy-engineer",
+        "github-integration-release-engineer",
+        "independent-assurance-engineer",
         "master-build-engine-engineer",
         "master-upgrade-engine-engineer",
-        "cinematic-production-engineer",
-        "testing-self-healing-engineer",
-        "independent-assurance-engineer",
-        "chief-engineering-architect"
+        "motion-sdk-animation-engineer",
+        "testing-self-healing-engineer"
       ],
-      "provisional": [
-        "release-deployment-engineer"
-      ],
-      "note": "Provisional ids must be reconciled with governance/agent-roles.json; tests check every id against that file once it exists."
+      "provisional": [],
+      "source": "governance/agent-roles.json (the owner's 20 roles); tests check every id against that file whenever it is present."
     },
     "intents": {
       "build": {
         "engine_id": "master-build",
-        "actions": [
-          "plan",
-          "build",
-          "verify"
-        ],
+        "engines": {
+          "master-build": [
+            "spec",
+            "plan",
+            "evaluate"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
         "max_side_effect": "workspace-write",
         "execution": "workspace",
         "permissions": [
@@ -555,6 +565,7 @@
         ],
         "gated_steps": [
           {
+            "engine": "master-build",
             "action": "create-repository",
             "side_effect": "external-write",
             "permissions": [
@@ -594,11 +605,20 @@
       },
       "upgrade": {
         "engine_id": "master-upgrade",
-        "actions": [
-          "plan",
-          "upgrade",
-          "verify"
-        ],
+        "engines": {
+          "master-upgrade": [
+            "spec",
+            "plan",
+            "evaluate"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
         "max_side_effect": "repo-write",
         "execution": "repo-branch",
         "permissions": [
@@ -644,11 +664,20 @@
       },
       "accelerate": {
         "engine_id": "master-upgrade",
-        "actions": [
-          "plan",
-          "upgrade",
-          "verify"
-        ],
+        "engines": {
+          "master-upgrade": [
+            "spec",
+            "plan",
+            "evaluate"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
         "max_side_effect": "repo-write",
         "execution": "repo-branch",
         "permissions": [
@@ -690,11 +719,19 @@
       },
       "repair": {
         "engine_id": "self-healing",
-        "actions": [
-          "diagnose",
-          "repair",
-          "verify"
-        ],
+        "engines": {
+          "self-healing": [
+            "analyze",
+            "verify-repair"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
         "max_side_effect": "repo-write",
         "execution": "repo-branch",
         "permissions": [
@@ -736,11 +773,23 @@
       },
       "cinematic": {
         "engine_id": "master-cinematic",
-        "actions": [
-          "plan",
-          "render",
-          "verify"
-        ],
+        "engines": {
+          "master-cinematic": [
+            "spec",
+            "audit"
+          ],
+          "motion-sdk": [
+            "catalog",
+            "components"
+          ],
+          "quality-assurance": [
+            "run-tests"
+          ],
+          "memory": [
+            "put",
+            "checkpoint"
+          ]
+        },
         "max_side_effect": "repo-write",
         "execution": "repo-branch",
         "permissions": [
@@ -757,6 +806,7 @@
         "roles": {
           "lead": "cinematic-production-engineer",
           "support": [
+            "motion-sdk-animation-engineer",
             "testing-self-healing-engineer"
           ],
           "verifier": "independent-assurance-engineer"
@@ -782,9 +832,17 @@
       },
       "audit": {
         "engine_id": "master-audit",
-        "actions": [
-          "audit"
-        ],
+        "engines": {
+          "master-audit": [
+            "spec",
+            "inventory",
+            "health",
+            "hub-audit"
+          ],
+          "memory": [
+            "search"
+          ]
+        },
         "max_side_effect": "none",
         "execution": "read-only",
         "permissions": [
@@ -795,7 +853,9 @@
         "gated_steps": [],
         "roles": {
           "lead": "independent-assurance-engineer",
-          "support": [],
+          "support": [
+            "enterprise-security-privacy-engineer"
+          ],
           "verifier": "chief-engineering-architect"
         },
         "capabilities": [
@@ -816,11 +876,15 @@
       },
       "release": {
         "engine_id": "master-release",
-        "actions": [
-          "plan",
-          "preview",
-          "promote"
-        ],
+        "engines": {
+          "master-release": [
+            "spec",
+            "provenance",
+            "eligibility",
+            "preview",
+            "promote"
+          ]
+        },
         "max_side_effect": "production",
         "execution": "release-gated",
         "approval_required": true,
@@ -834,6 +898,7 @@
         ],
         "gated_steps": [
           {
+            "engine": "master-release",
             "action": "preview",
             "side_effect": "external-write",
             "permissions": [
@@ -842,6 +907,7 @@
             "summary": "Deploy a preview of the exact tested commit to the registered target."
           },
           {
+            "engine": "master-release",
             "action": "promote",
             "side_effect": "production",
             "permissions": [
@@ -851,9 +917,10 @@
           }
         ],
         "roles": {
-          "lead": "release-deployment-engineer",
+          "lead": "github-integration-release-engineer",
           "support": [
-            "testing-self-healing-engineer"
+            "testing-self-healing-engineer",
+            "enterprise-security-privacy-engineer"
           ],
           "verifier": "independent-assurance-engineer"
         },
@@ -875,6 +942,7 @@
           "Post-release health result appended to the private release history."
         ]
       }
-    }
+    },
+    "engine_actions_note": "Base actions are the control plane's governance/engines.json actions. master-build:create-repository and master-release:preview/promote are gated steps the control plane does not implement yet; until it does, they cannot run through it."
   }
 }

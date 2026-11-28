@@ -49,11 +49,23 @@ grant. Projects without a registered repository are listed in `skipped`.
 | «افحص سديد» | "audit Sadeed", "inspect Sadeed" | audit | `master-audit` | independent-assurance-engineer | `none` | read-only | ready-for-grant |
 | «أصلح أخطاء سديد» | "fix Sadeed's bugs" | repair | `self-healing` | testing-self-healing-engineer | `repo-write` | repo-branch | ready-for-grant |
 | «ابنِ نظامًا جديدًا لإدارة المشاريع» | "build a new project management system" | build | `master-build` | master-build-engine-engineer | `workspace-write` | workspace `workspace/new-project`; repository creation is a separate `external-write` step | ready-for-grant (workspace only) |
-| «انشر سديد» | "deploy Sadeed", "release Sadeed" | release | `master-release` | release-deployment-engineer (provisional id) | `production` | release-gated: `preview` (external-write) and `promote` (production) | needs-approval, always |
+| «انشر سديد» | "deploy Sadeed", "release Sadeed" | release | `master-release` | github-integration-release-engineer | `production` | release-gated: `preview` (external-write) and `promote` (production) | needs-approval, always |
 | «طور المشروع» | "upgrade the project" | upgrade | `master-upgrade` | — | — | — | needs-clarification: no project is named |
 
 The verifier is `independent-assurance-engineer` for every intent except audit, where
-the audit lead is that role and `chief-engineering-architect` reviews the report.
+that role leads the audit and `chief-engineering-architect` reviews the report. Role
+ids are the owner's 20 roles in `governance/agent-roles.json`.
+
+Grant templates name the control plane's engine actions (`governance/engines.json`):
+
+| Intent | Engines and actions in the base grant | Gated steps (approval) |
+|---|---|---|
+| build | `master-build`: spec, plan, evaluate · `quality-assurance`: run-tests · `memory`: put, checkpoint | `master-build:create-repository` (external-write), outside the base grant |
+| upgrade, accelerate | `master-upgrade`: spec, plan, evaluate · `quality-assurance`: run-tests · `memory`: put, checkpoint | none |
+| repair | `self-healing`: analyze, verify-repair · `quality-assurance`: run-tests · `memory`: put, checkpoint | none |
+| cinematic | `master-cinematic`: spec, audit · `motion-sdk`: catalog, components · `quality-assurance`: run-tests · `memory`: put, checkpoint | none |
+| audit | `master-audit`: spec, inventory, health, hub-audit · `memory`: search | none |
+| release | `master-release`: spec, provenance, eligibility, preview, promote | `preview` (external-write), `promote` (production), inside the approval-gated release grant |
 
 ## 3. Hard rules (code, not text)
 
@@ -61,7 +73,7 @@ the audit lead is that role and `chief-engineering-architect` reviews the report
 and `_enforce()` checks the finished plan again. The rules are constants in
 `gaie_router.py` (`HARD_CEILING`, `HARD_EXECUTION`, `PERMISSION_FLOOR`), so editing
 the JSON policy cannot relax them. A policy that breaks one makes routing fail with
-`RouteError`. The tests tamper with the policy 19 ways to check this.
+`RouteError`. The tests tamper with the policy 21 ways to check this.
 
 1. **Audit is read-only.** Ceiling `none`, execution `read-only`. Permissions are
    only `read:*` and `secrets:none`. There are no gated steps, `write_allowed` is
@@ -84,7 +96,10 @@ the JSON policy cannot relax them. A policy that breaks one makes routing fail w
    class (`write:repo-branch` needs `repo-write`, `ext:deploy` needs `external-write`,
    `prod:deploy` needs `production`). It must not exceed its intent's ceiling.
 7. **Separation of duties.** The lead, supporters and verifier of one intent are
-   distinct. Every role id is listed in `control_plane.role_ids`.
+   distinct. Every role id is listed in `control_plane.role_ids`, and tests check those
+   ids against `governance/agent-roles.json` and every non-gated action against
+   `governance/engines.json` (with its side effect under the ceiling) whenever those
+   files are present.
 
 ## 4. Project registry
 
@@ -146,9 +161,11 @@ An abridged audit route:
 ```json
 {"status": "routed", "decision": "ready-for-grant", "intent": "audit", "project": "biz-pulse-ar",
  "engine_id": "master-audit", "side_effect": "none",
- "roles": {"lead": "independent-assurance-engineer", "support": [], "verifier": "chief-engineering-architect"},
+ "roles": {"lead": "independent-assurance-engineer", "support": ["enterprise-security-privacy-engineer"],
+           "verifier": "chief-engineering-architect"},
  "grant_template": {"grant_id": null, "role": "independent-assurance-engineer",
-                    "engines": {"master-audit": ["audit"]}, "paths": ["workspace/biz-pulse-ar"],
+                    "engines": {"master-audit": ["spec", "inventory", "health", "hub-audit"], "memory": ["search"]},
+                    "paths": ["workspace/biz-pulse-ar"],
                     "max_side_effect": "none", "expires_at": null, "approvals": []},
  "execution_scope": {"kind": "read-only", "default_branch_writes": false, "network": false, "production": false},
  "repository_check": {"status": "registered-public", "repository_known": true}, "executable_by_route": false}
@@ -160,11 +177,17 @@ An abridged audit route:
   lexicon returns `needs-clarification` rather than a guess.
 - `repository_check` reports the registry's knowledge only. Reachability, branch
   protection and credentials are checked by the executing agent.
-- Engine **action names** (`plan`, `upgrade`, `verify`, `audit`, `diagnose`, `repair`,
-  `render`, `preview`, `promote`, `create-repository`) and the role id
-  `release-deployment-engineer` are provisional until `governance/engines.json` and
-  `governance/agent-roles.json` exist. A test checks them against those files as soon
-  as the files land.
+- Role ids and engine actions match `governance/agent-roles.json` and
+  `governance/engines.json` as drafted on the layers and control-plane branches
+  (checked there on 2026-11-28). Those files are not on this branch yet, so the
+  consistency test applies once they are merged.
+- The control plane does not implement `master-build:create-repository`,
+  `master-release:preview` or `master-release:promote` yet. Until it does, those gated
+  steps cannot run through it. They stay approval-gated and are never part of a
+  non-release grant.
+- Writing code (`repo-write`) is not an engine action: the ceiling bounds the agent's
+  own work in the granted paths. Engine actions only plan, test, record memory and
+  verify.
 - Vendored copies installed by `scripts/gaie_bootstrap.py` or the `gaie-factory`
   pack do not yet include `project_registry.py` or `contracts.py`. They fall back to
   the original loader, which ignores the catalog and the private record fields, and

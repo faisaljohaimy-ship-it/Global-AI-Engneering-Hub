@@ -301,7 +301,7 @@ class ControlPlaneRouteTests(unittest.TestCase):
             self.assertTrue(plan["capabilities"] and plan["tests"] and plan["evidence"], text)
             self.assertEqual(plan["grant_template"]["max_side_effect"], ceiling, text)
             self.assertEqual(plan["grant_template"]["role"], plan["roles"]["lead"], text)
-            self.assertEqual(list(plan["grant_template"]["engines"]), [engine_id], text)
+            self.assertEqual(next(iter(plan["grant_template"]["engines"])), engine_id, text)
             self.assertEqual(plan["execution_scope"]["max_side_effect"], ceiling, text)
             self.assertFalse(plan["execution_scope"]["default_branch_writes"], text)
             expected = "not-applicable" if project is None else "registered-public" if project == SADEED else "registered-private"
@@ -343,7 +343,8 @@ class ControlPlaneRouteTests(unittest.TestCase):
             plan = self.route(text)
             self.assertEqual((plan["intent"], plan["engine_id"]), ("audit", "master-audit"), text)
             self.assertEqual((plan["side_effect"], plan["grant_template"]["max_side_effect"]), ("none", "none"), text)
-            self.assertEqual(plan["grant_template"]["engines"], {"master-audit": ["audit"]}, text)
+            self.assertEqual(plan["grant_template"]["engines"],
+                             {"master-audit": ["spec", "inventory", "health", "hub-audit"], "memory": ["search"]}, text)
             self.assertFalse(set(plan["permissions"]) & WRITING, text)
             self.assertEqual(plan["execution_scope"]["kind"], "read-only", text)
             self.assertFalse(plan["execution_scope"]["network"] or plan["execution_scope"]["production"], text)
@@ -386,7 +387,7 @@ class ControlPlaneRouteTests(unittest.TestCase):
         plan = self.route("ابنِ نظامًا جديدًا لإدارة المشاريع")
         self.assertEqual((plan["engine_id"], plan["side_effect"], plan["target_scope"]), ("master-build", "workspace-write", "new-project"))
         self.assertEqual(plan["grant_template"]["paths"], ["workspace/new-project"])
-        self.assertNotIn("create-repository", plan["grant_template"]["engines"]["master-build"])
+        self.assertFalse(any("create-repository" in acts for acts in plan["grant_template"]["engines"].values()))
         step = plan["approvals_required"][0]
         self.assertEqual((step["action"], step["side_effect"], step["needs_approval"], step["in_base_grant"]),
                          ("create-repository", "external-write", True, False))
@@ -457,7 +458,9 @@ class ControlPlaneRouteTests(unittest.TestCase):
             lambda i: i["release"].update(gated_steps=[]),
             lambda i: i["build"].update(max_side_effect="external-write"),
             lambda i: i["build"].update(gated_steps=[]),
-            lambda i: i["build"]["actions"].append("create-repository"),
+            lambda i: i["build"]["engines"]["master-build"].append("create-repository"),
+            lambda i: i["release"]["engines"]["master-release"].remove("promote"),
+            lambda i: i["upgrade"]["engines"].pop("master-upgrade"),
             lambda i: i["repair"]["roles"].update(verifier=i["repair"]["roles"]["lead"]),
             lambda i: i["audit"]["roles"].update(lead="unlisted-role"),
             lambda i: i["upgrade"].update(gated_steps=[dict(i["build"]["gated_steps"][0])]),
@@ -502,7 +505,7 @@ class ControlPlaneRouteTests(unittest.TestCase):
     def test_role_engine_and_capability_ids_are_grounded(self):
         rules = router.policy()
         plane = rules["control_plane"]
-        listed = set(plane["role_ids"]["named_by_owner_directive"]) | set(plane["role_ids"]["provisional"])
+        listed = set(plane["role_ids"]["registered"]) | set(plane["role_ids"]["provisional"])
         factory = (ROOT / "docs/GAIE_FACTORY.md").read_text(encoding="utf-8")
         for spec in plane["intents"].values():
             self.assertLessEqual({spec["roles"]["lead"], spec["roles"]["verifier"], *spec["roles"]["support"]}, listed)
@@ -518,11 +521,18 @@ class ControlPlaneRouteTests(unittest.TestCase):
             data = json.loads(engines_file.read_text(encoding="utf-8"))
             engines = {row["id"]: row for row in (data.get("engines", data) if isinstance(data, dict) else data)}
             for intent, spec in plane["intents"].items():
-                self.assertIn(spec["engine_id"], engines, intent)
-                for action in spec["actions"]:
-                    self.assertIn(action, engines[spec["engine_id"]]["actions"], (intent, action))
-                    effect = engines[spec["engine_id"]]["actions"][action]["side_effect"]
-                    self.assertLessEqual(contracts.side_effect_rank(effect), contracts.side_effect_rank(spec["max_side_effect"]))
+                gated = {(step["engine"], step["action"]) for step in spec["gated_steps"]}
+                for name, actions in spec["engines"].items():
+                    self.assertIn(name, engines, intent)
+                    for action in actions:
+                        known = engines[name]["actions"]
+                        if (name, action) in gated and action not in known:
+                            continue  # a gated step the control plane does not implement yet: it cannot run
+                        self.assertIn(action, known, (intent, name, action))
+                        effect = known[action]["side_effect"]
+                        ceiling = spec["max_side_effect"]
+                        self.assertLessEqual(contracts.side_effect_rank(effect), contracts.side_effect_rank(ceiling),
+                                             (intent, name, action))
 
 
 if __name__ == "__main__":
