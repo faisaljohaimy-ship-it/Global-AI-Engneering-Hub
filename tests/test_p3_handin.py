@@ -1,5 +1,6 @@
 """The cage at hand-in: hostile samples are contained, and honest work still passes.
 No agent and no model is started. Walls that need root are skipped, with the reason, when the test is not root."""
+import json
 import os
 import pathlib
 import subprocess
@@ -82,6 +83,42 @@ class StillWorksTests(unittest.TestCase):
     def test_install_returns_the_previous(self):
         self.assertIs(workload.isolated, handin.isolated)
         self.assertIsNot(self.previous, handin.isolated)
+
+    def test_forty_hand_ins_at_once_do_not_end_each_other(self):
+        """Every cage used to be one user, and after each run the leftovers of that user were ended: with twenty hand-ins at once a
+        third of the correct ones were reported as failed. Each running cage is now a user of its own."""
+        task = tasks.medium(1, 7)
+        code = ("import sys, pathlib, tempfile, json\n"
+                "sys.path[:0] = %r\n"
+                "import handin, tasks\n"
+                "handin.install()\n"
+                "task = tasks.medium(1, 7)\n"
+                "with tempfile.TemporaryDirectory() as t:\n"
+                "    sol = pathlib.Path(t) / 'solution.py'\n"
+                "    sol.write_text(task['reference'])\n"
+                "    result = tasks.run_suite(sol, task['suite'])\n"
+                "print(json.dumps(result))\n") % [str(ROOT / 'swarm' / 'phase3'), str(ROOT / 'swarm' / 'phase2'), str(ROOT / 'swarm')]
+        started = [subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(40)]
+        results = [json.loads(process.communicate(timeout=120)[0] or "{}") for process in started]
+        self.assertEqual([r.get("passed") for r in results], [len(task["suite"]["tests"])] * 40, [r for r in results if r.get("error")][:3])
+
+    def test_two_cages_at_once_are_two_users_and_the_user_is_free_again_afterwards(self):
+        if os.geteuid() != 0:
+            self.skipTest("a cage is another user only when the caller is root")
+        first, held = handin._take_user()
+        second, also = handin._take_user()
+        try:
+            self.assertNotEqual(first, second)
+            self.assertIn(first, handin.USERS)
+            self.assertNotEqual(first, 0)
+        finally:
+            os.close(held)
+            os.close(also)
+        again, once_more = handin._take_user()
+        os.close(once_more)
+        self.assertEqual(again, first, "a user whose cage has ended is taken again")
+        seen = handin.isolated([sys.executable, "-I", "-c", "import os; print(os.getuid())"])
+        self.assertIn(int(seen.stdout), handin.USERS)
 
     def test_reference_solution_passes(self):
         task = tasks.medium(1, 7)

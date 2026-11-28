@@ -24,6 +24,7 @@ here", never as passed. The network wall needs the kernel to allow a network nam
 
 Command line: python3 handin.py selftest   prints each wall and what happened.
 """
+import fcntl
 import os
 import shutil
 import socket
@@ -55,8 +56,33 @@ def _in_python(path: Path) -> bool:
     return path == exe or any(path == r or r in path.parents for r in _installation())
 
 
-def _open_tree(folder: Path) -> None:
-    """Make the copy readable by the unprivileged user, and writable inside `work`."""
+USERS = range(61000, 61400)  # one user id for each cage that is running, so that two cages are never the same user
+
+
+def _take_user():
+    """A user id that no other running cage holds, and the lock that says so; the lock goes when its file is closed.
+
+    One shared user for every cage was a fault: after each run the leftovers of that user are ended, and with twenty
+    hand-ins at once that ended the other nineteen. Measured before this change: of 60 correct hand-ins made 20 at a
+    time, 21 were reported as failed."""
+    if os.geteuid() != 0:
+        return cage.UNPRIVILEGED, None
+    folder = Path(tempfile.gettempdir()) / "handin-users"
+    folder.mkdir(mode=0o700, exist_ok=True)
+    first = os.getpid() % len(USERS)
+    for step in range(len(USERS)):
+        user = USERS[(first + step) % len(USERS)]
+        descriptor = os.open(folder / str(user), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return user, descriptor
+        except OSError:
+            os.close(descriptor)
+    raise OSError("every user id kept for cages is in use")
+
+
+def _open_tree(folder: Path, user: int = cage.UNPRIVILEGED) -> None:
+    """Make the copy readable by the cage's user, and writable inside `work`."""
     root = os.geteuid() == 0
     for base, dirs, files in os.walk(folder):
         for name in dirs + files:
@@ -64,26 +90,31 @@ def _open_tree(folder: Path) -> None:
             if p.is_symlink():
                 continue
             if root:
-                os.chown(p, cage.UNPRIVILEGED, cage.UNPRIVILEGED)
+                os.chown(p, user, user)
             p.chmod(0o755 if p.is_dir() else (p.stat().st_mode | 0o444))
     if root:
-        os.chown(folder, cage.UNPRIVILEGED, cage.UNPRIVILEGED)
+        os.chown(folder, user, user)
     folder.chmod(0o755)
 
 
 def isolated(command, cwd=None, timeout=20) -> subprocess.CompletedProcess:
     """Run worker-written code in a fresh copy of what it needs; see the module doc."""
     command = [str(c) for c in command]
+    user, held = _take_user()
     space = Path(tempfile.mkdtemp(prefix="handin-"))
     try:
-        space.chmod(0o755)
+        if held is not None:  # the copy is this cage's alone: another cage, being another user, cannot look into it
+            os.chown(space, user, user)
+            space.chmod(0o700)
+        else:
+            space.chmod(0o755)
         argv = list(command)
         run_cwd = None
         base = Path(cwd).resolve() if cwd is not None else Path.cwd()
         if cwd is not None:
             work = space / "work"
             shutil.copytree(base, work, symlinks=True, ignore_dangling_symlinks=True)
-            _open_tree(work)
+            _open_tree(work, user)
             run_cwd = work
         for number, arg in enumerate(command):
             if number == 0 or arg.startswith("-") and not os.sep in arg:
@@ -104,27 +135,29 @@ def isolated(command, cwd=None, timeout=20) -> subprocess.CompletedProcess:
             shutil.copyfile(p, where / p.name)
             argv[number] = str(where / p.name)
         if (space / "in").exists():
-            _open_tree(space / "in")
+            _open_tree(space / "in", user)
             (space / "in").chmod(0o555)
-        done = cage.run(argv, cwd=run_cwd, timeout=timeout)
+        done = cage.run(argv, cwd=run_cwd, timeout=timeout, uid=user)
         if done.limit == "timeout":
             raise subprocess.TimeoutExpired(command, timeout, done.stdout, done.stderr)
         done.args = command
         return done
     finally:
-        _reap()
+        if held is not None:
+            _reap(user)
+            os.close(held)
         cage.remove(space)
 
 
-def _reap() -> None:
-    """As root, end any process the unprivileged user still owns (one that left its group)."""
+def _reap(user: int) -> None:
+    """As root, end any process this cage's user still owns (one that left its group). Only this cage's: another cage is another user."""
     if os.geteuid() != 0:
         return
     for entry in Path("/proc").iterdir():
         if not entry.name.isdigit():
             continue
         try:
-            if entry.stat().st_uid == cage.UNPRIVILEGED:
+            if entry.stat().st_uid == user:
                 os.kill(int(entry.name), 9)
         except OSError:
             pass
