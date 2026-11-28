@@ -20,6 +20,7 @@ import argparse
 import contextlib
 import datetime
 import errno
+import fcntl
 import hashlib
 import importlib
 import importlib.util
@@ -63,6 +64,7 @@ RELATIONS = ENGINE.RELATIONS if ENGINE else LEGACY_RELATIONS
 PROJECT = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 DIGEST = re.compile(r"[a-f0-9]{64}")
 JOURNAL = "entries.jsonl"
+JOURNAL_LOCK = "entries.lock"
 FIELDS = ("project", "kind", "title", "body", "tags", "evidence", "links", "previous", "created")
 MAX_BODY, MAX_ENTRIES, MAX_BYTES = 4000, 5000, 8 * 1024 * 1024
 SECRET = re.compile(
@@ -344,37 +346,64 @@ def _journal_guard(memory):
             raise MemoryError_(f"{shown} is open to other users; refused. Fix: chmod {fix} \"{shown}\"")
 
 
-def _journal_open(memory, flags):
-    """SEC-10: the journal as a regular file the caller owns, with one link and no group/other bits. O_NOFOLLOW
-    refuses a symbolic link, O_NONBLOCK keeps a FIFO from blocking the open, and fstat checks the opened file itself.
-    An existing journal that fails a check is refused, never repaired: the message names the fix."""
-    shown = f'"$GAIE_HOME/memory/{memory.project}/{JOURNAL}"'
+def _private_file(memory, name, flags, what):
+    """SEC-10: a file of the project directory as a regular file the caller owns, with one link and no group/other
+    bits. O_NOFOLLOW refuses a symbolic link, O_NONBLOCK keeps a FIFO from blocking the open, and fstat checks the
+    opened file itself. An existing file that fails a check is refused, never repaired: the message names the fix."""
+    shown = f'"$GAIE_HOME/memory/{memory.project}/{name}"'
     try:
-        descriptor = os.open(memory.journal, flags | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, 0o600)
+        descriptor = os.open(memory.root / name, flags | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, 0o600)
     except OSError as error:
         if error.errno == errno.ELOOP:
             raise MemoryError_("symlink in memory path refused") from None
         if error.errno == errno.ENXIO:
-            raise MemoryError_("memory journal is not a regular file; refused") from None
-        raise MemoryError_(f"memory journal cannot be opened ({errno.errorcode.get(error.errno, 'error')})") from None
+            raise MemoryError_(f"{what} is not a regular file; refused") from None
+        raise MemoryError_(f"{what} cannot be opened ({errno.errorcode.get(error.errno, 'error')})") from None
     info = os.fstat(descriptor)
     if not stat.S_ISREG(info.st_mode):
-        problem = "memory journal is not a regular file; refused"
+        problem = f"{what} is not a regular file; refused"
     elif info.st_uid != os.getuid():
-        problem = "memory journal is owned by another user; refused"
+        problem = f"{what} is owned by another user; refused"
     elif info.st_nlink != 1:
-        problem = (f"memory journal has {info.st_nlink} links, so an append could write into another file; refused. "
+        problem = (f"{what} has {info.st_nlink} links, so a write could land in another file; refused. "
                    f"Fix: cp {shown} {shown[:-1]}.new\" && mv {shown[:-1]}.new\" {shown}")
     elif stat.S_IMODE(info.st_mode) & 0o077:
-        problem = f"memory journal is open to other users; refused. Fix: chmod 600 {shown}"
+        problem = f"{what} is open to other users; refused. Fix: chmod 600 {shown}"
     else:
         return descriptor
     os.close(descriptor)
     raise MemoryError_(problem)
 
 
+def _journal_open(memory, flags):
+    return _private_file(memory, JOURNAL, flags, "memory journal")
+
+
+@contextlib.contextmanager
+def _journal_locked(memory, exclusive):
+    """w2-memory-heal-orch M1: one writer at a time over read, check and append (an exclusive flock on a private lock
+    file beside the journal). Readers share the lock when the lock file exists; a read never creates it."""
+    if not exclusive and not os.path.lexists(memory.root / JOURNAL_LOCK):
+        yield
+        return
+    descriptor = _private_file(memory, JOURNAL_LOCK, os.O_RDWR | os.O_CREAT if exclusive else os.O_RDONLY,
+                               "memory journal lock")
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+        yield
+    finally:
+        os.close(descriptor)
+
+
 def _journal_rows(memory):
     _journal_guard(memory)
+    if not os.path.lexists(memory.journal):
+        return []
+    with _journal_locked(memory, exclusive=False):
+        return _read_journal(memory)
+
+
+def _read_journal(memory):
     if not os.path.lexists(memory.journal):
         return []
     with os.fdopen(_journal_open(memory, os.O_RDONLY), "rb") as stream:
@@ -396,8 +425,8 @@ def _journal_rows(memory):
     return rows
 
 
-def _journal_add(memory, kind, title, body, tags, receipts, edges, now):
-    existing = _journal_rows(memory)
+def _journal_next(memory, existing, kind, title, body, tags, receipts, edges, now):
+    """(id, row to append after `existing`), or (id of the duplicate, None); refusals raise MemoryError_."""
     known = {row["id"] for row in existing}
     for edge in edges:
         if edge["relation"] not in LEGACY_RELATIONS or edge["target"] not in known:
@@ -405,21 +434,36 @@ def _journal_add(memory, kind, title, body, tags, receipts, edges, now):
     content = {"project": memory.project, "kind": kind, "title": title, "body": body, "tags": tags, "evidence": receipts, "links": edges}
     duplicate = next((row["id"] for row in existing if all(row[key] == content[key] for key in content)), None)
     if duplicate:
-        return {"status": "duplicate", "id": duplicate}
+        return duplicate, None
     if len(existing) >= MAX_ENTRIES:
         raise MemoryError_("memory store is full; archive before adding")
     content["previous"] = existing[-1]["id"] if existing else None
     content["created"] = (now or datetime.datetime.now(datetime.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
     identity = _digest(content)
-    row = {"id": identity, **content}
+    return identity, {"id": identity, **content}
+
+
+def _journal_add(memory, kind, title, body, tags, receipts, edges, now):
+    identity, row = _journal_next(memory, _journal_rows(memory), kind, title, body, tags, receipts, edges, now)
+    if row is None:
+        return {"status": "duplicate", "id": identity}
     for directory in (memory.root.parent.parent, memory.root.parent):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     memory.root.mkdir(parents=True, exist_ok=True, mode=0o700)
     _journal_guard(memory)
-    with os.fdopen(_journal_open(memory, os.O_WRONLY | os.O_APPEND | os.O_CREAT), "a", encoding="utf-8") as stream:
-        stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
-        stream.flush()
-        os.fsync(stream.fileno())
+    with _journal_locked(memory, exclusive=True):
+        # Again under the lock: another writer may have appended since the first read.
+        identity, row = _journal_next(memory, _read_journal(memory), kind, title, body, tags, receipts, edges, now)
+        if row is None:
+            return {"status": "duplicate", "id": identity}
+        data = memoryview((json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
+        descriptor = _journal_open(memory, os.O_WRONLY | os.O_APPEND | os.O_CREAT)
+        try:
+            while data:
+                data = data[os.write(descriptor, data):]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
     return {"status": "stored", "id": identity}
 
 

@@ -308,6 +308,50 @@ class ReadOnlyCommandTests(JournalBase):
         self.assertEqual(tree(self.home), {})
 
 
+WRITER = """
+import os, sys, pathlib
+sys.path.insert(0, sys.argv[1])
+from engineering_os import gaie_memory
+home, name, count, gate = sys.argv[2], sys.argv[3], int(sys.argv[4]), pathlib.Path(sys.argv[5])
+memory = gaie_memory.Memory("demo", {"GAIE_HOME": home})
+while not gate.exists():
+    pass
+stored = 0
+for number in range(count):
+    result = gaie_memory._journal_add(memory, "lesson", f"{name} entry {number}", f"written by {name}", [], [], [], None)
+    stored += result["status"] == "stored"
+print(stored)
+"""
+
+
+class ConcurrentAppendTests(JournalBase):
+    """w2-memory-heal-orch M1: two processes appending at once both land every entry and the chain verifies."""
+
+    def test_two_writers_land_every_entry_and_the_journal_verifies(self):
+        count, gate = 12, self.tmp / "go"
+        writers = [subprocess.Popen([sys.executable, "-c", WRITER, str(ROOT), str(self.home), name, str(count), str(gate)],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for name in ("alpha", "beta")]
+        gate.touch()
+        results = [writer.communicate(timeout=120) for writer in writers]
+        for writer, (out, err) in zip(writers, results):
+            self.assertEqual((writer.returncode, out.strip()), (0, str(count)), err[-2000:])
+        rows = gaie_memory._journal_rows(self.memory)
+        self.assertEqual(len(rows), 2 * count)
+        self.assertEqual(len({row["previous"] for row in rows}), 2 * count)
+        self.assertEqual(stat.S_IMODE((self.memory.root / gaie_memory.JOURNAL_LOCK).stat().st_mode), 0o600)
+        if gaie_memory.ENGINE is not None:
+            facade = gaie_memory.Memory("demo", {"GAIE_HOME": str(self.home)})
+            self.assertEqual(len(facade.entries()), 2 * count)
+
+    def test_a_hard_linked_lock_file_is_refused(self):
+        self.private_dirs()
+        self.outside.write_bytes(b"")
+        os.chmod(self.outside, 0o600)
+        os.link(self.outside, self.memory.root / gaie_memory.JOURNAL_LOCK)
+        self.refused("memory journal lock", "links")
+        self.assertFalse(self.memory.journal.exists())
+
+
 class VendoredAloneTests(JournalBase):
     def test_the_vendored_journal_cli_refuses_a_hard_link(self):
         engine = self.tmp / "engine"
