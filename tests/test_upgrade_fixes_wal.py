@@ -21,6 +21,14 @@ from unittest import mock
 from engineering_os import upgrade_engine as engine
 from engineering_os.upgrade_engine import UpgradeError, upgrade
 
+try:  # SEC-07 (final branch): explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:
+    try:  # imported from the tests directory (discover -s tests)
+        from _target_code_mode import opt_in_without_full_tier as setUpModule
+    except ImportError:  # a tree before SEC-07: detectors.Sandbox runs the target's suite without an opt-in
+        pass
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TASKAPP = ROOT / "tests" / "fixtures" / "upgrade" / "taskapp"
 OVERLAY = ROOT / "tests" / "fixtures" / "upgrade" / "taskapp-wal"

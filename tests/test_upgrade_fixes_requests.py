@@ -17,30 +17,46 @@ from unittest import mock
 from engineering_os import upgrade_engine as engine
 from engineering_os.upgrade_engine import UpgradeError, upgrade
 
+try:  # SEC-07 (final branch): explicit process-only opt-in where the full sandbox tier is missing (tests/_target_code_mode.py)
+    from tests._target_code_mode import opt_in_without_full_tier as setUpModule
+except ImportError:
+    try:  # imported from the tests directory (discover -s tests)
+        from _target_code_mode import opt_in_without_full_tier as setUpModule
+    except ImportError:  # a tree before SEC-07: detectors.Sandbox runs the target's suite without an opt-in
+        pass
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "upgrade" / "taskapp"
 SPEC = json.loads((FIXTURE / "gaie-spec.json").read_text(encoding="utf-8"))
 NOW = 1_800_000_000
+# A requirements parser that cannot apply a locale removal leaves it "unsettled"; one that can (the lexicon on the final
+# branch) reports it as a breaking change, or as an open question for "without". Every one of these stops the upgrade.
+LOCALE_REMOVAL = ("unsettled", "refused-breaking")
+LOCALE_EXCLUSION = ("unsettled", "open-questions")
 NOT_SETTLED = {
-    "Upgrade the task management system and remove the tasks entity": "unparsed",
-    "طور نظام إدارة المهام واحذف المهام": "unparsed",
-    "Upgrade the task management system and remove the Arabic locale": "unsettled",
-    "طور نظام إدارة المهام واحذف اللغة العربية": "unsettled",
-    "Upgrade the task management system without the Arabic locale": "unsettled",
-    "طور نظام إدارة المهام بدون اللغة العربية": "unsettled",
+    "Upgrade the task management system and remove the tasks entity": ("unparsed",),
+    "طور نظام إدارة المهام واحذف المهام": ("unparsed",),
+    "Upgrade the task management system and remove the Arabic locale": LOCALE_REMOVAL,
+    "طور نظام إدارة المهام واحذف اللغة العربية": LOCALE_REMOVAL,
+    "Upgrade the task management system without the Arabic locale": LOCALE_EXCLUSION,
+    "طور نظام إدارة المهام بدون اللغة العربية": LOCALE_EXCLUSION,
 }
 
 
 class RequestedChanges(unittest.TestCase):
     def test_unparsed_and_ignored_removals_are_not_settled_in_both_languages(self):
-        for command, status in NOT_SETTLED.items():
+        for command, statuses in NOT_SETTLED.items():
             with self.subTest(command=command):
                 requested = engine.requested_changes(command, SPEC)
-                self.assertEqual(requested["status"], status)
-                self.assertIn(status, engine.UNSETTLED)
-                self.assertTrue(requested["unmet"], "what was asked is named as unmet")
+                self.assertIn(requested["status"], statuses)
+                if requested["status"] != "refused-breaking":
+                    self.assertIn(requested["status"], engine.UNSETTLED)
+                    self.assertTrue(requested["unmet"], "what was asked is named as unmet")
+                else:
+                    self.assertTrue(requested["breaking"], "the breaking change is named")
         locale = engine.requested_changes("طور نظام إدارة المهام واحذف اللغة العربية", SPEC)
-        self.assertEqual(locale["unmet"], ["remove or exclude: واحذف اللغه العربيه"])
+        if locale["status"] == "unsettled":
+            self.assertEqual(locale["unmet"], ["remove or exclude: واحذف اللغه العربيه"])
 
     def test_settled_requests_keep_their_status(self):
         cases = {"طور نظام إدارة المهام بالكامل": ("ok", []), "Upgrade the task management system completely": ("ok", []),
@@ -74,15 +90,17 @@ class UpgradeStops(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_the_upgrade_stops_before_copying_anything_in_arabic_and_english(self):
-        for number, (command, status) in enumerate(NOT_SETTLED.items()):
+        for number, (command, statuses) in enumerate(NOT_SETTLED.items()):
             workdir = self.base / f"wd-{number}"
             with self.subTest(command=command):
                 with self.assertRaises(UpgradeError) as caught:
                     upgrade(FIXTURE, command=command, workdir=workdir, now=NOW, environ=self.environ)
                 if "without" in command or "بدون" in command:  # the router already refuses no-change wording next to a mutation
                     self.assertIn("Command not routable", str(caught.exception))
+                elif "refused-breaking" in statuses and "Requested change refused" in str(caught.exception):
+                    self.assertIn("a breaking change needs an owner-designed migration", str(caught.exception))
                 else:
-                    self.assertIn(f"Requested change not settled ({status}", str(caught.exception))
+                    self.assertRegex(str(caught.exception), r"Requested change not settled \((%s)" % "|".join(statuses))
                     self.assertIn("Nothing was copied or changed", str(caught.exception))
                 self.assertFalse(workdir.exists())
 
@@ -90,16 +108,16 @@ class UpgradeStops(unittest.TestCase):
         result = upgrade(FIXTURE, command="افحص نظام إدارة المهام بدون اللغة العربية", workdir=self.base / "audit", now=NOW,
                          environ=self.environ)
         self.assertEqual(result["status"], "audited")
-        self.assertEqual(result["audit"]["requirements"]["status"], "unsettled")
+        self.assertIn(result["audit"]["requirements"]["status"], LOCALE_EXCLUSION)
 
     def test_the_regression_check_is_false_for_any_unsettled_request(self):
         with mock.patch.object(engine, "UNSETTLED", ()):  # bypass the stop: the report itself must not claim the request met
-            result = upgrade(FIXTURE, command="Upgrade the task management system and remove the Arabic locale",
+            result = upgrade(FIXTURE, command="Upgrade the task management system and get rid of the Arabic locale",
                              workdir=self.base / "bypassed", now=NOW, environ=self.environ)
         self.assertFalse(result["regression"]["checks"]["requested-changes-met"])
         self.assertEqual(result["status"], "partially-upgraded")
-        self.assertEqual(result["unmet_requests"], ["remove or exclude: remove the arabic locale"])
-        self.assertIn("Requested but NOT implemented: remove or exclude: remove the arabic locale", result["summary"]["en"])
+        self.assertEqual(result["unmet_requests"], ["not accounted for: get rid of the arabic locale"])
+        self.assertIn("Requested but NOT implemented: not accounted for: get rid of the arabic locale", result["summary"]["en"])
         self.assertIn("requested-changes-met: contradicted", result["decision"]["warnings"])
 
 
