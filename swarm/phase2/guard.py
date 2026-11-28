@@ -23,7 +23,7 @@ import sys
 
 MARK = "swk-guard"
 WORD = r"[A-Za-z0-9_./:=,@%+-]+"
-LINE = re.compile(rf"swk (?:show|next|status|test|read|grep|def|callers|select)(?: (?:{WORD}|'[^'\n]*'))*")
+LINE = re.compile(rf"swk (?:show|next|test|read|grep|def|callers|select)(?: (?:{WORD}|'[^'\n]*'))*")
 OPEN = re.compile(rf"swk (?:submit|setline|answer)(?: {WORD})* <<'([A-Za-z_]+)'")
 
 
