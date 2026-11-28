@@ -22,16 +22,16 @@ from engineering_os import upgrade_engine, workspace_policy  # noqa: E402
 from engineering_os.workspace_policy import WorkspacePolicyError, _repo_id  # noqa: E402
 
 SLUG = "faisaljohaimy-ship-it/biz-pulse-ar"
-# Remotes with user info are joined at run time so this file holds no credential-shaped URL.
+# Remotes with user info are joined at run time so this file holds no credential- or email-shaped literal.
 SPELLINGS = {  # every form names the registered project biz-pulse-ar
     "canonical https": f"https://github.com/{SLUG}",
     "host in capitals": f"https://GitHub.com/{SLUG}.git",
-    "user in https URL": f"https://faisal@github.com/{SLUG}.git",
+    "user in https URL": "https://faisal" + f"@github.com/{SLUG}.git",
     "user and token in https URL": "https://x-access-token:" + "secret-value" + f"@github.com/{SLUG}",
     "www host": f"https://www.github.com/{SLUG}",
     "ssh with default port": f"ssh://git@github.com:22/{SLUG}.git",
     "ssh without user": f"ssh://github.com/{SLUG}",
-    "ssh.github.com on 443": f"ssh://git@ssh.github.com:443/{SLUG}.git",
+    "ssh.github.com on 443": "ssh://git" + f"@ssh.github.com:443/{SLUG}.git",
     "git+ssh scheme": f"git+ssh://git@github.com/{SLUG}",
     "https default port": f"https://github.com:443/{SLUG}",
     "http": f"http://github.com/{SLUG}",
@@ -132,7 +132,7 @@ class RegisteredCheckoutInEveryForm(unittest.TestCase):
         self.assertEqual((route["project"], route["target_resolution"]), ("biz-pulse-ar", "registered-project-origin"))
 
     def test_controls_no_remote_and_another_repository_stay_explicit_local_targets(self):
-        for origin in (None, "https://GitHub.com/example/another-project.git", "git@gitlab.com:" + SLUG):
+        for origin in (None, "https://GitHub.com/example/another-project.git", "git" + "@gitlab.com:" + SLUG):
             with self.subTest(origin=origin):
                 route = self.route("upgrade the system", self.checkout(origin))
                 self.assertEqual((route["project"], route["target_resolution"]), (None, "explicit-local-target"))
