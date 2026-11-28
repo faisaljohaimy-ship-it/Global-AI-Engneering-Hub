@@ -44,14 +44,19 @@ REPO = re.compile(r"(?P<owner>[A-Za-z0-9][A-Za-z0-9-]*)/(?P<repo>[A-Za-z0-9._-]+
 # Case folding is ASCII only (recheck-release item 2): with Unicode folding the i of github matched U+0131
 # (dotless i) and U+0130 (dotted capital I), and the s of ssh. and localhost matched U+017F (long s), so a
 # look-alike host normalised to the registered owner/name.
+# The user info of a URL holds no / ? # @ \, whitespace or control character (recheck-release-2 N2):
+# libcurl and Git end the authority at ? and #, so https://evil.example?@github.com/<owner>/<repo> matched
+# while Git contacted evil.example. _repo_id also refuses such an authority outright (URL_AUTHORITY_DELIMITERS).
 REMOTE = re.compile(
     r"(?:https?://local_proxy@(?:127\.0\.0\.1|localhost):[0-9]+/git/"
-    r"|(?P<scheme>[a-z][a-z0-9+.-]*)://(?:[^/\s]*@)?(?P<host>(?:www\.|ssh\.)?github\.com)\.?(?::(?P<port>[0-9]*))?/"
+    r"|(?P<scheme>[a-z][a-z0-9+.-]*)://(?:[^/?#@\\\s\x00-\x1f\x7f]*@)?(?P<host>(?:www\.|ssh\.)?github\.com)\.?(?::(?P<port>[0-9]*))?/"
     r"|(?:[^/:\s]*@)?(?:www\.|ssh\.)?github\.com\.?:(?!//))(?P<path>\S+)",
     re.IGNORECASE | re.ASCII,
 )
 # What precedes a remote's path: scheme, user info, host and port of a URL, or [user@]host of the scp form.
 AUTHORITY = re.compile(r"[^/]*://[^/]*|[^/:]*:(?!//)")
+# Characters that end or split a URL authority differently for Git, libcurl and this module.
+URL_AUTHORITY_DELIMITERS = re.compile(r"[?#\\\s\x00-\x1f\x7f]|@.*@", re.ASCII | re.DOTALL)
 ASCII_LOWER = str.maketrans(string.ascii_uppercase, string.ascii_lowercase)
 DEFAULT_PORTS = {"https": {"", "443"}, "http": {"", "80"}, "git": {"", "9418"},
                  **{scheme: {"", "22", "443"} for scheme in ("ssh", "git+ssh", "ssh+git")}}  # ssh.github.com:443
@@ -71,6 +76,10 @@ def _repo_id(value):
     can map a full-width or other compatibility spelling to github.com (Python's idna codec does), so "not
     GitHub" cannot be assumed either (recheck-release item 2).
     Only ASCII letters are folded, so a non-ASCII owner or name cannot fold into a registered one.
+    A URL authority with ? # \\ whitespace, a control character or a second @ is refused (recheck-release-2 N2):
+    Git and libcurl end the authority at ? and #, so the host they contact is not the one after the @.
+    A host or port with a % is refused (recheck-release-2 N3): libcurl and Git's own ssh:// and git:// parser
+    decode it, so github%2ecom reaches github.com and "not GitHub" cannot be assumed.
     """
     if not isinstance(value, str):
         return None
@@ -78,6 +87,12 @@ def _repo_id(value):
     if authority and not authority[0].rpartition("@")[2].isascii():
         raise WorkspacePolicyError("A remote host that is not plain ASCII cannot be ruled out as a look-alike or "
                                    "an IDNA spelling of GitHub; refused.")
+    if authority and "://" in authority[0] and URL_AUTHORITY_DELIMITERS.search(authority[0].partition("://")[2]):
+        raise WorkspacePolicyError("A remote URL whose authority holds ?, #, a backslash, whitespace or a second @ "
+                                   "is split differently by Git and libcurl, so its host is ambiguous; refused.")
+    if authority and "%" in authority[0].split("://", 1)[-1].rpartition("@")[2]:
+        raise WorkspacePolicyError("A percent-encoded remote host or port is decoded by Git and libcurl and can name "
+                                   "GitHub, so it cannot be ruled out as a registered project; refused.")
     remote = REMOTE.fullmatch(value)
     if remote is None:
         match = REPO.fullmatch(value)

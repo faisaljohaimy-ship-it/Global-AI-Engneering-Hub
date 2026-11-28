@@ -77,8 +77,11 @@ _POSSESSIVE = re.compile(r"(?<=[A-Za-z0-9])['\u2019]s\b")
 _NAME = r"(?!\.+(?:\.git)?/?$)([A-Za-z0-9_.-]+)"
 _REPO = r"(?!\.+(?:\.git)?/?$)([A-Za-z0-9_.-]+?)(?:\.git)?/?"
 REPOSITORY = re.compile(r"https://github\.com/" + _NAME + "/" + _REPO)
-REMOTES = (re.compile(r"(?:https://(?:[^/@\s]+@)?github\.com/|ssh://git@github\.com/|git@github\.com:)" + _NAME + "/" + _REPO),
-           re.compile(r"https?://(?:[^/@\s]+@)?(?:127\.0\.0\.1|localhost)(?::\d+)?/git/" + _NAME + "/" + _REPO))
+# URL user info holds no / ? # @ \, whitespace or control character: Git and libcurl end the authority at ? and #,
+# so https://evil.example?@github.com/<owner>/<repo> is fetched from evil.example (recheck-release-2 N2).
+_USER_INFO = r"(?:[^/?#@\\\s\x00-\x1f\x7f]+@)?"
+REMOTES = (re.compile(r"(?:https://" + _USER_INFO + r"github\.com/|ssh://git@github\.com/|git@github\.com:)" + _NAME + "/" + _REPO),
+           re.compile(r"https?://" + _USER_INFO + r"(?:127\.0\.0\.1|localhost)(?::\d+)?/git/" + _NAME + "/" + _REPO))
 SLUG = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 _DIACRITICS = re.compile("[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]")
 _FOLD = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ى": "ي", "ئ": "ي", "ؤ": "و", "ة": "ه"})
